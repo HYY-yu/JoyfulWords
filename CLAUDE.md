@@ -57,6 +57,10 @@ Note: The project uses pnpm as the package manager.
   - material-search.tsx  # Material search functionality
   - competitor-tracking.tsx # Competitor analysis
   - article-writing.tsx  # Article writing tool with Tiptap editor
+  - article-manager.tsx  # Article management system with table view and dialogs
+  - article-types.ts     # Type definitions and mock data for articles
+  - article-dialogs.tsx  # Dialog components for article management (preview, images, links)
+  - article-table.tsx    # Reusable table component for article display
   - image-generation.tsx # Image generation feature
   - [other feature components]
 
@@ -119,6 +123,46 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
    - Styled with Tailwind CSS variables for dark mode support
    - Integrated with React Hook Form for form state management
 
+### Article Management System
+
+The application includes a comprehensive article management module located in the content-writing section:
+
+1. **Core Components**:
+   - `article-manager.tsx`: Main management interface with table view, search, and filtering
+   - `article-types.ts`: TypeScript definitions for Article, ArticleImage, ReferenceLink types
+   - `article-dialogs.tsx`: Modal dialogs for content preview, image gallery, and link management
+   - `article-table.tsx`: Reusable table component with sorting and interaction capabilities
+
+2. **Features**:
+   - **Table View**: Clean, consistent table styling matching material search design
+   - **Search & Filter**: Title-based search and status-based filtering (published, draft, archived)
+   - **Interactive Content**: Click-to-preview functionality for article content, images, and reference links
+   - **Content Preview Dialog**: Full article content display with metadata and tags
+   - **Image Gallery Dialog**: Interactive image viewer with navigation and thumbnail grid
+   - **Links Management Dialog**: Organized display of reference links with external access
+   - **CRUD Operations**: Edit, delete, and create new articles with confirmation dialogs
+   - **Status Management**: Track and change article publication status
+
+3. **Mock Data**:
+   - 12 sample articles covering various content creation topics
+   - Rich content including images (1-3 per article) and reference links (1-3 per article)
+   - Different statuses and categories for comprehensive testing
+   - Bilingual content with Chinese titles and English descriptions
+
+4. **UI/UX Design**:
+   - Consistent styling with material search component
+   - Responsive table layout with hover effects
+   - Icon-based actions with tooltips
+   - Loading states and empty data handling
+   - Mobile-optimized responsive design
+
+5. **Technical Implementation**:
+   - TypeScript strict mode with comprehensive type safety
+   - React hooks for state management (useState, useMemo)
+   - Shadcn/ui components for consistent design system
+   - Custom CSS utilities (line-clamp) for text truncation
+   - Toast notifications for user feedback
+
 ## Important Notes
 
 - **TypeScript Errors**: Build ignores TypeScript errors (`ignoreBuildErrors: true` in next.config.mjs)
@@ -129,7 +173,9 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 
 ## Feature Status
 
-- **Fully Implemented**: Content writing tools (material search, competitor tracking, article writing)
+- **Fully Implemented**:
+  - Content writing tools (material search, competitor tracking, article writing)
+  - Article management system with full CRUD operations and interactive content preview
 - **Placeholder UI**: Image generation, knowledge cards, SEO/GEO tools, video editing (show "Doing 中..." or "Coming soon")
 - **Analytics**: Vercel Analytics integrated for production tracking
 

@@ -5,6 +5,7 @@ import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs } from "lucide-re
 import { MaterialSearch } from "./material-search"
 import { CompetitorTracking } from "./competitor-tracking"
 import { ArticleWriting } from "./article-writing"
+import { ArticleManager } from "./article-manager"
 
 const tabs = [
   { id: "material-search", label: "素材搜索", icon: SearchIcon },
@@ -71,6 +72,8 @@ export function ContentWriting() {
           <CompetitorTracking />
         ) : activeTab === "article-writing" ? (
           <ArticleWriting />
+        ) : activeTab === "article-manager" ? (
+          <ArticleManager />
         ) : (
           <div className="flex items-center justify-center min-h-[500px]">
             <div className="text-center space-y-4 animate-in fade-in duration-300">

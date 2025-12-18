@@ -49,7 +49,7 @@ export function TiptapEditor({
     ],
     content,
     editable,
-    immediatelyRender: false,
+    immediatelyRender: true,
     editorProps: {
       attributes: {
         class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-4",
