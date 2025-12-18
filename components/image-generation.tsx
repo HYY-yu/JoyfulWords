@@ -119,7 +119,7 @@ export function ImageGeneration() {
   }
 
   return (
-    <main className="flex-1 overflow-auto">
+    <main className="flex-1 overflow-visible">
       {/* Header */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
         <div className="px-8 py-6">
@@ -301,9 +301,9 @@ export function ImageGeneration() {
 
         {/* Example Templates */}
         {!isChatExpanded && (
-          <div className="mt-8 pt-8 border-t border-dashed border-border/60 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="mt-8 pt-8 border-t border-dashed border-border/60 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-visible">
             <h3 className="text-lg font-semibold text-foreground mb-4">案例参考</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-visible">
               {examples.map((example) => (
                 <div key={example.id} className="relative">
                   <button
@@ -321,7 +321,7 @@ export function ImageGeneration() {
 
                   {/* Hover Preview Image */}
                   {hoveredExample === example.id && (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
                         <Image
                           src={example.preview || "/placeholder.svg"}
