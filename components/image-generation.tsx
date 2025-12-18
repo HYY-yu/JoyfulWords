@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useRef } from "react"
+import Image from "next/image"
 import { ImageIcon, PaperclipIcon, SendIcon, XIcon, UserIcon, BotIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -176,10 +177,12 @@ export function ImageGeneration() {
                   {message.images && message.images.length > 0 && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       {message.images.map((img, idx) => (
-                        <img
+                        <Image
                           key={idx}
                           src={img || "/placeholder.svg"}
                           alt="Generated"
+                          width={200}
+                          height={128}
                           className="w-full h-32 object-cover rounded-md"
                         />
                       ))}
@@ -230,9 +233,11 @@ export function ImageGeneration() {
                 {uploadedImages.map((file, index) => (
                   <div key={index} className="relative group">
                     <div className="w-20 h-20 rounded-lg border border-border bg-muted overflow-hidden">
-                      <img
+                      <Image
                         src={URL.createObjectURL(file) || "/placeholder.svg"}
                         alt={file.name}
+                        width={80}
+                        height={80}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -318,9 +323,11 @@ export function ImageGeneration() {
                   {hoveredExample === example.id && (
                     <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-                        <img
+                        <Image
                           src={example.preview || "/placeholder.svg"}
                           alt={example.name}
+                          width={192}
+                          height={128}
                           className="w-48 h-32 object-cover"
                         />
                       </div>

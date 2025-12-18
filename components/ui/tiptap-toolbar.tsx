@@ -28,11 +28,9 @@ interface TiptapToolbarProps {
 }
 
 export function TiptapToolbar({ editor, onInsertImage }: TiptapToolbarProps) {
-  if (!editor) {
-    return null;
-  }
-
   const setLink = useCallback(() => {
+    if (!editor) return;
+
     const previousUrl = editor.getAttributes('link').href;
     const url = window.prompt('URL', previousUrl);
 
@@ -49,6 +47,8 @@ export function TiptapToolbar({ editor, onInsertImage }: TiptapToolbarProps) {
   }, [editor]);
 
   const setImage = useCallback(() => {
+    if (!editor) return;
+
     // 如果有图片上传回调，优先使用
     if (onInsertImage) {
       onInsertImage();
@@ -61,6 +61,10 @@ export function TiptapToolbar({ editor, onInsertImage }: TiptapToolbarProps) {
       editor.chain().focus().setImage({ src: url }).run();
     }
   }, [editor, onInsertImage]);
+
+  if (!editor) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap gap-1 p-2 border-b">

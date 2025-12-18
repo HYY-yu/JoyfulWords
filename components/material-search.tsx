@@ -522,7 +522,7 @@ export function MaterialSearch() {
             <div className="space-y-2">
               <Label htmlFor="upload-type">素材类型</Label>
               <Input id="upload-type" value="用户" disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">用户上传的素材类型自动设置为"用户"</p>
+              <p className="text-xs text-muted-foreground">用户上传的素材类型自动设置为&quot;用户&quot;</p>
             </div>
 
             <div className="space-y-2">

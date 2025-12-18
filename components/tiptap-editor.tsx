@@ -9,6 +9,7 @@ import { Markdown } from "tiptap-markdown";
 import { useCallback, useEffect } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
 
+
 interface TiptapEditorProps {
   content?: string;
   onChange?: (content: string, html: string, markdown: string) => void;
@@ -58,7 +59,8 @@ export function TiptapEditor({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const json = editor.getJSON();
-      const markdown = editor.storage.markdown.getMarkdown();
+      // Access markdown storage with type assertion
+      const markdown = (editor.storage as any).markdown?.getMarkdown() || '';
 
       // Convert to plain text for content
       const text = editor.getText();
