@@ -10,7 +10,9 @@ export default function DashboardPage() {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-      <MainContent activeTab={activeTab} />
+      <div className="flex-1 ml-64">
+        <MainContent activeTab={activeTab} />
+      </div>
     </div>
   )
 }

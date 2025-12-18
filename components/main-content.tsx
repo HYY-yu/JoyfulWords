@@ -4,6 +4,7 @@ import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon } from "
 import { ImageGeneration } from "./image-generation"
 import { ContentWriting } from "./content-writing"
 import { KnowledgeCards } from "./knowledge-cards"
+import { SeoGeo } from "./seo-geo/seo-geo"
 
 interface MainContentProps {
   activeTab: string
@@ -48,6 +49,10 @@ export function MainContent({ activeTab }: MainContentProps) {
 
   if (activeTab === "knowledge-cards") {
     return <KnowledgeCards />
+  }
+
+  if (activeTab === "seo-geo") {
+    return <SeoGeo />
   }
 
   const config = tabConfig[activeTab as keyof typeof tabConfig]

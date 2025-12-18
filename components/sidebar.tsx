@@ -38,7 +38,7 @@ const menuItems = [
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   return (
-    <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col">
+    <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col fixed left-0 top-0 h-screen z-20">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border">
         <h1 className="text-xl font-semibold text-sidebar-foreground">创作者工具箱</h1>
