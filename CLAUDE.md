@@ -62,6 +62,7 @@ Note: The project uses pnpm as the package manager.
   - article-dialogs.tsx  # Dialog components for article management (preview, images, links)
   - article-table.tsx    # Reusable table component for article display
   - image-generation.tsx # Image generation feature
+  - knowledge-cards.tsx  # Knowledge cards generation and management feature
   - [other feature components]
 
 /hooks/               # Custom React hooks
@@ -163,6 +164,49 @@ The application includes a comprehensive article management module located in th
    - Custom CSS utilities (line-clamp) for text truncation
    - Toast notifications for user feedback
 
+### Knowledge Cards System
+
+The application includes a comprehensive knowledge cards module for converting arbitrary text/links into structured knowledge cards:
+
+1. **Core Component**: `knowledge-cards.tsx`
+   - Complete form-based interface with validation using React Hook Form + Zod
+   - Real-time style preview with iframe rendering
+   - Support for both Markdown and mind map layouts
+   - Six color themes: 热情红, 魅力蓝, 活力橙, 自然绿, 优雅紫, 科技银
+
+2. **Form Fields**:
+   - **Content Input**: Large textarea supporting URLs or arbitrary text (10-10,000 characters)
+   - **Card Style**: Required selection from six predefined color schemes
+   - **Card Layout**: Choice between Markdown and mind map formats
+   - **Language**: Chinese or English language selection
+   - **Card Count**: Optional number of cards (1-20, default 5)
+   - **Card Requirements**: Optional special requirements field
+
+3. **Features**:
+   - **Real-time Preview**: Live style preview in iframe before generation
+   - **Dynamic Generation**: Simulated AI processing with loading states
+   - **HTML Output**: Generated cards rendered as HTML in iframe
+   - **Export Functions**: Print and download HTML capabilities
+   - **Responsive Design**: Mobile-optimized layout with proper form validation
+   - **Theme Support**: Full dark/light mode compatibility
+
+4. **Technical Implementation**:
+   - TypeScript strict mode with comprehensive form validation
+   - React Hook Form for state management and form handling
+   - Zod schemas for runtime validation
+   - Shadcn/ui components for consistent design
+   - iframe-based rendering for safe HTML display
+   - Color scheme system with CSS gradients
+   - Toast notifications using Sonner for user feedback
+
+5. **Card Generation Process**:
+   - Accepts arbitrary text or URLs as input
+   - Processes content based on selected layout (Markdown/mind map)
+   - Generates styled HTML cards with proper typography
+   - Includes metadata like generation timestamps
+   - Applies selected color themes and layout styles
+   - Supports bilingual content (Chinese/English)
+
 ## Important Notes
 
 - **TypeScript Errors**: Build ignores TypeScript errors (`ignoreBuildErrors: true` in next.config.mjs)
@@ -176,7 +220,8 @@ The application includes a comprehensive article management module located in th
 - **Fully Implemented**:
   - Content writing tools (material search, competitor tracking, article writing)
   - Article management system with full CRUD operations and interactive content preview
-- **Placeholder UI**: Image generation, knowledge cards, SEO/GEO tools, video editing (show "Doing 中..." or "Coming soon")
+  - Knowledge cards system with form validation, real-time preview, and HTML generation
+- **Placeholder UI**: Image generation, SEO/GEO tools, video editing (show "Doing 中..." or "Coming soon")
 - **Analytics**: Vercel Analytics integrated for production tracking
 
 ## Development Guidelines

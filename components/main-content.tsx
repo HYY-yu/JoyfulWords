@@ -3,6 +3,7 @@
 import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon } from "lucide-react"
 import { ImageGeneration } from "./image-generation"
 import { ContentWriting } from "./content-writing"
+import { KnowledgeCards } from "./knowledge-cards"
 
 interface MainContentProps {
   activeTab: string
@@ -43,6 +44,10 @@ export function MainContent({ activeTab }: MainContentProps) {
 
   if (activeTab === "content-writing") {
     return <ContentWriting />
+  }
+
+  if (activeTab === "knowledge-cards") {
+    return <KnowledgeCards />
   }
 
   const config = tabConfig[activeTab as keyof typeof tabConfig]
