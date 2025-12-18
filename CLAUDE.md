@@ -31,6 +31,7 @@ Note: The project uses pnpm as the package manager.
 - **Language**: TypeScript 5.x (strict mode enabled)
 - **Styling**: Tailwind CSS 4.x with CSS variables for theming
 - **UI Components**: Shadcn/ui (Radix UI primitives) with "new-york" style
+- **Rich Text Editor**: Tiptap 2.x with custom extensions and styling
 - **Icons**: Lucide React
 - **Forms**: React Hook Form 7.x with Zod validation
 - **Analytics**: Vercel Analytics
@@ -46,12 +47,16 @@ Note: The project uses pnpm as the package manager.
 
 /components/           # React components
   - /ui/              # Shadcn/ui component library (~59 components)
+  - /editor/          # Tiptap editor components and extensions
+    - tiptap-editor.tsx  # Main rich text editor component
+    - editor-toolbar.tsx # Editor toolbar with formatting controls
+    - editor-extensions.ts # Custom Tiptap extensions and configurations
   - sidebar.tsx       # Main navigation sidebar
   - main-content.tsx  # Content area router based on active tab
   - content-writing.tsx  # Content writing tools with nested tabs
   - material-search.tsx  # Material search functionality
   - competitor-tracking.tsx # Competitor analysis
-  - article-writing.tsx  # Article writing tool
+  - article-writing.tsx  # Article writing tool with Tiptap editor
   - image-generation.tsx # Image generation feature
   - [other feature components]
 
@@ -90,6 +95,30 @@ Note: The project uses pnpm as the package manager.
    - Strict mode enabled
    - Next.js plugin for type checking
 
+### Tiptap Editor Implementation
+
+The application uses Tiptap 2.x as the rich text editor for content creation:
+
+1. **Editor Features**:
+   - Standard formatting (bold, italic, underline, strikethrough)
+   - Headings (H1-H6) and paragraph styles
+   - Lists (ordered and unordered)
+   - Block quotes and code blocks
+   - Links and mentions
+   - Tables and media embedding
+   - Custom collaborative features
+
+2. **Custom Extensions**:
+   - Tailored styling for Chinese typography
+   - Custom toolbar integration with Shadcn/ui components
+   - Mention suggestions for tagging users or content
+   - Placeholder text with bilingual support
+
+3. **Integration**:
+   - Used primarily in article-writing and content creation tools
+   - Styled with Tailwind CSS variables for dark mode support
+   - Integrated with React Hook Form for form state management
+
 ## Important Notes
 
 - **TypeScript Errors**: Build ignores TypeScript errors (`ignoreBuildErrors: true` in next.config.mjs)
@@ -112,3 +141,6 @@ Note: The project uses pnpm as the package manager.
 - Test responsive design using the built-in mobile detection hook
 - Use the established tab patterns for new features
 - Leverage the existing CSS variables for consistent theming
+- For rich text editing, use the Tiptap editor component located in `/components/editor/`
+- When extending Tiptap functionality, add new extensions to `editor-extensions.ts`
+- Ensure editor content is properly sanitized and validated with Zod schemas

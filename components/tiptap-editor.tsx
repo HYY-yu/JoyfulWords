@@ -48,6 +48,7 @@ export function TiptapEditor({
     ],
     content,
     editable,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-4",
@@ -80,27 +81,6 @@ export function TiptapEditor({
       (window as any).tiptapEditor = editor;
     }
   }, [editor]);
-
-  const getMarkdown = useCallback(() => {
-    return editor?.storage.markdown.getMarkdown() || "";
-  }, [editor]);
-
-  const getHTML = useCallback(() => {
-    return editor?.getHTML() || "";
-  }, [editor]);
-
-  const getText = useCallback(() => {
-    return editor?.getText() || "";
-  }, [editor]);
-
-  // Expose methods for parent component
-  useEffect(() => {
-    if (editor) {
-      (editor as any).getMarkdown = getMarkdown;
-      (editor as any).getHTML = getHTML;
-      (editor as any).getText = getText;
-    }
-  }, [editor, getMarkdown, getHTML, getText]);
 
   // Handle image upload
   const handleImageUpload = useCallback(async (file: File): Promise<string> => {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import {
   SparklesIcon,
   FileTextIcon,
@@ -97,14 +97,13 @@ const mockPosts: Post[] = [
   },
 ]
 
-export default function ArticleWriting() {
+export function ArticleWriting() {
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
   const [selectedPosts, setSelectedPosts] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [articleContent, setArticleContent] = useState("")
   const [articleMarkdown, setArticleMarkdown] = useState("")
   const [articleHTML, setArticleHTML] = useState("")
-  const editorRef = useRef<any>(null)
 
   const handleMaterialToggle = (materialId: string) => {
     setSelectedMaterials((prev) =>
@@ -346,7 +345,7 @@ ${selectedPosts
       <div className="bg-card rounded-lg border border-border overflow-hidden">
         {/* Editor Header */}
         <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-muted/30">
-          <h3 className="text-lg font-semibold">Tiptap 富文本编辑器</h3>
+          <h3 className="text-lg font-semibold">编辑器</h3>
           <div className="flex items-center gap-3">
             {/* Export Dropdown */}
             <DropdownMenu>
