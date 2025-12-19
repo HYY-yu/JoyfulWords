@@ -75,7 +75,7 @@ Note: The project uses pnpm as the package manager.
 /public/              # Static assets
   - Icons/            # Application icons (light/dark theme variants)
   - Images/           # Placeholder images and backgrounds
-```
+```  
 
 ### Key Patterns
 
