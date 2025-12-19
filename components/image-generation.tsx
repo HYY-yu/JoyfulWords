@@ -19,14 +19,14 @@ type Message = {
 
 // Example templates
 const examples = [
-  { id: 1, name: "赛博朋克城市", preview: "/cyberpunk-city-neon.jpg" },
-  { id: 2, name: "水彩花卉", preview: "/watercolor-flowers.jpg" },
-  { id: 3, name: "未来科技", preview: "/futuristic-technology.png" },
-  { id: 4, name: "复古海报", preview: "/vintage-poster-art.jpg" },
-  { id: 5, name: "抽象艺术", preview: "/colorful-abstract-art.png" },
-  { id: 6, name: "自然风光", preview: "/serene-mountain-lake.png" },
-  { id: 7, name: "卡通角色", preview: "/cartoon-character-cute.jpg" },
-  { id: 8, name: "建筑设计", preview: "/modern-architecture-cityscape.png" },
+  { id: 1, key: "cyberpunk", name: "赛博朋克城市", preview: "/cyberpunk-city-neon.jpg" },
+  { id: 2, key: "watercolor", name: "水彩花卉", preview: "/watercolor-flowers.jpg" },
+  { id: 3, key: "futuristic", name: "未来科技", preview: "/futuristic-technology.png" },
+  { id: 4, key: "vintage", name: "复古海报", preview: "/vintage-poster-art.jpg" },
+  { id: 5, key: "abstract", name: "抽象艺术", preview: "/colorful-abstract-art.png" },
+  { id: 6, key: "nature", name: "自然风光", preview: "/serene-mountain-lake.png" },
+  { id: 7, key: "cartoon", name: "卡通角色", preview: "/cartoon-character-cute.jpg" },
+  { id: 8, key: "architecture", name: "建筑设计", preview: "/modern-architecture-cityscape.png" },
 ]
 
 const mockMessages: Message[] = [
@@ -62,7 +62,10 @@ const mockMessages: Message[] = [
   },
 ]
 
+import { useTranslation } from "@/lib/i18n/i18n-context"
+
 export function ImageGeneration() {
+  const { t } = useTranslation()
   const [input, setInput] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
@@ -128,8 +131,8 @@ export function ImageGeneration() {
               <ImageIcon className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">图片生成</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">AI-powered image generation tools</p>
+              <h2 className="text-2xl font-semibold text-foreground">{t("imageGeneration.title")}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("imageGeneration.subtitle")}</p>
             </div>
           </div>
         </div>
@@ -268,7 +271,7 @@ export function ImageGeneration() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2.5 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground transition-colors"
-                title="上传参考图"
+                title={t("imageGeneration.uploadRef")}
               >
                 <PaperclipIcon className="w-5 h-5" />
               </button>
@@ -276,7 +279,7 @@ export function ImageGeneration() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="描述你想要生成的图片..."
+                placeholder={t("imageGeneration.placeholder")}
                 className="flex-1 resize-none bg-transparent border-0 focus:outline-none text-foreground placeholder:text-muted-foreground min-h-[44px] max-h-[200px] py-2.5"
                 rows={1}
                 onKeyDown={(e) => {
@@ -302,22 +305,24 @@ export function ImageGeneration() {
         {/* Example Templates */}
         {!isChatExpanded && (
           <div className="mt-8 pt-8 border-t border-dashed border-border/60 animate-in fade-in slide-in-from-bottom-4 duration-500 overflow-visible">
-            <h3 className="text-lg font-semibold text-foreground mb-4">案例参考</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">{t("imageGeneration.examples")}</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 overflow-visible">
-              {examples.map((example) => (
-                <div key={example.id} className="relative">
-                  <button
-                    onClick={() => handleExampleClick(example.name)}
-                    onMouseEnter={() => setHoveredExample(example.id)}
-                    onMouseLeave={() => setHoveredExample(null)}
-                    className={cn(
-                      "w-full px-4 py-3 rounded-lg border border-border bg-card text-card-foreground",
-                      "hover:border-primary hover:bg-primary/5 transition-all duration-200",
-                      "text-sm font-medium text-center",
-                    )}
-                  >
-                    {example.name}
-                  </button>
+              {examples.map((example) => {
+                const localizedName = t(`imageGeneration.exampleNames.${example.key}`)
+                return (
+                  <div key={example.id} className="relative">
+                    <button
+                      onClick={() => handleExampleClick(localizedName)}
+                      onMouseEnter={() => setHoveredExample(example.id)}
+                      onMouseLeave={() => setHoveredExample(null)}
+                      className={cn(
+                        "w-full px-4 py-3 rounded-lg border border-border bg-card text-card-foreground",
+                        "hover:border-primary hover:bg-primary/5 transition-all duration-200",
+                        "text-sm font-medium text-center",
+                      )}
+                    >
+                      {localizedName}
+                    </button>
 
                   {/* Hover Preview Image */}
                   {hoveredExample === example.id && (
@@ -334,10 +339,11 @@ export function ImageGeneration() {
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
-        )}
+        </div>
+      )}
       </div>
     </main>
   )

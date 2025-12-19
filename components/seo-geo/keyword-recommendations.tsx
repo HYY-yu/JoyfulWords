@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -31,30 +32,31 @@ function StarRating({ rating }: { rating: number }) {
   )
 }
 
-function DifficultyBadge({ difficulty }: { difficulty: number }) {
-  const getDifficultyColor = (diff: number) => {
-    if (diff <= 30) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-    if (diff <= 50) return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-    if (diff <= 70) return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-  }
+export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsProps) {
+  const { t } = useTranslation()
+  const [selectedKeyword, setSelectedKeyword] = useState<KeywordRecommendation | null>(null)
 
   const getDifficultyText = (diff: number) => {
-    if (diff <= 30) return "简单"
-    if (diff <= 50) return "较易"
-    if (diff <= 70) return "中等"
-    return "困难"
+    if (diff <= 30) return t("seoGeo.recommendations.difficultyLevels.easy")
+    if (diff <= 50) return t("seoGeo.recommendations.difficultyLevels.quiteEasy")
+    if (diff <= 70) return t("seoGeo.recommendations.difficultyLevels.medium")
+    return t("seoGeo.recommendations.difficultyLevels.hard")
   }
 
-  return (
-    <Badge className={getDifficultyColor(difficulty)}>
-      {difficulty} - {getDifficultyText(difficulty)}
-    </Badge>
-  )
-}
+  function DifficultyBadge({ difficulty }: { difficulty: number }) {
+    const getDifficultyColor = (diff: number) => {
+      if (diff <= 30) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+      if (diff <= 50) return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+      if (diff <= 70) return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+      return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+    }
 
-export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsProps) {
-  const [selectedKeyword, setSelectedKeyword] = useState<KeywordRecommendation | null>(null)
+    return (
+      <Badge className={getDifficultyColor(difficulty)}>
+        {difficulty} - {getDifficultyText(difficulty)}
+      </Badge>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -63,13 +65,13 @@ export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsPr
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-16">排名</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">关键词</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24">MSV</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24">难度</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-32">推荐指数</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">核心优势</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24 text-center">操作</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-16">{t("seoGeo.recommendations.table.rank")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("seoGeo.recommendations.table.keyword")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24">{t("seoGeo.recommendations.table.msv")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24">{t("seoGeo.recommendations.table.difficulty")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-32">{t("seoGeo.recommendations.table.rating")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("seoGeo.recommendations.table.advantage")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground w-24 text-center">{t("seoGeo.recommendations.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -99,14 +101,14 @@ export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsPr
                         className="h-8 px-3"
                       >
                         <Eye className="h-3.5 w-3.5 mr-1" />
-                        详情
+                        {t("common.preview")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                           <TrendingUp className="h-5 w-5" />
-                          关键词详细分析: {item.keyword}
+                          {t("seoGeo.recommendations.dialog.title")}{item.keyword}
                         </DialogTitle>
                       </DialogHeader>
                       <div className="space-y-4 mt-4">
@@ -114,19 +116,19 @@ export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsPr
                           <Card>
                             <CardContent className="p-4 text-center">
                               <p className="text-2xl font-bold text-primary">#{item.rank}</p>
-                              <p className="text-sm text-muted-foreground">排名</p>
+                              <p className="text-sm text-muted-foreground">{t("seoGeo.recommendations.table.rank")}</p>
                             </CardContent>
                           </Card>
                           <Card>
                             <CardContent className="p-4 text-center">
                               <p className="text-2xl font-bold text-primary">{item.msv.toLocaleString()}</p>
-                              <p className="text-sm text-muted-foreground">月搜索量</p>
+                              <p className="text-sm text-muted-foreground">{t("seoGeo.recommendations.dialog.msvLabel")}</p>
                             </CardContent>
                           </Card>
                           <Card>
                             <CardContent className="p-4 text-center">
                               <p className="text-2xl font-bold text-primary">{item.difficulty}</p>
-                              <p className="text-sm text-muted-foreground">难度分数</p>
+                              <p className="text-sm text-muted-foreground">{t("seoGeo.recommendations.dialog.difficultyLabel")}</p>
                             </CardContent>
                           </Card>
                           <Card>
@@ -134,21 +136,21 @@ export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsPr
                               <div className="flex justify-center">
                                 <StarRating rating={item.rating} />
                               </div>
-                              <p className="text-sm text-muted-foreground mt-1">推荐指数</p>
+                              <p className="text-sm text-muted-foreground mt-1">{t("seoGeo.recommendations.table.rating")}</p>
                             </CardContent>
                           </Card>
                         </div>
 
-                        <div className="space-y-3">
-                          <div>
-                            <h4 className="font-semibold mb-2">核心优势</h4>
-                            <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
-                              {item.advantage}
-                            </p>
-                          </div>
-
-                          <div>
-                            <h4 className="font-semibold mb-2">详细分析</h4>
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold mb-2">{t("seoGeo.recommendations.table.advantage")}</h4>
+                              <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
+                                {item.advantage}
+                              </p>
+                            </div>
+  
+                            <div>
+                              <h4 className="font-semibold mb-2">{t("seoGeo.analysisTitle")}</h4>
                             <Card>
                               <CardContent className="p-4">
                                 <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -172,13 +174,13 @@ export function KeywordRecommendations({ baseKeyword }: KeywordRecommendationsPr
 
       <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg">
         <p className="mb-2">
-          <strong>说明:</strong>
+          <strong>{t("seoGeo.recommendations.notesTitle")}</strong>
         </p>
         <ul className="space-y-1 list-disc list-inside">
-          <li>MSV: 月搜索量 (Monthly Search Volume)</li>
-          <li>难度: 0-100分，分数越高竞争越激烈</li>
-          <li>推荐指数: 基于搜索量、难度、商业价值等综合评估</li>
-          <li>数据更新时间: 每月更新</li>
+          {Array.isArray(t("seoGeo.recommendations.notesItems")) && 
+            t("seoGeo.recommendations.notesItems").map((item: string, idx: number) => (
+              <li key={idx}>{item}</li>
+            ))}
         </ul>
       </div>
     </div>

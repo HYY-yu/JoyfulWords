@@ -8,7 +8,10 @@ import { KeywordRecommendations } from "./keyword-recommendations"
 import { KeywordInsights } from "./keyword-insights"
 import { KeywordAnalysis as KeywordAnalysisType } from "./types"
 
+import { useTranslation } from "@/lib/i18n/i18n-context"
+// ...
 export function SeoGeo() {
+  const { t } = useTranslation()
   const [analysisResult, setAnalysisResult] = useState<KeywordAnalysisType | null>(null)
   const [showResults, setShowResults] = useState(false)
 
@@ -27,8 +30,8 @@ export function SeoGeo() {
               <Search className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">SEO/GEO</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">SEO and geographic optimization tools</p>
+              <h2 className="text-2xl font-semibold text-foreground">{t("seoGeo.title")}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("seoGeo.subtitle")}</p>
             </div>
           </div>
         </div>
@@ -40,10 +43,10 @@ export function SeoGeo() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              关键词分析
+              {t("seoGeo.analysisTitle")}
             </CardTitle>
             <CardDescription>
-              输入关键词获取详细的SEO分析报告
+              {t("seoGeo.analysisDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -59,10 +62,10 @@ export function SeoGeo() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  基于 "{analysisResult.keyword}" 的推荐关键词
+                  {t("seoGeo.recommendationTitle")} (Keyword: "{analysisResult.keyword}")
                 </CardTitle>
                 <CardDescription>
-                  相关的长尾关键词推荐
+                  {t("seoGeo.recommendationDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -75,10 +78,10 @@ export function SeoGeo() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  "{analysisResult.keyword}" 市场洞察
+                  {t("seoGeo.insightTitle")} (Keyword: "{analysisResult.keyword}")
                 </CardTitle>
                 <CardDescription>
-                  关键词市场趋势和竞争分析
+                  {t("seoGeo.insightDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>

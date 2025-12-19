@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   ChartContainer,
   ChartTooltip,
@@ -12,23 +13,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaCh
 import { TrendingUp, Users, BarChart3, Target } from "lucide-react"
 import { mockSearchVolumeData, mockDifficultyDistribution, mockCompetitorData } from "./mock-data"
 
-const chartConfig = {
-  desktop: {
-    label: "桌面端",
-    color: "hsl(var(--chart-2))",
-  },
-  mobile: {
-    label: "移动端",
-    color: "hsl(var(--chart-1))",
-  },
-  difficulty: {
-    label: "难度分布",
-  },
-  competitor: {
-    label: "竞争对手分析",
-  },
-} as const
-
 const COLORS = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
@@ -38,6 +22,25 @@ const COLORS = [
 ]
 
 export function KeywordInsights() {
+  const { t } = useTranslation()
+
+  const chartConfig = {
+    desktop: {
+      label: "Desktop",
+      color: "hsl(var(--chart-2))",
+    },
+    mobile: {
+      label: "Mobile",
+      color: "hsl(var(--chart-1))",
+    },
+    difficulty: {
+      label: t("seoGeo.insights.difficultyTitle"),
+    },
+    competitor: {
+      label: t("seoGeo.insights.competitorTitle"),
+    },
+  } as const
+
   return (
     <div className="space-y-6">
       {/* 搜索量趋势 */}
@@ -45,10 +48,10 @@ export function KeywordInsights() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            关键词搜索量趋势
+            {t("seoGeo.insights.searchTrendTitle")}
           </CardTitle>
           <CardDescription>
-            过去12个月的搜索量变化趋势
+            {t("seoGeo.insights.searchTrendDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,10 +94,10 @@ export function KeywordInsights() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              关键词难度分布
+              {t("seoGeo.insights.difficultyTitle")}
             </CardTitle>
             <CardDescription>
-              不同难度等级的关键词数量分布
+              {t("seoGeo.insights.difficultyDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -125,10 +128,10 @@ export function KeywordInsights() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              竞争对手分析
+              {t("seoGeo.insights.competitorTitle")}
             </CardTitle>
             <CardDescription>
-              主要竞争对手的SEO表现对比
+              {t("seoGeo.insights.competitorDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -159,10 +162,10 @@ export function KeywordInsights() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">总关键词数</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("seoGeo.insights.stats.totalKeywords")}</p>
                 <p className="text-2xl font-bold">1,247</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-600">↑ 12%</span> 较上月
+                  <span className="text-green-600">↑ 12%</span> {t("seoGeo.insights.stats.vsLastMonth")}
                 </p>
               </div>
               <Target className="h-8 w-8 text-muted-foreground" />
@@ -174,10 +177,10 @@ export function KeywordInsights() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">平均搜索量</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("seoGeo.insights.stats.avgSearchVolume")}</p>
                 <p className="text-2xl font-bold">8,430</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-600">↑ 8%</span> 较上月
+                  <span className="text-green-600">↑ 8%</span> {t("seoGeo.insights.stats.vsLastMonth")}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-muted-foreground" />
@@ -189,10 +192,10 @@ export function KeywordInsights() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">平均难度</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("seoGeo.insights.stats.avgDifficulty")}</p>
                 <p className="text-2xl font-bold">52.3</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-orange-600">→ 持平</span> 较上月
+                  <span className="text-orange-600">→ </span> {t("seoGeo.insights.stats.vsLastMonth")}
                 </p>
               </div>
               <BarChart3 className="h-8 w-8 text-muted-foreground" />
@@ -204,10 +207,10 @@ export function KeywordInsights() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">预估流量</p>
+                <p className="text-sm font-medium text-muted-foreground">{t("seoGeo.insights.stats.estTraffic")}</p>
                 <p className="text-2xl font-bold">45.2K</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-600">↑ 23%</span> 较上月
+                  <span className="text-green-600">↑ 23%</span> {t("seoGeo.insights.stats.vsLastMonth")}
                 </p>
               </div>
               <Users className="h-8 w-8 text-muted-foreground" />
@@ -219,14 +222,13 @@ export function KeywordInsights() {
       {/* 说明文字 */}
       <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg">
         <p className="mb-2">
-          <strong>数据说明:</strong>
+          <strong>{t("seoGeo.insights.dataDescTitle")}</strong>
         </p>
         <ul className="space-y-1 list-disc list-inside">
-          <li>所有数据基于模拟数据，仅供展示用途</li>
-          <li>搜索量数据包含桌面端和移动端</li>
-          <li>难度分布基于关键词竞争度评估</li>
-          <li>竞争对手数据展示可见度指数</li>
-          <li>数据更新频率：每月一次</li>
+          {Array.isArray(t("seoGeo.insights.dataDescItems")) && 
+            t("seoGeo.insights.dataDescItems").map((item: string, idx: number) => (
+              <li key={idx}>{item}</li>
+            ))}
         </ul>
       </div>
     </div>

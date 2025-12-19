@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -8,16 +9,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Loader2, Search } from "lucide-react"
 import { mockAnalysisReports } from "./mock-data"
-import { KeywordAnalysis } from "./types"
+import type { KeywordAnalysis as KeywordAnalysisType } from "./types"
 
 interface KeywordAnalysisProps {
-  onAnalysisComplete?: (result: KeywordAnalysis) => void
+  onAnalysisComplete?: (result: KeywordAnalysisType) => void
 }
 
 export function KeywordAnalysis({ onAnalysisComplete }: KeywordAnalysisProps) {
+  const { t, locale } = useTranslation()
   const [keyword, setKeyword] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState<KeywordAnalysis | null>(null)
+  const [analysis, setAnalysis] = useState<KeywordAnalysisType | null>(null)
 
   const handleAnalyze = async () => {
     if (!keyword.trim()) return
@@ -100,7 +102,7 @@ export function KeywordAnalysis({ onAnalysisComplete }: KeywordAnalysisProps) {
           </Label>
           <Input
             id="keyword-input"
-            placeholder="请输入要分析的关键词..."
+            placeholder={t("seoGeo.searchInputPlaceholder")}
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -116,12 +118,12 @@ export function KeywordAnalysis({ onAnalysisComplete }: KeywordAnalysisProps) {
           {isAnalyzing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              分析中...
+              {t("seoGeo.analyzingBtn")}
             </>
           ) : (
             <>
               <Search className="mr-2 h-4 w-4" />
-              分析
+              {t("seoGeo.analyzeBtn")}
             </>
           )}
         </Button>
@@ -132,10 +134,10 @@ export function KeywordAnalysis({ onAnalysisComplete }: KeywordAnalysisProps) {
           <CardContent className="p-6">
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">
-                关键词: {analysis.keyword}
+                {t("seoGeo.keywordLabel")}{analysis.keyword}
               </h3>
               <p className="text-sm text-muted-foreground">
-                分析时间: {analysis.analyzedAt.toLocaleString('zh-CN')}
+                {t("seoGeo.analyzedAtLabel")}{analysis.analyzedAt.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')}
               </p>
             </div>
             <div className="prose prose-sm max-w-none dark:prose-invert">
@@ -154,9 +156,9 @@ export function KeywordAnalysis({ onAnalysisComplete }: KeywordAnalysisProps) {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Search className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">开始关键词分析</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("seoGeo.startAnalysisTitle")}</h3>
             <p className="text-muted-foreground text-center max-w-md">
-              输入您想要分析的关键词，获取详细的SEO分析报告，包括搜索量、竞争度、优化建议等。
+              {t("seoGeo.startAnalysisDesc")}
             </p>
           </CardContent>
         </Card>

@@ -5,40 +5,43 @@ import { ImageGeneration } from "./image-generation"
 import { ContentWriting } from "./content-writing"
 import { KnowledgeCards } from "./knowledge-cards"
 import { SeoGeo } from "./seo-geo/seo-geo"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface MainContentProps {
   activeTab: string
 }
 
-const tabConfig = {
-  "image-generation": {
-    title: "图片生成",
-    description: "AI-powered image generation tools",
-    icon: ImageIcon,
-  },
-  "content-writing": {
-    title: "悦文悦己",
-    description: "Content reading and management",
-    icon: FileTextIcon,
-  },
-  "knowledge-cards": {
-    title: "知识卡片",
-    description: "Create and organize knowledge cards",
-    icon: CreditCardIcon,
-  },
-  "seo-geo": {
-    title: "SEO/GEO",
-    description: "SEO and geographic optimization tools",
-    icon: SearchIcon,
-  },
-  "video-editing": {
-    title: "基础视频剪辑",
-    description: "Basic video editing capabilities",
-    icon: VideoIcon,
-  },
-}
-
 export function MainContent({ activeTab }: MainContentProps) {
+  const { t } = useTranslation()
+
+  const tabConfig = {
+    "image-generation": {
+      title: t("sidebar.imageGeneration"),
+      description: t("imageGeneration.subtitle"),
+      icon: ImageIcon,
+    },
+    "content-writing": {
+      title: t("sidebar.contentWriting"),
+      description: t("contentWriting.subtitle"),
+      icon: FileTextIcon,
+    },
+    "knowledge-cards": {
+      title: t("sidebar.knowledgeCards"),
+      description: t("knowledgeCards.subtitle"),
+      icon: CreditCardIcon,
+    },
+    "seo-geo": {
+      title: t("sidebar.seoGeo"),
+      description: t("seoGeo.subtitle"),
+      icon: SearchIcon,
+    },
+    "video-editing": {
+      title: t("sidebar.videoEditing"),
+      description: t("common.comingSoon"),
+      icon: VideoIcon,
+    },
+  }
+
   if (activeTab === "image-generation") {
     return <ImageGeneration />
   }
@@ -64,8 +67,8 @@ export function MainContent({ activeTab }: MainContentProps) {
         <div className="p-8">
           <div className="flex items-center justify-center min-h-[500px]">
             <div className="text-center space-y-4">
-              <h3 className="text-2xl font-semibold text-foreground">页面未找到</h3>
-              <p className="text-muted-foreground">无法找到对应的功能模块</p>
+              <h3 className="text-2xl font-semibold text-foreground">{t("common.notFound")}</h3>
+              <p className="text-muted-foreground">{t("common.notFoundDesc")}</p>
             </div>
           </div>
         </div>
@@ -101,7 +104,7 @@ export function MainContent({ activeTab }: MainContentProps) {
             </div>
             <div className="space-y-2">
               <h3 className="text-3xl font-bold text-foreground">Doing</h3>
-              <p className="text-muted-foreground max-w-md">这个功能正在开发中，敬请期待...</p>
+              <p className="text-muted-foreground max-w-md">{t("common.comingSoon")}</p>
             </div>
           </div>
         </div>

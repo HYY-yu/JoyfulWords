@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   SparklesIcon,
   FileTextIcon,
@@ -98,6 +99,7 @@ const mockPosts: Post[] = [
 ]
 
 export function ArticleWriting() {
+  const { t } = useTranslation()
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
   const [selectedPosts, setSelectedPosts] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -223,7 +225,7 @@ ${selectedPosts
       <div className="bg-card rounded-lg border border-border p-6 space-y-4">
         <div className="flex items-center gap-2 mb-4">
           <SparklesIcon className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-semibold">AI 帮写</h3>
+          <h3 className="text-lg font-semibold">{t("contentWriting.writing.aiHelpTitle")}</h3>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -231,11 +233,11 @@ ${selectedPosts
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <FileTextIcon className="w-4 h-4" />
-              <span>选择素材</span>
+              <span>{t("contentWriting.writing.selectMaterial")}</span>
             </div>
             <Select>
               <SelectTrigger>
-                <SelectValue placeholder="从素材库中选择..." />
+                <SelectValue placeholder={t("contentWriting.writing.placeholderMaterial")} />
               </SelectTrigger>
               <SelectContent>
                 <ScrollArea className="h-[200px]">
@@ -256,7 +258,7 @@ ${selectedPosts
             {/* Selected Materials */}
             {selectedMaterials.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">已选择 {selectedMaterials.length} 个素材:</p>
+                <p className="text-xs text-muted-foreground">{t("contentWriting.writing.selectedCountMaterial").replace("{count}", selectedMaterials.length.toString())}</p>
                 <div className="space-y-1">
                   {selectedMaterials.map((id) => {
                     const material = mockMaterials.find((m) => m.id === id)
@@ -281,11 +283,11 @@ ${selectedPosts
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium">
               <TrendingUpIcon className="w-4 h-4" />
-              <span>竞品追踪</span>
+              <span>{t("contentWriting.writing.selectCompetitor")}</span>
             </div>
             <Select>
               <SelectTrigger>
-                <SelectValue placeholder="从竞品内容中选择..." />
+                <SelectValue placeholder={t("contentWriting.writing.placeholderCompetitor")} />
               </SelectTrigger>
               <SelectContent>
                 <ScrollArea className="h-[200px]">
@@ -306,7 +308,7 @@ ${selectedPosts
             {/* Selected Posts */}
             {selectedPosts.length > 0 && (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">已选择 {selectedPosts.length} 个竞品内容:</p>
+                <p className="text-xs text-muted-foreground">{t("contentWriting.writing.selectedCountCompetitor").replace("{count}", selectedPosts.length.toString())}</p>
                 <div className="space-y-1">
                   {selectedPosts.map((id) => {
                     const post = mockPosts.find((p) => p.id === id)
@@ -336,7 +338,7 @@ ${selectedPosts
             className="gap-2"
           >
             <SparklesIcon className="w-4 h-4" />
-            {isGenerating ? "AI 正在生成中..." : "开始帮写"}
+            {isGenerating ? t("contentWriting.writing.generatingBtn") : t("contentWriting.writing.generateBtn")}
           </Button>
         </div>
       </div>
@@ -345,19 +347,19 @@ ${selectedPosts
       <div className="bg-card rounded-lg border border-border overflow-hidden">
         {/* Editor Header */}
         <div className="border-b border-border px-4 py-3 flex items-center justify-between bg-muted/30">
-          <h3 className="text-lg font-semibold">编辑器</h3>
+          <h3 className="text-lg font-semibold">{t("contentWriting.writing.editorTitle")}</h3>
           <div className="flex items-center gap-3">
             {/* Export Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2 bg-transparent">
                   <DownloadIcon className="w-4 h-4" />
-                  导出
+                  {t("contentWriting.writing.exportBtn")}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleExport("markdown")}>导出为 Markdown</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("html")}>导出为 HTML</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("markdown")}>{t("contentWriting.writing.exportMarkdown")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("html")}>{t("contentWriting.writing.exportHtml")}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -368,7 +370,7 @@ ${selectedPosts
           <TiptapEditor
             content={articleContent}
             onChange={handleEditorChange}
-            placeholder="在此处编写您的文章内容..."
+            placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}
           />
         </div>

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { CreditCardIcon, SparklesIcon, GlobeIcon } from "lucide-react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 import {
   Form,
@@ -28,22 +29,14 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 
-const formSchema = z.object({
-  content: z.string().min(10, "内容至少需要10个字符").max(10000, "内容不能超过10000字符"),
-  cardStyle: z.enum(["热情红", "魅力蓝", "活力橙", "自然绿", "优雅紫", "科技银"], {
-    required_error: "请选择卡片样式",
-  }),
-  cardLayout: z.enum(["Markdown", "脑图"], {
-    required_error: "请选择卡片布局",
-  }),
-  language: z.enum(["中文", "英文"], {
-    required_error: "请选择语言",
-  }),
-  cardCount: z.number().min(1).max(20).default(5),
-  cardRequirements: z.string().optional(),
-})
-
-type FormData = z.infer<typeof formSchema>
+type FormData = {
+  content: string
+  cardStyle: "热情红" | "魅力蓝" | "活力橙" | "自然绿" | "优雅紫" | "科技银"
+  cardLayout: "Markdown" | "脑图"
+  language: "中文" | "英文"
+  cardCount: number
+  cardRequirements?: string
+}
 
 const cardStyleColors = {
   "热情红": {
@@ -85,11 +78,28 @@ const cardStyleColors = {
 }
 
 export function KnowledgeCards() {
+  const { t } = useTranslation()
+
+  const dynamicFormSchema = useMemo(() => z.object({
+    content: z.string().min(10, t("knowledgeCards.contentMinError")).max(10000, t("knowledgeCards.contentMaxError")),
+    cardStyle: z.enum(["热情红", "魅力蓝", "活力橙", "自然绿", "优雅紫", "科技银"], {
+      required_error: t("knowledgeCards.styleLabel"),
+    }),
+    cardLayout: z.enum(["Markdown", "脑图"], {
+      required_error: t("knowledgeCards.layoutLabel"),
+    }),
+    language: z.enum(["中文", "英文"], {
+      required_error: t("knowledgeCards.langLabel"),
+    }),
+    cardCount: z.number().min(1).max(20).default(5),
+    cardRequirements: z.string().optional(),
+  }), [t])
+
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedCards, setGeneratedCards] = useState<string[]>([])
 
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(dynamicFormSchema),
     defaultValues: {
       content: "",
       cardStyle: "热情红",
@@ -340,8 +350,8 @@ export function KnowledgeCards() {
               <CreditCardIcon className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">知识卡片</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">将任意内容转换为结构化的知识卡片</p>
+              <h2 className="text-2xl font-semibold text-foreground">{t("knowledgeCards.title")}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("knowledgeCards.subtitle")}</p>
             </div>
           </div>
         </div>
@@ -354,7 +364,7 @@ export function KnowledgeCards() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <SparklesIcon className="w-5 h-5" />
-                配置知识卡片
+                {t("knowledgeCards.configTitle")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -366,16 +376,16 @@ export function KnowledgeCards() {
                     name="content"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>内容</FormLabel>
+                        <FormLabel>{t("knowledgeCards.contentLabel")}</FormLabel>
                         <FormControl>
                           <Textarea
-                            placeholder="请输入链接或文本内容（支持网页链接、文章、笔记等任意文本）"
+                            placeholder={t("knowledgeCards.contentPlaceholder")}
                             className="min-h-[120px] resize-none"
                             {...field}
                           />
                         </FormControl>
                         <FormDescription>
-                          输入您想要转换成知识卡片的内容，可以是URL链接或任意文本
+                          {t("knowledgeCards.contentDesc")}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -389,20 +399,16 @@ export function KnowledgeCards() {
                       name="cardStyle"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>卡片样式</FormLabel>
+                          <FormLabel>{t("knowledgeCards.styleLabel")}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="选择卡片样式" />
+                                <SelectValue placeholder={t("knowledgeCards.styleLabel")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="热情红">🔴 热情红</SelectItem>
-                              <SelectItem value="魅力蓝">🔵 魅力蓝</SelectItem>
-                              <SelectItem value="活力橙">🟠 活力橙</SelectItem>
-                              <SelectItem value="自然绿">🟢 自然绿</SelectItem>
-                              <SelectItem value="优雅紫">🟣 优雅紫</SelectItem>
-                              <SelectItem value="科技银">⚪ 科技银</SelectItem>
+                              <SelectItem value="热情红">🔴 {t("knowledgeCards.styleLabel")}: Red</SelectItem>
+                              <SelectItem value="魅力蓝">🔵 {t("knowledgeCards.styleLabel")}: Blue</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -416,16 +422,16 @@ export function KnowledgeCards() {
                       name="cardLayout"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>卡片布局</FormLabel>
+                          <FormLabel>{t("knowledgeCards.layoutLabel")}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="选择卡片布局" />
+                                <SelectValue placeholder={t("knowledgeCards.layoutLabel")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               <SelectItem value="Markdown">📝 Markdown</SelectItem>
-                              <SelectItem value="脑图">🧠 脑图</SelectItem>
+                              <SelectItem value="脑图">🧠 Mind Map</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -439,16 +445,16 @@ export function KnowledgeCards() {
                       name="language"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>语言</FormLabel>
+                          <FormLabel>{t("knowledgeCards.langLabel")}</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="选择语言" />
+                                <SelectValue placeholder={t("knowledgeCards.langLabel")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="中文">🇨🇳 中文</SelectItem>
-                              <SelectItem value="英文">🇺🇸 英文</SelectItem>
+                              <SelectItem value="中文">🇨🇳 {t("common.zh")}</SelectItem>
+                              <SelectItem value="英文">🇺🇸 {t("common.en")}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -464,7 +470,7 @@ export function KnowledgeCards() {
                       name="cardCount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>卡片数量</FormLabel>
+                          <FormLabel>{t("knowledgeCards.countLabel")}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -476,7 +482,7 @@ export function KnowledgeCards() {
                             />
                           </FormControl>
                           <FormDescription>
-                            生成1-20张卡片（默认5张）
+                            {t("knowledgeCards.countDesc")}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -489,15 +495,15 @@ export function KnowledgeCards() {
                       name="cardRequirements"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>卡片要求</FormLabel>
+                          <FormLabel>{t("knowledgeCards.reqLabel")}</FormLabel>
                           <FormControl>
                             <Input
-                              placeholder="可选：特殊要求或重点"
+                              placeholder={t("knowledgeCards.reqPlaceholder")}
                               {...field}
                             />
                           </FormControl>
                           <FormDescription>
-                            对生成的卡片有特殊要求可以在此说明
+                            {t("knowledgeCards.reqDesc")}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -507,12 +513,12 @@ export function KnowledgeCards() {
 
                   {/* 样式预览 */}
                   <div>
-                    <FormLabel>样式预览</FormLabel>
+                    <FormLabel>{t("knowledgeCards.previewLabel")}</FormLabel>
                     <div className="mt-2 p-4 border rounded-lg bg-muted/20">
                       <iframe
                         srcDoc={getCardPreviewHTML()}
                         className="w-full h-[200px] border-0 rounded"
-                        title="卡片预览"
+                        title="Style Preview"
                       />
                     </div>
                   </div>
@@ -528,12 +534,12 @@ export function KnowledgeCards() {
                       {isGenerating ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          生成中...
+                          {t("common.generating")}
                         </>
                       ) : (
                         <>
                           <SparklesIcon className="w-4 h-4 mr-2" />
-                          生成知识卡片
+                          {t("knowledgeCards.generateBtn")}
                         </>
                       )}
                     </Button>
@@ -549,7 +555,7 @@ export function KnowledgeCards() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <GlobeIcon className="w-5 h-5" />
-                  生成的知识卡片 ({generatedCards.length})
+                  {t("knowledgeCards.resultTitle")} ({generatedCards.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -581,20 +587,20 @@ export function KnowledgeCards() {
                       </html>
                     `}
                     className="w-full h-[600px] border-0 rounded"
-                    title="知识卡片展示"
+                    title="Knowledge Card Display"
                   />
                 </div>
                 <div className="mt-4 flex justify-center gap-4">
                   <Button
                     variant="outline"
                     onClick={() => {
-                      const iframe = document.querySelector('iframe[title="知识卡片展示"]') as HTMLIFrameElement
+                      const iframe = document.querySelector('iframe[title="Knowledge Card Display"]') as HTMLIFrameElement
                       if (iframe?.contentWindow) {
                         iframe.contentWindow.print()
                       }
                     }}
                   >
-                    打印卡片
+                    {t("knowledgeCards.printBtn")}
                   </Button>
                   <Button
                     variant="outline"
@@ -608,7 +614,7 @@ export function KnowledgeCards() {
                       URL.revokeObjectURL(url)
                     }}
                   >
-                    下载HTML
+                    {t("knowledgeCards.downloadBtn")}
                   </Button>
                 </div>
               </CardContent>

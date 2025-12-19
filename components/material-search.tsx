@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   SearchIcon,
   FileTextIcon,
@@ -49,11 +50,11 @@ type Material = {
   createdAt: string
 }
 
-const searchTabs: { id: MaterialType; label: string; icon: any }[] = [
-  { id: "资料", label: "资料", icon: FileTextIcon },
-  { id: "新闻", label: "新闻", icon: NewspaperIcon },
-  { id: "图片", label: "图片", icon: ImageIcon },
-  { id: "数据", label: "数据", icon: DatabaseIcon },
+const searchTabs: { id: MaterialType; key: string; icon: any }[] = [
+  { id: "资料", key: "resource", icon: FileTextIcon },
+  { id: "新闻", key: "news", icon: NewspaperIcon },
+  { id: "图片", key: "image", icon: ImageIcon },
+  { id: "数据", key: "data", icon: DatabaseIcon },
 ]
 
 const mockMaterials: Material[] = [
@@ -100,6 +101,7 @@ const mockMaterials: Material[] = [
 ]
 
 export function MaterialSearch() {
+  const { t } = useTranslation()
   const [activeSearchTab, setActiveSearchTab] = useState<MaterialType>("资料")
   const [materials, setMaterials] = useState<Material[]>(mockMaterials)
   const [searchQuery, setSearchQuery] = useState("")
@@ -198,10 +200,10 @@ export function MaterialSearch() {
   const handleUploadSubmit = () => {
     const errors: { name?: string; content?: string } = {}
     if (!uploadForm.name.trim()) {
-      errors.name = "素材名称不能为空"
+      errors.name = t("contentWriting.materials.errors.nameRequired")
     }
     if (!uploadForm.content.trim()) {
-      errors.content = "素材内容不能为空"
+      errors.content = t("contentWriting.materials.errors.contentRequired")
     }
 
     if (Object.keys(errors).length > 0) {
@@ -262,7 +264,7 @@ export function MaterialSearch() {
                   `}
                 >
                   <Icon className="w-4 h-4" />
-                  {tab.label}
+                  {t(`contentWriting.materials.types.${tab.key}`)}
                 </button>
               )
             })}
@@ -273,7 +275,7 @@ export function MaterialSearch() {
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
-                placeholder={`搜索${activeSearchTab}...`}
+                placeholder={t("contentWriting.materials.searchPlaceholder").replace("{type}", t(`contentWriting.materials.types.${searchTabs.find(st => st.id === activeSearchTab)?.key || 'resource'}`))}
                 className="pl-10 pr-24 h-12 text-base"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -288,10 +290,10 @@ export function MaterialSearch() {
                 {isSearching ? (
                   <>
                     <LoaderIcon className="w-4 h-4 mr-2 animate-spin" />
-                    搜索中...
+                    {t("contentWriting.materials.searchingBtn")}
                   </>
                 ) : (
-                  "搜索"
+                  t("contentWriting.materials.searchBtn")
                 )}
               </Button>
             </div>
@@ -299,7 +301,7 @@ export function MaterialSearch() {
             {isSearching && (
               <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 border border-primary/20 rounded-md animate-in slide-in-from-top-2 fade-in duration-300">
                 <LoaderIcon className="w-4 h-4 text-primary animate-spin" />
-                <span className="text-sm text-primary font-medium">AI 正在全力搜索，请稍候...</span>
+                <span className="text-sm text-primary font-medium">{t("contentWriting.materials.aiSearching")}</span>
               </div>
             )}
           </div>
@@ -313,11 +315,11 @@ export function MaterialSearch() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">素材名称：</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.filterName")}</span>
             <div className="relative flex-1">
               <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="搜索素材名称..."
+                placeholder={t("contentWriting.materials.filterNamePlaceholder")}
                 className="pl-8 h-9"
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
@@ -325,26 +327,26 @@ export function MaterialSearch() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">素材类型：</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.filterType")}</span>
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                <SelectItem value="资料">资料</SelectItem>
-                <SelectItem value="新闻">新闻</SelectItem>
-                <SelectItem value="图片">图片</SelectItem>
-                <SelectItem value="数据">数据</SelectItem>
-                <SelectItem value="用户">用户</SelectItem>
+                <SelectItem value="all">{t("contentWriting.materials.types.all")}</SelectItem>
+                <SelectItem value="资料">{t("contentWriting.materials.types.resource")}</SelectItem>
+                <SelectItem value="新闻">{t("contentWriting.materials.types.news")}</SelectItem>
+                <SelectItem value="图片">{t("contentWriting.materials.types.image")}</SelectItem>
+                <SelectItem value="数据">{t("contentWriting.materials.types.data")}</SelectItem>
+                <SelectItem value="用户">{t("contentWriting.materials.types.user")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">共 {filteredMaterials.length} 条素材</div>
+          <div className="text-sm text-muted-foreground">{t("contentWriting.materials.totalCount").replace("{count}", filteredMaterials.length.toString())}</div>
         </div>
         <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
           <UploadIcon className="w-4 h-4" />
-          上传素材
+          {t("contentWriting.materials.uploadBtn")}
         </Button>
       </div>
 
@@ -353,19 +355,19 @@ export function MaterialSearch() {
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">素材名称</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">素材类型</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">素材链接</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">素材内容</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">创建时间</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">操作</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.name")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.type")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.content")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.time")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {filteredMaterials.length === 0 ? (
               <tr>
                 <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                  暂无素材数据
+                  {t("contentWriting.materials.table.noData")}
                 </td>
               </tr>
             ) : (
@@ -374,7 +376,7 @@ export function MaterialSearch() {
                   <td className="py-3 px-4 text-sm font-medium">{material.name}</td>
                   <td className="py-3 px-4 text-sm">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {material.type}
+                      {t(`contentWriting.materials.types.${searchTabs.find(st => st.id === material.type)?.key || 'user'}`)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm">
@@ -417,20 +419,20 @@ export function MaterialSearch() {
       <Dialog open={!!editingMaterial} onOpenChange={(open) => !open && setEditingMaterial(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>编辑素材</DialogTitle>
-            <DialogDescription>修改素材的详细信息</DialogDescription>
+            <DialogTitle>{t("contentWriting.materials.dialog.editTitle")}</DialogTitle>
+            <DialogDescription>{t("contentWriting.materials.dialog.editDesc")}</DialogDescription>
           </DialogHeader>
           {editingMaterial && (
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">素材名称</label>
+                <label className="text-sm font-medium">{t("contentWriting.materials.dialog.nameLabel")}</label>
                 <Input
                   value={editingMaterial.name}
                   onChange={(e) => setEditingMaterial({ ...editingMaterial, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">素材类型</label>
+                <label className="text-sm font-medium">{t("contentWriting.materials.dialog.typeLabel")}</label>
                 <Select
                   value={editingMaterial.type}
                   onValueChange={(value) => setEditingMaterial({ ...editingMaterial, type: value as MaterialType })}
@@ -439,23 +441,23 @@ export function MaterialSearch() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="资料">资料</SelectItem>
-                    <SelectItem value="新闻">新闻</SelectItem>
-                    <SelectItem value="图片">图片</SelectItem>
-                    <SelectItem value="数据">数据</SelectItem>
-                    <SelectItem value="用户">用户</SelectItem>
+                    <SelectItem value="资料">{t("contentWriting.materials.types.resource")}</SelectItem>
+                    <SelectItem value="新闻">{t("contentWriting.materials.types.news")}</SelectItem>
+                    <SelectItem value="图片">{t("contentWriting.materials.types.image")}</SelectItem>
+                    <SelectItem value="数据">{t("contentWriting.materials.types.data")}</SelectItem>
+                    <SelectItem value="用户">{t("contentWriting.materials.types.user")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">素材链接</label>
+                <label className="text-sm font-medium">{t("contentWriting.materials.dialog.linkLabel")}</label>
                 <Input
                   value={editingMaterial.link}
                   onChange={(e) => setEditingMaterial({ ...editingMaterial, link: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">素材内容</label>
+                <label className="text-sm font-medium">{t("contentWriting.materials.dialog.contentLabel")}</label>
                 <textarea
                   value={editingMaterial.content}
                   onChange={(e) => setEditingMaterial({ ...editingMaterial, content: e.target.value })}
@@ -466,9 +468,9 @@ export function MaterialSearch() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingMaterial(null)}>
-              取消
+              {t("common.cancel")}
             </Button>
-            <Button onClick={handleSaveEdit}>保存修改</Button>
+            <Button onClick={handleSaveEdit}>{t("contentWriting.materials.dialog.saveBtn")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -477,16 +479,16 @@ export function MaterialSearch() {
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>此操作无法撤销。确定要删除这条素材吗？</AlertDialogDescription>
+            <AlertDialogTitle>{t("contentWriting.materials.dialog.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("contentWriting.materials.dialog.deleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deletingId && handleDelete(deletingId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              删除
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -496,17 +498,17 @@ export function MaterialSearch() {
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>上传素材</DialogTitle>
-            <DialogDescription>添加新的素材到您的素材库</DialogDescription>
+            <DialogTitle>{t("contentWriting.materials.dialog.uploadTitle")}</DialogTitle>
+            <DialogDescription>{t("contentWriting.materials.dialog.uploadDesc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="upload-name">
-                素材名称 <span className="text-destructive">*</span>
+                {t("contentWriting.materials.dialog.nameLabel")} <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="upload-name"
-                placeholder="请输入素材名称"
+                placeholder={t("contentWriting.materials.dialog.namePlaceholder")}
                 value={uploadForm.name}
                 onChange={(e) => {
                   setUploadForm({ ...uploadForm, name: e.target.value })
@@ -520,13 +522,13 @@ export function MaterialSearch() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="upload-type">素材类型</Label>
-              <Input id="upload-type" value="用户" disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">用户上传的素材类型自动设置为&quot;用户&quot;</p>
+              <Label htmlFor="upload-type">{t("contentWriting.materials.dialog.typeLabel")}</Label>
+              <Input id="upload-type" value={t("contentWriting.materials.types.user")} disabled className="bg-muted" />
+              <p className="text-xs text-muted-foreground">{t("contentWriting.materials.types.user")}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="upload-link">素材链接（可选）</Label>
+              <Label htmlFor="upload-link">{t("contentWriting.materials.dialog.linkLabel")}</Label>
               <Input
                 id="upload-link"
                 placeholder="https://example.com/resource"
@@ -537,11 +539,11 @@ export function MaterialSearch() {
 
             <div className="space-y-2">
               <Label htmlFor="upload-content">
-                素材内容 <span className="text-destructive">*</span>
+                {t("contentWriting.materials.dialog.contentLabel")} <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="upload-content"
-                placeholder="请输入素材内容描述..."
+                placeholder={t("contentWriting.materials.dialog.contentPlaceholder")}
                 value={uploadForm.content}
                 onChange={(e) => {
                   setUploadForm({ ...uploadForm, content: e.target.value })
@@ -556,11 +558,11 @@ export function MaterialSearch() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleUploadCancel}>
-              取消
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleUploadSubmit}>
               <UploadIcon className="w-4 h-4 mr-2" />
-              上传素材
+              {t("contentWriting.materials.uploadBtn")}
             </Button>
           </DialogFooter>
         </DialogContent>

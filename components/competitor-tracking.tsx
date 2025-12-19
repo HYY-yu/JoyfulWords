@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { SearchIcon, ClockIcon, ExternalLinkIcon, TrashIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -64,6 +65,7 @@ const platforms: { id: Platform; label: string; placeholder: string }[] = [
 ]
 
 export function CompetitorTracking() {
+  const { t } = useTranslation()
   const [activePlatform, setActivePlatform] = useState<Platform>("linkedin")
   const [profileUrl, setProfileUrl] = useState("")
   const [isSearching, setIsSearching] = useState(false)
@@ -153,7 +155,7 @@ export function CompetitorTracking() {
 
     let intervalDisplay = ""
     if (scheduleConfig.mode === "simple") {
-      intervalDisplay = `每 ${scheduleConfig.simpleInterval} ${scheduleConfig.simpleUnit === "hours" ? "小时" : "天"}`
+      intervalDisplay = `${t("contentWriting.competitors.dialog.modeSimple")}: ${scheduleConfig.simpleInterval} ${scheduleConfig.simpleUnit === "hours" ? t("contentWriting.competitors.dialog.unitHours") : t("contentWriting.competitors.dialog.unitDays")}`
     } else {
       intervalDisplay = `Cron: ${scheduleConfig.cronExpression}`
     }
@@ -216,7 +218,7 @@ export function CompetitorTracking() {
 
     let intervalDisplay = ""
     if (scheduleConfig.mode === "simple") {
-      intervalDisplay = `每 ${scheduleConfig.simpleInterval} ${scheduleConfig.simpleUnit === "hours" ? "小时" : "天"}`
+      intervalDisplay = `${t("contentWriting.competitors.dialog.modeSimple")}: ${scheduleConfig.simpleInterval} ${scheduleConfig.simpleUnit === "hours" ? t("contentWriting.competitors.dialog.unitHours") : t("contentWriting.competitors.dialog.unitDays")}`
     } else {
       intervalDisplay = `Cron: ${scheduleConfig.cronExpression}`
     }
@@ -286,7 +288,7 @@ export function CompetitorTracking() {
           </div>
           <Button onClick={handleSearch} disabled={!profileUrl.trim() || isSearching} className="h-11 px-6">
             <SearchIcon className="w-4 h-4 mr-2" />
-            抓取
+            {t("contentWriting.competitors.crawlBtn")}
           </Button>
           <Button
             onClick={() => setShowScheduleDialog(true)}
@@ -295,7 +297,7 @@ export function CompetitorTracking() {
             className="h-11 px-6"
           >
             <ClockIcon className="w-4 h-4 mr-2" />
-            定时抓取
+            {t("contentWriting.competitors.timerCrawlBtn")}
           </Button>
         </div>
 
@@ -304,7 +306,7 @@ export function CompetitorTracking() {
           <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 animate-in slide-in-from-top-2 fade-in duration-500">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              <p className="text-sm text-primary font-medium">AI 正在全力搜索，请稍候...</p>
+              <p className="text-sm text-primary font-medium">{t("contentWriting.competitors.aiSearching")}</p>
             </div>
           </div>
         )}
@@ -328,7 +330,7 @@ export function CompetitorTracking() {
               }
             `}
           >
-            定时抓取任务
+            {t("contentWriting.competitors.tabs.tasks")}
           </button>
           <button
             onClick={() => setActiveDataTab("results")}
@@ -341,7 +343,7 @@ export function CompetitorTracking() {
               }
             `}
           >
-            抓取结果
+            {t("contentWriting.competitors.tabs.results")}
           </button>
         </div>
 
@@ -351,22 +353,22 @@ export function CompetitorTracking() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">平台</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">资料页 URL</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">抓取间隔</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">上次运行</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">下次运行</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.platform")}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.url")}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.interval")}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.lastRun")}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.nextRun")}</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                    状态（点击可以修改）
+                    {t("contentWriting.competitors.table.status")}
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">操作</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.actions")}</th>
                 </tr>
               </thead>
               <tbody>
                 {scheduledTasks.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                      暂无定时任务
+                      {t("contentWriting.competitors.table.noTasks")}
                     </td>
                   </tr>
                 ) : (
@@ -397,7 +399,7 @@ export function CompetitorTracking() {
                               : "bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20"
                           }`}
                         >
-                          {task.status === "active" ? "运行中" : "已暂停"}
+                          {task.status === "active" ? t("contentWriting.competitors.table.running") : t("contentWriting.competitors.table.paused")}
                         </button>
                       </td>
                       <td className="py-3 px-4 text-sm">
@@ -424,20 +426,20 @@ export function CompetitorTracking() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">平台</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">内容</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">来源链接</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">帖子链接</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">点赞数</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">评论数</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">发布时间</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.platform")}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.content")}</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")} (Source)</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")} (Post)</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Likes</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Comments</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.time")}</th>
                 </tr>
               </thead>
               <tbody>
                 {posts.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                      暂无抓取结果
+                      {t("contentWriting.competitors.table.noResults")}
                     </td>
                   </tr>
                 ) : (
@@ -469,7 +471,7 @@ export function CompetitorTracking() {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-primary hover:underline"
                         >
-                          <span>查看</span>
+                          <span>{t("common.preview")}</span>
                           <ExternalLinkIcon className="w-3 h-3" />
                         </a>
                       </td>
@@ -504,27 +506,27 @@ export function CompetitorTracking() {
       >
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingIntervalTaskId ? "修改抓取间隔" : "配置定时抓取"}</DialogTitle>
+            <DialogTitle>{editingIntervalTaskId ? t("contentWriting.competitors.dialog.editInterval") : t("contentWriting.competitors.dialog.configTask")}</DialogTitle>
             <DialogDescription>
-              {editingIntervalTaskId ? "修改定时抓取的时间间隔" : "设置自动抓取的时间间隔"}
+              {editingIntervalTaskId ? t("contentWriting.competitors.dialog.editDesc") : t("contentWriting.competitors.dialog.configDesc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {!editingIntervalTaskId && (
               <>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">平台</label>
+                  <label className="text-sm font-medium text-foreground">{t("contentWriting.competitors.table.platform")}</label>
                   <Input value={currentPlatform.label} disabled className="bg-muted" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">资料页 URL</label>
+                  <label className="text-sm font-medium text-foreground">{t("contentWriting.competitors.table.url")}</label>
                   <Input value={profileUrl} disabled className="bg-muted" />
                 </div>
               </>
             )}
 
             <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground">抓取间隔</label>
+              <label className="text-sm font-medium text-foreground">{t("contentWriting.competitors.table.interval")}</label>
               <RadioGroup
                 value={scheduleConfig.mode}
                 onValueChange={(value) => setScheduleConfig({ ...scheduleConfig, mode: value as "simple" | "custom" })}
@@ -532,13 +534,13 @@ export function CompetitorTracking() {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="simple" id="simple" />
                   <Label htmlFor="simple" className="font-normal cursor-pointer">
-                    简单设置
+                    {t("contentWriting.competitors.dialog.modeSimple")}
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
                   <Label htmlFor="custom" className="font-normal cursor-pointer">
-                    自定义 Cron 表达式
+                    {t("contentWriting.competitors.dialog.modeCron")}
                   </Label>
                 </div>
               </RadioGroup>
@@ -547,7 +549,7 @@ export function CompetitorTracking() {
             {scheduleConfig.mode === "simple" && (
               <div className="flex gap-3">
                 <div className="flex-1 space-y-2">
-                  <label className="text-sm text-muted-foreground">间隔数</label>
+                  <label className="text-sm text-muted-foreground">{t("contentWriting.competitors.dialog.intervalNum")}</label>
                   <Input
                     type="number"
                     min="1"
@@ -558,7 +560,7 @@ export function CompetitorTracking() {
                   />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <label className="text-sm text-muted-foreground">单位</label>
+                  <label className="text-sm text-muted-foreground">{t("contentWriting.competitors.dialog.unit")}</label>
                   <Select
                     value={scheduleConfig.simpleUnit}
                     onValueChange={(value) =>
@@ -569,8 +571,8 @@ export function CompetitorTracking() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="hours">小时</SelectItem>
-                      <SelectItem value="days">天</SelectItem>
+                      <SelectItem value="hours">{t("contentWriting.competitors.dialog.unitHours")}</SelectItem>
+                      <SelectItem value="days">{t("contentWriting.competitors.dialog.unitDays")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -597,9 +599,9 @@ export function CompetitorTracking() {
                 setEditingIntervalTaskId(null)
               }}
             >
-              取消
+              {t("common.cancel")}
             </Button>
-            <Button onClick={editingIntervalTaskId ? handleUpdateInterval : handleSchedule}>确定</Button>
+            <Button onClick={editingIntervalTaskId ? handleUpdateInterval : handleSchedule}>{t("common.submit")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -608,12 +610,12 @@ export function CompetitorTracking() {
       <AlertDialog open={!!deleteTaskId} onOpenChange={(open) => !open && setDeleteTaskId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确认删除</AlertDialogTitle>
-            <AlertDialogDescription>确定要删除这个定时任务吗？此操作无法撤销。</AlertDialogDescription>
+            <AlertDialogTitle>{t("contentWriting.competitors.dialog.confirmDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("contentWriting.competitors.dialog.confirmDeleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteTaskId && handleDeleteTask(deleteTaskId)}>删除</AlertDialogAction>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTaskId && handleDeleteTask(deleteTaskId)}>{t("common.delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

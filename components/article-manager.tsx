@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast"
 
 export function ArticleManager() {
+  const { t } = useTranslation()
   const { toast } = useToast()
   const [articles, setArticles] = useState<Article[]>(mockArticles)
   const [titleFilter, setTitleFilter] = useState("")
@@ -62,7 +64,7 @@ export function ArticleManager() {
   const handleEditArticle = (article: Article) => {
     // TODO: Navigate to article writing tab with article ID
     toast({
-      description: `编辑文章: ${article.title}`
+      description: `${t("common.edit")}: ${article.title}`
     })
   }
 
@@ -75,7 +77,7 @@ export function ArticleManager() {
     if (selectedArticle) {
       setArticles(prev => prev.filter(article => article.id !== selectedArticle.id))
       toast({
-        description: "文章已删除"
+        description: t("common.delete")
       })
     }
     setDeleteConfirmOpen(false)
@@ -110,7 +112,7 @@ export function ArticleManager() {
   const handleCreateNewArticle = () => {
     // TODO: Navigate to article writing tab
     toast({
-      description: "跳转到文章撰写页面"
+      description: t("contentWriting.writing.aiHelpTitle")
     })
   }
 
@@ -131,11 +133,11 @@ export function ArticleManager() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
           <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">文章标题：</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.manager.filterTitle")}</span>
             <div className="relative flex-1">
               <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="搜索文章标题..."
+                placeholder={t("contentWriting.manager.searchTitlePlaceholder")}
                 className="pl-8 h-9"
                 value={titleFilter}
                 onChange={(e) => setTitleFilter(e.target.value)}
@@ -143,24 +145,24 @@ export function ArticleManager() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">文章状态：</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.manager.filterStatus")}</span>
             <Select value={statusFilter} onValueChange={(value: ArticleStatus | "all") => setStatusFilter(value)}>
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="published">已发布</SelectItem>
-                <SelectItem value="draft">草稿</SelectItem>
-                <SelectItem value="archived">已归档</SelectItem>
+                <SelectItem value="all">{t("contentWriting.manager.status.all")}</SelectItem>
+                <SelectItem value="published">{t("contentWriting.manager.status.published")}</SelectItem>
+                <SelectItem value="draft">{t("contentWriting.manager.status.draft")}</SelectItem>
+                <SelectItem value="archived">{t("contentWriting.manager.status.archived")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">共 {filteredArticles.length} 篇文章</div>
+          <div className="text-sm text-muted-foreground">{t("contentWriting.manager.totalArticles").replace("{count}", filteredArticles.length.toString())}</div>
         </div>
         <Button onClick={handleCreateNewArticle} className="gap-2">
           <PlusIcon className="w-4 h-4" />
-          新建文章
+          {t("contentWriting.manager.newArticleBtn")}
         </Button>
       </div>
 
@@ -169,20 +171,20 @@ export function ArticleManager() {
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">文章标题</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">文章内容</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">文章图片</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">引用链接</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">创建时间</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">修改时间</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">操作</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.title")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.content")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.images")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.links")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.created")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.modified")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {filteredArticles.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                  暂无文章数据
+                  {t("contentWriting.manager.table.noData")}
                 </td>
               </tr>
             ) : (
@@ -197,7 +199,7 @@ export function ArticleManager() {
                         variant={article.status === 'published' ? 'default' : article.status === 'draft' ? 'secondary' : 'outline'}
                         className="text-xs"
                       >
-                        {article.status === 'published' ? '已发布' : article.status === 'draft' ? '草稿' : '已归档'}
+                        {article.status === 'published' ? t("contentWriting.manager.status.published") : article.status === 'draft' ? t("contentWriting.manager.status.draft") : t("contentWriting.manager.status.archived")}
                       </Badge>
                     </div>
                   </td>
@@ -210,7 +212,7 @@ export function ArticleManager() {
                       <div className="max-w-md">
                         <div className="flex items-center gap-1 mb-1">
                           <Eye className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">点击查看详情</span>
+                          <span className="text-xs text-muted-foreground">{t("contentWriting.manager.clickForDetail")}</span>
                         </div>
                         <div className="text-sm text-foreground line-clamp-2">
                           {article.summary || article.content.substring(0, 100) + '...'}
@@ -229,7 +231,7 @@ export function ArticleManager() {
                           <div className="flex items-center gap-1">
                             <ImageIcon className="w-3 h-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">
-                              {article.images.length > 3 ? '查看全部' : '查看图片'}
+                              {article.images.length > 3 ? t("contentWriting.manager.viewAllImages") : t("contentWriting.manager.viewImages")}
                             </span>
                           </div>
                           <div className="flex gap-1">
@@ -250,7 +252,7 @@ export function ArticleManager() {
                         </div>
                       </Button>
                     ) : (
-                      <span className="text-muted-foreground text-sm">无图片</span>
+                      <span className="text-muted-foreground text-sm">{t("contentWriting.manager.noImages")}</span>
                     )}
                   </td>
                   <td className="py-3 px-4 text-sm">
@@ -264,7 +266,7 @@ export function ArticleManager() {
                           <div className="flex items-center gap-1">
                             <Link className="w-3 h-3 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">
-                              {article.referenceLinks.length} 个链接
+                              {t("contentWriting.manager.linksCount").replace("{count}", article.referenceLinks.length.toString())}
                             </span>
                           </div>
                           <p className="text-sm truncate">
@@ -273,7 +275,7 @@ export function ArticleManager() {
                         </div>
                       </Button>
                     ) : (
-                      <span className="text-muted-foreground text-sm">无链接</span>
+                      <span className="text-muted-foreground text-sm">{t("contentWriting.manager.noLinks")}</span>
                     )}
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">{article.createdAt.split(' ')[0]}</td>

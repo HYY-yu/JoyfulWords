@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   },
 }
 
+import { I18nProvider } from "@/lib/i18n/i18n-context"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,8 +40,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <I18nProvider>
+          {children}
+          <Analytics />
+        </I18nProvider>
       </body>
     </html>
   )

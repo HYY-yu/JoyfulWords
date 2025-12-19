@@ -6,15 +6,18 @@ import { MaterialSearch } from "./material-search"
 import { CompetitorTracking } from "./competitor-tracking"
 import { ArticleWriting } from "./article-writing"
 import { ArticleManager } from "./article-manager"
-
-const tabs = [
-  { id: "material-search", label: "素材搜索", icon: SearchIcon },
-  { id: "competitor-tracking", label: "竞品跟踪", icon: TrendingUpIcon },
-  { id: "article-writing", label: "文章撰写", icon: PenToolIcon },
-  { id: "article-manager", label: "文章管理", icon: NotebookTabs },
-]
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 export function ContentWriting() {
+  const { t } = useTranslation()
+
+  const tabs = [
+    { id: "material-search", label: t("contentWriting.tabs.materialSearch"), icon: SearchIcon },
+    { id: "competitor-tracking", label: t("contentWriting.tabs.competitorTracking"), icon: TrendingUpIcon },
+    { id: "article-writing", label: t("contentWriting.tabs.articleWriting"), icon: PenToolIcon },
+    { id: "article-manager", label: t("contentWriting.tabs.articleManager"), icon: NotebookTabs },
+  ]
+
   const [activeTab, setActiveTab] = useState("material-search")
 
   const activeTabConfig = tabs.find((tab) => tab.id === activeTab)!
@@ -29,8 +32,8 @@ export function ContentWriting() {
               <PenToolIcon className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h2 className="text-2xl font-semibold text-foreground">悦文悦己</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">Content creation and management tools</p>
+              <h2 className="text-2xl font-semibold text-foreground">{t("contentWriting.title")}</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">{t("contentWriting.subtitle")}</p>
             </div>
           </div>
         </div>
@@ -82,7 +85,7 @@ export function ContentWriting() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-3xl font-bold text-foreground">{activeTabConfig.label}</h3>
-                <p className="text-muted-foreground max-w-md">Doing 中...</p>
+                <p className="text-muted-foreground max-w-md">{t("common.doing")}</p>
               </div>
             </div>
           </div>
