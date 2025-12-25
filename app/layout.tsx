@@ -32,6 +32,7 @@ export const metadata: Metadata = {
 
 import { I18nProvider } from "@/lib/i18n/i18n-context"
 import { AuthProvider } from "@/lib/auth/auth-context"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function RootLayout({
   children,
@@ -45,6 +46,7 @@ export default function RootLayout({
           <I18nProvider>
             {children}
             <Analytics />
+            <Toaster />
           </I18nProvider>
         </AuthProvider>
       </body>
