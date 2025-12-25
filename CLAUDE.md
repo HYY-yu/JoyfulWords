@@ -20,6 +20,9 @@ pnpm start
 
 # Run ESLint
 pnpm lint
+
+# Check supabase Local Info
+supabase status
 ```
 
 Note: The project uses pnpm as the package manager.
@@ -36,6 +39,7 @@ Note: The project uses pnpm as the package manager.
 - **Forms**: React Hook Form 7.x with Zod validation
 - **Analytics**: Vercel Analytics
 - **Fonts**: Geist and Geist Mono from Google Fonts
+- **Supabase**: use supabase as backend
 
 ### Directory Structure
 

@@ -1,2 +1,12 @@
 node_modules
 .next
+supabase/.env
+supabase/volumes/db/data
+supabase/volumes/storage
+supabase/test.http
+supabase/docker-compose.override.yml
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local

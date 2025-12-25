@@ -1,0 +1,3 @@
+name,size,percent_used,index_scans,seq_scans,unused
+public.materials_name_key,8192 bytes,0%,0,0,t
+public.materials_pkey,8192 bytes,100%,18,0,f
