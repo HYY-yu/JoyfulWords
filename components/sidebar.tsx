@@ -1,8 +1,19 @@
 "use client"
 
-import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, LanguagesIcon, UserCircleIcon } from "lucide-react"
+import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, LanguagesIcon, UserCircleIcon, LogOutIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useAuth } from "@/lib/auth/auth-context"
+import { Button } from "@/components/ui/button"
+import { signOut } from "@/app/auth/signout/actions"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface SidebarProps {
   activeTab: string
@@ -11,6 +22,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { t, locale, setLocale } = useTranslation()
+  const { user } = useAuth()
 
   const menuItems = [
     {
@@ -105,13 +117,43 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           </button>
         </div>
 
-        {/* Account Management Placeholder */}
-        <button
-          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors"
-        >
-          <UserCircleIcon className="w-5 h-5 text-sidebar-foreground/60" />
-          <span>{t("common.account")}</span>
-        </button>
+        {/* Account Management */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-colors justify-start"
+            >
+              <UserCircleIcon className="w-5 h-5 text-sidebar-foreground/60" />
+              <span className="truncate">{user?.email || t("common.account")}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium">{t("common.account")}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user?.email}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href="/profile" className="cursor-pointer">
+                <UserCircleIcon className="mr-2 h-4 w-4" />
+                {t("auth.profile")}
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:text-red-600"
+              onSelect={() => signOut()}
+            >
+              <LogOutIcon className="mr-2 h-4 w-4" />
+              {t("auth.logout")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Version Info */}
         <div className="px-4 pt-2">

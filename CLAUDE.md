@@ -39,47 +39,11 @@ Note: The project uses pnpm as the package manager.
 - **Forms**: React Hook Form 7.x with Zod validation
 - **Analytics**: Vercel Analytics
 - **Fonts**: Geist and Geist Mono from Google Fonts
-- **Supabase**: use supabase as backend
-
-### Directory Structure
-
-```
-/app                    # Next.js App Router pages
-  - layout.tsx         # Root layout with metadata and font configuration
-  - page.tsx           # Main dashboard page with tab state management
-  - globals.css        # Global styles with Tailwind directives and CSS variables
-
-/components/           # React components
-  - /ui/              # Shadcn/ui component library (~59 components)
-  - /editor/          # Tiptap editor components and extensions
-    - tiptap-editor.tsx  # Main rich text editor component
-    - editor-toolbar.tsx # Editor toolbar with formatting controls
-    - editor-extensions.ts # Custom Tiptap extensions and configurations
-  - sidebar.tsx       # Main navigation sidebar
-  - main-content.tsx  # Content area router based on active tab
-  - content-writing.tsx  # Content writing tools with nested tabs
-  - material-search.tsx  # Material search functionality
-  - competitor-tracking.tsx # Competitor analysis
-  - article-writing.tsx  # Article writing tool with Tiptap editor
-  - article-manager.tsx  # Article management system with table view and dialogs
-  - article-types.ts     # Type definitions and mock data for articles
-  - article-dialogs.tsx  # Dialog components for article management (preview, images, links)
-  - article-table.tsx    # Reusable table component for article display
-  - image-generation.tsx # Image generation feature
-  - knowledge-cards.tsx  # Knowledge cards generation and management feature
-  - [other feature components]
-
-/hooks/               # Custom React hooks
-  - use-mobile.ts     # Mobile detection hook
-  - use-toast.ts      # Toast notification hook
-
-/lib/                 # Utility functions
-  - utils.ts          # Class name merging (clsx + twMerge)
-
-/public/              # Static assets
-  - Icons/            # Application icons (light/dark theme variants)
-  - Images/           # Placeholder images and backgrounds
-```  
+- **Backend & Auth**: Supabase (PostgreSQL database + Authentication)
+  - Email/Password authentication with required email verification
+  - Google OAuth support (ready to configure)
+  - Row Level Security (RLS) for data protection
+  - SSR-compatible auth with `@supabase/ssr`
 
 ### Key Patterns
 
@@ -139,6 +103,15 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 ## Feature Status
 
 - **Fully Implemented**:
+  - **Authentication System** (Supabase Auth)
+    - Email/Password login with required email verification
+    - Google OAuth integration (requires configuration)
+    - Protected routes with automatic redirects
+    - User session management with automatic token refresh
+    - Password strength indicator and validation
+    - Forgot password functionality
+    - User profile dropdown with logout
+    - Bilingual auth pages (zh/en)
   - Content writing tools (material search, competitor tracking, article writing)
   - Article management system with full CRUD operations and interactive content preview
   - Knowledge cards system with form validation, real-time preview, and HTML generation
@@ -155,3 +128,61 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 - Leverage the existing CSS variables for consistent theming
 - For rich text editing, use the Tiptap editor component located in `/components/editor/`
 - When extending Tiptap functionality, add new extensions to `editor-extensions.ts`
+
+## Authentication & User Management
+
+This project uses Supabase Auth for complete user authentication and management. The system includes:
+
+### Key Features
+- **Email/Password Auth** with required email verification
+- **Google OAuth** ready (requires configuration)
+- **Protected Routes** - unauthenticated users automatically redirected to `/auth/login`
+- **Session Management** with automatic token refresh via middleware
+- **User Profiles** linked to Supabase auth users
+
+### Using Auth in Components
+```typescript
+// Client component
+import { useAuth } from "@/lib/auth/auth-context"
+
+const { user, session, loading, signInWithEmail, signOut } = useAuth()
+```
+
+### Server-Side Auth Checks
+```typescript
+// Server component or server action
+import { createClient } from '@/lib/supabase/server'
+
+const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+
+if (!user) {
+  redirect('/auth/login')
+}
+```
+
+### Important Files
+- **Auth Context**: `/lib/auth/auth-context.tsx`
+- **Auth Pages**: `/app/auth/*` (login, signup, verify-email, forgot-password)
+- **Auth Components**: `/components/auth/*`
+- **Supabase Clients**: `/lib/supabase/*` (client.ts, server.ts, middleware.ts)
+- **Middleware**: `/middleware.ts` (session refresh and route protection)
+
+### Database
+- **User Profiles**: `public.profiles` table (auto-created on signup)
+- **Row Level Security**: All tables protected with RLS policies
+- **Migrations**: Located in `/supabase/migrations/`
+
+### Email Testing (Development)
+- **Mailpit**: http://127.0.0.1:54324 - view all sent emails locally
+- No real emails are sent in development mode
+
+### 📚 Detailed Documentation
+For comprehensive information about the authentication system, including:
+- Architecture and flow diagrams
+- Usage examples and best practices
+- Configuration instructions
+- Troubleshooting guide
+- Security considerations
+
+**See `/docs/auth.md`** for complete authentication documentation.
