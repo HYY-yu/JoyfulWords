@@ -1,2 +1,0 @@
-name,last_vacuum,last_autovacuum,last_analyze,last_autoanalyze,rowcount,dead_rowcount,autovacuum_threshold,expect_autovacuum,autoanalyze_threshold,expect_autoanalyze
-public.materials,"","","","",            -1,             0,            50,no,            50,no

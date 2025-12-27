@@ -1,2 +1,0 @@
-name,table_size,index_size,total_size,estimated_row_count,seq_scans
-public.materials,8192 bytes,16 kB,24 kB,0,18
