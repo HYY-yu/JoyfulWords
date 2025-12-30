@@ -35,7 +35,8 @@ export async function refreshAccessToken(): Promise<boolean> {
       // Clear all tokens on refresh failure
       TokenManager.clearTokens()
       console.error('Token refresh failed:', error)
-      return false
+      return false     
+      
     } finally {
       refreshPromise = null
     }

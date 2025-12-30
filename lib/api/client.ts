@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '@/lib/config'
+import { trace, context } from '@opentelemetry/api'
 import type {
   LoginRequest,
   SignupRequestCode,
@@ -21,10 +22,45 @@ const DEFAULT_HEADERS = {
  * Get Accept-Language header based on browser locale
  */
 function getLanguageHeader(): string {
-  if (typeof window === 'undefined') return 'en'
+  if (typeof window === 'undefined') return 'en-US'
 
-  const locale = localStorage.getItem('locale') || navigator.language || 'en'
-  return locale.startsWith('zh') ? 'zh-CN' : 'en'
+  const locale = localStorage.getItem('locale') || navigator.language || 'en-US'
+  return locale.startsWith('zh') ? 'zh-CN' : 'en-US'
+}
+
+/**
+ * Inject OpenTelemetry trace headers for distributed tracing
+ *
+ * This function extracts the current trace context and injects it into
+ * outgoing HTTP requests using the W3C Trace Context format.
+ *
+ * @returns Headers object with traceparent header if tracing is active
+ */
+function injectTraceHeaders(): HeadersInit {
+  const headers: HeadersInit = {}
+
+  try {
+    // Get current trace context
+    const currentContext = context.active()
+    const span = trace.getSpan(currentContext)
+
+    if (span) {
+      const spanContext = span.spanContext()
+
+      // Inject W3C traceparent header
+      // Format: 00-{trace_id}-{span_id}-{trace_flags}
+      if (spanContext.traceId && spanContext.spanId) {
+        const traceParent = `00-${spanContext.traceId}-${spanContext.spanId}-0${spanContext.traceFlags || 1}`
+        headers['traceparent'] = traceParent
+      }
+    }
+  } catch (error) {
+    // Silently fail if OpenTelemetry is not initialized
+    // This prevents breaking the app when tracing is disabled
+    console.debug('[Trace] Failed to inject trace headers:', error)
+  }
+
+  return headers
 }
 
 /**
@@ -39,6 +75,7 @@ async function apiRequest<T>(
   const headers: HeadersInit = {
     ...DEFAULT_HEADERS,
     'Accept-Language': getLanguageHeader(),
+    ...injectTraceHeaders(), // Inject distributed tracing headers
     ...options.headers,
   }
 
