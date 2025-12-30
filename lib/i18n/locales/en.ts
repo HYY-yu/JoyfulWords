@@ -331,6 +331,15 @@ export const en = {
         resetError: "Failed to send reset email",
         forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password",
         profile: "Profile",
-        logout: "Logout"
+        logout: "Logout",
+        requestVerificationCode: "Request Verification Code",
+        verificationCode: "Verification Code",
+        verificationCodeSent: "Verification code sent to your email",
+        enterVerificationCode: "Please enter 6-digit verification code",
+        invalidVerificationCode: "Invalid or expired verification code",
+        codeExpired: "Verification code has expired",
+        resendCode: "Resend",
+        signupComplete: "Sign up successful, please login",
+        passwordResetComplete: "Password reset successful, please login"
     }
 };

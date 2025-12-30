@@ -7,9 +7,17 @@
         "mcp"
       ]
     },
-    "supabase": {
-      "type": "http",
-      "url": "http://127.0.0.1:54321/mcp?features=docs%2Cdatabase%2Cdebugging"
+    "zai-mcp-server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@z_ai/mcp-server"
+      ],
+      "env": {
+        "Z_AI_API_KEY": "df358eb8c6a8421b95b20fdd5ec30085.IubskwErCsy1E2e1",
+        "Z_AI_MODE": "ZHIPU"
+      }
     }
   }
 }

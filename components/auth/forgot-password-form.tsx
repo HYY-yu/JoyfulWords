@@ -7,77 +7,63 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { VerifyCodeForm } from "./verify-code-form"
 import { Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export function ForgotPasswordForm() {
+  const [step, setStep] = useState<"email" | "verify">("email")
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const supabase = require("@/lib/supabase/client").createClient()
+  const { requestPasswordReset } = useAuth()
   const { toast } = useToast()
   const { t } = useTranslation()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
-      })
-
-      if (error) throw error
-
-      setSuccess(true)
-      toast({
-        title: t("auth.resetEmailSent"),
-        description: t("auth.resetEmailSentDescription"),
-      })
+      await requestPasswordReset(email)
+      setStep("verify")
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: t("auth.resetError"),
-        description: error.message,
-      })
+      // Toast is already shown in the auth context
     } finally {
       setLoading(false)
     }
   }
 
-  if (success) {
+  const handleVerifySuccess = () => {
+    // Redirect to login page after successful password reset
+    window.location.href = "/auth/login?reset=success"
+  }
+
+  const handleBack = () => {
+    setStep("email")
+  }
+
+  if (step === "verify") {
     return (
       <div className="space-y-4">
-        <div className="text-center py-4">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <svg
-              className="w-6 h-6 text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold mb-2">{t("auth.checkYourEmail")}</h3>
-          <p className="text-sm text-muted-foreground">
-            {t("auth.resetEmailSent")}
-          </p>
-        </div>
-        <Button asChild className="w-full" variant="outline">
-          <Link href="/auth/login">{t("auth.backToLogin")}</Link>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleBack}
+          className="mb-2"
+        >
+          ← 返回
         </Button>
+        <VerifyCodeForm
+          mode="reset"
+          email={email}
+          onSuccess={handleVerifySuccess}
+        />
       </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleRequestReset} className="space-y-4">
       <div className="text-center mb-4">
         <h3 className="text-lg font-semibold">{t("auth.forgotPassword")}</h3>
         <p className="text-sm text-muted-foreground mt-2">
@@ -96,11 +82,14 @@ export function ForgotPasswordForm() {
           required
           disabled={loading}
         />
+        <p className="text-xs text-muted-foreground">
+          我们将向您的邮箱发送6位验证码
+        </p>
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {t("auth.sendResetLink")}
+        发送验证码
       </Button>
 
       <div className="text-center">

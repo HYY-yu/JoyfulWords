@@ -1,83 +1,163 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { User } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/client'
-import type { Session } from '@supabase/supabase-js'
+import { toast } from '@/hooks/use-toast'
+import { apiClient } from '@/lib/api/client'
+import { TokenManager } from '@/lib/tokens/token-manager'
+import { setupTokenRefresh } from '@/lib/tokens/refresh'
+import type { User, Tokens } from '@/lib/api/types'
 
 interface AuthContextType {
   user: User | null
-  session: Session | null
+  session: Tokens | null
   loading: boolean
+
+  // Authentication methods
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<void>
-  signInWithGoogle: () => Promise<void>
+  requestSignupCode: (email: string) => Promise<void>
+  verifySignupCode: (email: string, code: string, password: string) => Promise<void>
   signOut: () => Promise<void>
+  requestPasswordReset: (email: string) => Promise<void>
+  verifyPasswordReset: (email: string, code: string, password: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
+  const [session, setSession] = useState<Tokens | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    // Restore session from localStorage on mount
+    const tokens = TokenManager.getTokens()
+    const storedUser = TokenManager.getUser()
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
+    if (tokens && storedUser) {
+      setUser(storedUser)
+      setSession(tokens)
       setLoading(false)
-    })
 
-    return () => subscription.unsubscribe()
+      // Setup automatic token refresh
+      const cleanupRefresh = setupTokenRefresh()
+
+      return () => {
+        cleanupRefresh()
+      }
+    }
+
+    setLoading(false)
   }, [])
 
   const signInWithEmail = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const result = await apiClient.login(email, password)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '登录失败',
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    // Store tokens
+    TokenManager.setTokens(result as Tokens)
+    setUser(result.user)
+    setSession(result as Tokens)
+
+    toast({
+      title: '登录成功',
     })
-    if (error) throw error
   }
 
-  const signUpWithEmail = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      },
+  const requestSignupCode = async (email: string) => {
+    const result = await apiClient.requestSignupCode(email)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '发送失败',
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    toast({
+      title: '验证码已发送',
+      description: '请查收您的邮箱',
     })
-    if (error) throw error
   }
 
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      },
+  const verifySignupCode = async (email: string, code: string, password: string) => {
+    const result = await apiClient.verifySignupCode(email, code, password)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '注册失败',
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    toast({
+      title: '注册成功',
+      description: '请使用您的邮箱和密码登录',
     })
-    if (error) throw error
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    const refreshToken = TokenManager.getRefreshToken()
+
+    if (refreshToken) {
+      await apiClient.logout(refreshToken)
+    }
+
+    // Clear all tokens
+    TokenManager.clearTokens()
+    setUser(null)
+    setSession(null)
+
+    toast({
+      title: '已退出登录',
+    })
+  }
+
+  const requestPasswordReset = async (email: string) => {
+    const result = await apiClient.requestPasswordReset(email)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '发送失败',
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    toast({
+      title: '验证码已发送',
+      description: '如果该邮箱已注册，您将收到密码重置验证码',
+    })
+  }
+
+  const verifyPasswordReset = async (email: string, code: string, password: string) => {
+    const result = await apiClient.verifyPasswordReset(email, code, password)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '重置失败',
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    toast({
+      title: '密码重置成功',
+      description: '请使用新密码登录',
+    })
   }
 
   return (
@@ -87,9 +167,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         signInWithEmail,
-        signUpWithEmail,
-        signInWithGoogle,
+        requestSignupCode,
+        verifySignupCode,
         signOut,
+        requestPasswordReset,
+        verifyPasswordReset,
       }}
     >
       {children}

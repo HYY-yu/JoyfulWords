@@ -331,6 +331,15 @@ export const zh = {
         resetError: "发送重置邮件失败",
         forgotPasswordDescription: "输入您的邮箱地址，我们会向您发送重置密码的链接",
         profile: "个人资料",
-        logout: "退出登录"
+        logout: "退出登录",
+        requestVerificationCode: "请求验证码",
+        verificationCode: "验证码",
+        verificationCodeSent: "验证码已发送至您的邮箱",
+        enterVerificationCode: "请输入6位验证码",
+        invalidVerificationCode: "验证码无效或已过期",
+        codeExpired: "验证码已过期",
+        resendCode: "重新发送",
+        signupComplete: "注册成功，请登录",
+        passwordResetComplete: "密码重置成功，请登录"
     }
 };
