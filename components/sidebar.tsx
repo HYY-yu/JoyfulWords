@@ -1,11 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, LanguagesIcon, UserCircleIcon, LogOutIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Button } from "@/components/ui/button"
 import { signOut } from "@/app/auth/signout/actions"
+import { ProfileDialog } from "@/components/auth/profile-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +25,7 @@ interface SidebarProps {
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { t, locale, setLocale } = useTranslation()
   const { user } = useAuth()
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const menuItems = [
     {
@@ -138,11 +141,12 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="/profile" className="cursor-pointer">
-                <UserCircleIcon className="mr-2 h-4 w-4" />
-                {t("auth.profile")}
-              </a>
+            <DropdownMenuItem
+              className="cursor-pointer"
+              onClick={() => setProfileOpen(true)}
+            >
+              <UserCircleIcon className="mr-2 h-4 w-4" />
+              {t("auth.profile")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -162,6 +166,9 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           </p>
         </div>
       </div>
+
+      {/* Profile Dialog */}
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </aside>
   )
 }

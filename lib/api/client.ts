@@ -7,6 +7,7 @@ import type {
   LogoutRequest,
   PasswordResetRequest,
   PasswordResetVerify,
+  ChangePasswordRequest,
   AuthResponse,
   MessageResponse,
   ErrorResponse,
@@ -153,5 +154,22 @@ export const apiClient = {
         body: JSON.stringify({ email, code, password } as PasswordResetVerify),
       }
     )
+  },
+
+  /**
+   * Change password
+   * POST /auth/change_password
+   */
+  async changePassword(oldPassword: string, newPassword: string) {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<MessageResponse | ErrorResponse>('/auth/change_password', {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: JSON.stringify({
+        old_password: oldPassword,
+        new_password: newPassword,
+      } as ChangePasswordRequest),
+    })
   },
 }

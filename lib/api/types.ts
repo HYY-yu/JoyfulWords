@@ -32,6 +32,11 @@ export interface PasswordResetVerify {
   password: string
 }
 
+export interface ChangePasswordRequest {
+  old_password: string
+  new_password: string
+}
+
 // API Response Types
 export interface AuthResponse {
   access_token: string
