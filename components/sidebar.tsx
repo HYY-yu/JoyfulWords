@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Button } from "@/components/ui/button"
-import { signOut } from "@/app/auth/signout/actions"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
 import {
   DropdownMenu,
@@ -24,7 +23,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { t, locale, setLocale } = useTranslation()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [profileOpen, setProfileOpen] = useState(false)
 
   const menuItems = [
