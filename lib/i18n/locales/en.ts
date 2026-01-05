@@ -41,11 +41,9 @@ export const en = {
         materials: {
             types: {
                 all: "All Types",
-                resource: "Resource",
+                info: "Info",
                 news: "News",
                 image: "Image",
-                data: "Data",
-                user: "User",
             },
             searchBtn: "Search",
             searchingBtn: "Searching...",
@@ -79,10 +77,50 @@ export const en = {
                 namePlaceholder: "Please enter material name",
                 contentPlaceholder: "Please enter material description...",
                 saveBtn: "Save Changes",
+                typeHintInfo: "Upload text resources and documentation",
+                typeHintImage: "Upload image material (single image only)",
+                imageLabel: "Image File",
+                uploadHint: "Click to upload or drag image here",
+                uploadFormatHint: "Supports PNG, JPG, JPEG formats, max 5MB",
+                selectImageBtn: "Select Image",
+                removeImageBtn: "Remove",
+                fileName: "File name:",
             },
             errors: {
                 nameRequired: "Material name cannot be empty",
                 contentRequired: "Material content cannot be empty",
+                imageRequired: "Please select an image",
+                invalidImageType: "Please select an image file",
+                imageTooLarge: "Image size cannot exceed 5MB",
+            },
+            logs: {
+                tabs: {
+                    materials: "Materials",
+                    logs: "Generation Logs",
+                },
+                filterType: "Type:",
+                filterStatus: "Status:",
+                totalCount: "Total {count} logs",
+                table: {
+                    id: "ID",
+                    type: "Type",
+                    status: "Status",
+                    createdAt: "Created At",
+                    updatedAt: "Updated At",
+                    noData: "No generation logs available",
+                },
+                types: {
+                    all: "All",
+                    info: "Info",
+                    news: "News",
+                    image: "Image",
+                },
+                status: {
+                    all: "All",
+                    doing: "Doing",
+                    success: "Success",
+                    failed: "Failed",
+                }
             }
         },
         competitors: {

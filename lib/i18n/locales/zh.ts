@@ -41,11 +41,9 @@ export const zh = {
         materials: {
             types: {
                 all: "全部类型",
-                resource: "资料",
+                info: "资料",
                 news: "新闻",
                 image: "图片",
-                data: "数据",
-                user: "用户",
             },
             searchBtn: "搜索",
             searchingBtn: "搜索中...",
@@ -79,10 +77,50 @@ export const zh = {
                 namePlaceholder: "请输入素材名称",
                 contentPlaceholder: "请输入素材内容描述...",
                 saveBtn: "保存修改",
+                typeHintInfo: "上传文字资料和说明文档",
+                typeHintImage: "上传图片素材（仅支持一张图片）",
+                imageLabel: "图片文件",
+                uploadHint: "点击上传或拖拽图片到此处",
+                uploadFormatHint: "支持 PNG、JPG、JPEG 格式，最大 5MB",
+                selectImageBtn: "选择图片",
+                removeImageBtn: "移除",
+                fileName: "文件名:",
             },
             errors: {
                 nameRequired: "素材名称不能为空",
                 contentRequired: "素材内容不能为空",
+                imageRequired: "请选择图片",
+                invalidImageType: "请选择图片文件",
+                imageTooLarge: "图片大小不能超过 5MB",
+            },
+            logs: {
+                tabs: {
+                    materials: "素材库",
+                    logs: "生成记录",
+                },
+                filterType: "类型：",
+                filterStatus: "状态：",
+                totalCount: "共 {count} 条记录",
+                table: {
+                    id: "ID",
+                    type: "类型",
+                    status: "状态",
+                    createdAt: "创建时间",
+                    updatedAt: "更新时间",
+                    noData: "暂无生成记录",
+                },
+                types: {
+                    all: "全部",
+                    info: "Info",
+                    news: "News",
+                    image: "Image",
+                },
+                status: {
+                    all: "全部",
+                    doing: "进行中",
+                    success: "成功",
+                    failed: "失败",
+                }
             }
         },
         competitors: {

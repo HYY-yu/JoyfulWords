@@ -250,70 +250,72 @@ export function CompetitorTracking() {
 
   return (
     <div className="space-y-6">
-      {/* Search Section */}
-      <div className="space-y-4">
-        {/* Platform Tabs */}
-        <div className="flex gap-2 border-b border-border/50">
-          {platforms.map((platform) => (
-            <button
-              key={platform.id}
-              onClick={() => {
-                setActivePlatform(platform.id)
-                setProfileUrl("")
-              }}
-              className={`
-                px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
-                ${
-                  activePlatform === platform.id
-                    ? "text-primary border-primary bg-primary/5"
-                    : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50"
-                }
-              `}
-            >
-              {platform.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Search Bar */}
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Input
-              placeholder={currentPlatform.placeholder}
-              value={profileUrl}
-              onChange={(e) => setProfileUrl(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="h-11"
-            />
+      {/* Search Bar with Tabs */}
+      <div className="bg-card rounded-lg border border-border p-6">
+        <div className="space-y-4">
+          {/* Platform Tabs */}
+          <div className="flex gap-2">
+            {platforms.map((platform) => (
+              <button
+                key={platform.id}
+                onClick={() => {
+                  setActivePlatform(platform.id)
+                  setProfileUrl("")
+                }}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
+                  ${
+                    activePlatform === platform.id
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                  }
+                `}
+              >
+                {platform.label}
+              </button>
+            ))}
           </div>
-          <Button onClick={handleSearch} disabled={!profileUrl.trim() || isSearching} className="h-11 px-6">
-            <SearchIcon className="w-4 h-4 mr-2" />
-            {t("contentWriting.competitors.crawlBtn")}
-          </Button>
-          <Button
-            onClick={() => setShowScheduleDialog(true)}
-            disabled={!profileUrl.trim()}
-            variant="outline"
-            className="h-11 px-6"
-          >
-            <ClockIcon className="w-4 h-4 mr-2" />
-            {t("contentWriting.competitors.timerCrawlBtn")}
-          </Button>
-        </div>
 
-        {/* Loading State */}
-        {isSearching && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 animate-in slide-in-from-top-2 fade-in duration-500">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-              <p className="text-sm text-primary font-medium">{t("contentWriting.competitors.aiSearching")}</p>
+          {/* Search Bar */}
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  placeholder={currentPlatform.placeholder}
+                  value={profileUrl}
+                  onChange={(e) => setProfileUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="h-11"
+                />
+              </div>
+              <Button onClick={handleSearch} disabled={!profileUrl.trim() || isSearching} className="h-11 px-6">
+                <SearchIcon className="w-4 h-4 mr-2" />
+                {t("contentWriting.competitors.crawlBtn")}
+              </Button>
+              <Button
+                onClick={() => setShowScheduleDialog(true)}
+                disabled={!profileUrl.trim()}
+                variant="outline"
+                className="h-11 px-6"
+              >
+                <ClockIcon className="w-4 h-4 mr-2" />
+                {t("contentWriting.competitors.timerCrawlBtn")}
+              </Button>
             </div>
+
+            {/* Loading State */}
+            {isSearching && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 border border-primary/20 rounded-md animate-in slide-in-from-top-2 fade-in duration-300">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                <span className="text-sm text-primary font-medium">{t("contentWriting.competitors.aiSearching")}</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-dashed border-border/60 pt-8" />
+      <div className="border-t border-dashed border-border/60" />
 
       {/* Data Tables */}
       <div className="space-y-4">

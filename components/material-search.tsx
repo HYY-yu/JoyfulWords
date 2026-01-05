@@ -9,11 +9,11 @@ import {
   FileTextIcon,
   NewspaperIcon,
   ImageIcon,
-  DatabaseIcon,
   UploadIcon,
   PencilIcon,
   TrashIcon,
   LoaderIcon,
+  XIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,7 +39,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 
-type MaterialType = "资料" | "新闻" | "图片" | "数据" | "用户"
+type MaterialType = "Info" | "News" | "Image"
 
 type Material = {
   id: string
@@ -50,18 +50,35 @@ type Material = {
   createdAt: string
 }
 
+type MaterialLogType = "info" | "news" | "image"
+
+type MaterialLogStatus = "doing" | "success" | "failed"
+
+type MaterialLog = {
+  id: string
+  type: MaterialLogType
+  status: MaterialLogStatus
+  createdAt: string
+  updatedAt: string
+}
+
 const searchTabs: { id: MaterialType; key: string; icon: any }[] = [
-  { id: "资料", key: "resource", icon: FileTextIcon },
-  { id: "新闻", key: "news", icon: NewspaperIcon },
-  { id: "图片", key: "image", icon: ImageIcon },
-  { id: "数据", key: "data", icon: DatabaseIcon },
+  { id: "Info", key: "info", icon: FileTextIcon },
+  { id: "News", key: "news", icon: NewspaperIcon },
+  { id: "Image", key: "image", icon: ImageIcon },
+]
+
+const materialLogTypes: { id: MaterialLogType; label: string }[] = [
+  { id: "info", label: "Info" },
+  { id: "news", label: "News" },
+  { id: "image", label: "Image" },
 ]
 
 const mockMaterials: Material[] = [
   {
     id: "1",
     name: "AI技术发展报告2024",
-    type: "资料",
+    type: "Info",
     link: "https://example.com/ai-report-2024",
     content: "详细介绍了2024年人工智能技术的最新发展趋势和应用案例...",
     createdAt: "2024-01-15 10:30:00",
@@ -69,7 +86,7 @@ const mockMaterials: Material[] = [
   {
     id: "2",
     name: "OpenAI发布GPT-5新闻",
-    type: "新闻",
+    type: "News",
     link: "https://example.com/gpt5-news",
     content: "OpenAI正式发布了GPT-5模型,性能比前代提升了3倍...",
     createdAt: "2024-02-20 14:15:00",
@@ -77,36 +94,55 @@ const mockMaterials: Material[] = [
   {
     id: "3",
     name: "科技产品宣传图",
-    type: "图片",
+    type: "Image",
     link: "https://example.com/tech-product.jpg",
     content: "高清科技产品宣传海报,适合用于社交媒体营销",
     createdAt: "2024-03-10 09:45:00",
   },
+]
+
+const mockMaterialLogs: MaterialLog[] = [
   {
-    id: "4",
-    name: "2024年市场数据分析",
-    type: "数据",
-    link: "https://example.com/market-data-2024",
-    content: "包含全年市场趋势、用户行为、销售数据等综合分析...",
-    createdAt: "2024-04-05 16:20:00",
+    id: "1",
+    type: "info",
+    status: "success",
+    createdAt: "2024-01-15 10:30:00",
+    updatedAt: "2024-01-15 10:35:00",
   },
   {
-    id: "5",
-    name: "用户上传的案例研究",
-    type: "用户",
-    link: "https://example.com/case-study",
-    content: "某企业数字化转型的完整案例研究和经验总结",
-    createdAt: "2024-05-12 11:00:00",
+    id: "2",
+    type: "news",
+    status: "doing",
+    createdAt: "2024-02-20 14:15:00",
+    updatedAt: "2024-02-20 14:15:00",
+  },
+  {
+    id: "3",
+    type: "image",
+    status: "failed",
+    createdAt: "2024-03-10 09:45:00",
+    updatedAt: "2024-03-10 09:50:00",
+  },
+  {
+    id: "4",
+    type: "info",
+    status: "doing",
+    createdAt: "2024-04-05 16:20:00",
+    updatedAt: "2024-04-05 16:20:00",
   },
 ]
 
 export function MaterialSearch() {
   const { t } = useTranslation()
-  const [activeSearchTab, setActiveSearchTab] = useState<MaterialType>("资料")
+  const [activeDataTab, setActiveDataTab] = useState<"materials" | "logs">("materials")
+  const [activeSearchTab, setActiveSearchTab] = useState<MaterialType>("Info")
   const [materials, setMaterials] = useState<Material[]>(mockMaterials)
+  const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>(mockMaterialLogs)
   const [searchQuery, setSearchQuery] = useState("")
   const [nameFilter, setNameFilter] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
+  const [logTypeFilter, setLogTypeFilter] = useState<string>("all")
+  const [logStatusFilter, setLogStatusFilter] = useState<string>("all")
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showUploadDialog, setShowUploadDialog] = useState(false)
@@ -114,15 +150,24 @@ export function MaterialSearch() {
 
   const [uploadForm, setUploadForm] = useState({
     name: "",
-    link: "",
+    type: "Info" as "Info" | "Image",
     content: "",
+    imageFile: null as File | null,
+    imageUrl: "",
   })
   const [uploadErrors, setUploadErrors] = useState<{ name?: string; content?: string }>({})
+  const [imagePreview, setImagePreview] = useState<string>("")
 
   const filteredMaterials = materials.filter((material) => {
     const matchesSearch = material.name.toLowerCase().includes(nameFilter.toLowerCase())
     const matchesType = filterType === "all" || material.type === filterType
     return matchesSearch && matchesType
+  })
+
+  const filteredMaterialLogs = materialLogs.filter((log) => {
+    const matchesType = logTypeFilter === "all" || log.type === logTypeFilter
+    const matchesStatus = logStatusFilter === "all" || log.status === logStatusFilter
+    return matchesType && matchesStatus
   })
 
   const handleSearch = async () => {
@@ -202,8 +247,13 @@ export function MaterialSearch() {
     if (!uploadForm.name.trim()) {
       errors.name = t("contentWriting.materials.errors.nameRequired")
     }
-    if (!uploadForm.content.trim()) {
+
+    // 验证内容字段
+    if (uploadForm.type === "Info" && !uploadForm.content.trim()) {
       errors.content = t("contentWriting.materials.errors.contentRequired")
+    }
+    if (uploadForm.type === "Image" && !uploadForm.imageFile) {
+      errors.content = t("contentWriting.materials.errors.imageRequired")
     }
 
     if (Object.keys(errors).length > 0) {
@@ -211,12 +261,23 @@ export function MaterialSearch() {
       return
     }
 
+    // 处理图片上传
+    let imageUrl = ""
+    let content = uploadForm.content
+
+    if (uploadForm.type === "Image" && uploadForm.imageFile) {
+      // 在实际应用中，这里应该上传到服务器并获取 URL
+      // 现在我们使用 createObjectURL 作为演示
+      imageUrl = URL.createObjectURL(uploadForm.imageFile)
+      content = `[Image: ${uploadForm.imageFile.name}]`
+    }
+
     const newMaterial: Material = {
       id: Date.now().toString(),
       name: uploadForm.name,
-      type: "用户",
-      link: uploadForm.link,
-      content: uploadForm.content,
+      type: uploadForm.type,
+      link: imageUrl || "",
+      content: content,
       createdAt: new Date().toLocaleString("zh-CN", {
         year: "numeric",
         month: "2-digit",
@@ -230,13 +291,60 @@ export function MaterialSearch() {
 
     setMaterials([newMaterial, ...materials])
     setShowUploadDialog(false)
-    setUploadForm({ name: "", link: "", content: "" })
+    setUploadForm({
+      name: "",
+      type: "Info",
+      content: "",
+      imageFile: null,
+      imageUrl: "",
+    })
     setUploadErrors({})
+    setImagePreview("")
   }
 
   const handleUploadCancel = () => {
     setShowUploadDialog(false)
-    setUploadForm({ name: "", link: "", content: "" })
+    setUploadForm({
+      name: "",
+      type: "Info",
+      content: "",
+      imageFile: null,
+      imageUrl: "",
+    })
+    setUploadErrors({})
+    setImagePreview("")
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // 验证文件类型
+      if (!file.type.startsWith("image/")) {
+        setUploadErrors({ content: t("contentWriting.materials.errors.invalidImageType") })
+        return
+      }
+      // 验证文件大小 (例如限制为 5MB)
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        setUploadErrors({ content: t("contentWriting.materials.errors.imageTooLarge") })
+        return
+      }
+
+      setUploadForm({ ...uploadForm, imageFile: file })
+      setUploadErrors({})
+
+      // 创建预览
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setUploadForm({ ...uploadForm, imageFile: null, imageUrl: "" })
+    setImagePreview("")
     setUploadErrors({})
   }
 
@@ -275,7 +383,7 @@ export function MaterialSearch() {
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
-                placeholder={t("contentWriting.materials.searchPlaceholder").replace("{type}", t(`contentWriting.materials.types.${searchTabs.find(st => st.id === activeSearchTab)?.key || 'resource'}`))}
+                placeholder={t("contentWriting.materials.searchPlaceholder").replace("{type}", t(`contentWriting.materials.types.${searchTabs.find(st => st.id === activeSearchTab)?.key || 'info'}`))}
                 className="pl-10 pr-24 h-12 text-base"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -311,47 +419,80 @@ export function MaterialSearch() {
       {/* Divider */}
       <div className="border-t border-dashed border-border/60" />
 
-      {/* Filter Bar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.filterName")}</span>
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t("contentWriting.materials.filterNamePlaceholder")}
-                className="pl-8 h-9"
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.filterType")}</span>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("contentWriting.materials.types.all")}</SelectItem>
-                <SelectItem value="资料">{t("contentWriting.materials.types.resource")}</SelectItem>
-                <SelectItem value="新闻">{t("contentWriting.materials.types.news")}</SelectItem>
-                <SelectItem value="图片">{t("contentWriting.materials.types.image")}</SelectItem>
-                <SelectItem value="数据">{t("contentWriting.materials.types.data")}</SelectItem>
-                <SelectItem value="用户">{t("contentWriting.materials.types.user")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="text-sm text-muted-foreground">{t("contentWriting.materials.totalCount").replace("{count}", filteredMaterials.length.toString())}</div>
+      {/* Data Tables */}
+      <div className="space-y-4">
+        {/* Table Tabs */}
+        <div className="flex gap-2 border-b border-border/50">
+          <button
+            onClick={() => setActiveDataTab("materials")}
+            className={`
+              px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
+              ${
+                activeDataTab === "materials"
+                  ? "text-primary border-primary bg-primary/5"
+                  : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50"
+              }
+            `}
+          >
+            {t("contentWriting.materials.logs.tabs.materials")}
+          </button>
+          <button
+            onClick={() => setActiveDataTab("logs")}
+            className={`
+              px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
+              ${
+                activeDataTab === "logs"
+                  ? "text-primary border-primary bg-primary/5"
+                  : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50"
+              }
+            `}
+          >
+            {t("contentWriting.materials.logs.tabs.logs")}
+          </button>
         </div>
-        <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
-          <UploadIcon className="w-4 h-4" />
-          {t("contentWriting.materials.uploadBtn")}
-        </Button>
-      </div>
 
-      {/* Materials Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+        {/* Materials Table Section */}
+        {activeDataTab === "materials" && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Filter Bar */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-center gap-2 flex-1 max-w-xs">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.filterName")}</span>
+                  <div className="relative flex-1">
+                    <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder={t("contentWriting.materials.filterNamePlaceholder")}
+                      className="pl-8 h-9"
+                      value={nameFilter}
+                      onChange={(e) => setNameFilter(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.filterType")}</span>
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("contentWriting.materials.types.all")}</SelectItem>
+                      <SelectItem value="Info">{t("contentWriting.materials.types.info")}</SelectItem>
+                      <SelectItem value="News">{t("contentWriting.materials.types.news")}</SelectItem>
+                      <SelectItem value="Image">{t("contentWriting.materials.types.image")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-sm text-muted-foreground">{t("contentWriting.materials.totalCount").replace("{count}", filteredMaterials.length.toString())}</div>
+              </div>
+              <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
+                <UploadIcon className="w-4 h-4" />
+                {t("contentWriting.materials.uploadBtn")}
+              </Button>
+            </div>
+
+            {/* Materials Table */}
+            <div className="border border-border rounded-lg overflow-hidden">
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
@@ -376,7 +517,7 @@ export function MaterialSearch() {
                   <td className="py-3 px-4 text-sm font-medium">{material.name}</td>
                   <td className="py-3 px-4 text-sm">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {t(`contentWriting.materials.types.${searchTabs.find(st => st.id === material.type)?.key || 'user'}`)}
+                      {t(`contentWriting.materials.types.${searchTabs.find(st => st.id === material.type)?.key || 'info'}`)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-sm">
@@ -412,7 +553,102 @@ export function MaterialSearch() {
               ))
             )}
           </tbody>
-        </table>
+            </table>
+          </div>
+        </div>
+        )}
+
+        {/* MaterialsLog Table Section */}
+        {activeDataTab === "logs" && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            {/* Filter Bar */}
+            <div className="flex items-center gap-4 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.logs.filterType")}</span>
+                <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("contentWriting.materials.logs.types.all")}</SelectItem>
+                    {materialLogTypes.map((type) => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {t(`contentWriting.materials.logs.types.${type.id}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.materials.logs.filterStatus")}</span>
+                <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("contentWriting.materials.logs.status.all")}</SelectItem>
+                    <SelectItem value="doing">{t("contentWriting.materials.logs.status.doing")}</SelectItem>
+                    <SelectItem value="success">{t("contentWriting.materials.logs.status.success")}</SelectItem>
+                    <SelectItem value="failed">{t("contentWriting.materials.logs.status.failed")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {t("contentWriting.materials.logs.totalCount").replace("{count}", filteredMaterialLogs.length.toString())}
+              </div>
+            </div>
+
+            {/* MaterialsLog Table */}
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.logs.table.id")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.logs.table.type")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.logs.table.status")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.logs.table.createdAt")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.logs.table.updatedAt")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMaterialLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                        {t("contentWriting.materials.logs.table.noData")}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredMaterialLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+                        <td className="py-3 px-4 text-sm font-medium">{log.id}</td>
+                        <td className="py-3 px-4 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {t(`contentWriting.materials.logs.types.${log.type}`)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              log.status === "success"
+                                ? "bg-green-500/10 text-green-600"
+                                : log.status === "doing"
+                                  ? "bg-blue-500/10 text-blue-600"
+                                  : "bg-red-500/10 text-red-600"
+                            }`}
+                          >
+                            {t(`contentWriting.materials.logs.status.${log.status}`)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">{log.createdAt}</td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">{log.updatedAt}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Dialog */}
@@ -441,11 +677,9 @@ export function MaterialSearch() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="资料">{t("contentWriting.materials.types.resource")}</SelectItem>
-                    <SelectItem value="新闻">{t("contentWriting.materials.types.news")}</SelectItem>
-                    <SelectItem value="图片">{t("contentWriting.materials.types.image")}</SelectItem>
-                    <SelectItem value="数据">{t("contentWriting.materials.types.data")}</SelectItem>
-                    <SelectItem value="用户">{t("contentWriting.materials.types.user")}</SelectItem>
+                    <SelectItem value="Info">{t("contentWriting.materials.types.info")}</SelectItem>
+                    <SelectItem value="News">{t("contentWriting.materials.types.news")}</SelectItem>
+                    <SelectItem value="Image">{t("contentWriting.materials.types.image")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -523,38 +757,115 @@ export function MaterialSearch() {
 
             <div className="space-y-2">
               <Label htmlFor="upload-type">{t("contentWriting.materials.dialog.typeLabel")}</Label>
-              <Input id="upload-type" value={t("contentWriting.materials.types.user")} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">{t("contentWriting.materials.types.user")}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="upload-link">{t("contentWriting.materials.dialog.linkLabel")}</Label>
-              <Input
-                id="upload-link"
-                placeholder="https://example.com/resource"
-                value={uploadForm.link}
-                onChange={(e) => setUploadForm({ ...uploadForm, link: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="upload-content">
-                {t("contentWriting.materials.dialog.contentLabel")} <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="upload-content"
-                placeholder={t("contentWriting.materials.dialog.contentPlaceholder")}
-                value={uploadForm.content}
-                onChange={(e) => {
-                  setUploadForm({ ...uploadForm, content: e.target.value })
-                  if (uploadErrors.content) {
-                    setUploadErrors({ ...uploadErrors, content: undefined })
-                  }
+              <Select
+                value={uploadForm.type}
+                onValueChange={(value) => {
+                  setUploadForm({ ...uploadForm, type: value as "Info" | "Image", content: "", imageFile: null, imageUrl: "" })
+                  setImagePreview("")
+                  setUploadErrors({})
                 }}
-                className={`min-h-[150px] resize-none ${uploadErrors.content ? "border-destructive" : ""}`}
-              />
-              {uploadErrors.content && <p className="text-sm text-destructive">{uploadErrors.content}</p>}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Info">{t("contentWriting.materials.types.info")}</SelectItem>
+                  <SelectItem value="Image">{t("contentWriting.materials.types.image")}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {uploadForm.type === "Info"
+                  ? t("contentWriting.materials.dialog.typeHintInfo")
+                  : t("contentWriting.materials.dialog.typeHintImage")}
+              </p>
             </div>
+
+            {/* Info 类型：文本输入框 */}
+            {uploadForm.type === "Info" && (
+              <div className="space-y-2">
+                <Label htmlFor="upload-content">
+                  {t("contentWriting.materials.dialog.contentLabel")} <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="upload-content"
+                  placeholder={t("contentWriting.materials.dialog.contentPlaceholder")}
+                  value={uploadForm.content}
+                  onChange={(e) => {
+                    setUploadForm({ ...uploadForm, content: e.target.value })
+                    if (uploadErrors.content) {
+                      setUploadErrors({ ...uploadErrors, content: undefined })
+                    }
+                  }}
+                  className={`min-h-[150px] resize-none ${uploadErrors.content ? "border-destructive" : ""}`}
+                />
+                {uploadErrors.content && <p className="text-sm text-destructive">{uploadErrors.content}</p>}
+              </div>
+            )}
+
+            {/* Image 类型：图片上传组件 */}
+            {uploadForm.type === "Image" && (
+              <div className="space-y-2">
+                <Label>
+                  {t("contentWriting.materials.dialog.imageLabel")} <span className="text-destructive">*</span>
+                </Label>
+
+                {/* 上传区域 */}
+                {!imagePreview ? (
+                  <div className="border-2 border-dashed border-border rounded-lg p-8">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <ImageIcon className="w-12 h-12 text-muted-foreground" />
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-foreground">{t("contentWriting.materials.dialog.uploadHint")}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{t("contentWriting.materials.dialog.uploadFormatHint")}</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <label htmlFor="image-upload">
+                        <Button type="button" asChild>
+                          <span>
+                            <UploadIcon className="w-4 h-4 mr-2" />
+                            {t("contentWriting.materials.dialog.selectImageBtn")}
+                          </span>
+                        </Button>
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  /* 预览区域 */
+                  <div className="border border-border rounded-lg p-4">
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-64 object-contain bg-muted rounded-md"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2"
+                      >
+                        <XIcon className="w-4 h-4 mr-1" />
+                        {t("contentWriting.materials.dialog.removeImageBtn")}
+                      </Button>
+                    </div>
+                    {uploadForm.imageFile && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {t("contentWriting.materials.dialog.fileName")} {uploadForm.imageFile.name} ({(uploadForm.imageFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {uploadErrors.content && <p className="text-sm text-destructive">{uploadErrors.content}</p>}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handleUploadCancel}>
