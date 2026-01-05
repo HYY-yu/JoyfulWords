@@ -66,7 +66,7 @@ function injectTraceHeaders(): HeadersInit {
 /**
  * Make API request with error handling
  */
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {

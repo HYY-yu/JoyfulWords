@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   SearchIcon,
@@ -38,116 +37,60 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-
-type MaterialType = "Info" | "News" | "Image"
-
-type Material = {
-  id: string
-  name: string
-  type: MaterialType
-  link: string
-  content: string
-  createdAt: string
-}
-
-type MaterialLogType = "info" | "news" | "image"
-
-type MaterialLogStatus = "doing" | "success" | "failed"
-
-type MaterialLog = {
-  id: string
-  type: MaterialLogType
-  status: MaterialLogStatus
-  createdAt: string
-  updatedAt: string
-}
-
-const searchTabs: { id: MaterialType; key: string; icon: any }[] = [
-  { id: "Info", key: "info", icon: FileTextIcon },
-  { id: "News", key: "news", icon: NewspaperIcon },
-  { id: "Image", key: "image", icon: ImageIcon },
-]
-
-const materialLogTypes: { id: MaterialLogType; label: string }[] = [
-  { id: "info", label: "Info" },
-  { id: "news", label: "News" },
-  { id: "image", label: "Image" },
-]
-
-const mockMaterials: Material[] = [
-  {
-    id: "1",
-    name: "AI技术发展报告2024",
-    type: "Info",
-    link: "https://example.com/ai-report-2024",
-    content: "详细介绍了2024年人工智能技术的最新发展趋势和应用案例...",
-    createdAt: "2024-01-15 10:30:00",
-  },
-  {
-    id: "2",
-    name: "OpenAI发布GPT-5新闻",
-    type: "News",
-    link: "https://example.com/gpt5-news",
-    content: "OpenAI正式发布了GPT-5模型,性能比前代提升了3倍...",
-    createdAt: "2024-02-20 14:15:00",
-  },
-  {
-    id: "3",
-    name: "科技产品宣传图",
-    type: "Image",
-    link: "https://example.com/tech-product.jpg",
-    content: "高清科技产品宣传海报,适合用于社交媒体营销",
-    createdAt: "2024-03-10 09:45:00",
-  },
-]
-
-const mockMaterialLogs: MaterialLog[] = [
-  {
-    id: "1",
-    type: "info",
-    status: "success",
-    createdAt: "2024-01-15 10:30:00",
-    updatedAt: "2024-01-15 10:35:00",
-  },
-  {
-    id: "2",
-    type: "news",
-    status: "doing",
-    createdAt: "2024-02-20 14:15:00",
-    updatedAt: "2024-02-20 14:15:00",
-  },
-  {
-    id: "3",
-    type: "image",
-    status: "failed",
-    createdAt: "2024-03-10 09:45:00",
-    updatedAt: "2024-03-10 09:50:00",
-  },
-  {
-    id: "4",
-    type: "info",
-    status: "doing",
-    createdAt: "2024-04-05 16:20:00",
-    updatedAt: "2024-04-05 16:20:00",
-  },
-]
+import { useToast } from "@/hooks/use-toast"
+import {
+  materialsClient,
+  uploadFileToPresignedUrl,
+} from "@/lib/api/materials/client"
+import type {
+  Material,
+  MaterialLog,
+  MaterialType,
+  MaterialStatus,
+} from "@/lib/api/materials/types"
+import {
+  SEARCH_TAB_OPTIONS,
+  UI_TAB_TO_API_TYPE,
+  STATUS_COLOR_CONFIG,
+} from "@/lib/api/materials/enums"
 
 export function MaterialSearch() {
   const { t } = useTranslation()
+  const { toast } = useToast()
+
+  // ==================== 状态管理 ====================
+
+  // Tab 状态
   const [activeDataTab, setActiveDataTab] = useState<"materials" | "logs">("materials")
-  const [activeSearchTab, setActiveSearchTab] = useState<MaterialType>("Info")
-  const [materials, setMaterials] = useState<Material[]>(mockMaterials)
-  const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>(mockMaterialLogs)
+  const [activeSearchTab, setActiveSearchTab] = useState("Info")
+
+  // 数据状态（使用 API 类型）
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>([])
+
+  // 加载和搜索状态
+  const [loading, setLoading] = useState(false)
+  const [searching, setSearching] = useState(false)
+
+  // 分页状态
+  const [pagination, setPagination] = useState({
+    materials: { page: 1, pageSize: 20, total: 0 },
+    logs: { page: 1, pageSize: 20, total: 0 },
+  })
+
+  // 筛选状态
   const [searchQuery, setSearchQuery] = useState("")
   const [nameFilter, setNameFilter] = useState("")
   const [filterType, setFilterType] = useState<string>("all")
   const [logTypeFilter, setLogTypeFilter] = useState<string>("all")
   const [logStatusFilter, setLogStatusFilter] = useState<string>("all")
-  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [showUploadDialog, setShowUploadDialog] = useState(false)
-  const [isSearching, setIsSearching] = useState(false)
 
+  // 编辑和删除状态
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+
+  // 上传状态
+  const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [uploadForm, setUploadForm] = useState({
     name: "",
     type: "Info" as "Info" | "Image",
@@ -158,102 +101,300 @@ export function MaterialSearch() {
   const [uploadErrors, setUploadErrors] = useState<{ name?: string; content?: string }>({})
   const [imagePreview, setImagePreview] = useState<string>("")
 
-  const filteredMaterials = materials.filter((material) => {
-    const matchesSearch = material.name.toLowerCase().includes(nameFilter.toLowerCase())
-    const matchesType = filterType === "all" || material.type === filterType
-    return matchesSearch && matchesType
-  })
+  // ==================== 数据获取 ====================
 
-  const filteredMaterialLogs = materialLogs.filter((log) => {
-    const matchesType = logTypeFilter === "all" || log.type === logTypeFilter
-    const matchesStatus = logStatusFilter === "all" || log.status === logStatusFilter
-    return matchesType && matchesStatus
-  })
+  /**
+   * 获取素材列表
+   * 支持按名称和类型筛选
+   */
+  const fetchMaterials = async () => {
+    setLoading(true)
 
+    const result = await materialsClient.getMaterials({
+      page: pagination.materials.page,
+      page_size: pagination.materials.pageSize,
+      name: nameFilter || undefined,
+      type: filterType !== 'all' ? filterType as MaterialType : undefined,
+    })
+
+    setLoading(false)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '获取素材列表失败',
+        description: result.error,
+      })
+    } else {
+      setMaterials(result.list)
+      setPagination(prev => ({
+        ...prev,
+        materials: { ...prev.materials, total: result.total },
+      }))
+    }
+  }
+
+  /**
+   * 获取搜索日志列表
+   * 支持按类型和状态筛选
+   */
+  const fetchSearchLogs = async () => {
+    const result = await materialsClient.getSearchLogs({
+      page: pagination.logs.page,
+      page_size: pagination.logs.pageSize,
+      type: logTypeFilter !== 'all' ? logTypeFilter as MaterialType : undefined,
+      status: logStatusFilter !== 'all' ? logStatusFilter as MaterialStatus : undefined,
+    })
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '获取搜索日志失败',
+        description: result.error,
+      })
+    } else {
+      setMaterialLogs(result.list)
+      setPagination(prev => ({
+        ...prev,
+        logs: { ...prev.logs, total: result.total },
+      }))
+    }
+  }
+
+  // 监听筛选条件变化，自动刷新数据
+  useEffect(() => {
+    if (activeDataTab === 'materials') {
+      fetchMaterials()
+    } else {
+      fetchSearchLogs()
+    }
+  }, [filterType, nameFilter, logTypeFilter, logStatusFilter, activeDataTab])
+
+  // 组件初始加载时获取数据
+  useEffect(() => {
+    fetchMaterials()
+  }, [])
+
+  // ==================== 搜索功能 ====================
+
+  /**
+   * 触发素材搜索
+   * 1. 调用 API 触发搜索
+   * 2. 开始轮询搜索状态
+   * 3. 搜索完成后刷新素材列表
+   */
   const handleSearch = async () => {
     if (!searchQuery.trim()) return
 
-    setIsSearching(true)
+    setSearching(true)
 
-    // Simulate API call - replace with actual search API later
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    // 映射 UI Tab 到 API 枚举值
+    const materialType = UI_TAB_TO_API_TYPE[activeSearchTab]
 
-    // Mock search results
-    const searchResults: Material[] = [
-      {
-        id: Date.now().toString(),
-        name: `${searchQuery} - 搜索结果1`,
-        type: activeSearchTab,
-        link: `https://example.com/search/${encodeURIComponent(searchQuery)}-1`,
-        content: `关于"${searchQuery}"的详细内容和分析，包含最新的研究成果和数据...`,
-        createdAt: new Date().toLocaleString("zh-CN", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        }),
-      },
-      {
-        id: (Date.now() + 1).toString(),
-        name: `${searchQuery} - 搜索结果2`,
-        type: activeSearchTab,
-        link: `https://example.com/search/${encodeURIComponent(searchQuery)}-2`,
-        content: `更多关于"${searchQuery}"的相关信息，提供了全面的视角和深入的见解...`,
-        createdAt: new Date().toLocaleString("zh-CN", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        }),
-      },
-    ]
+    const result = await materialsClient.search(materialType, searchQuery)
 
-    setMaterials([...searchResults, ...materials])
-    setIsSearching(false)
-    setSearchQuery("")
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '搜索启动失败',
+        description: result.error,
+      })
+      setSearching(false)
+      return
+    }
+
+    // 搜索任务创建成功，开始轮询搜索状态
+    toast({
+      title: '搜索已启动',
+      description: 'AI 正在搜索相关素材，请稍候...',
+    })
+
+    setSearchQuery('')
+    startSearchPolling()
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  /**
+   * 轮询搜索状态
+   * 每 3 秒检查一次搜索进度
+   * 当所有搜索任务完成时停止轮询
+   */
+  let pollingInterval: NodeJS.Timeout | null = null
+
+  const startSearchPolling = () => {
+    // 清除之前的轮询
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+    }
+
+    // 立即执行一次
+    checkSearchStatus()
+
+    // 设置轮询
+    pollingInterval = setInterval(async () => {
+      const completed = await checkSearchStatus()
+
+      if (completed) {
+        stopSearchPolling()
+      }
+    }, 3000) // 每 3 秒轮询一次
+  }
+
+  const stopSearchPolling = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval)
+      pollingInterval = null
+    }
+    setSearching(false)
+  }
+
+  /**
+   * 检查搜索状态
+   * @returns boolean - 是否所有搜索都已完成
+   */
+  const checkSearchStatus = async (): Promise<boolean> => {
+    const result = await materialsClient.getSearchLogs({
+      page: 1,
+      page_size: 10,
+      status: 'doing', // 只查询进行中的搜索
+    })
+
+    if ('error' in result) {
+      console.error('Failed to check search status:', result.error)
+      return false
+    }
+
+    // 如果没有进行中的搜索，说明搜索已完成
+    const allCompleted = result.list.length === 0
+
+    if (allCompleted) {
+      // 刷新素材列表和搜索日志
+      await Promise.all([
+        fetchMaterials(),
+        fetchSearchLogs(),
+      ])
+
+      toast({
+        title: '搜索完成',
+        description: '素材搜索已完成，已自动加载到列表中',
+      })
+
+      // 切换到素材列表 tab
+      setActiveDataTab('materials')
+    }
+
+    return allCompleted
+  }
+
+  // 组件卸载时清除轮询
+  useEffect(() => {
+    return () => {
+      stopSearchPolling()
+    }
+  }, [])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       handleSearch()
     }
   }
 
-  const handleDelete = (id: string) => {
-    setMaterials(materials.filter((m) => m.id !== id))
+  // ==================== 素材 CRUD 操作 ====================
+
+  /**
+   * 删除素材
+   */
+  const handleDelete = async (id: number) => {
+    setLoading(true)
+
+    const result = await materialsClient.deleteMaterial(id)
+
+    setLoading(false)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '删除素材失败',
+        description: result.error,
+      })
+      return
+    }
+
+    toast({
+      title: '素材删除成功',
+    })
+
+    // 从列表中移除
+    setMaterials(materials.filter(m => m.id !== id))
+
+    // 关闭删除确认对话框
     setDeletingId(null)
+
+    // 刷新列表（更新总数）
+    await fetchMaterials()
   }
 
+  /**
+   * 编辑素材
+   */
   const handleEdit = (material: Material) => {
     setEditingMaterial(material)
   }
 
-  const handleSaveEdit = () => {
-    if (editingMaterial) {
-      setMaterials(materials.map((m) => (m.id === editingMaterial.id ? editingMaterial : m)))
-      setEditingMaterial(null)
+  /**
+   * 保存素材编辑
+   */
+  const handleSaveEdit = async () => {
+    if (!editingMaterial) return
+
+    setLoading(true)
+
+    const result = await materialsClient.updateMaterial(editingMaterial.id, {
+      title: editingMaterial.title,
+      source_url: editingMaterial.source_url,
+      content: editingMaterial.content,
+    })
+
+    setLoading(false)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: '更新素材失败',
+        description: result.error,
+      })
+      return
     }
+
+    toast({
+      title: '素材更新成功',
+    })
+
+    // 刷新素材列表
+    await fetchMaterials()
+
+    // 关闭编辑对话框
+    setEditingMaterial(null)
   }
 
-  const handleUploadSubmit = () => {
+  /**
+   * 处理素材上传提交
+   * 支持 Info（文本）和 Image（图片）两种类型
+   */
+  const handleUploadSubmit = async () => {
+    // 表单验证
     const errors: { name?: string; content?: string } = {}
+
     if (!uploadForm.name.trim()) {
-      errors.name = t("contentWriting.materials.errors.nameRequired")
+      errors.name = t('contentWriting.materials.errors.nameRequired')
     }
 
-    // 验证内容字段
-    if (uploadForm.type === "Info" && !uploadForm.content.trim()) {
-      errors.content = t("contentWriting.materials.errors.contentRequired")
+    if (uploadForm.type === 'Info' && !uploadForm.content.trim()) {
+      errors.content = t('contentWriting.materials.errors.contentRequired')
     }
-    if (uploadForm.type === "Image" && !uploadForm.imageFile) {
-      errors.content = t("contentWriting.materials.errors.imageRequired")
+
+    if (uploadForm.type === 'Image' && !uploadForm.imageFile) {
+      errors.content = t('contentWriting.materials.errors.imageRequired')
     }
 
     if (Object.keys(errors).length > 0) {
@@ -261,72 +402,107 @@ export function MaterialSearch() {
       return
     }
 
-    // 处理图片上传
-    let imageUrl = ""
-    let content = uploadForm.content
-
-    if (uploadForm.type === "Image" && uploadForm.imageFile) {
-      // 在实际应用中，这里应该上传到服务器并获取 URL
-      // 现在我们使用 createObjectURL 作为演示
-      imageUrl = URL.createObjectURL(uploadForm.imageFile)
-      content = `[Image: ${uploadForm.imageFile.name}]`
-    }
-
-    const newMaterial: Material = {
-      id: Date.now().toString(),
-      name: uploadForm.name,
-      type: uploadForm.type,
-      link: imageUrl || "",
-      content: content,
-      createdAt: new Date().toLocaleString("zh-CN", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }),
-    }
-
-    setMaterials([newMaterial, ...materials])
-    setShowUploadDialog(false)
-    setUploadForm({
-      name: "",
-      type: "Info",
-      content: "",
-      imageFile: null,
-      imageUrl: "",
-    })
+    setLoading(true)
     setUploadErrors({})
-    setImagePreview("")
+
+    try {
+      let content = uploadForm.content
+      const materialType = uploadForm.type.toLowerCase() as MaterialType
+
+      // 如果是图片类型，先上传图片到 R2
+      if (materialType === 'image' && uploadForm.imageFile) {
+        const presignedResult = await materialsClient.getPresignedUrl(
+          uploadForm.imageFile.name,
+          uploadForm.imageFile.type
+        )
+
+        if ('error' in presignedResult) {
+          throw new Error(presignedResult.error)
+        }
+
+        // 上传文件到 R2
+        const uploadSuccess = await uploadFileToPresignedUrl(
+          presignedResult.upload_url,
+          uploadForm.imageFile,
+          uploadForm.imageFile.type
+        )
+
+        if (!uploadSuccess) {
+          throw new Error('图片上传失败')
+        }
+
+        // 使用返回的 file_url 作为素材内容
+        content = presignedResult.file_url
+      }
+
+      // 创建素材记录
+      const createResult = await materialsClient.createMaterial({
+        title: uploadForm.name,
+        material_type: materialType,
+        content,
+      })
+
+      if ('error' in createResult) {
+        throw new Error(createResult.error)
+      }
+
+      // 成功
+      toast({
+        title: '素材创建成功',
+        description: `素材 "${uploadForm.name}" 已成功添加到列表`,
+      })
+
+      // 刷新素材列表
+      await fetchMaterials()
+
+      // 关闭对话框并重置表单
+      setShowUploadDialog(false)
+      setUploadForm({
+        name: '',
+        type: 'Info',
+        content: '',
+        imageFile: null,
+        imageUrl: '',
+      })
+      setImagePreview('')
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '创建素材失败'
+
+      toast({
+        variant: 'destructive',
+        title: '创建素材失败',
+        description: errorMessage,
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleUploadCancel = () => {
     setShowUploadDialog(false)
     setUploadForm({
-      name: "",
-      type: "Info",
-      content: "",
+      name: '',
+      type: 'Info',
+      content: '',
       imageFile: null,
-      imageUrl: "",
+      imageUrl: '',
     })
     setUploadErrors({})
-    setImagePreview("")
+    setImagePreview('')
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       // 验证文件类型
-      if (!file.type.startsWith("image/")) {
-        setUploadErrors({ content: t("contentWriting.materials.errors.invalidImageType") })
+      if (!file.type.startsWith('image/')) {
+        setUploadErrors({ content: t('contentWriting.materials.errors.invalidImageType') })
         return
       }
       // 验证文件大小 (例如限制为 5MB)
       const maxSize = 5 * 1024 * 1024
       if (file.size > maxSize) {
-        setUploadErrors({ content: t("contentWriting.materials.errors.imageTooLarge") })
+        setUploadErrors({ content: t('contentWriting.materials.errors.imageTooLarge') })
         return
       }
 
@@ -343,10 +519,21 @@ export function MaterialSearch() {
   }
 
   const handleRemoveImage = () => {
-    setUploadForm({ ...uploadForm, imageFile: null, imageUrl: "" })
-    setImagePreview("")
+    setUploadForm({ ...uploadForm, imageFile: null, imageUrl: '' })
+    setImagePreview('')
     setUploadErrors({})
   }
+
+  // ==================== 辅助函数 ====================
+
+  /**
+   * 获取素材类型显示文本
+   */
+  const getMaterialTypeLabel = (type: MaterialType) => {
+    return t(`contentWriting.materials.types.${type}`)
+  }
+
+  // ==================== 渲染 ====================
 
   return (
     <div className="space-y-6">
@@ -355,13 +542,13 @@ export function MaterialSearch() {
         <div className="space-y-4">
           {/* Search Tabs */}
           <div className="flex gap-2">
-            {searchTabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeSearchTab === tab.id
+            {SEARCH_TAB_OPTIONS.map((tab) => {
+              const Icon = tab.i18nKey === 'info' ? FileTextIcon : tab.i18nKey === 'news' ? NewspaperIcon : ImageIcon
+              const isActive = activeSearchTab === tab.uiLabel
               return (
                 <button
-                  key={tab.id}
-                  onClick={() => setActiveSearchTab(tab.id)}
+                  key={tab.uiLabel}
+                  onClick={() => setActiveSearchTab(tab.uiLabel)}
                   className={`
                     flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
                     ${
@@ -372,7 +559,7 @@ export function MaterialSearch() {
                   `}
                 >
                   <Icon className="w-4 h-4" />
-                  {t(`contentWriting.materials.types.${tab.key}`)}
+                  {t(`contentWriting.materials.types.${tab.i18nKey}`)}
                 </button>
               )
             })}
@@ -383,19 +570,19 @@ export function MaterialSearch() {
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
-                placeholder={t("contentWriting.materials.searchPlaceholder").replace("{type}", t(`contentWriting.materials.types.${searchTabs.find(st => st.id === activeSearchTab)?.key || 'info'}`))}
+                placeholder={t("contentWriting.materials.searchPlaceholder").replace("{type}", t(`contentWriting.materials.types.${activeSearchTab.toLowerCase()}`))}
                 className="pl-10 pr-24 h-12 text-base"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isSearching}
+                onKeyDown={handleKeyDown}
+                disabled={searching}
               />
               <Button
                 onClick={handleSearch}
-                disabled={isSearching || !searchQuery.trim()}
+                disabled={searching || !searchQuery.trim()}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9"
               >
-                {isSearching ? (
+                {searching ? (
                   <>
                     <LoaderIcon className="w-4 h-4 mr-2 animate-spin" />
                     {t("contentWriting.materials.searchingBtn")}
@@ -406,7 +593,7 @@ export function MaterialSearch() {
               </Button>
             </div>
 
-            {isSearching && (
+            {searching && (
               <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 border border-primary/20 rounded-md animate-in slide-in-from-top-2 fade-in duration-300">
                 <LoaderIcon className="w-4 h-4 text-primary animate-spin" />
                 <span className="text-sm text-primary font-medium">{t("contentWriting.materials.aiSearching")}</span>
@@ -477,15 +664,15 @@ export function MaterialSearch() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">{t("contentWriting.materials.types.all")}</SelectItem>
-                      <SelectItem value="Info">{t("contentWriting.materials.types.info")}</SelectItem>
-                      <SelectItem value="News">{t("contentWriting.materials.types.news")}</SelectItem>
-                      <SelectItem value="Image">{t("contentWriting.materials.types.image")}</SelectItem>
+                      <SelectItem value="info">{t("contentWriting.materials.types.info")}</SelectItem>
+                      <SelectItem value="news">{t("contentWriting.materials.types.news")}</SelectItem>
+                      <SelectItem value="image">{t("contentWriting.materials.types.image")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="text-sm text-muted-foreground">{t("contentWriting.materials.totalCount").replace("{count}", filteredMaterials.length.toString())}</div>
+                <div className="text-sm text-muted-foreground">{t("contentWriting.materials.totalCount").replace("{count}", materials.length.toString())}</div>
               </div>
-              <Button onClick={() => setShowUploadDialog(true)} className="gap-2">
+              <Button onClick={() => setShowUploadDialog(true)} className="gap-2" disabled={loading}>
                 <UploadIcon className="w-4 h-4" />
                 {t("contentWriting.materials.uploadBtn")}
               </Button>
@@ -493,69 +680,93 @@ export function MaterialSearch() {
 
             {/* Materials Table */}
             <div className="border border-border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted/50 border-b border-border">
-            <tr>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.name")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.type")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.content")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.time")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredMaterials.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                  {t("contentWriting.materials.table.noData")}
-                </td>
-              </tr>
-            ) : (
-              filteredMaterials.map((material) => (
-                <tr key={material.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
-                  <td className="py-3 px-4 text-sm font-medium">{material.name}</td>
-                  <td className="py-3 px-4 text-sm">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {t(`contentWriting.materials.types.${searchTabs.find(st => st.id === material.type)?.key || 'info'}`)}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-sm">
-                    <a
-                      href={material.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline truncate block max-w-[200px]"
-                    >
-                      {material.link}
-                    </a>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-foreground max-w-md">
-                    <div className="line-clamp-2">{material.content}</div>
-                  </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">{material.createdAt}</td>
-                  <td className="py-3 px-4 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(material)} className="h-8 w-8 p-0">
-                        <PencilIcon className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setDeletingId(material.id)}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      >
-                        <TrashIcon className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-            </table>
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.name")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.type")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.content")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.time")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <div className="flex items-center justify-center gap-2">
+                          <LoaderIcon className="w-5 h-5 animate-spin" />
+                          <span>加载中...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : materials.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        {t("contentWriting.materials.table.noData")}
+                      </td>
+                    </tr>
+                  ) : (
+                    materials.map((material) => (
+                      <tr key={material.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+                        <td className="py-3 px-4 text-sm font-medium">{material.title}</td>
+                        <td className="py-3 px-4 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {getMaterialTypeLabel(material.material_type)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          {material.source_url ? (
+                            <a
+                              href={material.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline truncate block max-w-[200px]"
+                            >
+                              {material.source_url}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground max-w-md">
+                          <div className="line-clamp-2">
+                            {material.material_type === 'image' ? (
+                              <a href={material.content} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                {material.content}
+                              </a>
+                            ) : (
+                              material.content
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {new Date(material.created_at).toLocaleString('zh-CN')}
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(material)} className="h-8 w-8 p-0" disabled={loading}>
+                              <PencilIcon className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeletingId(material.id)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              disabled={loading}
+                            >
+                              <TrashIcon className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
         )}
 
         {/* MaterialsLog Table Section */}
@@ -571,11 +782,9 @@ export function MaterialSearch() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t("contentWriting.materials.logs.types.all")}</SelectItem>
-                    {materialLogTypes.map((type) => (
-                      <SelectItem key={type.id} value={type.id}>
-                        {t(`contentWriting.materials.logs.types.${type.id}`)}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="info">{t("contentWriting.materials.logs.types.info")}</SelectItem>
+                    <SelectItem value="news">{t("contentWriting.materials.logs.types.news")}</SelectItem>
+                    <SelectItem value="image">{t("contentWriting.materials.logs.types.image")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -594,7 +803,7 @@ export function MaterialSearch() {
                 </Select>
               </div>
               <div className="text-sm text-muted-foreground">
-                {t("contentWriting.materials.logs.totalCount").replace("{count}", filteredMaterialLogs.length.toString())}
+                {t("contentWriting.materials.logs.totalCount").replace("{count}", materialLogs.length.toString())}
               </div>
             </div>
 
@@ -611,36 +820,36 @@ export function MaterialSearch() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMaterialLogs.length === 0 ? (
+                  {materialLogs.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center py-12 text-muted-foreground">
                         {t("contentWriting.materials.logs.table.noData")}
                       </td>
                     </tr>
                   ) : (
-                    filteredMaterialLogs.map((log) => (
+                    materialLogs.map((log) => (
                       <tr key={log.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
                         <td className="py-3 px-4 text-sm font-medium">{log.id}</td>
                         <td className="py-3 px-4 text-sm">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                            {t(`contentWriting.materials.logs.types.${log.type}`)}
+                            {getMaterialTypeLabel(log.material_type)}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              log.status === "success"
-                                ? "bg-green-500/10 text-green-600"
-                                : log.status === "doing"
-                                  ? "bg-blue-500/10 text-blue-600"
-                                  : "bg-red-500/10 text-red-600"
-                            }`}
+                              STATUS_COLOR_CONFIG[log.status].bg
+                            } ${STATUS_COLOR_CONFIG[log.status].text}`}
                           >
                             {t(`contentWriting.materials.logs.status.${log.status}`)}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">{log.createdAt}</td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">{log.updatedAt}</td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {new Date(log.created_at).toLocaleString('zh-CN')}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {new Date(log.updated_at).toLocaleString('zh-CN')}
+                        </td>
                       </tr>
                     ))
                   )}
@@ -663,31 +872,15 @@ export function MaterialSearch() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t("contentWriting.materials.dialog.nameLabel")}</label>
                 <Input
-                  value={editingMaterial.name}
-                  onChange={(e) => setEditingMaterial({ ...editingMaterial, name: e.target.value })}
+                  value={editingMaterial.title}
+                  onChange={(e) => setEditingMaterial({ ...editingMaterial, title: e.target.value })}
                 />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("contentWriting.materials.dialog.typeLabel")}</label>
-                <Select
-                  value={editingMaterial.type}
-                  onValueChange={(value) => setEditingMaterial({ ...editingMaterial, type: value as MaterialType })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Info">{t("contentWriting.materials.types.info")}</SelectItem>
-                    <SelectItem value="News">{t("contentWriting.materials.types.news")}</SelectItem>
-                    <SelectItem value="Image">{t("contentWriting.materials.types.image")}</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t("contentWriting.materials.dialog.linkLabel")}</label>
                 <Input
-                  value={editingMaterial.link}
-                  onChange={(e) => setEditingMaterial({ ...editingMaterial, link: e.target.value })}
+                  value={editingMaterial.source_url}
+                  onChange={(e) => setEditingMaterial({ ...editingMaterial, source_url: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -701,10 +894,13 @@ export function MaterialSearch() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingMaterial(null)}>
+            <Button variant="outline" onClick={() => setEditingMaterial(null)} disabled={loading}>
               {t("common.cancel")}
             </Button>
-            <Button onClick={handleSaveEdit}>{t("contentWriting.materials.dialog.saveBtn")}</Button>
+            <Button onClick={handleSaveEdit} disabled={loading}>
+              {loading ? <LoaderIcon className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {t("contentWriting.materials.dialog.saveBtn")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -717,11 +913,13 @@ export function MaterialSearch() {
             <AlertDialogDescription>{t("contentWriting.materials.dialog.deleteDesc")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogCancel disabled={loading}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deletingId && handleDelete(deletingId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={loading}
             >
+              {loading ? <LoaderIcon className="w-4 h-4 mr-2 animate-spin" /> : null}
               {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -868,11 +1066,11 @@ export function MaterialSearch() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleUploadCancel}>
+            <Button variant="outline" onClick={handleUploadCancel} disabled={loading}>
               {t("common.cancel")}
             </Button>
-            <Button onClick={handleUploadSubmit}>
-              <UploadIcon className="w-4 h-4 mr-2" />
+            <Button onClick={handleUploadSubmit} disabled={loading}>
+              {loading ? <LoaderIcon className="w-4 h-4 mr-2 animate-spin" /> : <UploadIcon className="w-4 h-4 mr-2" />}
               {t("contentWriting.materials.uploadBtn")}
             </Button>
           </DialogFooter>
