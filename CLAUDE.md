@@ -21,8 +21,6 @@ pnpm start
 # Run ESLint
 pnpm lint
 
-# Check supabase Local Info
-supabase status
 ```
 
 Note: The project uses pnpm as the package manager.
@@ -39,11 +37,10 @@ Note: The project uses pnpm as the package manager.
 - **Forms**: React Hook Form 7.x with Zod validation
 - **Analytics**: Vercel Analytics
 - **Fonts**: Geist and Geist Mono from Google Fonts
-- **Backend & Auth**: Supabase (PostgreSQL database + Authentication)
+- **Backend & Auth**: Golang Backend (PostgreSQL database + Authentication)
   - Email/Password authentication with required email verification
   - Google OAuth support (ready to configure)
   - Row Level Security (RLS) for data protection
-  - SSR-compatible auth with `@supabase/ssr`
 
 ### Key Patterns
 
@@ -103,7 +100,7 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 ## Feature Status
 
 - **Fully Implemented**:
-  - **Authentication System** (Supabase Auth)
+  - **Authentication System** (Auth)
     - Email/Password login with required email verification
     - Google OAuth integration (requires configuration)
     - Protected routes with automatic redirects
@@ -131,14 +128,13 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 
 ## Authentication & User Management
 
-This project uses Supabase Auth for complete user authentication and management. The system includes:
+This project uses Auth for complete user authentication and management. The system includes:
 
 ### Key Features
 - **Email/Password Auth** with required email verification
 - **Google OAuth** ready (requires configuration)
 - **Protected Routes** - unauthenticated users automatically redirected to `/auth/login`
 - **Session Management** with automatic token refresh via middleware
-- **User Profiles** linked to Supabase auth users
 
 ### Using Auth in Components
 ```typescript
@@ -148,30 +144,11 @@ import { useAuth } from "@/lib/auth/auth-context"
 const { user, session, loading, signInWithEmail, signOut } = useAuth()
 ```
 
-### Server-Side Auth Checks
-```typescript
-// Server component or server action
-import { createClient } from '@/lib/supabase/server'
-
-const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
-
-if (!user) {
-  redirect('/auth/login')
-}
-```
-
 ### Important Files
 - **Auth Context**: `/lib/auth/auth-context.tsx`
 - **Auth Pages**: `/app/auth/*` (login, signup, verify-email, forgot-password)
 - **Auth Components**: `/components/auth/*`
-- **Supabase Clients**: `/lib/supabase/*` (client.ts, server.ts, middleware.ts)
 - **Middleware**: `/middleware.ts` (session refresh and route protection)
-
-### Database
-- **User Profiles**: `public.profiles` table (auto-created on signup)
-- **Row Level Security**: All tables protected with RLS policies
-- **Migrations**: Located in `/supabase/migrations/`
 
 ### Email Testing (Development)
 - **Mailpit**: http://127.0.0.1:54324 - view all sent emails locally
@@ -185,4 +162,4 @@ For comprehensive information about the authentication system, including:
 - Troubleshooting guide
 - Security considerations
 
-**See `/docs/auth.md`** for complete authentication documentation.
+**See `/docs/AUTH_API.md`** for complete authentication documentation.
