@@ -17,6 +17,7 @@ import {
   Undo2Icon,
   Redo2Icon,
   SeparatorHorizontalIcon,
+  Loader2Icon,
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useCallback } from "react";
@@ -25,9 +26,10 @@ import { ToolbarButton } from "./tiptap-toolbar-button";
 interface TiptapToolbarProps {
   editor: Editor | null;
   onInsertImage?: () => void;
+  isUploadingImage?: boolean;
 }
 
-export function TiptapToolbar({ editor, onInsertImage }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false }: TiptapToolbarProps) {
   const setLink = useCallback(() => {
     if (!editor) return;
 
@@ -235,10 +237,15 @@ export function TiptapToolbar({ editor, onInsertImage }: TiptapToolbarProps) {
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Image"
+        tooltip={isUploadingImage ? "正在上传图片..." : "Image"}
         onClick={setImage}
+        disabled={isUploadingImage}
       >
-        <ImageIcon className="h-4 w-4" />
+        {isUploadingImage ? (
+          <Loader2Icon className="h-4 w-4 animate-spin" />
+        ) : (
+          <ImageIcon className="h-4 w-4" />
+        )}
       </ToolbarButton>
     </div>
   );

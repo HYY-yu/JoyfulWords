@@ -4,9 +4,10 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
+import { CustomImage } from "@/lib/tiptap-extensions";
+import { ImageMenu } from "./ui/image-menu";
 
 
 interface TiptapEditorProps {
@@ -22,6 +23,9 @@ export function TiptapEditor({
   placeholder = "开始撰写您的内容...",
   editable = true,
 }: TiptapEditorProps) {
+  // 添加图片上传状态
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -48,11 +52,11 @@ export function TiptapEditor({
           class: "text-blue-600 underline cursor-pointer",
         },
       }),
-      Image.configure({
+      CustomImage.configure({
         inline: false,
         allowBase64: true,
         HTMLAttributes: {
-          class: "max-w-full h-auto rounded-lg my-4",
+          class: "max-w-full h-auto rounded-lg",
         },
       }),
       // 移除 Markdown extension - 它可能会干扰 HTML 插入
@@ -149,50 +153,127 @@ export function TiptapEditor({
       return;
     }
 
+    if (isUploadingImage) {
+      console.log("正在上传图片，请稍候...");
+      return;
+    }
+
     // 创建一个隐藏的文件输入框
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        console.log("选择的图片文件：", file.name, file.size);
-        try {
-          const url = await handleImageUpload(file);
-          console.log("图片上传成功，URL：", url);
+      if (!file) return;
 
-          // 使用 Tiptap 的原生 setImage 命令插入图片
-          // 这是正确的方式，直接使用 Image extension 的命令
-          const result = editor.chain().focus().setImage({ src: url }).run();
+      console.log("选择的图片文件：", file.name, file.size);
 
-          console.log("setImage 命令执行结果：", result);
+      try {
+        // 设置上传状态为 true
+        setIsUploadingImage(true);
 
-          // 验证图片是否成功插入
-          setTimeout(() => {
-            const html = editor.getHTML();
-            console.log("当前编辑器 HTML：", html);
+        console.log("开始上传图片...");
 
-            if (html.includes('<img') || html.includes(url)) {
-              console.log("✅ 图片成功插入到编辑器！");
-            } else {
-              console.error("❌ 图片插入失败");
-              console.log("编辑器状态：", editor.state.doc.toJSON());
-            }
-          }, 200);
-        } catch (error) {
-          console.error("图片上传失败：", error);
-          alert("图片上传失败，请重试");
+        // 上传图片 - 等待完成
+        const url = await handleImageUpload(file);
+        console.log("✅ 图片上传成功，URL：", url);
+
+        // 等待状态更新
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // 尝试多种插入方法，确保至少一种成功
+        let success = false;
+
+        // 方法 1: 使用 setImage 命令（推荐）
+        console.log("尝试方法 1: setImage");
+        success = editor.chain().focus().setImage({ src: url, alt: file.name, align: 'left' }).run();
+        console.log("方法 1 结果:", success);
+
+        if (!success) {
+          // 方法 2: 插入节点对象
+          console.log("尝试方法 2: insertContent with node");
+          success = editor.chain().focus().insertContent({
+            type: 'customImage',
+            attrs: {
+              src: url,
+              alt: file.name,
+              align: 'left'
+            },
+          }).run();
+          console.log("方法 2 结果:", success);
         }
+
+        if (!success) {
+          // 方法 3: 插入 HTML 内容（自闭合标签）
+          console.log("尝试方法 3: insertContent with HTML (self-closing)");
+          success = editor.chain().focus().insertContent(
+            `<img src="${url}" alt="${file.name}" />`
+          ).run();
+          console.log("方法 3 结果:", success);
+        }
+
+        if (!success) {
+          // 方法 4: 先插入段落再插入图片
+          console.log("尝试方法 4: 在新段落中插入");
+          success = editor.chain()
+            .focus()
+            .insertContent('<p></p>')
+            .setImage({ src: url, alt: file.name, align: 'left' })
+            .run();
+          console.log("方法 4 结果:", success);
+        }
+
+        // 强制刷新编辑器视图
+        editor.commands.focus();
+
+        // 验证图片是否成功插入（仅用于调试，不显示错误提示）
+        setTimeout(() => {
+          const html = editor.getHTML();
+          console.log("验证：当前编辑器 HTML：", html);
+
+          if (html.includes('<img') && html.includes(url)) {
+            console.log("✅ 验证成功：图片已在编辑器中");
+          } else {
+            console.warn("⚠️ 验证延迟：图片可能还在加载中");
+            console.log("编辑器 JSON：", JSON.stringify(editor.state.doc.toJSON(), null, 2));
+            // 再次验证，延长时间
+            setTimeout(() => {
+              const html2 = editor.getHTML();
+              if (html2.includes('<img') && html2.includes(url)) {
+                console.log("✅ 二次验证成功：图片已在编辑器中");
+              } else {
+                console.error("❌ 二次验证失败：图片未在编辑器中");
+                // 只在开发环境显示 alert
+                if (process.env.NODE_ENV === 'development') {
+                  console.error("图片插入验证失败，但图片可能已经显示。请检查编辑器。");
+                }
+              }
+            }, 1000);
+          }
+        }, 500);
+
+      } catch (error) {
+        console.error("图片上传失败：", error);
+        alert(`图片上传失败：${error instanceof Error ? error.message : '未知错误'}`);
+      } finally {
+        // 重置上传状态
+        setIsUploadingImage(false);
       }
     };
+
     console.log("准备打开文件选择器");
     input.click();
-  }, [editor, handleImageUpload]);
+  }, [editor, handleImageUpload, isUploadingImage]);
 
   return (
     <div className="border rounded-lg overflow-hidden bg-background">
-      <TiptapToolbar editor={editor} onInsertImage={insertImage} />
+      <TiptapToolbar
+        editor={editor}
+        onInsertImage={insertImage}
+        isUploadingImage={isUploadingImage}
+      />
       <EditorContent editor={editor} />
+      {editor && <ImageMenu editor={editor} />}
     </div>
   );
 }

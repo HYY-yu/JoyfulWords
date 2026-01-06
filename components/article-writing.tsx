@@ -173,7 +173,7 @@ ${selectedPosts
   }
 
   const handleEditorChange = (content: string, html: string, markdown: string) => {
-    setArticleContent(content)
+    setArticleContent(html)  // 改为保存 HTML，这样图片就不会丢失
     setArticleHTML(html)
     setArticleMarkdown(markdown)
   }

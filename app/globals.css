@@ -137,3 +137,50 @@
     -webkit-line-clamp: 2;
   }
 }
+
+/* Tiptap Editor Image Styles */
+.ProseMirror .image-container {
+  display: block;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.ProseMirror .image-container[data-align="left"] {
+  text-align: left;
+}
+
+.ProseMirror .image-container[data-align="center"] {
+  text-align: center;
+}
+
+.ProseMirror .image-container[data-align="right"] {
+  text-align: right;
+}
+
+.ProseMirror .image-container .tiptap-image {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ProseMirror .image-container .tiptap-image:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Selected image highlight */
+.ProseMirror .image-container.ProseMirror-selectednode .tiptap-image,
+.ProseMirror .ProseMirror-selectednode.image-container .tiptap-image {
+  outline: 3px solid oklch(0.45 0.22 264);
+  outline-offset: 2px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.dark .ProseMirror .ProseMirror-selectednode.image-container .tiptap-image,
+.dark .ProseMirror .image-container.ProseMirror-selectednode .tiptap-image {
+  outline-color: oklch(0.55 0.24 264);
+}
+

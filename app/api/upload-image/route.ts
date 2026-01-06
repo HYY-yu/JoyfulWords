@@ -15,11 +15,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 硬编码 R2 配置
-    const endpoint = 'https://24cfcc8e4a76c21639a4c186326aac7a.r2.cloudflarestorage.com'
-    const accessKeyId = 'be4c0a38428fcb957f911204526b5b99'
-    const secretAccessKey = 'e38c2c0ae3719c22afc1bd37e4565b06b448bbcbeea93eb81a9c4063551b71ac'
-    const bucketName = 'joyful-words'
+    // 从环境变量读取 R2 配置（更安全）
+    const endpoint = process.env.R2_ENDPOINT || 'https://24cfcc8e4a76c21639a4c186326aac7a.r2.cloudflarestorage.com'
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID || 'be4c0a38428fcb957f911204526b5b99'
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY || 'e38c2c0ae3719c22afc1bd37e4565b06b448bbcbeea93eb81a9c4063551b71ac'
+    const bucketName = process.env.R2_BUCKET_NAME || 'joyful-words'
 
     console.log('开始上传图片到 Cloudflare R2...')
     console.log('文件名:', file.name)
