@@ -9,11 +9,12 @@
 ## 📚 目录
 
 1. [快速开始](#快速开始)
-2. [API 客户端使用](#api-客户端使用)
-3. [类型系统](#类型系统)
-4. [枚举常量](#枚举常量)
-5. [完整示例](#完整示例)
-6. [最佳实践](#最佳实践)
+2. [组件架构](#组件架构)
+3. [API 客户端使用](#api-客户端使用)
+4. [类型系统](#类型系统)
+5. [枚举常量](#枚举常量)
+6. [完整示例](#完整示例)
+7. [最佳实践](#最佳实践)
 
 ---
 
@@ -58,6 +59,272 @@ if ('error' in result) {
   console.log('总数:', result.total)
 }
 ```
+
+---
+
+## 🏗️ 组件架构
+
+Material Search 功能已重构为模块化架构，提高了代码可维护性和可复用性。
+
+### 文件结构
+
+```
+JoyfulWords/
+├── lib/
+│   └── hooks/
+│       └── use-materials.ts           # 自定义 Hook - 管理所有状态和业务逻辑
+├── components/
+│   ├── material-search.tsx             # 主组件 - 组合所有子组件（200+ 行）
+│   └── materials/
+│       ├── material-search-bar.tsx     # 搜索栏组件
+│       ├── material-table.tsx          # 素材表格组件
+│       ├── material-log-table.tsx      # 日志表格组件
+│       └── material-dialogs.tsx        # 所有对话框组件
+└── lib/api/materials/
+    ├── client.ts                       # API 客户端
+    ├── types.ts                        # TypeScript 类型定义
+    └── enums.ts                        # 枚举常量
+```
+
+### 核心组件说明
+
+#### 1. `useMaterials` Hook (lib/hooks/use-materials.ts)
+
+**职责**: 管理所有状态和业务逻辑
+
+**导出的状态和函数**:
+```typescript
+const {
+  // 状态
+  materials,              // 素材列表
+  materialLogs,           // 日志列表
+  loading,                // 加载状态
+  searching,              // 搜索状态
+  pagination,             // 分页信息
+  editingMaterial,        // 正在编辑的素材
+  deletingId,             // 正在删除的素材 ID
+  showUploadDialog,       // 上传对话框显示状态
+  uploadForm,             // 上传表单数据
+  uploadErrors,           // 上传表单错误
+  imagePreview,           // 图片预览 URL
+
+  // Setters
+  setEditingMaterial,
+  setDeletingId,
+  setShowUploadDialog,
+  setUploadForm,
+  setUploadErrors,
+  setImagePreview,
+
+  // 数据获取
+  fetchMaterials(nameFilter?, filterType?),      // 获取素材列表
+  fetchSearchLogs(logTypeFilter?, logStatusFilter?), // 获取日志列表
+
+  // 搜索功能
+  handleSearch(searchQuery, activeSearchTab),    // 触发搜索
+
+  // CRUD 操作
+  handleDelete(id),                              // 删除素材
+  handleEdit(material),                          // 编辑素材
+  handleSaveEdit(),                              // 保存编辑
+
+  // 上传功能
+  handleUploadSubmit(),                          // 提交上传
+  handleUploadCancel(),                          // 取消上传
+  handleImageChange(event, t),                   // 处理图片选择
+  handleRemoveImage(),                           // 移除图片
+} = useMaterials()
+```
+
+**特性**:
+- ✅ 集中管理所有状态
+- ✅ 自动处理搜索轮询
+- ✅ 统一的错误处理和 Toast 提示
+- ✅ 图片上传和验证
+- ✅ 自动清理轮询定时器
+
+#### 2. `MaterialSearchBar` (components/materials/material-search-bar.tsx)
+
+**职责**: 搜索栏 UI，包括 Tab 切换和搜索输入
+
+**Props**:
+```typescript
+interface MaterialSearchBarProps {
+  activeSearchTab: string
+  setActiveSearchTab: (tab: string) => void
+  searchQuery: string
+  setSearchQuery: (query: string) => void
+  searching: boolean
+  onSearch: () => void
+  t: (key: string) => string
+}
+```
+
+**特性**:
+- ✅ 支持三种搜索类型：Info、News、Image
+- ✅ 实时搜索状态显示
+- ✅ Enter 键触发搜索
+- ✅ 搜索中禁用输入
+
+#### 3. `MaterialTable` (components/materials/material-table.tsx)
+
+**职责**: 素材列表表格，展示所有素材
+
+**Props**:
+```typescript
+interface MaterialTableProps {
+  materials: Material[]
+  loading: boolean
+  nameFilter: string
+  setNameFilter: (filter: string) => void
+  filterType: string
+  setFilterType: (type: string) => void
+  onUpload: () => void
+  onEdit: (material: Material) => void
+  onDelete: (id: number) => void
+  t: (key: string) => string
+}
+```
+
+**特性**:
+- ✅ 按名称和类型筛选
+- ✅ 显示素材总数
+- ✅ 支持编辑和删除操作
+- ✅ 图片类型素材显示为链接
+- ✅ 加载状态显示
+
+#### 4. `MaterialLogTable` (components/materials/material-log-table.tsx)
+
+**职责**: 搜索日志表格，展示所有搜索记录
+
+**Props**:
+```typescript
+interface MaterialLogTableProps {
+  materialLogs: MaterialLog[]
+  logTypeFilter: string
+  setLogTypeFilter: (type: string) => void
+  logStatusFilter: string
+  setLogStatusFilter: (status: string) => void
+  t: (key: string) => string
+}
+```
+
+**特性**:
+- ✅ 按类型和状态筛选
+- ✅ 彩色状态标签
+- ✅ 显示创建和更新时间
+- ✅ 空数据提示
+
+#### 5. `MaterialDialogs` (components/materials/material-dialogs.tsx)
+
+**职责**: 所有对话框组件，包括编辑、删除、上传
+
+**Props**:
+```typescript
+interface MaterialDialogsProps {
+  // Edit dialog
+  editingMaterial: Material | null
+  setEditingMaterial: (material: Material | null) => void
+  onSaveEdit: () => void
+
+  // Delete dialog
+  deletingId: number | null
+  setDeletingId: (id: number | null) => void
+  onDelete: (id: number) => void
+
+  // Upload dialog
+  showUploadDialog: boolean
+  setShowUploadDialog: (show: boolean) => void
+  uploadForm: UploadForm
+  setUploadForm: (form: UploadForm | ((prev: UploadForm) => UploadForm)) => void
+  uploadErrors: UploadErrors
+  imagePreview: string
+  onUploadSubmit: () => void
+  onUploadCancel: () => void
+  onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onRemoveImage: () => void
+
+  // Common
+  loading: boolean
+  t: (key: string) => string
+}
+```
+
+**特性**:
+- ✅ 编辑素材对话框
+- ✅ 删除确认对话框
+- ✅ 上传素材对话框（支持 Info 和 Image）
+- ✅ 图片预览和移除
+- ✅ 表单验证和错误提示
+
+### 使用示例
+
+#### 基础使用
+
+```typescript
+"use client"
+
+import { MaterialSearch } from "@/components/material-search"
+
+export default function Page() {
+  return <MaterialSearch />
+}
+```
+
+#### 自定义使用子组件
+
+```typescript
+"use client"
+
+import { useMaterials } from "@/lib/hooks/use-materials"
+import { MaterialTable } from "@/components/materials/material-table"
+
+export function CustomMaterialPage() {
+  const {
+    materials,
+    loading,
+    fetchMaterials,
+    handleEdit,
+    handleDelete,
+  } = useMaterials()
+
+  useEffect(() => {
+    fetchMaterials()
+  }, [fetchMaterials])
+
+  return (
+    <MaterialTable
+      materials={materials}
+      loading={loading}
+      nameFilter=""
+      setNameFilter={() => {}}
+      filterType="all"
+      setFilterType={() => {}}
+      onUpload={() => {}}
+      onEdit={handleEdit}
+      onDelete={(id) => handleDelete(id)}
+      t={(key) => key}
+    />
+  )
+}
+```
+
+### 重构优势
+
+**代码量优化**:
+- ✅ 主组件从 1082 行减少到 ~210 行（减少 ~80%）
+- ✅ 业务逻辑和 UI 分离
+- ✅ 每个子组件职责单一，易于维护
+
+**可维护性提升**:
+- ✅ 状态集中管理（useMaterials Hook）
+- ✅ 组件模块化，易于测试
+- ✅ 类型安全，减少错误
+
+**可复用性增强**:
+- ✅ 子组件可独立使用
+- ✅ Hook 可在其他场景复用
+- ✅ 清晰的 API 接口
 
 ---
 
