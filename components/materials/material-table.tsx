@@ -1,7 +1,15 @@
-import { SearchIcon, LoaderIcon, UploadIcon, PencilIcon, TrashIcon } from "lucide-react"
+import { SearchIcon, LoaderIcon, UploadIcon, PencilIcon, TrashIcon, LinkIcon, ExternalLinkIcon } from "lucide-react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import type { Material, MaterialType } from "@/lib/api/materials/types"
 
 interface MaterialTableProps {
@@ -29,8 +37,39 @@ export function MaterialTable({
   onDelete,
   t,
 }: MaterialTableProps) {
+  // 预览状态
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [textPreview, setTextPreview] = useState<{ title: string; content: string } | null>(null)
+  const [linkPreview, setLinkPreview] = useState<{ title: string; links: string[] } | null>(null)
+
   const getMaterialTypeLabel = (type: MaterialType) => {
     return t(`contentWriting.materials.types.${type}`)
+  }
+
+  const handleImageClick = (imageUrl: string) => {
+    setImagePreview(imageUrl)
+  }
+
+  const handleTextClick = (material: Material) => {
+    setTextPreview({
+      title: material.title,
+      content: material.content,
+    })
+  }
+
+  const handleLinkClick = (material: Material) => {
+    if (!material.source_url) return
+
+    // 分割逗号分隔的 URL
+    const links = material.source_url
+      .split(',')
+      .map(url => url.trim())
+      .filter(url => url.length > 0)
+
+    setLinkPreview({
+      title: material.title,
+      links,
+    })
   }
 
   return (
@@ -90,10 +129,10 @@ export function MaterialTable({
                 {t("contentWriting.materials.table.type")}
               </th>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                {t("contentWriting.materials.table.link")}
+                {t("contentWriting.materials.table.content")}
               </th>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                {t("contentWriting.materials.table.content")}
+                {t("contentWriting.materials.table.link")}
               </th>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.materials.table.time")}
@@ -131,35 +170,45 @@ export function MaterialTable({
                       {getMaterialTypeLabel(material.material_type)}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm">
-                    {material.source_url ? (
-                      <a
-                        href={material.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline truncate block max-w-[200px]"
-                      >
-                        {material.source_url}
-                      </a>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </td>
                   <td className="py-3 px-4 text-sm text-foreground max-w-md">
                     <div className="line-clamp-2">
                       {material.material_type === "image" ? (
-                        <a
-                          href={material.content}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline"
+                        <div
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleImageClick(material.content)}
+                        >
+                          <img
+                            src={material.content}
+                            alt={material.title}
+                            className="h-16 w-16 object-cover rounded-md border border-border"
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="cursor-pointer hover:text-primary transition-colors"
+                          onClick={() => handleTextClick(material)}
+                          title={t("contentWriting.materials.table.clickToView")}
                         >
                           {material.content}
-                        </a>
-                      ) : (
-                        material.content
+                        </div>
                       )}
                     </div>
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    {material.source_url ? (
+                      <div
+                        className="cursor-pointer hover:text-primary transition-colors flex items-center gap-1.5"
+                        onClick={() => handleLinkClick(material)}
+                        title={t("contentWriting.materials.table.clickToViewLinks")}
+                      >
+                        <LinkIcon className="w-3.5 h-3.5" />
+                        <span>
+                          {material.source_url.split(',').filter(url => url.trim()).length} {t("contentWriting.materials.table.links")}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
                     {new Date(material.created_at).toLocaleString("zh-CN")}
@@ -192,6 +241,73 @@ export function MaterialTable({
           </tbody>
         </table>
       </div>
+
+      {/* 图片预览 Dialog */}
+      <Dialog open={imagePreview !== null} onOpenChange={(open) => !open && setImagePreview(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{t("contentWriting.materials.preview.imageTitle")}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center p-4">
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="max-w-full max-h-[70vh] object-contain rounded-lg"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 文本内容预览 Dialog */}
+      <Dialog open={textPreview !== null} onOpenChange={(open) => !open && setTextPreview(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{textPreview?.title}</DialogTitle>
+            <DialogDescription>
+              {t("contentWriting.materials.preview.textContent")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/30 rounded-lg">
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">
+              {textPreview?.content}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 链接列表预览 Dialog */}
+      <Dialog open={linkPreview !== null} onOpenChange={(open) => !open && setLinkPreview(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>{linkPreview?.title}</DialogTitle>
+            <DialogDescription>
+              {t("contentWriting.materials.preview.linksTitle")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/30 rounded-lg">
+            <ul className="space-y-2">
+              {linkPreview?.links.map((link, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-muted-foreground text-sm mt-0.5 min-w-[20px]">
+                    {index + 1}.
+                  </span>
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-sm text-primary hover:underline break-all flex items-center gap-1.5"
+                  >
+                    <span className="flex-1">{link}</span>
+                    <ExternalLinkIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

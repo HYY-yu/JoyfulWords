@@ -62,6 +62,14 @@ export const zh = {
                 time: "创建时间",
                 actions: "操作",
                 noData: "暂无素材数据",
+                clickToView: "点击查看完整内容",
+                clickToViewLinks: "点击查看所有链接",
+                links: "个链接",
+            },
+            preview: {
+                imageTitle: "图片预览",
+                textContent: "完整内容",
+                linksTitle: "相关链接",
             },
             dialog: {
                 editTitle: "编辑素材",

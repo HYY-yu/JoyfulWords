@@ -47,6 +47,7 @@ export function useMaterials() {
   const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>([])
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
+  const [hasActivePolling, setHasActivePolling] = useState(false)
   const [pagination, setPagination] = useState<{
     materials: { page: number; pageSize: number; total: number }
     logs: { page: number; pageSize: number; total: number }
@@ -147,6 +148,9 @@ export function useMaterials() {
       clearInterval(pollingInterval)
     }
 
+    // 设置轮询状态
+    setHasActivePolling(true)
+
     // 立即执行一次
     checkSearchStatus()
 
@@ -165,6 +169,7 @@ export function useMaterials() {
       clearInterval(pollingInterval)
       pollingInterval = null
     }
+    setHasActivePolling(false)
     setSearching(false)
   }, [])
 
@@ -180,12 +185,15 @@ export function useMaterials() {
       return false
     }
 
+    // 每次轮询都刷新搜索日志列表（让用户看到最新状态）
+    await fetchSearchLogs()
+
     // 如果没有进行中的搜索，说明搜索已完成
     const allCompleted = result.list.length === 0
 
     if (allCompleted) {
-      // 刷新素材列表和搜索日志
-      await Promise.all([fetchMaterials(), fetchSearchLogs()])
+      // 刷新素材列表
+      await fetchMaterials()
 
       toast({
         title: "搜索完成",
@@ -217,7 +225,10 @@ export function useMaterials() {
         return false
       }
 
-      // 搜索任务创建成功，开始轮询搜索状态
+      // 搜索任务创建成功，立即解锁搜索 bar（允许用户继续输入）
+      setSearching(false)
+
+      // 显示提示并开始后台轮询
       toast({
         title: "搜索已启动",
         description: "AI 正在搜索相关素材，请稍候...",

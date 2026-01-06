@@ -62,6 +62,14 @@ export const en = {
                 time: "Created At",
                 actions: "Actions",
                 noData: "No material data available",
+                clickToView: "Click to view full content",
+                clickToViewLinks: "Click to view all links",
+                links: "links",
+            },
+            preview: {
+                imageTitle: "Image Preview",
+                textContent: "Full Content",
+                linksTitle: "Related Links",
             },
             dialog: {
                 editTitle: "Edit Material",

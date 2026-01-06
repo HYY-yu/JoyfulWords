@@ -90,11 +90,10 @@ export function MaterialSearchBar({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={searching}
             />
             <Button
               onClick={onSearch}
-              disabled={searching || !searchQuery.trim()}
+              disabled={!searchQuery.trim()}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9"
             >
               {searching ? (

@@ -72,6 +72,8 @@ export function MaterialSearch() {
     const success = await handleSearch(searchQuery, activeSearchTab)
     if (success) {
       setSearchQuery("")
+      // 自动切换到 logs tab，让用户看到搜索进度
+      setActiveDataTab("logs")
     }
   }
 
