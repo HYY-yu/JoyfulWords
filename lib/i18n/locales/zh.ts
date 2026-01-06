@@ -41,11 +41,9 @@ export const zh = {
         materials: {
             types: {
                 all: "全部类型",
-                resource: "资料",
+                info: "资料",
                 news: "新闻",
                 image: "图片",
-                data: "数据",
-                user: "用户",
             },
             searchBtn: "搜索",
             searchingBtn: "搜索中...",
@@ -64,6 +62,14 @@ export const zh = {
                 time: "创建时间",
                 actions: "操作",
                 noData: "暂无素材数据",
+                clickToView: "点击查看完整内容",
+                clickToViewLinks: "点击查看所有链接",
+                links: "个链接",
+            },
+            preview: {
+                imageTitle: "图片预览",
+                textContent: "完整内容",
+                linksTitle: "相关链接",
             },
             dialog: {
                 editTitle: "编辑素材",
@@ -79,10 +85,50 @@ export const zh = {
                 namePlaceholder: "请输入素材名称",
                 contentPlaceholder: "请输入素材内容描述...",
                 saveBtn: "保存修改",
+                typeHintInfo: "上传文字资料和说明文档",
+                typeHintImage: "上传图片素材（仅支持一张图片）",
+                imageLabel: "图片文件",
+                uploadHint: "点击上传或拖拽图片到此处",
+                uploadFormatHint: "支持 PNG、JPG、JPEG 格式，最大 5MB",
+                selectImageBtn: "选择图片",
+                removeImageBtn: "移除",
+                fileName: "文件名:",
             },
             errors: {
                 nameRequired: "素材名称不能为空",
                 contentRequired: "素材内容不能为空",
+                imageRequired: "请选择图片",
+                invalidImageType: "请选择图片文件",
+                imageTooLarge: "图片大小不能超过 5MB",
+            },
+            logs: {
+                tabs: {
+                    materials: "素材库",
+                    logs: "生成记录",
+                },
+                filterType: "类型：",
+                filterStatus: "状态：",
+                totalCount: "共 {count} 条记录",
+                table: {
+                    id: "ID",
+                    type: "类型",
+                    status: "状态",
+                    createdAt: "创建时间",
+                    updatedAt: "更新时间",
+                    noData: "暂无生成记录",
+                },
+                types: {
+                    all: "全部",
+                    info: "Info",
+                    news: "News",
+                    image: "Image",
+                },
+                status: {
+                    all: "全部",
+                    doing: "进行中",
+                    success: "成功",
+                    failed: "失败",
+                }
             }
         },
         competitors: {
@@ -331,6 +377,26 @@ export const zh = {
         resetError: "发送重置邮件失败",
         forgotPasswordDescription: "输入您的邮箱地址，我们会向您发送重置密码的链接",
         profile: "个人资料",
-        logout: "退出登录"
+        logout: "退出登录",
+        changePassword: "修改密码",
+        changePasswordDescription: "修改密码后需要重新登录",
+        oldPassword: "原密码",
+        newPassword: "新密码",
+        confirm: "确认",
+        success: "成功",
+        error: "错误",
+        passwordChanged: "密码已修改，请重新登录",
+        passwordTooShort: "密码长度至少需要8位",
+        unknownError: "未知错误",
+        noEmail: "暂无邮箱",
+        requestVerificationCode: "请求验证码",
+        verificationCode: "验证码",
+        verificationCodeSent: "验证码已发送至您的邮箱",
+        enterVerificationCode: "请输入6位验证码",
+        invalidVerificationCode: "验证码无效或已过期",
+        codeExpired: "验证码已过期",
+        resendCode: "重新发送",
+        signupComplete: "注册成功，请登录",
+        passwordResetComplete: "密码重置成功，请登录"
     }
 };

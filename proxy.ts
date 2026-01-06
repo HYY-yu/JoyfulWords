@@ -1,8 +1,30 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
-  return await updateSession(request)
+const REFRESH_TOKEN_KEY = 'refresh_token'
+
+// Routes that don't require authentication
+const publicRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password']
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Get refresh token from cookies
+  const refreshToken = request.cookies.get(REFRESH_TOKEN_KEY)?.value
+  const isAuthenticated = !!refreshToken
+
+  // Redirect authenticated users away from auth pages
+  if (isAuthenticated && publicRoutes.some(route => pathname.startsWith(route))) {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // Redirect unauthenticated users to login for protected routes
+  if (!isAuthenticated && !publicRoutes.some(route => pathname.startsWith(route))) {
+    const url = new URL('/auth/login', request.url)
+    url.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(url)
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {

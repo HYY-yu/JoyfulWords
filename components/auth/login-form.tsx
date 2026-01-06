@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { GoogleOAuthButton } from "./google-oauth-button"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
@@ -19,7 +18,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { signInWithEmail, signInWithGoogle } = useAuth()
+  const { signInWithEmail } = useAuth()
   const { toast } = useToast()
   const { t } = useTranslation()
   const router = useRouter()
@@ -36,25 +35,9 @@ export function LoginForm() {
       })
       router.push("/")
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: t("auth.loginError"),
-        description: error.message || t("auth.loginErrorDescription"),
-      })
+      // Toast is already shown in the auth context
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithGoogle()
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: t("auth.oauthError"),
-        description: error.message,
-      })
     }
   }
 
@@ -124,25 +107,6 @@ export function LoginForm() {
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {t("auth.login")}
       </Button>
-
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-2 text-muted-foreground">
-            {t("auth.continueWith")}
-          </span>
-        </div>
-      </div>
-
-      {/* Google OAuth */}
-      <GoogleOAuthButton
-        onClick={handleGoogleSignIn}
-        loading={loading}
-        type="signin"
-      />
 
       {/* Sign Up Link */}
       <p className="text-center text-sm text-muted-foreground">

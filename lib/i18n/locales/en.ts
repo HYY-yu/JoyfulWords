@@ -41,11 +41,9 @@ export const en = {
         materials: {
             types: {
                 all: "All Types",
-                resource: "Resource",
+                info: "Info",
                 news: "News",
                 image: "Image",
-                data: "Data",
-                user: "User",
             },
             searchBtn: "Search",
             searchingBtn: "Searching...",
@@ -64,6 +62,14 @@ export const en = {
                 time: "Created At",
                 actions: "Actions",
                 noData: "No material data available",
+                clickToView: "Click to view full content",
+                clickToViewLinks: "Click to view all links",
+                links: "links",
+            },
+            preview: {
+                imageTitle: "Image Preview",
+                textContent: "Full Content",
+                linksTitle: "Related Links",
             },
             dialog: {
                 editTitle: "Edit Material",
@@ -79,10 +85,50 @@ export const en = {
                 namePlaceholder: "Please enter material name",
                 contentPlaceholder: "Please enter material description...",
                 saveBtn: "Save Changes",
+                typeHintInfo: "Upload text resources and documentation",
+                typeHintImage: "Upload image material (single image only)",
+                imageLabel: "Image File",
+                uploadHint: "Click to upload or drag image here",
+                uploadFormatHint: "Supports PNG, JPG, JPEG formats, max 5MB",
+                selectImageBtn: "Select Image",
+                removeImageBtn: "Remove",
+                fileName: "File name:",
             },
             errors: {
                 nameRequired: "Material name cannot be empty",
                 contentRequired: "Material content cannot be empty",
+                imageRequired: "Please select an image",
+                invalidImageType: "Please select an image file",
+                imageTooLarge: "Image size cannot exceed 5MB",
+            },
+            logs: {
+                tabs: {
+                    materials: "Materials",
+                    logs: "Generation Logs",
+                },
+                filterType: "Type:",
+                filterStatus: "Status:",
+                totalCount: "Total {count} logs",
+                table: {
+                    id: "ID",
+                    type: "Type",
+                    status: "Status",
+                    createdAt: "Created At",
+                    updatedAt: "Updated At",
+                    noData: "No generation logs available",
+                },
+                types: {
+                    all: "All",
+                    info: "Info",
+                    news: "News",
+                    image: "Image",
+                },
+                status: {
+                    all: "All",
+                    doing: "Doing",
+                    success: "Success",
+                    failed: "Failed",
+                }
             }
         },
         competitors: {
@@ -331,6 +377,26 @@ export const en = {
         resetError: "Failed to send reset email",
         forgotPasswordDescription: "Enter your email address and we'll send you a link to reset your password",
         profile: "Profile",
-        logout: "Logout"
+        logout: "Logout",
+        changePassword: "Change Password",
+        changePasswordDescription: "You will need to login again after changing password",
+        oldPassword: "Old Password",
+        newPassword: "New Password",
+        confirm: "Confirm",
+        success: "Success",
+        error: "Error",
+        passwordChanged: "Password changed, please login again",
+        passwordTooShort: "Password must be at least 8 characters",
+        unknownError: "Unknown error",
+        noEmail: "No email",
+        requestVerificationCode: "Request Verification Code",
+        verificationCode: "Verification Code",
+        verificationCodeSent: "Verification code sent to your email",
+        enterVerificationCode: "Please enter 6-digit verification code",
+        invalidVerificationCode: "Invalid or expired verification code",
+        codeExpired: "Verification code has expired",
+        resendCode: "Resend",
+        signupComplete: "Sign up successful, please login",
+        passwordResetComplete: "Password reset successful, please login"
     }
 };

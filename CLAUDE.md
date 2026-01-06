@@ -35,7 +35,11 @@ pnpm lint
 - **Icons**: Lucide React
 - **Forms**: React Hook Form 7.x with Zod validation
 - **Analytics**: Vercel Analytics
-- **Authentication**: Currently using Supabase Auth (planned migration in progress)
+- **Fonts**: Geist and Geist Mono from Google Fonts
+- **Backend & Auth**: Golang Backend (PostgreSQL database + Authentication)
+  - Email/Password authentication with required email verification
+  - Google OAuth support (ready to configure)
+  - Row Level Security (RLS) for data protection
 
 ### Key Patterns
 
@@ -132,7 +136,7 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 ## Feature Status
 
 - **Fully Implemented**:
-  - Authentication System (Supabase Auth - migration planned)
+  - **Authentication System** (Auth)
     - Email/Password login with required email verification
     - Google OAuth integration
     - Protected routes with automatic redirects
@@ -178,7 +182,13 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 
 ## Authentication & User Management
 
-The project currently uses Supabase Auth (migration in progress based on recent commits).
+This project uses Auth for complete user authentication and management. The system includes:
+
+### Key Features
+- **Email/Password Auth** with required email verification
+- **Google OAuth** ready (requires configuration)
+- **Protected Routes** - unauthenticated users automatically redirected to `/auth/login`
+- **Session Management** with automatic token refresh via middleware
 
 ### Using Auth in Components
 ```typescript
@@ -188,33 +198,22 @@ import { useAuth } from "@/lib/auth/auth-context"
 const { user, session, loading, signInWithEmail, signOut } = useAuth()
 ```
 
-### Server-Side Auth Checks
-```typescript
-// Server component or server action
-import { createClient } from '@/lib/supabase/server'
-
-const supabase = await createClient()
-const { data: { user } } = await supabase.auth.getUser()
-
-if (!user) {
-  redirect('/auth/login')
-}
-```
-
 ### Important Files
 - **Auth Context**: `/lib/auth/auth-context.tsx`
 - **Auth Pages**: `/app/auth/*` (login, signup, verify-email, forgot-password)
 - **Auth Components**: `/components/auth/*`
-- **Supabase Clients**: `/lib/supabase/*` (client.ts, server.ts, middleware.ts)
 - **Middleware**: `/middleware.ts` (session refresh and route protection)
 
-### Environment Variables
-Required in `.env.local`:
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+### Email Testing (Development)
+- **Mailpit**: http://127.0.0.1:54324 - view all sent emails locally
+- No real emails are sent in development mode
 
-For detailed authentication documentation, see `/docs/auth.md`.
+### 📚 Detailed Documentation
+For comprehensive information about the authentication system, including:
+- Architecture and flow diagrams
+- Usage examples and best practices
+- Configuration instructions
+- Troubleshooting guide
+- Security considerations
+
+**See `/docs/AUTH_API.md`** for complete authentication documentation.
