@@ -76,7 +76,7 @@ export function ContentWriting() {
         ) : activeTab === "article-writing" ? (
           <ArticleWriting />
         ) : activeTab === "article-manager" ? (
-          <ArticleManager />
+          <ArticleManager onNavigateToWriting={() => setActiveTab("article-writing")} />
         ) : (
           <div className="flex items-center justify-center min-h-[500px]">
             <div className="text-center space-y-4 animate-in fade-in duration-300">

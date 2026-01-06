@@ -47,15 +47,22 @@ export function TiptapToolbar({ editor, onInsertImage }: TiptapToolbarProps) {
   }, [editor]);
 
   const setImage = useCallback(() => {
-    if (!editor) return;
+    console.log("setImage 函数被调用");
+
+    if (!editor) {
+      console.error("编辑器对象为空");
+      return;
+    }
 
     // 如果有图片上传回调，优先使用
     if (onInsertImage) {
+      console.log("调用 onInsertImage 回调");
       onInsertImage();
       return;
     }
 
     // 否则回退到手动输入URL
+    console.log("使用手动输入 URL 方式");
     const url = window.prompt('Image URL');
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();

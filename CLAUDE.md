@@ -9,7 +9,7 @@ JoyfulWords (创作者工具箱) is a Next.js 16-based SaaS application providin
 ## Development Commands
 
 ```bash
-# Start development server with hot reload
+# Start development server with hot reload (default: http://localhost:3000)
 pnpm dev
 
 # Build for production
@@ -20,12 +20,9 @@ pnpm start
 
 # Run ESLint
 pnpm lint
-
-# Check supabase Local Info
-supabase status
 ```
 
-Note: The project uses pnpm as the package manager.
+**Package Manager:** This project uses `pnpm` exclusively. Do not use npm or yarn.
 
 ## Architecture
 
@@ -38,12 +35,7 @@ Note: The project uses pnpm as the package manager.
 - **Icons**: Lucide React
 - **Forms**: React Hook Form 7.x with Zod validation
 - **Analytics**: Vercel Analytics
-- **Fonts**: Geist and Geist Mono from Google Fonts
-- **Backend & Auth**: Supabase (PostgreSQL database + Authentication)
-  - Email/Password authentication with required email verification
-  - Google OAuth support (ready to configure)
-  - Row Level Security (RLS) for data protection
-  - SSR-compatible auth with `@supabase/ssr`
+- **Authentication**: Currently using Supabase Auth (planned migration in progress)
 
 ### Key Patterns
 
@@ -54,19 +46,27 @@ Note: The project uses pnpm as the package manager.
 2. **State Management**: Uses React useState for local state management. No global state management library.
 
 3. **Component Architecture**:
-   - All components use `"use client"` directive
+   - All components use `"use client"` directive (client-side rendering)
    - Composition pattern with Shadcn/ui components
    - Conditional rendering based on active tabs
 
-4. **Styling Approach**:
+4. **Internationalization (i18n)**:
+   - Custom i18n implementation using React Context
+   - Supported languages: Chinese (zh - primary), English (en)
+   - Translation files located in `/lib/i18n/locales/`
+   - Access via `useTranslation()` hook: `const { t, locale, setLocale } = useTranslation()`
+   - Locale persisted in localStorage
+
+5. **Styling Approach**:
    - CSS variables for theming (light/dark mode support)
    - Tailwind utility classes
-   - Custom sidebar color scheme defined in globals.css
+   - Custom sidebar color scheme defined in `app/globals.css`
 
-5. **TypeScript Configuration**:
+6. **TypeScript Configuration**:
    - Path alias: `@/*` maps to project root
    - Strict mode enabled
    - Next.js plugin for type checking
+   - Build ignores TypeScript errors (`ignoreBuildErrors: true` in next.config.mjs)
 
 ### Tiptap Editor Implementation
 
@@ -77,68 +77,108 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
    - Headings (H1-H6) and paragraph styles
    - Lists (ordered and unordered)
    - Block quotes and code blocks
-   - Links and mentions
-   - Tables and media embedding
-   - Custom collaborative features
+   - Links and images (via extensions)
 
 2. **Custom Extensions**:
+   - Located in `/lib/tiptap-extensions.ts`
    - Tailored styling for Chinese typography
    - Custom toolbar integration with Shadcn/ui components
-   - Mention suggestions for tagging users or content
-   - Placeholder text with bilingual support
 
 3. **Integration**:
+   - Main component: `/components/tiptap-editor.tsx`
    - Used primarily in article-writing and content creation tools
    - Styled with Tailwind CSS variables for dark mode support
    - Integrated with React Hook Form for form state management
 
-## Important Notes
+## Project Structure
 
-- **TypeScript Errors**: Build ignores TypeScript errors (`ignoreBuildErrors: true` in next.config.mjs)
+```
+/app                    # Next.js 16 App Router pages
+  /auth                 # Authentication pages (login, signup, etc.)
+  layout.tsx            # Root layout with providers
+  page.tsx              # Main dashboard (protected route)
+
+/components             # React components
+  /auth                 # Auth-related components
+  /seo-geo              # SEO/GEO tool components
+  /ui                   # Shadcn/ui components (60+ components)
+  article-*.tsx         # Article management components
+  content-writing.tsx   # Content writing tab container
+  knowledge-cards.tsx   # Knowledge cards feature
+  sidebar.tsx           # Main navigation sidebar
+  tiptap-editor.tsx     # Rich text editor
+
+/lib                    # Utilities and configurations
+  /auth                 # Auth context and utilities
+  /i18n                 # Internationalization
+    /locales            # Translation files (zh.ts, en.ts)
+  /supabase             # Supabase client configuration
+  tiptap-extensions.ts  # Tiptap custom extensions
+  utils.ts              # Utility functions (cn, etc.)
+
+/hooks                  # Custom React hooks
+/public                 # Static assets
+/styles                 # Global styles
+```
+
+## Important Configuration Notes
+
 - **Image Optimization**: Disabled (`unoptimized: true` in next.config.mjs)
+- **TypeScript Errors**: Build ignores TypeScript errors (`ignoreBuildErrors: true`)
 - **Bilingual UI**: Application supports Chinese (primary) and English text
-- **Dark Mode**: Fully supported through CSS variables
+- **Dark Mode**: Fully supported through CSS variables via `next-themes`
 - **Responsive Design**: Mobile-responsive with Tailwind utilities
 
 ## Feature Status
 
 - **Fully Implemented**:
-  - **Authentication System** (Supabase Auth)
+  - Authentication System (Supabase Auth - migration planned)
     - Email/Password login with required email verification
-    - Google OAuth integration (requires configuration)
+    - Google OAuth integration
     - Protected routes with automatic redirects
-    - User session management with automatic token refresh
-    - Password strength indicator and validation
-    - Forgot password functionality
-    - User profile dropdown with logout
+    - User session management
     - Bilingual auth pages (zh/en)
   - Content writing tools (material search, competitor tracking, article writing)
   - Article management system with full CRUD operations and interactive content preview
   - Knowledge cards system with form validation, real-time preview, and HTML generation
+  - Internationalization system with Chinese and English support
+
 - **Placeholder UI**: Image generation, SEO/GEO tools, video editing (show "Doing 中..." or "Coming soon")
 - **Analytics**: Vercel Analytics integrated for production tracking
 
 ## Development Guidelines
 
+### Component Development
 - Follow the existing component structure and naming conventions
-- Use Shadcn/ui components for consistency
+- Use Shadcn/ui components for consistency (located in `/components/ui/`)
+- All components should use `"use client"` directive
 - Maintain the bilingual UI pattern (Chinese primary, English secondary)
-- Test responsive design using the built-in mobile detection hook
 - Use the established tab patterns for new features
-- Leverage the existing CSS variables for consistent theming
-- For rich text editing, use the Tiptap editor component located in `/components/editor/`
-- When extending Tiptap functionality, add new extensions to `editor-extensions.ts`
+
+### Styling
+- Leverage existing CSS variables for consistent theming
+- Use Tailwind utility classes
+- Support both light and dark modes
+- Reference `app/globals.css` for custom color schemes
+
+### Forms and Validation
+- Use React Hook Form for form state management
+- Use Zod for schema validation
+- Leverage Shadcn/ui form components
+
+### Rich Text Editing
+- Use the Tiptap editor component located in `/components/tiptap-editor.tsx`
+- When extending Tiptap functionality, add new extensions to `/lib/tiptap-extensions.ts`
+
+### Internationalization
+- Add translations to both `/lib/i18n/locales/en.ts` and `/lib/i18n/locales/zh.ts`
+- Use the `useTranslation()` hook in components
+- Example: `const { t, locale, setLocale } = useTranslation()`
+- Access translations: `t("section.key")`
 
 ## Authentication & User Management
 
-This project uses Supabase Auth for complete user authentication and management. The system includes:
-
-### Key Features
-- **Email/Password Auth** with required email verification
-- **Google OAuth** ready (requires configuration)
-- **Protected Routes** - unauthenticated users automatically redirected to `/auth/login`
-- **Session Management** with automatic token refresh via middleware
-- **User Profiles** linked to Supabase auth users
+The project currently uses Supabase Auth (migration in progress based on recent commits).
 
 ### Using Auth in Components
 ```typescript
@@ -168,21 +208,13 @@ if (!user) {
 - **Supabase Clients**: `/lib/supabase/*` (client.ts, server.ts, middleware.ts)
 - **Middleware**: `/middleware.ts` (session refresh and route protection)
 
-### Database
-- **User Profiles**: `public.profiles` table (auto-created on signup)
-- **Row Level Security**: All tables protected with RLS policies
-- **Migrations**: Located in `/supabase/migrations/`
+### Environment Variables
+Required in `.env.local`:
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-### Email Testing (Development)
-- **Mailpit**: http://127.0.0.1:54324 - view all sent emails locally
-- No real emails are sent in development mode
-
-### 📚 Detailed Documentation
-For comprehensive information about the authentication system, including:
-- Architecture and flow diagrams
-- Usage examples and best practices
-- Configuration instructions
-- Troubleshooting guide
-- Security considerations
-
-**See `/docs/auth.md`** for complete authentication documentation.
+For detailed authentication documentation, see `/docs/auth.md`.

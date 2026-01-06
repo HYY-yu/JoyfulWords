@@ -24,7 +24,11 @@ import {
 } from "./article-dialogs"
 import { useToast } from "@/hooks/use-toast"
 
-export function ArticleManager() {
+interface ArticleManagerProps {
+  onNavigateToWriting?: () => void
+}
+
+export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [articles, setArticles] = useState<Article[]>(mockArticles)
@@ -62,10 +66,13 @@ export function ArticleManager() {
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
-    // TODO: Navigate to article writing tab with article ID
-    toast({
-      description: `${t("common.edit")}: ${article.title}`
-    })
+    // Navigate to article writing tab with article ID
+    if (onNavigateToWriting) {
+      onNavigateToWriting()
+      toast({
+        description: `${t("common.edit")}: ${article.title}`
+      })
+    }
   }
 
   const handleDeleteArticle = (article: Article) => {
@@ -110,10 +117,13 @@ export function ArticleManager() {
   }
 
   const handleCreateNewArticle = () => {
-    // TODO: Navigate to article writing tab
-    toast({
-      description: t("contentWriting.writing.aiHelpTitle")
-    })
+    // Navigate to article writing tab
+    if (onNavigateToWriting) {
+      onNavigateToWriting()
+      toast({
+        description: t("contentWriting.manager.newArticleBtn")
+      })
+    }
   }
 
   // Get statistics
