@@ -64,12 +64,23 @@ const platforms: { id: Platform; label: string; placeholder: string }[] = [
   { id: "reddit", label: "Reddit", placeholder: "https://www.reddit.com/user/username" },
 ]
 
+type UrlType = "profile" | "post"
+
+type CrawlLog = {
+  id: string
+  type: "profile" | "post"
+  status: "doing" | "success" | "failed"
+  created_at: string
+  updated_at: string
+}
+
 export function CompetitorTracking() {
   const { t } = useTranslation()
   const [activePlatform, setActivePlatform] = useState<Platform>("linkedin")
   const [profileUrl, setProfileUrl] = useState("")
+  const [urlType, setUrlType] = useState<UrlType>("profile")
   const [isSearching, setIsSearching] = useState(false)
-  const [activeDataTab, setActiveDataTab] = useState<"scheduled" | "results">("scheduled")
+  const [activeDataTab, setActiveDataTab] = useState<"scheduled" | "results" | "logs">("scheduled")
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
     mode: "simple",
@@ -79,6 +90,36 @@ export function CompetitorTracking() {
   })
   const [editingIntervalTaskId, setEditingIntervalTaskId] = useState<string | null>(null)
   const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
+
+  const STATUS_COLOR_CONFIG = {
+    doing: { bg: "bg-blue-500/10", text: "text-blue-600" },
+    success: { bg: "bg-green-500/10", text: "text-green-600" },
+    failed: { bg: "bg-red-500/10", text: "text-red-600" },
+  }
+
+  const [crawlLogs, setCrawlLogs] = useState<CrawlLog[]>([
+    {
+      id: "log-1",
+      type: "profile",
+      status: "success",
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      updated_at: new Date(Date.now() - 80000000).toISOString(),
+    },
+    {
+      id: "log-2",
+      type: "post",
+      status: "doing",
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 3000000).toISOString(),
+    },
+    {
+      id: "log-3",
+      type: "profile",
+      status: "failed",
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+      updated_at: new Date(Date.now() - 7000000).toISOString(),
+    },
+  ])
 
   const [posts, setPosts] = useState<Post[]>([
     {
@@ -278,6 +319,25 @@ export function CompetitorTracking() {
 
           {/* Search Bar */}
           <div className="space-y-3">
+            {/* URL Type Selection */}
+            <div className="flex items-center gap-6">
+              <span className="text-sm font-medium text-foreground">{t("contentWriting.competitors.urlType.label")}:</span>
+              <RadioGroup value={urlType} onValueChange={(value) => setUrlType(value as UrlType)} className="flex gap-6">
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="profile" id="profile" />
+                  <Label htmlFor="profile" className="font-normal cursor-pointer">
+                    {t("contentWriting.competitors.urlType.profile")}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="post" id="post" />
+                  <Label htmlFor="post" className="font-normal cursor-pointer">
+                    {t("contentWriting.competitors.urlType.post")}
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             <div className="flex gap-3">
               <div className="flex-1">
                 <Input
@@ -294,7 +354,7 @@ export function CompetitorTracking() {
               </Button>
               <Button
                 onClick={() => setShowScheduleDialog(true)}
-                disabled={!profileUrl.trim()}
+                disabled={!profileUrl.trim() || urlType !== "profile"}
                 variant="outline"
                 className="h-11 px-6"
               >
@@ -346,6 +406,19 @@ export function CompetitorTracking() {
             `}
           >
             {t("contentWriting.competitors.tabs.results")}
+          </button>
+          <button
+            onClick={() => setActiveDataTab("logs")}
+            className={`
+              px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
+              ${
+                activeDataTab === "logs"
+                  ? "text-primary border-primary bg-primary/5"
+                  : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50"
+              }
+            `}
+          >
+            {t("contentWriting.competitors.tabs.logs")}
           </button>
         </div>
 
@@ -419,6 +492,70 @@ export function CompetitorTracking() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Crawl Logs Table */}
+        {activeDataTab === "logs" && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      {t("contentWriting.competitors.logs.table.id")}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      {t("contentWriting.competitors.logs.table.type")}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      {t("contentWriting.competitors.logs.table.status")}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      {t("contentWriting.competitors.logs.table.createdAt")}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                      {t("contentWriting.competitors.logs.table.updatedAt")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {crawlLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                        {t("contentWriting.competitors.logs.table.noData")}
+                      </td>
+                    </tr>
+                  ) : (
+                    crawlLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+                        <td className="py-3 px-4 text-sm font-medium">{log.id}</td>
+                        <td className="py-3 px-4 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {log.type === "profile" ? t("contentWriting.competitors.urlType.profile") : t("contentWriting.competitors.urlType.post")}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              STATUS_COLOR_CONFIG[log.status].bg
+                            } ${STATUS_COLOR_CONFIG[log.status].text}`}
+                          >
+                            {t(`contentWriting.competitors.logs.status.${log.status}`)}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {new Date(log.created_at).toLocaleString("zh-CN")}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {new Date(log.updated_at).toLocaleString("zh-CN")}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 

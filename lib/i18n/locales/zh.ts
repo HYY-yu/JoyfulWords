@@ -132,9 +132,15 @@ export const zh = {
             }
         },
         competitors: {
+            urlType: {
+                label: "链接类型",
+                profile: "个人主页",
+                post: "帖子链接",
+            },
             tabs: {
                 tasks: "定时抓取任务",
                 results: "抓取结果",
+                logs: "抓取日志",
             },
             crawlBtn: "抓取",
             timerCrawlBtn: "定时抓取",
@@ -151,6 +157,21 @@ export const zh = {
                 noResults: "暂无抓取结果",
                 running: "运行中",
                 paused: "已暂停",
+            },
+            logs: {
+                table: {
+                    id: "日志 ID",
+                    type: "类型",
+                    status: "状态",
+                    createdAt: "创建时间",
+                    updatedAt: "更新时间",
+                    noData: "暂无抓取日志",
+                },
+                status: {
+                    doing: "进行中",
+                    success: "成功",
+                    failed: "失败",
+                },
             },
             dialog: {
                 editInterval: "修改抓取间隔",

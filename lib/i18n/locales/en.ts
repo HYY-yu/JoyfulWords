@@ -132,9 +132,15 @@ export const en = {
             }
         },
         competitors: {
+            urlType: {
+                label: "URL Type",
+                profile: "Profile Page",
+                post: "Post Link",
+            },
             tabs: {
                 tasks: "Scheduled Tasks",
                 results: "Crawl Results",
+                logs: "Crawl Logs",
             },
             crawlBtn: "Crawl",
             timerCrawlBtn: "Scheduled Crawl",
@@ -151,6 +157,21 @@ export const en = {
                 noResults: "No crawl results",
                 running: "Running",
                 paused: "Paused",
+            },
+            logs: {
+                table: {
+                    id: "Log ID",
+                    type: "Type",
+                    status: "Status",
+                    createdAt: "Created At",
+                    updatedAt: "Updated At",
+                    noData: "No crawl logs",
+                },
+                status: {
+                    doing: "In Progress",
+                    success: "Success",
+                    failed: "Failed",
+                },
             },
             dialog: {
                 editInterval: "Edit Interval",
