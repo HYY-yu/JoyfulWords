@@ -8,7 +8,6 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
@@ -16,7 +15,6 @@ export function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const { signInWithEmail } = useAuth()
   const { toast } = useToast()
@@ -79,21 +77,8 @@ export function LoginForm() {
         </div>
       </div>
 
-      {/* Remember Me & Forgot Password */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="remember"
-            checked={rememberMe}
-            onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-          />
-          <Label
-            htmlFor="remember"
-            className="text-sm font-normal cursor-pointer"
-          >
-            {t("auth.rememberMe")}
-          </Label>
-        </div>
+      {/* Forgot Password */}
+      <div className="flex justify-end">
         <Link
           href="/auth/forgot-password"
           className="text-sm text-primary hover:underline"

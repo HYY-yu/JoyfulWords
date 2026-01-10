@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { apiClient } from '@/lib/api/client'
 import { TokenManager } from '@/lib/tokens/token-manager'
@@ -24,6 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Tokens | null>(null)
   const [loading, setLoading] = useState(true)
@@ -122,6 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast({
       title: '已退出登录',
     })
+
+    // Redirect to login page
+    router.push('/auth/login')
   }
 
   const requestPasswordReset = async (email: string) => {
