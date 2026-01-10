@@ -358,6 +358,7 @@ export const zh = {
         noAccount: "还没有账号？",
         hasAccount: "已有账号？",
         continueWith: "或使用以下方式继续",
+        continueWithGoogle: "使用 Google 登录",
         welcomeBack: "欢迎回来",
         loginSubtitle: "登录您的账号以继续",
         createAccount: "创建账号",

@@ -15,11 +15,16 @@ interface AuthContextType {
 
   // Authentication methods
   signInWithEmail: (email: string, password: string) => Promise<void>
+  signInWithGoogle: (redirectUrl?: string) => Promise<void>
   requestSignupCode: (email: string) => Promise<void>
   verifySignupCode: (email: string, code: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   verifyPasswordReset: (email: string, code: string, password: string) => Promise<void>
+
+  // Internal methods (for OAuth callback etc.)
+  _setUser: (user: User) => void
+  _setSession: (session: Tokens) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -71,6 +76,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     toast({
       title: '登录成功',
     })
+  }
+
+  const signInWithGoogle = async (redirectUrl?: string) => {
+    const result = await apiClient.googleLogin(redirectUrl)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: 'Google 登录失败',
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    // Store state for callback verification
+    sessionStorage.setItem('oauth_state', result.state)
+    sessionStorage.setItem('oauth_redirect', redirectUrl || '/')
+
+    // Redirect to Google authorization page
+    window.location.href = result.auth_url
   }
 
   const requestSignupCode = async (email: string) => {
@@ -172,11 +197,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         loading,
         signInWithEmail,
+        signInWithGoogle,
         requestSignupCode,
         verifySignupCode,
         signOut,
         requestPasswordReset,
         verifyPasswordReset,
+        _setUser: setUser,
+        _setSession: setSession,
       }}
     >
       {children}

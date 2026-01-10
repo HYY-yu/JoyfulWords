@@ -358,6 +358,7 @@ export const en = {
         noAccount: "Don't have an account?",
         hasAccount: "Already have an account?",
         continueWith: "Or continue with",
+        continueWithGoogle: "Continue with Google",
         welcomeBack: "Welcome Back",
         loginSubtitle: "Sign in to your account to continue",
         createAccount: "Create Account",

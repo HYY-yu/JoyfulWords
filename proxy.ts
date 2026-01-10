@@ -3,7 +3,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 const REFRESH_TOKEN_KEY = 'refresh_token'
 
 // Routes that don't require authentication
-const publicRoutes = ['/auth/login', '/auth/signup', '/auth/forgot-password']
+const publicRoutes = [
+  '/auth/login',
+  '/auth/signup',
+  '/auth/forgot-password',
+  '/auth/google/callback',  // Google OAuth 回调页面
+  '/auth/verify-email',     // 邮箱验证页面
+]
 
 export async function proxy(request: NextRequest) {
   // TODO: 临时禁用登录验证，用于开发测试

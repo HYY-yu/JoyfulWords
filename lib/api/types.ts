@@ -37,6 +37,15 @@ export interface ChangePasswordRequest {
   new_password: string
 }
 
+export interface GoogleLoginRequest {
+  redirect_url?: string
+}
+
+export interface GoogleLoginResponse {
+  auth_url: string
+  state: string
+}
+
 // API Response Types
 export interface AuthResponse {
   access_token: string

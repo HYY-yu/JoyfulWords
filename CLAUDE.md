@@ -202,7 +202,7 @@ const { user, session, loading, signInWithEmail, signOut } = useAuth()
 - **Auth Context**: `/lib/auth/auth-context.tsx`
 - **Auth Pages**: `/app/auth/*` (login, signup, verify-email, forgot-password)
 - **Auth Components**: `/components/auth/*`
-- **Middleware**: `/middleware.ts` (session refresh and route protection)
+- **Middleware**: `/proxy.ts` (session refresh and route protection)
 
 ### Email Testing (Development)
 - **Mailpit**: http://127.0.0.1:54324 - view all sent emails locally

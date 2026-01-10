@@ -9,6 +9,8 @@ import type {
   PasswordResetRequest,
   PasswordResetVerify,
   ChangePasswordRequest,
+  GoogleLoginRequest,
+  GoogleLoginResponse,
   AuthResponse,
   MessageResponse,
   ErrorResponse,
@@ -207,6 +209,17 @@ export const apiClient = {
         old_password: oldPassword,
         new_password: newPassword,
       } as ChangePasswordRequest),
+    })
+  },
+
+  /**
+   * Get Google OAuth login URL
+   * POST /auth/google/login
+   */
+  async googleLogin(redirectUrl?: string) {
+    return apiRequest<GoogleLoginResponse | ErrorResponse>('/auth/google/login', {
+      method: 'POST',
+      body: JSON.stringify({ redirect_url: redirectUrl } as GoogleLoginRequest),
     })
   },
 }
