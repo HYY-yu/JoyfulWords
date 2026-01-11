@@ -67,10 +67,14 @@ function injectTraceHeaders(): HeadersInit {
 
 /**
  * Make API request with error handling
+ * @param endpoint - API endpoint path
+ * @param options - Request options
+ * @param skipAuthRefresh - If true, skip 401 auto-refresh (used by token refresh to avoid infinite loop)
  */
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  skipAuthRefresh = false
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
 
@@ -90,6 +94,39 @@ export async function apiRequest<T>(
     const data = await response.json()
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401 && !skipAuthRefresh) {
+        // Try to refresh the token
+        const { refreshAccessToken } = await import('@/lib/tokens/refresh')
+        const success = await refreshAccessToken()
+
+        if (success) {
+          // Retry the original request with new token
+          const newToken = localStorage.getItem('access_token')
+          const newHeaders: HeadersInit = {
+            ...headers,
+            ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
+          }
+          const retryResponse = await fetch(url, {
+            ...options,
+            headers: newHeaders,
+          })
+          const retryData = await retryResponse.json()
+
+          if (!retryResponse.ok) {
+            return { error: retryData.error || retryData.message || 'Request failed' } as T
+          }
+
+          return retryData as T
+        }
+
+        // Refresh failed, redirect to login page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/auth/login?reason=token_expired'
+        }
+        return { error: 'Session expired' } as T
+      }
+
       // Return error in standard format
       return { error: data.error || data.message || 'Request failed' } as T
     }
@@ -146,11 +183,15 @@ export const apiClient = {
   async refreshToken(refreshToken: string) {
     const token = localStorage.getItem('access_token')
 
-    return apiRequest<AuthResponse | ErrorResponse>('/auth/token/refresh', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ refresh_token: refreshToken } as RefreshTokenRequest),
-    })
+    return apiRequest<AuthResponse | ErrorResponse>(
+      '/auth/token/refresh',
+      {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: JSON.stringify({ refresh_token: refreshToken } as RefreshTokenRequest),
+      },
+      true // Skip 401 auto-refresh to avoid infinite loop
+    )
   },
 
   /**
