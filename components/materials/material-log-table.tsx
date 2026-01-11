@@ -56,6 +56,7 @@ export function MaterialLogTable({
               <SelectItem value="doing">{t("contentWriting.materials.logs.status.doing")}</SelectItem>
               <SelectItem value="success">{t("contentWriting.materials.logs.status.success")}</SelectItem>
               <SelectItem value="failed">{t("contentWriting.materials.logs.status.failed")}</SelectItem>
+              <SelectItem value="nodata">{t("contentWriting.materials.logs.status.nodata")}</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -19,6 +19,7 @@ export const MATERIAL_STATUS = {
   DOING: 'doing',
   SUCCESS: 'success',
   FAILED: 'failed',
+  NODATA: 'nodata',
 } as const
 
 export type MaterialStatusValue = typeof MATERIAL_STATUS[keyof typeof MATERIAL_STATUS]
@@ -43,6 +44,7 @@ export const MATERIAL_STATUS_FILTER_OPTIONS = [
   { value: MATERIAL_STATUS.DOING, label: '进行中' },
   { value: MATERIAL_STATUS.SUCCESS, label: '成功' },
   { value: MATERIAL_STATUS.FAILED, label: '失败' },
+  { value: MATERIAL_STATUS.NODATA, label: '无数据' },
 ] as const
 
 /**
@@ -92,4 +94,5 @@ export const STATUS_COLOR_CONFIG: Record<MaterialStatusValue, { bg: string; text
   doing: { bg: 'bg-blue-500/10', text: 'text-blue-600' },
   success: { bg: 'bg-green-500/10', text: 'text-green-600' },
   failed: { bg: 'bg-red-500/10', text: 'text-red-600' },
+  nodata: { bg: 'bg-gray-500/10', text: 'text-gray-600' },
 }

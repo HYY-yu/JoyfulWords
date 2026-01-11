@@ -128,6 +128,7 @@ export const zh = {
                     doing: "进行中",
                     success: "成功",
                     failed: "失败",
+                    nodata: "无数据",
                 }
             }
         },

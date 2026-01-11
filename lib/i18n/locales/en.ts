@@ -128,6 +128,7 @@ export const en = {
                     doing: "Doing",
                     success: "Success",
                     failed: "Failed",
+                    nodata: "No Data",
                 }
             }
         },
