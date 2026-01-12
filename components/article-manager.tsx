@@ -168,7 +168,6 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
               </SelectContent>
             </Select>
           </div>
-          <div className="text-sm text-muted-foreground">{t("contentWriting.manager.totalArticles").replace("{count}", filteredArticles.length.toString())}</div>
         </div>
         <Button onClick={handleCreateNewArticle} className="gap-2">
           <PlusIcon className="w-4 h-4" />

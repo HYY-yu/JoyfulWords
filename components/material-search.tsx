@@ -17,6 +17,7 @@ export function MaterialSearch() {
     materialLogs,
     loading,
     searching,
+    pagination,
     editingMaterial,
     deletingId,
     showUploadDialog,
@@ -37,6 +38,7 @@ export function MaterialSearch() {
     handleUploadCancel,
     handleImageChange,
     handleRemoveImage,
+    updatePagination,
   } = useMaterials()
 
   // Tab 状态
@@ -106,6 +108,28 @@ export function MaterialSearch() {
     handleUploadCancel()
   }
 
+  // ==================== 分页处理 ====================
+
+  const handleMaterialsPageChange = (page: number) => {
+    updatePagination('materials', { page })
+    fetchMaterials(nameFilter, filterType)
+  }
+
+  const handleMaterialsPageSizeChange = (pageSize: number) => {
+    updatePagination('materials', { pageSize, page: 1 })
+    fetchMaterials(nameFilter, filterType)
+  }
+
+  const handleLogsPageChange = (page: number) => {
+    updatePagination('logs', { page })
+    fetchSearchLogs(logTypeFilter, logStatusFilter)
+  }
+
+  const handleLogsPageSizeChange = (pageSize: number) => {
+    updatePagination('logs', { pageSize, page: 1 })
+    fetchSearchLogs(logTypeFilter, logStatusFilter)
+  }
+
   // ==================== 渲染 ====================
 
   return (
@@ -168,6 +192,9 @@ export function MaterialSearch() {
             onUpload={() => setShowUploadDialog(true)}
             onEdit={handleEdit}
             onDelete={(id) => setDeletingId(id)}
+            pagination={pagination.materials}
+            onPageChange={handleMaterialsPageChange}
+            onPageSizeChange={handleMaterialsPageSizeChange}
             t={t}
           />
         )}
@@ -180,6 +207,9 @@ export function MaterialSearch() {
             setLogTypeFilter={setLogTypeFilter}
             logStatusFilter={logStatusFilter}
             setLogStatusFilter={setLogStatusFilter}
+            pagination={pagination.logs}
+            onPageChange={handleLogsPageChange}
+            onPageSizeChange={handleLogsPageSizeChange}
             t={t}
           />
         )}

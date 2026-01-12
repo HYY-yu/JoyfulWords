@@ -1,4 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import type { MaterialLog, MaterialType } from "@/lib/api/materials/types"
 import { STATUS_COLOR_CONFIG } from "@/lib/api/materials/enums"
 
@@ -8,6 +10,10 @@ interface MaterialLogTableProps {
   setLogTypeFilter: (type: string) => void
   logStatusFilter: string
   setLogStatusFilter: (status: string) => void
+  // 分页相关
+  pagination: { page: number; pageSize: number; total: number }
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
   t: (key: string) => string
 }
 
@@ -17,6 +23,9 @@ export function MaterialLogTable({
   setLogTypeFilter,
   logStatusFilter,
   setLogStatusFilter,
+  pagination,
+  onPageChange,
+  onPageSizeChange,
   t,
 }: MaterialLogTableProps) {
   const getMaterialTypeLabel = (type: MaterialType) => {
@@ -59,9 +68,6 @@ export function MaterialLogTable({
               <SelectItem value="nodata">{t("contentWriting.materials.logs.status.nodata")}</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {t("contentWriting.materials.logs.totalCount").replace("{count}", materialLogs.length.toString())}
         </div>
       </div>
 
@@ -124,6 +130,65 @@ export function MaterialLogTable({
           </tbody>
         </table>
       </div>
+
+      {/* 分页 */}
+      {pagination.total > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {t("contentWriting.materials.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
+          </div>
+          <div className="flex items-center gap-4">
+            {/* 页大小选择 */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.perPage")}</span>
+              <Select
+                value={String(pagination.pageSize)}
+                onValueChange={(value) => {
+                  onPageSizeChange(Number(value))
+                  onPageChange(1)
+                }}
+              >
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.items")}</span>
+            </div>
+
+            {/* 分页按钮 */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onPageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+              </Button>
+
+              <div className="text-sm text-foreground min-w-[80px] text-center">
+                {pagination.page} {t("contentWriting.materials.pagination.pageOf")} {Math.ceil(pagination.total / pagination.pageSize)}
+              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onPageChange(pagination.page + 1)}
+                disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize)}
+              >
+                <ChevronRightIcon className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

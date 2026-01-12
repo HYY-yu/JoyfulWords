@@ -52,9 +52,20 @@ export function useMaterials() {
     materials: { page: number; pageSize: number; total: number }
     logs: { page: number; pageSize: number; total: number }
   }>({
-    materials: { page: 1, pageSize: 20, total: 0 },
-    logs: { page: 1, pageSize: 20, total: 0 },
+    materials: { page: 1, pageSize: 10, total: 0 },
+    logs: { page: 1, pageSize: 10, total: 0 },
   })
+
+  // 更新分页的辅助函数
+  const updatePagination = useCallback(
+    (type: 'materials' | 'logs', updates: Partial<{ page: number; pageSize: number }>) => {
+      setPagination((prev) => ({
+        ...prev,
+        [type]: { ...prev[type], ...updates },
+      }))
+    },
+    []
+  )
 
   // 编辑和删除状态
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null)
@@ -501,5 +512,8 @@ export function useMaterials() {
     handleUploadCancel,
     handleImageChange,
     handleRemoveImage,
+
+    // 分页
+    updatePagination,
   }
 }

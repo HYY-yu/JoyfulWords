@@ -130,6 +130,12 @@ export const en = {
                     failed: "Failed",
                     nodata: "No Data",
                 }
+            },
+            pagination: {
+                perPage: "Per page",
+                items: "items",
+                totalInfo: "Total {total}, Page {page}",
+                pageOf: "/",
             }
         },
         competitors: {

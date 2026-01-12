@@ -130,6 +130,12 @@ export const zh = {
                     failed: "失败",
                     nodata: "无数据",
                 }
+            },
+            pagination: {
+                perPage: "每页",
+                items: "条",
+                totalInfo: "共 {total} 条，第 {page} 页",
+                pageOf: "/",
             }
         },
         competitors: {
