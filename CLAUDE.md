@@ -133,23 +133,6 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 - **Dark Mode**: Fully supported through CSS variables via `next-themes`
 - **Responsive Design**: Mobile-responsive with Tailwind utilities
 
-## Feature Status
-
-- **Fully Implemented**:
-  - **Authentication System** (Auth)
-    - Email/Password login with required email verification
-    - Google OAuth integration
-    - Protected routes with automatic redirects
-    - User session management
-    - Bilingual auth pages (zh/en)
-  - Content writing tools (material search, competitor tracking, article writing)
-  - Article management system with full CRUD operations and interactive content preview
-  - Knowledge cards system with form validation, real-time preview, and HTML generation
-  - Internationalization system with Chinese and English support
-
-- **Placeholder UI**: Image generation, SEO/GEO tools, video editing (show "Doing 中..." or "Coming soon")
-- **Analytics**: Vercel Analytics integrated for production tracking
-
 ## Development Guidelines
 
 ### Component Development
