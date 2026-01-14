@@ -18,18 +18,24 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 const dictionaries = { zh, en };
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('zh');
-
-  useEffect(() => {
-    const savedLocale = localStorage.getItem('locale') as Locale;
-    if (savedLocale && (savedLocale === 'zh' || savedLocale === 'en')) {
-      setLocaleState(savedLocale);
+  // Initialize locale from localStorage immediately
+  const getInitialLocale = (): Locale => {
+    if (typeof window !== 'undefined') {
+      const savedLocale = localStorage.getItem('locale') as Locale;
+      if (savedLocale === 'zh' || savedLocale === 'en') {
+        return savedLocale;
+      }
     }
-  }, []);
+    return 'zh';
+  };
+
+  const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem('locale', newLocale);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('locale', newLocale);
+    }
   };
 
   const t = (key: string): any => {

@@ -1,22 +1,39 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-import { DownloadIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
 import { TiptapEditor } from "../tiptap-editor"
 import { ArticleEditorHeader } from "./article-editor-header"
 import { ArticleSaveDialog } from "./article-save-dialog"
-import type { Article } from "./article-types"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import type { Article, ArticleDraft } from "./article-types"
+
+// Simple debounce function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T & { cancel?: () => void } {
+  let timeout: NodeJS.Timeout | null = null
+  const debounced = (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }
+  ;(debounced as any).cancel = () => {
+    if (timeout) clearTimeout(timeout)
+  }
+  return debounced as T & { cancel?: () => void }
+}
 
 export function ArticleWriting() {
   const { t } = useTranslation()
+  const { toast } = useToast()
 
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -24,9 +41,59 @@ export function ArticleWriting() {
   const [articleContent, setArticleContent] = useState("")
   const [articleMarkdown, setArticleMarkdown] = useState("")
   const [articleHTML, setArticleHTML] = useState("")
+  const [cleanConfirmOpen, setCleanConfirmOpen] = useState(false)
+
+  // Debounced save to localStorage
+  const debouncedSave = useMemo(
+    () => debounce((draft: ArticleDraft) => {
+      try {
+        const json = JSON.stringify(draft)
+        // 4MB 容量检查
+        if (json.length > 4 * 1024 * 1024) {
+          toast({
+            title: "警告",
+            description: t("contentWriting.editorHeader.contentTooLarge"),
+            variant: "destructive"
+          })
+          return
+        }
+        localStorage.setItem('joyfulwords-article-draft', json)
+      } catch (error) {
+        console.error('Failed to save draft:', error)
+        toast({
+          title: "自动保存失败",
+          description: t("contentWriting.editorHeader.autoSaveFailed"),
+          variant: "destructive"
+        })
+      }
+    }, 500),
+    [toast, t]
+  )
+
+  // Build draft object from current state
+  const buildDraft = useCallback((): ArticleDraft => {
+    const text = articleContent.replace(/<[^>]*>/g, "")
+
+    return {
+      article: currentArticle,
+      isEditMode,
+      lastSaved: new Date().toISOString(),
+      content: {
+        html: articleContent,
+        markdown: articleMarkdown,
+        text
+      },
+      metadata: {
+        wordCount: text.length,
+        hasUnsavedChanges: true,
+        version: "v1.0.0"
+      }
+    }
+  }, [currentArticle, isEditMode, articleContent, articleMarkdown])
 
   // Load article from window state on mount (runs every time due to key prop)
   useEffect(() => {
+    // 1. 优先检查 Edit 跳转
     const editArticle = (window as any).__editArticle
 
     if (editArticle) {
@@ -39,17 +106,51 @@ export function ArticleWriting() {
 
       // Clear after loading
       ;(window as any).__editArticle = null
-    } else {
-      // Create mode - no article loaded
-      setCurrentArticle(null)
-      setIsEditMode(false)
+      return
+    }
+
+    // 2. 检查 localStorage 草稿
+    const savedDraft = localStorage.getItem('joyfulwords-article-draft')
+    if (savedDraft) {
+      try {
+        const draft: ArticleDraft = JSON.parse(savedDraft)
+
+        // 版本检查
+        if (draft.metadata?.version !== 'v1.0.0') {
+          console.warn('Draft version mismatch:', draft.metadata?.version)
+          return
+        }
+
+        // 恢复草稿
+        setCurrentArticle(draft.article)
+        setIsEditMode(draft.isEditMode)
+        setArticleContent(draft.content.html)
+        setArticleHTML(draft.content.html)
+        setArticleMarkdown(draft.content.markdown)
+
+        toast({
+          description: t("contentWriting.editorHeader.draftRestored")
+        })
+      } catch (error) {
+        console.error('Failed to load draft:', error)
+      }
     }
   }, [])
 
-  const handleEditorChange = (content: string, html: string, markdown: string) => {
+  const handleEditorChange = (_content: string, html: string, markdown: string) => {
     setArticleContent(html)  // 改为保存 HTML，这样图片就不会丢失
     setArticleHTML(html)
     setArticleMarkdown(markdown)
+
+    // TODO: 实时保存到后端 API（EditMode）
+    // API: PUT /api/articles/:id/draft
+    //
+    // 建议实现：
+    // 1. 使用防抖（2-3秒）避免频繁请求
+    // 2. 仅保存内容，不触发验证
+    // 3. 返回 draftId 用于后续更新
+    // 4. 失败时静默重试3次
+    // 5. 显示"自动保存中..."状态指示
   }
 
   const handleExport = (format: "markdown" | "html") => {
@@ -100,40 +201,57 @@ export function ArticleWriting() {
     // Will be connected to API later
   }
 
+  // Auto-save to localStorage when content changes
+  useEffect(() => {
+    if (articleContent || articleMarkdown) {
+      const draft = buildDraft()
+      debouncedSave(draft)
+    }
+
+    // 清理函数
+    return () => {
+      debouncedSave.cancel?.()
+    }
+  }, [articleContent, articleMarkdown, buildDraft, debouncedSave])
+
+  // Clean confirm handler
+  const handleCleanConfirm = () => {
+    // 清空所有状态
+    setCurrentArticle(null)
+    setIsEditMode(false)
+    setArticleContent("")
+    setArticleHTML("")
+    setArticleMarkdown("")
+
+    // 清除 localStorage
+    localStorage.removeItem('joyfulwords-article-draft')
+
+    // 关闭对话框
+    setCleanConfirmOpen(false)
+
+    toast({
+      description: t("contentWriting.editorHeader.cleanSuccess")
+    })
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full gap-6">
       {/* Editor Section */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
-        {/* Editor Header with Export Button */}
-        <div className="border-b border-border bg-muted/30">
-          <div className="px-4 py-3 flex items-center justify-between">
-            <ArticleEditorHeader
-              article={currentArticle}
-              mode={isEditMode ? "edit" : "create"}
-              content={articleContent}
-              onSaveAsNew={() => setSaveDialogOpen(true)}
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                  <DownloadIcon className="w-4 h-4" />
-                  {t("contentWriting.writing.exportBtn")}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleExport("markdown")}>
-                  {t("contentWriting.writing.exportMarkdown")}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport("html")}>
-                  {t("contentWriting.writing.exportHtml")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      <div className="flex flex-col flex-1 bg-card rounded-lg border border-border overflow-hidden">
+        {/* Editor Header */}
+        <div className="shrink-0">
+          <ArticleEditorHeader
+            article={currentArticle}
+            mode={isEditMode ? "edit" : "create"}
+            content={articleContent}
+            onSaveAsNew={() => setSaveDialogOpen(true)}
+            onExport={handleExport}
+            onClean={() => setCleanConfirmOpen(true)}
+          />
         </div>
 
         {/* Tiptap Editor */}
-        <div className="p-6">
+        <div className="flex-1 overflow-auto p-6">
           <TiptapEditor
             content={articleContent}
             onChange={handleEditorChange}
@@ -149,6 +267,26 @@ export function ArticleWriting() {
         onOpenChange={setSaveDialogOpen}
         onSave={handleSaveArticle}
       />
+
+      {/* Clean Confirm Dialog */}
+      <AlertDialog open={cleanConfirmOpen} onOpenChange={setCleanConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("contentWriting.editorHeader.cleanConfirmTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("contentWriting.editorHeader.cleanConfirmDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCleanConfirm}>
+              {t("common.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

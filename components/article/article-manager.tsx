@@ -14,7 +14,7 @@ import {
   SelectValue
 } from "@/components/ui/select"
 import { SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon, Eye, FileText, Image as ImageIcon, Link, SparklesIcon } from "lucide-react"
-import { Article, ArticleStatus, mockArticles } from "./article-types"
+import { Article, ArticleDraft, ArticleStatus, mockArticles } from "./article-types"
 import {
   ContentPreviewDialog,
   ImageGalleryDialog,
@@ -73,9 +73,30 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     // TODO: Load full article data from API before navigation
     // API: GET /api/articles/:id
 
-    // Store article in a global state or pass via callback
-    // For now, we'll use a simple approach with window state
+    // 方案1：保留 window.__editArticle (向后兼容)
     ;(window as any).__editArticle = article
+
+    // 方案2：新增 localStorage 存储
+    try {
+      const draft: ArticleDraft = {
+        article,
+        isEditMode: true,
+        lastSaved: new Date().toISOString(),
+        content: {
+          html: article.content,
+          markdown: "",
+          text: article.content.replace(/<[^>]*>/g, "")
+        },
+        metadata: {
+          wordCount: article.content.length,
+          hasUnsavedChanges: false,
+          version: "v1.0.0"
+        }
+      }
+      localStorage.setItem('joyfulwords-article-draft', JSON.stringify(draft))
+    } catch (error) {
+      console.error('Failed to save article to localStorage:', error)
+    }
 
     if (onNavigateToWriting) {
       onNavigateToWriting()
@@ -203,7 +224,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
             className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
           >
             <SparklesIcon className="w-4 h-4" />
-            AI 帮写
+            {t("common.aiHelp")}
           </Button>
         </div>
       </div>

@@ -4,15 +4,28 @@ import { useState } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ChevronDownIcon, ChevronUpIcon, SaveIcon } from "lucide-react"
-import type { Article } from "./article-types"
-import { getStatusText, getStatusVariant } from "./article-types"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { ChevronDownIcon, ChevronUpIcon, SaveIcon, DownloadIcon, Trash2 } from "lucide-react"
+import type { Article, ArticleStatus } from "./article-types"
+import { getStatusVariant } from "./article-types"
 
 interface ArticleEditorHeaderProps {
   article?: Article | null
   mode: "create" | "edit"
   content?: string
   onSaveAsNew?: () => void
+  onExport?: (format: "markdown" | "html") => void
+  onClean?: () => void
 }
 
 export function ArticleEditorHeader({
@@ -20,9 +33,17 @@ export function ArticleEditorHeader({
   mode,
   content = "",
   onSaveAsNew,
+  onExport,
+  onClean,
 }: ArticleEditorHeaderProps) {
   const { t } = useTranslation()
   const [showDetails, setShowDetails] = useState(false)
+
+  // Get status text using i18n
+  const getStatusText = (status: ArticleStatus): string => {
+    const statusKey = `contentWriting.manager.status${status.charAt(0).toUpperCase() + status.slice(1)}`
+    return t(statusKey as any)
+  }
 
   // Calculate word count (strip HTML tags)
   const wordCount = content.replace(/<[^>]*>/g, "").length
@@ -36,7 +57,7 @@ export function ArticleEditorHeader({
   if (isCreateMode && !article) {
     // Create mode - no article loaded yet
     return (
-      <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+      <div className="flex items-center justify-between px-5 py-3">
         {/* Left: Title + Word Count + Mode Badge */}
         <div className="flex items-center gap-4">
           <div>
@@ -54,14 +75,69 @@ export function ArticleEditorHeader({
           </div>
         </div>
 
-        {/* Right: Save Button (only when has content) */}
-        <div className="flex items-center gap-2">
-          {shouldShowSaveButton && (
-            <Button onClick={onSaveAsNew} size="sm" className="h-8 gap-1.5">
-              <SaveIcon className="w-3.5 h-3.5" />
-              {t("contentWriting.editorHeader.saveAsNew")}
-            </Button>
+        {/* Right: Clean + Save + Export (纯图标 + Tooltip) */}
+        <div className="flex items-center gap-1">
+          {/* Clean Button */}
+          {onClean && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={onClean}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>{t("contentWriting.editorHeader.cleanTooltip")}</span>
+              </TooltipContent>
+            </Tooltip>
           )}
+
+          {/* Save Button */}
+          {shouldShowSaveButton && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onSaveAsNew}
+                >
+                  <SaveIcon className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>{t("contentWriting.editorHeader.saveTooltip")}</span>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <DownloadIcon className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>{t("contentWriting.editorHeader.exportTooltip")}</span>
+                </TooltipContent>
+              </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => onExport?.("markdown")}>
+                {t("contentWriting.writing.exportMarkdown")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport?.("html")}>
+                {t("contentWriting.writing.exportHtml")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     )
@@ -73,7 +149,7 @@ export function ArticleEditorHeader({
   }
 
   return (
-    <div className="border-b border-border">
+    <div>
       {/* Main Row */}
       <div className="flex items-center justify-between px-5 py-3">
         {/* Left: Title + Word Count + Status Badge */}
@@ -94,8 +170,28 @@ export function ArticleEditorHeader({
           </div>
         </div>
 
-        {/* Right: Details Toggle Button */}
+        {/* Right: Clean + Details Toggle + Export */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Clean Button */}
+          {onClean && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={onClean}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>{t("contentWriting.editorHeader.cleanTooltip")}</span>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Details Toggle Button */}
           <Button
             variant="ghost"
             size="sm"
@@ -113,6 +209,30 @@ export function ArticleEditorHeader({
                 : t("contentWriting.editorHeader.showDetails")}
             </span>
           </Button>
+
+          {/* Export Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <DownloadIcon className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>{t("contentWriting.editorHeader.exportTooltip")}</span>
+                </TooltipContent>
+              </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => onExport?.("markdown")}>
+                {t("contentWriting.writing.exportMarkdown")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onExport?.("html")}>
+                {t("contentWriting.writing.exportHtml")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -122,22 +242,22 @@ export function ArticleEditorHeader({
           <div className="pt-3 border-t border-border">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">创建时间</div>
+                <div className="text-xs text-muted-foreground">{t("contentWriting.editorHeader.detailsCreatedAt")}</div>
                 <div className="text-foreground font-medium">{article.createdAt}</div>
               </div>
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">修改时间</div>
+                <div className="text-xs text-muted-foreground">{t("contentWriting.editorHeader.detailsModifiedAt")}</div>
                 <div className="text-foreground font-medium">{article.modifiedAt}</div>
               </div>
               {article.category && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">分类</div>
+                  <div className="text-xs text-muted-foreground">{t("contentWriting.editorHeader.detailsCategory")}</div>
                   <div className="text-foreground font-medium">{article.category}</div>
                 </div>
               )}
               {article.tags.length > 0 && (
                 <div className="space-y-1">
-                  <div className="text-xs text-muted-foreground">标签</div>
+                  <div className="text-xs text-muted-foreground">{t("contentWriting.editorHeader.detailsTags")}</div>
                   <div className="text-foreground font-medium">{article.tags.join(", ")}</div>
                 </div>
               )}

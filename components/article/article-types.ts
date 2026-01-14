@@ -287,6 +287,25 @@ export const getStatusVariant = (status: ArticleStatus): "default" | "secondary"
   return variantMap[status]
 }
 
+// Article draft state for localStorage persistence
+export interface ArticleDraft {
+  article: Article | null           // 当前编辑的文章对象（Edit模式）
+  isEditMode: boolean               // 是否为编辑模式
+  lastSaved: string                 // ISO时间戳
+
+  content: {
+    html: string                    // HTML格式内容（主要）
+    markdown: string                // Markdown格式
+    text: string                    // 纯文本（用于字数统计）
+  }
+
+  metadata: {
+    wordCount: number               // 字数统计
+    hasUnsavedChanges: boolean      // 是否有未保存的更改
+    version: string                 // 数据格式版本（用于未来迁移）
+  }
+}
+
 export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'

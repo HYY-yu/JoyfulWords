@@ -11,6 +11,7 @@ export const en = {
         submit: "Submit",
         save: "Save",
         cancel: "Cancel",
+        confirm: "Confirm",
         delete: "Delete",
         edit: "Edit",
         preview: "Preview",
@@ -19,6 +20,7 @@ export const en = {
         zh: "中文",
         en: "English",
         account: "Account",
+        aiHelp: "AI Writing Assistant",
     },
     sidebar: {
         title: "Creator Toolbox",
@@ -257,6 +259,22 @@ export const en = {
             modifiedAt: "Modified {date}",
             showDetails: "Show Details",
             hideDetails: "Hide Details",
+            // New fields
+            cleanTooltip: "Clear all content and return to create mode",
+            saveTooltip: "Save as new article",
+            exportTooltip: "Export article",
+            cleanConfirmTitle: "Confirm Clear",
+            cleanConfirmDesc: "Are you sure you want to clear all content? This action cannot be undone.",
+            // Details fields
+            detailsCreatedAt: "Created At",
+            detailsModifiedAt: "Modified At",
+            detailsCategory: "Category",
+            detailsTags: "Tags",
+            // Draft restored
+            draftRestored: "Previous content restored",
+            contentTooLarge: "Article content is too large, may not auto-save",
+            autoSaveFailed: "Auto-save failed, please export manually",
+            cleanSuccess: "All content cleared",
         },
         manager: {
             filterTitle: "Article Title:",
@@ -287,6 +305,14 @@ export const en = {
             noImages: "No images",
             linksCount: "{count} links",
             noLinks: "No links",
+            // Empty state
+            emptyTitle: "No Articles",
+            emptyDesc: "No articles created yet. Go to Article Writing to start creating!",
+            // Article status
+            statusInit: "Initializing",
+            statusDraft: "Draft",
+            statusPublished: "Published",
+            statusArchived: "Archived",
         }
     },
     imageGeneration: {
@@ -474,6 +500,35 @@ export const en = {
         codeExpired: "Verification code has expired",
         resendCode: "Resend",
         signupComplete: "Sign up successful, please login",
-        passwordResetComplete: "Password reset successful, please login"
+        passwordResetComplete: "Password reset successful, please login",
+        // Toast messages
+        toast: {
+            loginSuccess: "Login successful",
+            loginFailed: "Login failed",
+            googleLoginFailed: "Google login failed",
+            sendFailed: "Send failed",
+            verificationCodeSent: "Verification code sent",
+            checkYourEmail: "Please check your email",
+            signupSuccess: "Sign up successful",
+            pleaseLogin: "Please login with your email and password",
+            logoutSuccess: "Logged out successfully",
+            resetFailed: "Reset failed",
+            passwordResetSuccess: "Password reset successful",
+            loginWithNewPassword: "Please login with your new password",
+            resetCodeSent: "If this email is registered, you will receive a password reset code",
+            googleLoginSuccess: "Successfully logged in with Google account",
+            pleaseTryAgain: "Please try again",
+        },
+        oauth: {
+            missingParams: "Missing OAuth parameters",
+            stateVerificationFailed: "State parameter verification failed",
+            loginFailed: "OAuth login failed",
+            completingGoogleLogin: "Completing Google login...",
+            processingLoginInfo: "Please wait while we process your login information",
+            loginSuccess: "Login successful!",
+            redirecting: "Redirecting...",
+            loginFailedTitle: "Login failed",
+            redirectingToLogin: "Redirecting to login page...",
+        }
     }
 };

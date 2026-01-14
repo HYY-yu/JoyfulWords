@@ -11,6 +11,7 @@ export const zh = {
         submit: "提交",
         save: "保存",
         cancel: "取消",
+        confirm: "确认",
         delete: "删除",
         edit: "编辑",
         preview: "预览",
@@ -19,6 +20,7 @@ export const zh = {
         zh: "中文",
         en: "English",
         account: "账号管理",
+        aiHelp: "AI 帮写",
     },
     sidebar: {
         title: "创作者工具箱",
@@ -257,6 +259,22 @@ export const zh = {
             modifiedAt: "修改于 {date}",
             showDetails: "显示详情",
             hideDetails: "隐藏详情",
+            // 新增字段
+            cleanTooltip: "清除所有内容并返回创建模式",
+            saveTooltip: "保存为新文章",
+            exportTooltip: "导出文章",
+            cleanConfirmTitle: "确认清空",
+            cleanConfirmDesc: "确定要清空所有内容吗？此操作无法撤销。",
+            // 详情字段
+            detailsCreatedAt: "创建时间",
+            detailsModifiedAt: "修改时间",
+            detailsCategory: "分类",
+            detailsTags: "标签",
+            // 草稿恢复
+            draftRestored: "已恢复上次编辑的内容",
+            contentTooLarge: "文章内容过大，可能无法自动保存",
+            autoSaveFailed: "自动保存失败，请手动导出文章",
+            cleanSuccess: "已清空所有内容",
         },
         manager: {
             filterTitle: "文章标题：",
@@ -287,6 +305,14 @@ export const zh = {
             noImages: "无图片",
             linksCount: "{count} 个链接",
             noLinks: "无链接",
+            // 空状态
+            emptyTitle: "暂无文章",
+            emptyDesc: "还没有创建任何文章，去文章撰写页面开始创作吧！",
+            // 文章状态
+            statusInit: "初始化",
+            statusDraft: "草稿",
+            statusPublished: "已发布",
+            statusArchived: "已归档",
         }
     },
     imageGeneration: {
@@ -474,6 +500,35 @@ export const zh = {
         codeExpired: "验证码已过期",
         resendCode: "重新发送",
         signupComplete: "注册成功，请登录",
-        passwordResetComplete: "密码重置成功，请登录"
+        passwordResetComplete: "密码重置成功，请登录",
+        // Toast messages
+        toast: {
+            loginSuccess: "登录成功",
+            loginFailed: "登录失败",
+            googleLoginFailed: "Google 登录失败",
+            sendFailed: "发送失败",
+            verificationCodeSent: "验证码已发送",
+            checkYourEmail: "请查收您的邮箱",
+            signupSuccess: "注册成功",
+            pleaseLogin: "请使用您的邮箱和密码登录",
+            logoutSuccess: "已退出登录",
+            resetFailed: "重置失败",
+            passwordResetSuccess: "密码重置成功",
+            loginWithNewPassword: "请使用新密码登录",
+            resetCodeSent: "如果该邮箱已注册，您将收到密码重置验证码",
+            googleLoginSuccess: "已成功使用 Google 账号登录",
+            pleaseTryAgain: "请重试",
+        },
+        oauth: {
+            missingParams: "缺少 OAuth 参数",
+            stateVerificationFailed: "State 参数验证失败",
+            loginFailed: "OAuth 登录失败",
+            completingGoogleLogin: "正在完成 Google 登录...",
+            processingLoginInfo: "请稍候，我们正在处理您的登录信息",
+            loginSuccess: "登录成功！",
+            redirecting: "正在跳转...",
+            loginFailedTitle: "登录失败",
+            redirectingToLogin: "正在跳转到登录页面...",
+        }
     }
 };

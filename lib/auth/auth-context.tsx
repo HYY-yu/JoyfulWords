@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
+import { useTranslation } from '@/lib/i18n/i18n-context'
 import { apiClient } from '@/lib/api/client'
 import { TokenManager } from '@/lib/tokens/token-manager'
 import { setupTokenRefresh } from '@/lib/tokens/refresh'
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Tokens | null>(null)
   const [loading, setLoading] = useState(true)
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '登录失败',
+        title: t('auth.toast.loginFailed'),
         description: result.error,
       })
       throw new Error(result.error)
@@ -74,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(result as Tokens)
 
     toast({
-      title: '登录成功',
+      title: t('auth.toast.loginSuccess'),
     })
   }
 
@@ -84,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: 'Google 登录失败',
+        title: t('auth.toast.googleLoginFailed'),
         description: result.error,
       })
       throw new Error(result.error)
@@ -104,15 +106,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '发送失败',
+        title: t('auth.toast.sendFailed'),
         description: result.error,
       })
       throw new Error(result.error)
     }
 
     toast({
-      title: '验证码已发送',
-      description: '请查收您的邮箱',
+      title: t('auth.toast.verificationCodeSent'),
+      description: t('auth.toast.checkYourEmail'),
     })
   }
 
@@ -122,15 +124,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '注册失败',
+        title: t('auth.toast.loginFailed'),
         description: result.error,
       })
       throw new Error(result.error)
     }
 
     toast({
-      title: '注册成功',
-      description: '请使用您的邮箱和密码登录',
+      title: t('auth.toast.signupSuccess'),
+      description: t('auth.toast.pleaseLogin'),
     })
   }
 
@@ -147,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null)
 
     toast({
-      title: '已退出登录',
+      title: t('auth.toast.logoutSuccess'),
     })
 
     // Redirect to login page
@@ -160,15 +162,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '发送失败',
+        title: t('auth.toast.sendFailed'),
         description: result.error,
       })
       throw new Error(result.error)
     }
 
     toast({
-      title: '验证码已发送',
-      description: '如果该邮箱已注册，您将收到密码重置验证码',
+      title: t('auth.toast.verificationCodeSent'),
+      description: t('auth.toast.resetCodeSent'),
     })
   }
 
@@ -178,15 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '重置失败',
+        title: t('auth.toast.resetFailed'),
         description: result.error,
       })
       throw new Error(result.error)
     }
 
     toast({
-      title: '密码重置成功',
-      description: '请使用新密码登录',
+      title: t('auth.toast.passwordResetSuccess'),
+      description: t('auth.toast.loginWithNewPassword'),
     })
   }
 

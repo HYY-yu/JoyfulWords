@@ -50,14 +50,14 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="h-full" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased h-full`}>
-        <AuthProvider>
-          <I18nProvider>
+        <I18nProvider>
+          <AuthProvider>
             {children}
             <Analytics />
             <Toaster />
             <OpenTelemetryProvider />
-          </I18nProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   )

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   Table,
   TableBody,
@@ -28,8 +29,8 @@ import {
   Link,
   Eye
 } from "lucide-react"
-import { Article } from "./article-types"
-import { getStatusText, getStatusVariant, truncateText } from "./article-types"
+import type { Article, ArticleStatus } from "./article-types"
+import { getStatusVariant, truncateText } from "./article-types"
 
 interface ArticleTableProps {
   articles: Article[]
@@ -52,13 +53,21 @@ export function ArticleTable({
   onViewImages,
   onViewLinks
 }: ArticleTableProps) {
+  const { t } = useTranslation()
+
+  // Get status text using i18n
+  const getStatusText = (status: ArticleStatus): string => {
+    const statusKey = `contentWriting.manager.status${status.charAt(0).toUpperCase() + status.slice(1)}`
+    return t(statusKey as any)
+  }
+
   if (articles.length === 0) {
     return (
       <div className="text-center py-12">
         <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-medium mb-2">暂无文章</h3>
+        <h3 className="text-lg font-medium mb-2">{t("contentWriting.manager.emptyTitle")}</h3>
         <p className="text-muted-foreground text-sm">
-          还没有创建任何文章，去文章撰写页面开始创作吧！
+          {t("contentWriting.manager.emptyDesc")}
         </p>
       </div>
     )
@@ -69,13 +78,13 @@ export function ArticleTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[200px]">文章标题</TableHead>
-            <TableHead className="w-[300px]">文章内容</TableHead>
-            <TableHead className="w-[120px]">文章图片</TableHead>
-            <TableHead className="w-[150px]">引用链接</TableHead>
-            <TableHead className="w-[120px]">创建时间</TableHead>
-            <TableHead className="w-[120px]">修改时间</TableHead>
-            <TableHead className="w-[200px] text-right">操作</TableHead>
+            <TableHead className="w-[200px]">{t("contentWriting.manager.table.title")}</TableHead>
+            <TableHead className="w-[300px]">{t("contentWriting.manager.table.content")}</TableHead>
+            <TableHead className="w-[120px]">{t("contentWriting.manager.table.images")}</TableHead>
+            <TableHead className="w-[150px]">{t("contentWriting.manager.table.links")}</TableHead>
+            <TableHead className="w-[120px]">{t("contentWriting.manager.table.created")}</TableHead>
+            <TableHead className="w-[120px]">{t("contentWriting.manager.table.modified")}</TableHead>
+            <TableHead className="w-[200px] text-right">{t("contentWriting.manager.table.actions")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -106,7 +115,7 @@ export function ArticleTable({
                   <div className="max-w-[280px]">
                     <div className="flex items-center gap-1 mb-1">
                       <Eye className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">点击查看详情</span>
+                      <span className="text-xs text-muted-foreground">{t("contentWriting.manager.clickForDetail")}</span>
                     </div>
                     <p className="text-sm line-clamp-2">
                       {article.summary || truncateText(article.content, 100)}
@@ -127,7 +136,9 @@ export function ArticleTable({
                       <div className="flex items-center gap-1">
                         <ImageIcon className="w-3 h-3 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">
-                          {article.images.length > 3 ? '查看全部' : '查看图片'}
+                          {article.images.length > 3
+                            ? t("contentWriting.manager.viewAllImages")
+                            : t("contentWriting.manager.viewImages")}
                         </span>
                       </div>
                       <div className="flex gap-1">
@@ -148,7 +159,7 @@ export function ArticleTable({
                     </div>
                   </Button>
                 ) : (
-                  <span className="text-muted-foreground text-sm">无图片</span>
+                  <span className="text-muted-foreground text-sm">{t("contentWriting.manager.noImages")}</span>
                 )}
               </TableCell>
 
@@ -164,7 +175,7 @@ export function ArticleTable({
                       <div className="flex items-center gap-1">
                         <Link className="w-3 h-3 text-muted-foreground" />
                         <span className="text-xs text-muted-foreground">
-                          {article.referenceLinks.length} 个链接
+                          {t("contentWriting.manager.linksCount", { count: article.referenceLinks.length })}
                         </span>
                       </div>
                       <p className="text-sm truncate">
@@ -173,7 +184,7 @@ export function ArticleTable({
                     </div>
                   </Button>
                 ) : (
-                  <span className="text-muted-foreground text-sm">无链接</span>
+                  <span className="text-muted-foreground text-sm">{t("contentWriting.manager.noLinks")}</span>
                 )}
               </TableCell>
 

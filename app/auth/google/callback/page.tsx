@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from '@/lib/i18n/i18n-context'
 import { TokenManager } from '@/lib/tokens/token-manager'
 import { useAuth } from '@/lib/auth/auth-context'
 
 export default function GoogleCallbackPage() {
   const router = useRouter()
+  const { t } = useTranslation()
   const { toast } = useToast()
   const { _setUser, _setSession } = useAuth()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -23,13 +25,13 @@ export default function GoogleCallbackPage() {
         const state = urlParams.get('state')
 
         if (!code || !state) {
-          throw new Error('缺少 OAuth 参数')
+          throw new Error(t('auth.oauth.missingParams'))
         }
 
         // Verify state matches
         const storedState = sessionStorage.getItem('oauth_state')
         if (storedState !== state) {
-          throw new Error('State 参数验证失败')
+          throw new Error(t('auth.oauth.stateVerificationFailed'))
         }
 
         // Get the redirect URL from backend
@@ -46,7 +48,7 @@ export default function GoogleCallbackPage() {
         const data = await response.json()
 
         if (!response.ok || data.error) {
-          throw new Error(data.error || 'OAuth 登录失败')
+          throw new Error(data.error || t('auth.oauth.loginFailed'))
         }
 
         // Store tokens
@@ -69,8 +71,8 @@ export default function GoogleCallbackPage() {
 
         setStatus('success')
         toast({
-          title: '登录成功',
-          description: '已成功使用 Google 账号登录',
+          title: t('auth.toast.loginSuccess'),
+          description: t('auth.toast.googleLoginSuccess'),
         })
 
         // Redirect to home page or stored redirect
@@ -81,11 +83,11 @@ export default function GoogleCallbackPage() {
       } catch (error: any) {
         console.error('Google OAuth callback error:', error)
         setStatus('error')
-        setErrorMessage(error.message || 'OAuth 登录失败')
+        setErrorMessage(error.message || t('auth.oauth.loginFailed'))
         toast({
           variant: 'destructive',
-          title: 'Google 登录失败',
-          description: error.message || '请重试',
+          title: t('auth.toast.googleLoginFailed'),
+          description: error.message || t('auth.toast.pleaseTryAgain'),
         })
 
         // Redirect to login page after delay
@@ -96,7 +98,7 @@ export default function GoogleCallbackPage() {
     }
 
     handleCallback()
-  }, [router, toast])
+  }, [router, toast, t])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -104,8 +106,8 @@ export default function GoogleCallbackPage() {
         {status === 'loading' && (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <h2 className="text-2xl font-semibold">正在完成 Google 登录...</h2>
-            <p className="text-muted-foreground">请稍候，我们正在处理您的登录信息</p>
+            <h2 className="text-2xl font-semibold">{t('auth.oauth.completingGoogleLogin')}</h2>
+            <p className="text-muted-foreground">{t('auth.oauth.processingLoginInfo')}</p>
           </>
         )}
 
@@ -126,8 +128,8 @@ export default function GoogleCallbackPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold">登录成功！</h2>
-            <p className="text-muted-foreground">正在跳转...</p>
+            <h2 className="text-2xl font-semibold">{t('auth.oauth.loginSuccess')}</h2>
+            <p className="text-muted-foreground">{t('auth.oauth.redirecting')}</p>
           </>
         )}
 
@@ -148,9 +150,9 @@ export default function GoogleCallbackPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold">登录失败</h2>
+            <h2 className="text-2xl font-semibold">{t('auth.oauth.loginFailedTitle')}</h2>
             <p className="text-muted-foreground">{errorMessage}</p>
-            <p className="text-sm text-muted-foreground">正在跳转到登录页面...</p>
+            <p className="text-sm text-muted-foreground">{t('auth.oauth.redirectingToLogin')}</p>
           </>
         )}
       </div>
