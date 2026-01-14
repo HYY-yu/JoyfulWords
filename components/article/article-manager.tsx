@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon, Eye, FileText, Image as ImageIcon, Link } from "lucide-react"
+import { SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon, Eye, FileText, Image as ImageIcon, Link, SparklesIcon } from "lucide-react"
 import { Article, ArticleStatus, mockArticles } from "./article-types"
 import {
   ContentPreviewDialog,
@@ -22,6 +23,7 @@ import {
   PublishManagementDialog,
   TranslationDialog
 } from "./article-dialogs"
+import { ArticleAIHelpDialog } from "./article-ai-help-dialog"
 import { useToast } from "@/hooks/use-toast"
 
 interface ArticleManagerProps {
@@ -31,6 +33,7 @@ interface ArticleManagerProps {
 export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const router = useRouter()
   const [articles, setArticles] = useState<Article[]>(mockArticles)
   const [titleFilter, setTitleFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState<ArticleStatus | "all">("all")
@@ -43,6 +46,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [publishManagementOpen, setPublishManagementOpen] = useState(false)
   const [translationDialogOpen, setTranslationDialogOpen] = useState(false)
+  const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
 
   // Filter and search articles
   const filteredArticles = useMemo(() => {
@@ -66,13 +70,20 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
-    // Navigate to article writing tab with article ID
+    // TODO: Load full article data from API before navigation
+    // API: GET /api/articles/:id
+
+    // Store article in a global state or pass via callback
+    // For now, we'll use a simple approach with window state
+    ;(window as any).__editArticle = article
+
     if (onNavigateToWriting) {
       onNavigateToWriting()
-      toast({
-        description: `${t("common.edit")}: ${article.title}`
-      })
     }
+
+    toast({
+      description: `${t("common.edit")}: ${article.title}`
+    })
   }
 
   const handleDeleteArticle = (article: Article) => {
@@ -117,13 +128,28 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   }
 
   const handleCreateNewArticle = () => {
-    // Navigate to article writing tab
+    // Clear any stored edit article
+    ;(window as any).__editArticle = null
+
     if (onNavigateToWriting) {
       onNavigateToWriting()
-      toast({
-        description: t("contentWriting.manager.newArticleBtn")
-      })
     }
+
+    toast({
+      description: "新建文章"
+    })
+  }
+
+  const handleAIArticleCreated = (newArticle: Article) => {
+    setArticles(prev => [newArticle, ...prev])
+
+    // TODO: Optionally navigate to edit the new article
+    // router.push("/content-writing?tab=article-writing", {
+    //   state: { article: newArticle }
+    // })
+    // if (onNavigateToWriting) {
+    //   onNavigateToWriting()
+    // }
   }
 
   // Get statistics
@@ -162,6 +188,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("contentWriting.manager.status.all")}</SelectItem>
+                <SelectItem value="init">{t("contentWriting.manager.status.init")}</SelectItem>
                 <SelectItem value="published">{t("contentWriting.manager.status.published")}</SelectItem>
                 <SelectItem value="draft">{t("contentWriting.manager.status.draft")}</SelectItem>
                 <SelectItem value="archived">{t("contentWriting.manager.status.archived")}</SelectItem>
@@ -169,10 +196,16 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
             </Select>
           </div>
         </div>
-        <Button onClick={handleCreateNewArticle} className="gap-2">
-          <PlusIcon className="w-4 h-4" />
-          {t("contentWriting.manager.newArticleBtn")}
-        </Button>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setAiHelpDialogOpen(true)}
+            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <SparklesIcon className="w-4 h-4" />
+            AI 帮写
+          </Button>
+        </div>
       </div>
 
       {/* Articles Table */}
@@ -291,9 +324,14 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                   <td className="py-3 px-4 text-sm text-muted-foreground">{article.modifiedAt.split(' ')[0]}</td>
                   <td className="py-3 px-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => handleEditArticle(article)} className="h-8 w-8 p-0">
-                        <EditIcon className="w-3.5 h-3.5" />
-                      </Button>
+                      {/* Edit button: Only show for draft and published */}
+                      {(article.status === 'draft' || article.status === 'published') && (
+                        <Button variant="ghost" size="sm" onClick={() => handleEditArticle(article)} className="h-8 w-8 p-0">
+                          <EditIcon className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+
+                      {/* Delete button: Show for all statuses */}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -352,6 +390,13 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
           />
         </>
       )}
+
+      {/* AI Help Dialog */}
+      <ArticleAIHelpDialog
+        open={aiHelpDialogOpen}
+        onOpenChange={setAiHelpDialogOpen}
+        onArticleCreated={handleAIArticleCreated}
+      />
     </div>
   )
 }

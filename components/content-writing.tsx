@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs } from "lucide-react"
 import { MaterialSearch } from "./material-search"
 import { CompetitorTracking } from "./competitor-tracking"
-import { ArticleWriting } from "./article-writing"
-import { ArticleManager } from "./article-manager"
+import { ArticleWriting } from "./article/article-writing"
+import { ArticleManager } from "./article/article-manager"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
 export function ContentWriting() {
   const { t } = useTranslation()
+  const [editTrigger, setEditTrigger] = useState(0)
 
   const tabs = [
     { id: "material-search", label: t("contentWriting.tabs.materialSearch"), icon: SearchIcon },
@@ -19,6 +20,25 @@ export function ContentWriting() {
   ]
 
   const [activeTab, setActiveTab] = useState("material-search")
+
+  // Listen for edit navigation
+  useEffect(() => {
+    const handleEditNavigation = () => {
+      setEditTrigger(prev => prev + 1)
+    }
+
+    // Listen for custom event
+    window.addEventListener('article-edit-navigate', handleEditNavigation)
+
+    return () => {
+      window.removeEventListener('article-edit-navigate', handleEditNavigation)
+    }
+  }, [])
+
+  const handleNavigateToWriting = () => {
+    setActiveTab("article-writing")
+    setEditTrigger(prev => prev + 1)
+  }
 
   const activeTabConfig = tabs.find((tab) => tab.id === activeTab)!
 
@@ -74,9 +94,9 @@ export function ContentWriting() {
         ) : activeTab === "competitor-tracking" ? (
           <CompetitorTracking />
         ) : activeTab === "article-writing" ? (
-          <ArticleWriting />
+          <ArticleWriting key={editTrigger} />
         ) : activeTab === "article-manager" ? (
-          <ArticleManager onNavigateToWriting={() => setActiveTab("article-writing")} />
+          <ArticleManager onNavigateToWriting={handleNavigateToWriting} />
         ) : (
           <div className="flex items-center justify-center min-h-[500px]">
             <div className="text-center space-y-4 animate-in fade-in duration-300">

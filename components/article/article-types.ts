@@ -1,4 +1,6 @@
-export type ArticleStatus = 'draft' | 'published' | 'archived'
+// TODO: Replace with backend API response structure
+// Ensure backend API supports the new fields: sourceMaterials, sourceCompetitors, generationPrompt
+export type ArticleStatus = 'init' | 'draft' | 'published' | 'archived'
 
 export type Article = {
   id: string
@@ -12,6 +14,10 @@ export type Article = {
   status: ArticleStatus
   tags: string[]
   category?: string
+  // New fields for AI generation
+  sourceMaterials?: string[]      // IDs of selected materials
+  sourceCompetitors?: string[]     // IDs of competitor posts
+  generationPrompt?: string        // User's AI prompt
 }
 
 export type ArticleImage = {
@@ -263,6 +269,7 @@ export const mockArticles: Article[] = [
 // Helper functions
 export const getStatusText = (status: ArticleStatus): string => {
   const statusMap: Record<ArticleStatus, string> = {
+    init: '初始化',
     draft: '草稿',
     published: '已发布',
     archived: '已归档'
@@ -272,9 +279,10 @@ export const getStatusText = (status: ArticleStatus): string => {
 
 export const getStatusVariant = (status: ArticleStatus): "default" | "secondary" | "destructive" | "outline" => {
   const variantMap: Record<ArticleStatus, "default" | "secondary" | "destructive" | "outline"> = {
-    draft: 'secondary',
-    published: 'default',
-    archived: 'outline'
+    init: 'outline',      // Gray outline for init
+    draft: 'secondary',   // Gray for draft
+    published: 'default', // Blue for published
+    archived: 'outline'   // Gray outline for archived
   }
   return variantMap[status]
 }
