@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
@@ -15,9 +15,15 @@ export default function GoogleCallbackPage() {
   const { _setUser, _setSession } = useAuth()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
+  const isProcessed = useRef(false)
 
   useEffect(() => {
     const handleCallback = async () => {
+      // Prevent duplicate processing
+      if (isProcessed.current) {
+        return
+      }
+      isProcessed.current = true
       try {
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search)
@@ -70,10 +76,6 @@ export default function GoogleCallbackPage() {
         sessionStorage.removeItem('oauth_redirect')
 
         setStatus('success')
-        toast({
-          title: t('auth.toast.loginSuccess'),
-          description: t('auth.toast.googleLoginSuccess'),
-        })
 
         // Redirect to home page or stored redirect
         const redirect = sessionStorage.getItem('oauth_redirect') || '/'

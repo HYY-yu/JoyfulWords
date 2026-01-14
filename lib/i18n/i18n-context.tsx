@@ -18,18 +18,16 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 const dictionaries = { zh, en };
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  // Initialize locale from localStorage immediately
-  const getInitialLocale = (): Locale => {
-    if (typeof window !== 'undefined') {
-      const savedLocale = localStorage.getItem('locale') as Locale;
-      if (savedLocale === 'zh' || savedLocale === 'en') {
-        return savedLocale;
-      }
-    }
-    return 'zh';
-  };
+  // Always start with default locale to avoid hydration mismatch
+  const [locale, setLocaleState] = useState<Locale>('zh');
 
-  const [locale, setLocaleState] = useState<Locale>(getInitialLocale);
+  // Sync with localStorage after mount (client-side only)
+  useEffect(() => {
+    const savedLocale = localStorage.getItem('locale') as Locale;
+    if (savedLocale === 'zh' || savedLocale === 'en') {
+      setLocaleState(savedLocale);
+    }
+  }, []);
 
   const setLocale = (newLocale: Locale) => {
     setLocaleState(newLocale);
