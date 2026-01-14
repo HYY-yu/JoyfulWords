@@ -313,6 +313,25 @@ export const zh = {
             statusDraft: "草稿",
             statusPublished: "已发布",
             statusArchived: "已归档",
+        },
+        articleDialogs: {
+            deleteConfirm: {
+                title: "确认删除",
+                confirmBtn: "删除文章",
+                cancelBtn: "取消",
+            },
+            publishManagement: {
+                title: "发布管理",
+                statusTitle: "Doing 中...",
+                statusDesc: "发布管理功能正在开发中，敬请期待",
+                confirmBtn: "我知道了",
+            },
+            translation: {
+                title: "多语言翻译",
+                statusTitle: "Doing 中...",
+                statusDesc: "多语言翻译功能正在开发中，敬请期待",
+                confirmBtn: "我知道了",
+            },
         }
     },
     imageGeneration: {

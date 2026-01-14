@@ -313,6 +313,25 @@ export const en = {
             statusDraft: "Draft",
             statusPublished: "Published",
             statusArchived: "Archived",
+        },
+        articleDialogs: {
+            deleteConfirm: {
+                title: "Confirm Delete",
+                confirmBtn: "Delete Article",
+                cancelBtn: "Cancel",
+            },
+            publishManagement: {
+                title: "Publish Management",
+                statusTitle: "Doing...",
+                statusDesc: "Publish management feature is under development, stay tuned",
+                confirmBtn: "Got it",
+            },
+            translation: {
+                title: "Translation",
+                statusTitle: "Doing...",
+                statusDesc: "Translation feature is under development, stay tuned",
+                confirmBtn: "Got it",
+            },
         }
     },
     imageGeneration: {

@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { Article, ArticleImage, ReferenceLink } from "./article-types"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface ContentPreviewDialogProps {
   article: Article | null
@@ -45,14 +46,6 @@ export function ContentPreviewDialog({ article, open, onOpenChange }: ContentPre
         </DialogHeader>
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Badge variant={article.status === 'published' ? 'default' : article.status === 'draft' ? 'secondary' : 'outline'}>
-                {article.status === 'published' ? '已发布' : article.status === 'draft' ? '草稿' : '已归档'}
-              </Badge>
-              <span>创建于 {article.createdAt}</span>
-              <span>•</span>
-              <span>修改于 {article.modifiedAt}</span>
-            </div>
 
             {article.tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
@@ -99,7 +92,7 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="text-xl">{article.title} - 图片库</DialogTitle>
+          <DialogTitle className="text-xl">{article.title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -191,23 +184,18 @@ interface LinksDialogProps {
 }
 
 export function LinksDialog({ article, open, onOpenChange }: LinksDialogProps) {
-  const { toast } = useToast()
-
   if (!article) return null
   if (article.referenceLinks.length === 0) return null
 
   const copyLink = (url: string) => {
     navigator.clipboard.writeText(url)
-    toast({
-      description: "链接已复制到剪贴板"
-    })
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="text-xl">{article.title} - 引用链接</DialogTitle>
+          <DialogTitle className="text-xl">{article.title}</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[60vh]">
           <div className="space-y-4">
@@ -262,32 +250,28 @@ interface DeleteConfirmDialogProps {
 }
 
 export function DeleteConfirmDialog({ article, open, onOpenChange, onConfirm }: DeleteConfirmDialogProps) {
+  const { t } = useTranslation()
+
   if (!article) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>确认删除</DialogTitle>
+          <DialogTitle>{t("contentWriting.articleDialogs.deleteConfirm.title")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            确定要删除文章《{article.title}》吗？此操作无法撤销。
-          </p>
           <div className="bg-muted p-3 rounded-md">
             <p className="text-sm font-medium">{article.title}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              创建于 {article.createdAt}
-            </p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
+            {t("contentWriting.articleDialogs.deleteConfirm.cancelBtn")}
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
             <Trash2 className="h-4 w-4 mr-2" />
-            删除文章
+            {t("contentWriting.articleDialogs.deleteConfirm.confirmBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -302,26 +286,28 @@ interface PublishManagementDialogProps {
 }
 
 export function PublishManagementDialog({ article, open, onOpenChange }: PublishManagementDialogProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>发布管理</DialogTitle>
+          <DialogTitle>{t("contentWriting.articleDialogs.publishManagement.title")}</DialogTitle>
         </DialogHeader>
         <div className="text-center space-y-4 py-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted">
             <UploadCloud className="w-8 h-8 text-muted-foreground" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Doing 中...</h3>
+            <h3 className="text-lg font-semibold">{t("contentWriting.articleDialogs.publishManagement.statusTitle")}</h3>
             <p className="text-sm text-muted-foreground">
-              发布管理功能正在开发中，敬请期待
+              {t("contentWriting.articleDialogs.publishManagement.statusDesc")}
             </p>
           </div>
         </div>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>
-            我知道了
+            {t("contentWriting.articleDialogs.publishManagement.confirmBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -336,26 +322,28 @@ interface TranslationDialogProps {
 }
 
 export function TranslationDialog({ article, open, onOpenChange }: TranslationDialogProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>多语言翻译</DialogTitle>
+          <DialogTitle>{t("contentWriting.articleDialogs.translation.title")}</DialogTitle>
         </DialogHeader>
         <div className="text-center space-y-4 py-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted">
             <Languages className="w-8 h-8 text-muted-foreground" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Doing 中...</h3>
+            <h3 className="text-lg font-semibold">{t("contentWriting.articleDialogs.translation.statusTitle")}</h3>
             <p className="text-sm text-muted-foreground">
-              多语言翻译功能正在开发中，敬请期待
+              {t("contentWriting.articleDialogs.translation.statusDesc")}
             </p>
           </div>
         </div>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)}>
-            我知道了
+            {t("contentWriting.articleDialogs.translation.confirmBtn")}
           </Button>
         </DialogFooter>
       </DialogContent>
