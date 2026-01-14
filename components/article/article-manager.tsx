@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useAuth } from "@/lib/auth/auth-context"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,7 @@ interface ArticleManagerProps {
 export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const { user } = useAuth()
   const router = useRouter()
   const [articles, setArticles] = useState<Article[]>(mockArticles)
   const [titleFilter, setTitleFilter] = useState("")
@@ -76,7 +78,10 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     // 方案1：保留 window.__editArticle (向后兼容)
     ;(window as any).__editArticle = article
 
-    // 方案2：新增 localStorage 存储
+    // 方案2：设置文章 ID（用于 React key）
+    ;(window as any).__editArticleId = article.id
+
+    // 方案3：新增 localStorage 存储（使用用户特定的 key）
     try {
       const draft: ArticleDraft = {
         article,
@@ -93,7 +98,9 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
           version: "v1.0.0"
         }
       }
-      localStorage.setItem('joyfulwords-article-draft', JSON.stringify(draft))
+      // 使用用户特定的 key
+      const draftKey = user ? `joyfulwords-article-draft-${user.id}` : 'joyfulwords-article-draft-guest'
+      localStorage.setItem(draftKey, JSON.stringify(draft))
     } catch (error) {
       console.error('Failed to save article to localStorage:', error)
     }
@@ -151,6 +158,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   const handleCreateNewArticle = () => {
     // Clear any stored edit article
     ;(window as any).__editArticle = null
+    ;(window as any).__editArticleId = null
 
     if (onNavigateToWriting) {
       onNavigateToWriting()

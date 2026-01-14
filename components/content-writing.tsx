@@ -11,6 +11,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 export function ContentWriting() {
   const { t } = useTranslation()
   const [editTrigger, setEditTrigger] = useState(0)
+  const [currentArticleId, setCurrentArticleId] = useState<string | null>(null)
 
   const tabs = [
     { id: "material-search", label: t("contentWriting.tabs.materialSearch"), icon: SearchIcon },
@@ -24,6 +25,21 @@ export function ContentWriting() {
   // Listen for edit navigation
   useEffect(() => {
     const handleEditNavigation = () => {
+      // 读取文章 ID（如果有）
+      const articleId = (window as any).__editArticleId
+      const editArticle = (window as any).__editArticle
+
+      // 只有同时有 __editArticleId 和 __editArticle 才是编辑模式
+      // 如果只有 __editArticleId 而没有 __editArticle，说明是切换 tab，保持原状态
+      // 如果都没有，说明是新建模式
+      if (articleId && editArticle) {
+        setCurrentArticleId(articleId)
+      } else if (!articleId && !editArticle) {
+        // 新建模式，清除 articleId
+        setCurrentArticleId(null)
+      }
+      // 如果只有 articleId 而没有 editArticle，保持 currentArticleId 不变（切换 tab）
+
       setEditTrigger(prev => prev + 1)
     }
 
@@ -37,6 +53,19 @@ export function ContentWriting() {
 
   const handleNavigateToWriting = () => {
     setActiveTab("article-writing")
+    // 读取文章 ID（如果有）
+    const articleId = (window as any).__editArticleId
+    const editArticle = (window as any).__editArticle
+
+    // 只有同时有 __editArticleId 和 __editArticle 才是编辑模式
+    if (articleId && editArticle) {
+      setCurrentArticleId(articleId)
+    } else if (!articleId && !editArticle) {
+      // 新建模式，清除 articleId
+      setCurrentArticleId(null)
+    }
+    // 如果只有 articleId 而没有 editArticle，保持 currentArticleId 不变（切换 tab）
+
     setEditTrigger(prev => prev + 1)
   }
 
@@ -94,7 +123,7 @@ export function ContentWriting() {
         ) : activeTab === "competitor-tracking" ? (
           <CompetitorTracking />
         ) : activeTab === "article-writing" ? (
-          <ArticleWriting key={editTrigger} />
+          <ArticleWriting key={currentArticleId || 'new'} articleId={currentArticleId} />
         ) : activeTab === "article-manager" ? (
           <ArticleManager onNavigateToWriting={handleNavigateToWriting} />
         ) : (

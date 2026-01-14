@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/lib/auth/auth-context"
 import { TiptapEditor } from "../tiptap-editor"
 import { ArticleEditorHeader } from "./article-editor-header"
 import { ArticleSaveDialog } from "./article-save-dialog"
@@ -18,6 +19,10 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Article, ArticleDraft } from "./article-types"
 
+interface ArticleWritingProps {
+  articleId?: string | null
+}
+
 // Simple debounce function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T & { cancel?: () => void } {
   let timeout: NodeJS.Timeout | null = null
@@ -31,9 +36,10 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T &
   return debounced as T & { cancel?: () => void }
 }
 
-export function ArticleWriting() {
+export function ArticleWriting({ articleId }: ArticleWritingProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const { user } = useAuth()
 
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -42,6 +48,16 @@ export function ArticleWriting() {
   const [articleMarkdown, setArticleMarkdown] = useState("")
   const [articleHTML, setArticleHTML] = useState("")
   const [cleanConfirmOpen, setCleanConfirmOpen] = useState(false)
+
+  // Generate user-specific localStorage key
+  const getDraftKey = useCallback(() => {
+    return user ? `joyfulwords-article-draft-${user.id}` : 'joyfulwords-article-draft-guest'
+  }, [user])
+
+  // Debug: Log when component mounts with new articleId
+  useEffect(() => {
+    console.log('[ArticleWriting] Mounted with articleId:', articleId)
+  }, [articleId])
 
   // Debounced save to localStorage
   const debouncedSave = useMemo(
@@ -57,7 +73,7 @@ export function ArticleWriting() {
           })
           return
         }
-        localStorage.setItem('joyfulwords-article-draft', json)
+        localStorage.setItem(getDraftKey(), json)
       } catch (error) {
         console.error('Failed to save draft:', error)
         toast({
@@ -67,7 +83,7 @@ export function ArticleWriting() {
         })
       }
     }, 500),
-    [toast, t]
+    [toast, t, getDraftKey]
   )
 
   // Build draft object from current state
@@ -93,24 +109,25 @@ export function ArticleWriting() {
 
   // Load article from window state on mount (runs every time due to key prop)
   useEffect(() => {
-    // 1. 优先检查 Edit 跳转
+    // 1. 优先检查 Edit 跳转（第一次编辑时）
     const editArticle = (window as any).__editArticle
 
     if (editArticle) {
-      console.log("Loading edit article:", editArticle)
+      console.log("Loading edit article from window:", editArticle)
       setCurrentArticle(editArticle)
       setIsEditMode(true)
       setArticleContent(editArticle.content)
       setArticleHTML(editArticle.content)
       setArticleMarkdown("")
 
-      // Clear after loading
+      // Clear edit article data, but keep editArticleId for tab switching
       ;(window as any).__editArticle = null
+      // 注意：不清除 window.__editArticleId，这样切换 tab 时能保持状态
       return
     }
 
-    // 2. 检查 localStorage 草稿
-    const savedDraft = localStorage.getItem('joyfulwords-article-draft')
+    // 2. 从 localStorage 加载（编辑模式切换 tab，或新建模式的草稿）
+    const savedDraft = localStorage.getItem(getDraftKey())
     if (savedDraft) {
       try {
         const draft: ArticleDraft = JSON.parse(savedDraft)
@@ -121,21 +138,43 @@ export function ArticleWriting() {
           return
         }
 
-        // 恢复草稿
-        setCurrentArticle(draft.article)
-        setIsEditMode(draft.isEditMode)
-        setArticleContent(draft.content.html)
-        setArticleHTML(draft.content.html)
-        setArticleMarkdown(draft.content.markdown)
+        // 编辑模式：检查 draft 中的文章 ID 是否匹配
+        // 新文章模式：直接加载草稿
+        if (articleId) {
+          // 编辑模式：只有 draft 中的文章 ID 匹配时才加载
+          if (draft.article && draft.article.id === articleId) {
+            console.log("Loading edit article from localStorage:", draft.article)
+            setCurrentArticle(draft.article)
+            setIsEditMode(true)
+            setArticleContent(draft.content.html)
+            setArticleHTML(draft.content.html)
+            setArticleMarkdown(draft.content.markdown)
+          } else {
+            console.log("Draft article ID mismatch, clearing state")
+            // ID 不匹配，说明是切换到了另一篇文章，清除状态
+            setCurrentArticle(null)
+            setIsEditMode(false)
+            setArticleContent("")
+            setArticleHTML("")
+            setArticleMarkdown("")
+          }
+        } else {
+          // 新文章模式：恢复草稿
+          setCurrentArticle(draft.article)
+          setIsEditMode(draft.isEditMode)
+          setArticleContent(draft.content.html)
+          setArticleHTML(draft.content.html)
+          setArticleMarkdown(draft.content.markdown)
 
-        toast({
-          description: t("contentWriting.editorHeader.draftRestored")
-        })
+          toast({
+            description: t("contentWriting.editorHeader.draftRestored")
+          })
+        }
       } catch (error) {
         console.error('Failed to load draft:', error)
       }
     }
-  }, [])
+  }, [getDraftKey, toast, t, articleId])
 
   const handleEditorChange = (_content: string, html: string, markdown: string) => {
     setArticleContent(html)  // 改为保存 HTML，这样图片就不会丢失
@@ -223,8 +262,8 @@ export function ArticleWriting() {
     setArticleHTML("")
     setArticleMarkdown("")
 
-    // 清除 localStorage
-    localStorage.removeItem('joyfulwords-article-draft')
+    // 清除 localStorage (使用用户特定的 key)
+    localStorage.removeItem(getDraftKey())
 
     // 关闭对话框
     setCleanConfirmOpen(false)
