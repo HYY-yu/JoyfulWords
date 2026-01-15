@@ -1,5 +1,7 @@
 import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
+import Highlight from "@tiptap/extension-highlight";
+import TextAlign from "@tiptap/extension-text-align";
 import { mergeAttributes } from "@tiptap/react";
 
 // Create an Underline extension that supports markdown serialization
@@ -138,4 +140,16 @@ export const CustomImage = Image.extend({
       ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
     ]
   },
+});
+
+// Highlight extension with multi-color support
+export const CustomHighlight = Highlight.configure({
+  multicolor: true,
+});
+
+// TextAlignment extension for paragraphs and headings
+export const CustomTextAlign = TextAlign.configure({
+  types: ['heading', 'paragraph'],
+  alignments: ['left', 'center', 'right', 'justify'],
+  defaultAlignment: 'left',
 });

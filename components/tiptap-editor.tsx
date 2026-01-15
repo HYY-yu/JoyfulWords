@@ -7,8 +7,9 @@ import Link from "@tiptap/extension-link";
 import { Markdown } from "@tiptap/markdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
-import { CustomImage } from "@/lib/tiptap-extensions";
+import { CustomImage, CustomHighlight, CustomTextAlign } from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/image-menu";
+import { LinkMenu } from "./ui/link-menu";
 import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
@@ -52,7 +53,7 @@ export function TiptapEditor({
       underline: false,  // 禁用 StarterKit 中的 underline（如果存在）
     }),
     Link.configure({
-      openOnClick: false,
+      openOnClick: false,  // Prevent direct opening, use BubbleMenu instead
       HTMLAttributes: {
         class: "text-blue-600 underline cursor-pointer",
       },
@@ -65,6 +66,8 @@ export function TiptapEditor({
         class: "max-w-full h-auto rounded-lg",
       },
     }),
+    CustomHighlight,  // Text highlighting with colors
+    CustomTextAlign,  // Text alignment (left, center, right, justify)
     // ✅ 启用 Markdown 扩展
     Markdown.configure({
       html: false,              // 不允许在 Markdown 中混合 HTML
@@ -80,7 +83,7 @@ export function TiptapEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-4",
+        class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-6 prose-headings:font-bold prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300",
         placeholder,
       },
     },
@@ -342,6 +345,7 @@ export function TiptapEditor({
       />
       <EditorContent editor={editor} />
       {editor && <ImageMenu editor={editor} />}
+      {editor && <LinkMenu editor={editor} />}
     </div>
   );
 }

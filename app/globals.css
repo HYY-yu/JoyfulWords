@@ -184,3 +184,135 @@
   outline-color: oklch(0.55 0.24 264);
 }
 
+/* ========================================
+   Tiptap Editor Enhanced Content Styles
+   ======================================== */
+
+/* Base editor styling */
+.ProseMirror {
+  @apply text-foreground antialiased leading-relaxed;
+}
+
+/* Paragraph styling */
+.ProseMirror p {
+  @apply mb-4 leading-7;
+}
+
+/* Heading styling */
+.ProseMirror h1 {
+  @apply text-3xl font-bold mt-8 mb-4 text-foreground;
+}
+
+.ProseMirror h2 {
+  @apply text-2xl font-bold mt-6 mb-3 text-foreground;
+}
+
+.ProseMirror h3 {
+  @apply text-xl font-bold mt-4 mb-2 text-foreground;
+}
+
+/* List styling */
+.ProseMirror ul {
+  @apply list-disc pl-6 mb-4 space-y-2;
+}
+
+.ProseMirror ol {
+  @apply list-decimal pl-6 mb-4 space-y-2;
+}
+
+/* Blockquote styling */
+.ProseMirror blockquote {
+  @apply border-l-4 border-primary pl-4 italic text-muted-foreground my-4;
+}
+
+/* ========================================
+   Code Block Styles (优化)
+   ======================================== */
+
+/* 代码块（pre > code）- 灰色背景 + 边框 + 圆角 */
+.ProseMirror pre {
+  @apply bg-muted-foreground/10 border border-border p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.ProseMirror pre code {
+  @apply bg-transparent p-0 rounded-none;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* 内嵌代码（行内代码）- 灰色背景 + 边框 */
+.ProseMirror code:not(pre code) {
+  @apply bg-muted border border-border px-1.5 py-0.5 rounded text-sm font-mono;
+  @apply text-foreground;
+  display: inline-block;
+  line-height: 1.5;
+}
+
+/* 高亮文本样式 */
+.ProseMirror mark {
+  @apply rounded px-1;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+/* 链接样式（经典蓝色下划线） */
+.ProseMirror a {
+  @apply text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300;
+  @apply transition-colors cursor-pointer;
+  text-decoration-style: solid;
+  text-underline-offset: 2px;
+}
+
+/* 文本对齐 */
+.ProseMirror [style*="text-align: left"] {
+  text-align: left;
+}
+
+.ProseMirror [style*="text-align: center"] {
+  text-align: center;
+}
+
+.ProseMirror [style*="text-align: right"] {
+  text-align: right;
+}
+
+.ProseMirror [style*="text-align: justify"] {
+  text-align: justify;
+}
+
+/* 水平线 - 上下都有 margin */
+.ProseMirror hr {
+  @apply my-4 border-t border-border;
+}
+
+/* Dark mode specific adjustments */
+.dark .ProseMirror {
+  @apply text-foreground;
+}
+
+.dark .ProseMirror h1,
+.dark .ProseMirror h2,
+.dark .ProseMirror h3 {
+  @apply text-foreground;
+}
+
+.dark .ProseMirror blockquote {
+  @apply border-primary/60 text-muted-foreground;
+}
+
+.dark .ProseMirror code {
+  @apply bg-muted/50 text-foreground;
+}
+
+.dark .ProseMirror pre code {
+  @apply bg-transparent;
+}
+
+.dark .ProseMirror pre {
+  @apply bg-muted/30 border-border;
+}
+
+/* 高亮文本深色模式 */
+.dark .ProseMirror mark {
+  @apply opacity-90;
+}
+

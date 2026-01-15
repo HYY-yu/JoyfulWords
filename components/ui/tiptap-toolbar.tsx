@@ -6,6 +6,7 @@ import {
   UnderlineIcon,
   StrikethroughIcon,
   Code2Icon,
+  TerminalIcon,
   Heading1Icon,
   Heading2Icon,
   Heading3Icon,
@@ -22,6 +23,8 @@ import {
 import { Editor } from "@tiptap/react";
 import { useCallback } from "react";
 import { ToolbarButton } from "./tiptap-toolbar-button";
+import { HighlightButtons } from "./highlight-buttons";
+import { TextAlignButtons } from "./text-align-buttons";
 
 interface TiptapToolbarProps {
   editor: Editor | null;
@@ -30,24 +33,6 @@ interface TiptapToolbarProps {
 }
 
 export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false }: TiptapToolbarProps) {
-  const setLink = useCallback(() => {
-    if (!editor) return;
-
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
-
-    if (url === null) {
-      return;
-    }
-
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  }, [editor]);
-
   const setImage = useCallback(() => {
     console.log("setImage 函数被调用");
 
@@ -103,7 +88,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         tooltip="Bold"
         shortcut="⌘B"
         isActive={editor.isActive('bold')}
-        disabled={!editor.can().chain().focus().toggleBold().run()}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
         <BoldIcon className="h-4 w-4" />
@@ -113,7 +97,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         tooltip="Italic"
         shortcut="⌘I"
         isActive={editor.isActive('italic')}
-        disabled={!editor.can().chain().focus().toggleItalic().run()}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
         <ItalicIcon className="h-4 w-4" />
@@ -123,7 +106,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         tooltip="Underline"
         shortcut="⌘U"
         isActive={editor.isActive('underline')}
-        disabled={!editor.can().chain().focus().toggleUnderline().run()}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
       >
         <UnderlineIcon className="h-4 w-4" />
@@ -133,7 +115,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         tooltip="Strikethrough"
         shortcut="⌘S"
         isActive={editor.isActive('strike')}
-        disabled={!editor.can().chain().focus().toggleStrike().run()}
         onClick={() => editor.chain().focus().toggleStrike().run()}
       >
         <StrikethroughIcon className="h-4 w-4" />
@@ -142,11 +123,20 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
       <ToolbarButton
         tooltip="Code"
         isActive={editor.isActive('code')}
-        disabled={!editor.can().chain().focus().toggleCode().run()}
         onClick={() => editor.chain().focus().toggleCode().run()}
       >
         <Code2Icon className="h-4 w-4" />
       </ToolbarButton>
+
+      <div className="w-px h-8 bg-border mx-1" />
+
+      {/* Highlight */}
+      <HighlightButtons editor={editor} />
+
+      <div className="w-px h-8 bg-border mx-1" />
+
+      {/* Text Alignment */}
+      <TextAlignButtons editor={editor} />
 
       <div className="w-px h-8 bg-border mx-1" />
 
@@ -216,6 +206,15 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         <QuoteIcon className="h-4 w-4" />
       </ToolbarButton>
 
+      {/* Code Block */}
+      <ToolbarButton
+        tooltip="Code Block"
+        isActive={editor.isActive('codeBlock')}
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+      >
+        <TerminalIcon className="h-4 w-4" />
+      </ToolbarButton>
+
       {/* Horizontal Rule */}
       <ToolbarButton
         tooltip="Horizontal Rule"
@@ -226,12 +225,17 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
 
       <div className="w-px h-8 bg-border mx-1" />
 
-      {/* Link & Image */}
+      {/* Link */}
       <ToolbarButton
         tooltip="Link"
         shortcut="⌘K"
-        isActive={editor.isActive('link')}
-        onClick={setLink}
+        onClick={() => {
+          if (!editor) return;
+          const url = window.prompt('输入链接 URL:');
+          if (url) {
+            editor.chain().focus().setLink({ href: url }).run();
+          }
+        }}
       >
         <LinkIcon className="h-4 w-4" />
       </ToolbarButton>
