@@ -287,6 +287,10 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     // 清除 localStorage (使用用户特定的 key)
     localStorage.removeItem(getDraftKey())
 
+    // 清理当前文章
+    setCurrentArticle(null)
+    setIsEditMode(false)
+    setSaveDialogOpen(false)
     // 关闭对话框
     setCleanConfirmOpen(false)
 

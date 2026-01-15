@@ -116,28 +116,28 @@ export function ArticleEditorHeader({
           )}
 
           {/* Export Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Tooltip>
+          <Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <DownloadIcon className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <span>{t("contentWriting.editorHeader.exportTooltip")}</span>
-                </TooltipContent>
-              </Tooltip>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => onExport?.("markdown")}>
-                {t("contentWriting.writing.exportMarkdown")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onExport?.("html")}>
-                {t("contentWriting.writing.exportHtml")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => onExport?.("markdown")}>
+                  {t("contentWriting.writing.exportMarkdown")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.("html")}>
+                  {t("contentWriting.writing.exportHtml")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <TooltipContent>
+              <span>{t("contentWriting.editorHeader.exportTooltip")}</span>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
     )
@@ -211,28 +211,28 @@ export function ArticleEditorHeader({
           </Button>
 
           {/* Export Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Tooltip>
+          <Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <DownloadIcon className="w-4 h-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  <span>{t("contentWriting.editorHeader.exportTooltip")}</span>
-                </TooltipContent>
-              </Tooltip>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => onExport?.("markdown")}>
-                {t("contentWriting.writing.exportMarkdown")}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onExport?.("html")}>
-                {t("contentWriting.writing.exportHtml")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => onExport?.("markdown")}>
+                  {t("contentWriting.writing.exportMarkdown")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onExport?.("html")}>
+                  {t("contentWriting.writing.exportHtml")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <TooltipContent>
+              <span>{t("contentWriting.editorHeader.exportTooltip")}</span>
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 

@@ -5,7 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import { Markdown } from "@tiptap/markdown";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
 import { CustomImage } from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/image-menu";
@@ -32,48 +32,43 @@ export function TiptapEditor({
   // 确定初始内容：优先使用 Markdown，其次使用 HTML
   const initialContent = markdown || content;
 
+  // 使用 useMemo 来稳定扩展配置，避免重新创建
+  const extensions = useMemo(() => [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3],
+      },
+      // 明确排除可能冲突的扩展（如果 StarterKit 包含它们）
+      link: false,  // 禁用 StarterKit 中的 link（如果存在）
+      underline: false,  // 禁用 StarterKit 中的 underline（如果存在）
+    }),
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: "text-blue-600 underline cursor-pointer",
+      },
+    }),
+    Underline,
+    CustomImage.configure({
+      inline: false,
+      allowBase64: true,
+      HTMLAttributes: {
+        class: "max-w-full h-auto rounded-lg",
+      },
+    }),
+    // ✅ 启用 Markdown 扩展
+    Markdown.configure({
+      html: false,              // 不允许在 Markdown 中混合 HTML
+      transformPastedText: true, // 自动转换粘贴的文本
+      linkify: true,            // 自动识别链接
+    }),
+  ], []);
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-        bold: true,
-        italic: true,
-        strike: true,
-        code: true,
-        codeBlock: true,
-        blockquote: true,
-        bulletList: true,
-        orderedList: true,
-        listItem: true,
-        hardBreak: true,
-        horizontalRule: true,
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: "text-blue-600 underline cursor-pointer",
-        },
-      }),
-      CustomImage.configure({
-        inline: false,
-        allowBase64: true,
-        HTMLAttributes: {
-          class: "max-w-full h-auto rounded-lg",
-        },
-      }),
-      // ✅ 启用 Markdown 扩展
-      Markdown.configure({
-        html: false,              // 不允许在 Markdown 中混合 HTML
-        transformPastedText: true, // 自动转换粘贴的文本
-        linkify: true,            // 自动识别链接
-      }),
-    ],
+    extensions,
     content: initialContent,
     editable,
-    immediatelyRender: true,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-4",
