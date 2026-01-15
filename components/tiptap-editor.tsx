@@ -9,6 +9,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
 import { CustomImage } from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/image-menu";
+import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
+import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n/i18n-context";
 
 
 interface TiptapEditorProps {
@@ -28,6 +31,12 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // 添加国际化支持
+  const { t, locale } = useTranslation();
+
+  // 添加toast提示
+  const { toast } = useToast();
 
   // 确定初始内容：优先使用 Markdown，其次使用 HTML
   const initialContent = markdown || content;
@@ -147,46 +156,34 @@ export function TiptapEditor({
     }
   }, [editor]);
 
-  // Handle image upload
+  // Handle image upload using presigned URL
   const handleImageUpload = useCallback(async (file: File): Promise<string> => {
-    console.log("开始上传图片到 R2，文件：", file.name, file.size);
+    console.log("开始上传图片到 R2，文件：", file.name, file.size)
 
     try {
-      // 创建 FormData
-      const formData = new FormData();
-      formData.append('file', file);
+      // 使用新的安全上传方式
+      const url = await uploadImageToR2(file)
 
-      // 调用上传 API
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || '上传失败');
-      }
-
-      const data = await response.json();
-      console.log("图片上传成功，返回数据：", data);
-
-      if (data.success && data.url) {
-        return data.url;
-      } else {
-        throw new Error('上传失败：未返回图片 URL');
-      }
+      console.log("图片上传成功，URL：", url)
+      return url
     } catch (error) {
-      console.error("图片上传失败：", error);
-      throw error;
+      console.error("图片上传失败：", error)
+
+      // 重新抛出错误,让调用者处理
+      throw error
     }
-  }, []);
+  }, [])
 
   const insertImage = useCallback(() => {
     console.log("insertImage 函数被调用");
 
     if (!editor) {
       console.error("编辑器未初始化");
-      alert("编辑器未初始化，请稍后再试");
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.writing.uploadFailed"),
+        description: "编辑器未初始化，请稍后再试",
+      });
       return;
     }
 
@@ -206,8 +203,25 @@ export function TiptapEditor({
       console.log("选择的图片文件：", file.name, file.size);
 
       try {
+        // 验证文件
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+          toast({
+            variant: "destructive",
+            title: t("contentWriting.writing.uploadFailed"),
+            description: t(`contentWriting.writing.${validation.error}`),
+          });
+          return;
+        }
+
         // 设置上传状态为 true
         setIsUploadingImage(true);
+
+        // 显示上传中提示
+        toast({
+          title: t("contentWriting.writing.uploading"),
+          description: "正在上传图片...",
+        });
 
         console.log("开始上传图片...");
 
@@ -263,6 +277,12 @@ export function TiptapEditor({
         // 强制刷新编辑器视图
         editor.commands.focus();
 
+        // 显示成功提示
+        toast({
+          title: t("contentWriting.writing.uploadSuccess"),
+          description: "图片已插入到编辑器",
+        });
+
         // 验证图片是否成功插入（仅用于调试，不显示错误提示）
         setTimeout(() => {
           const html = editor.getHTML();
@@ -291,7 +311,18 @@ export function TiptapEditor({
 
       } catch (error) {
         console.error("图片上传失败：", error);
-        alert(`图片上传失败：${error instanceof Error ? error.message : '未知错误'}`);
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+
+        // 翻译错误消息
+        const displayError = errorMessage.startsWith('contentWriting.')
+          ? t(errorMessage)
+          : `${t("contentWriting.writing.uploadError").replace('{error}', errorMessage)}`;
+
+        toast({
+          variant: "destructive",
+          title: t("contentWriting.writing.uploadFailed"),
+          description: displayError,
+        });
       } finally {
         // 重置上传状态
         setIsUploadingImage(false);
@@ -300,7 +331,7 @@ export function TiptapEditor({
 
     console.log("准备打开文件选择器");
     input.click();
-  }, [editor, handleImageUpload, isUploadingImage]);
+  }, [editor, handleImageUpload, isUploadingImage, toast, t]);
 
   return (
     <div className="border rounded-lg overflow-hidden bg-background">

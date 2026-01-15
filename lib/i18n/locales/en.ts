@@ -212,6 +212,15 @@ export const en = {
             exportMarkdown: "Export as Markdown",
             exportHtml: "Export as HTML",
             editorPlaceholder: "Write your article content here...",
+            // Image upload related
+            uploading: "Uploading...",
+            uploadSuccess: "Image uploaded successfully",
+            uploadFailed: "Image upload failed",
+            fileTooLarge: "Image size cannot exceed 5MB",
+            invalidFileType: "Please select an image file",
+            uploadError: "Upload failed: {error}",
+            presignedUrlFailed: "Failed to get upload URL",
+            fileUploadFailed: "File upload failed",
         },
         // New: AI Help Dialog
         aiHelp: {

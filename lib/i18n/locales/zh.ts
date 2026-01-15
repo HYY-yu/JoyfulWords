@@ -212,6 +212,15 @@ export const zh = {
             exportMarkdown: "导出为 Markdown",
             exportHtml: "导出为 HTML",
             editorPlaceholder: "在此处编写您的文章内容...",
+            // 图片上传相关
+            uploading: "上传中...",
+            uploadSuccess: "图片上传成功",
+            uploadFailed: "图片上传失败",
+            fileTooLarge: "图片大小不能超过 5MB",
+            invalidFileType: "请选择图片文件",
+            uploadError: "上传失败: {error}",
+            presignedUrlFailed: "获取上传地址失败",
+            fileUploadFailed: "文件上传失败",
         },
         // New: AI Help Dialog
         aiHelp: {
