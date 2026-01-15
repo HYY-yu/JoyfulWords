@@ -72,27 +72,18 @@ pnpm lint
    - Next.js plugin for type checking
    - Build ignores TypeScript errors (`ignoreBuildErrors: true` in next.config.mjs)
 
-### Tiptap Editor Implementation
+### Tiptap Rich Text Editor
 
-The application uses Tiptap 2.x as the rich text editor for content creation:
+The application uses **Tiptap 2.x** as the rich text editor for content creation (article-writing, etc.).
 
-1. **Editor Features**:
-   - Standard formatting (bold, italic, underline, strikethrough)
-   - Headings (H1-H6) and paragraph styles
-   - Lists (ordered and unordered)
-   - Block quotes and code blocks
-   - Links and images (via extensions)
+**Key Files:**
+- Component: `/components/tiptap-editor.tsx`
+- Extensions: `/lib/tiptap-extensions.ts`
+- State utilities: `/lib/editor-state.ts`
+- Format utils: `/lib/tiptap-utils.ts`
 
-2. **Custom Extensions**:
-   - Located in `/lib/tiptap-extensions.ts`
-   - Tailored styling for Chinese typography
-   - Custom toolbar integration with Shadcn/ui components
-
-3. **Integration**:
-   - Main component: `/components/tiptap-editor.tsx`
-   - Used primarily in article-writing and content creation tools
-   - Styled with Tailwind CSS variables for dark mode support
-   - Integrated with React Hook Form for form state management
+**📚 Detailed Documentation:** For comprehensive information about Tiptap implementation, see:
+- `/docs/tiptap/editor_features.md` - Feature design, data flow, best practices, and implementation details
 
 ## Project Structure
 
@@ -116,8 +107,9 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
   /auth                 # Auth context and utilities
   /i18n                 # Internationalization
     /locales            # Translation files (zh.ts, en.ts)
-  /supabase             # Supabase client configuration
   tiptap-extensions.ts  # Tiptap custom extensions
+  editor-state.ts       # Editor state management hooks
+  tiptap-utils.ts       # Format conversion utilities (Markdown ↔ HTML)
   utils.ts              # Utility functions (cn, etc.)
 
 /hooks                  # Custom React hooks
@@ -154,8 +146,10 @@ The application uses Tiptap 2.x as the rich text editor for content creation:
 - Leverage Shadcn/ui form components
 
 ### Rich Text Editing
-- Use the Tiptap editor component located in `/components/tiptap-editor.tsx`
-- When extending Tiptap functionality, add new extensions to `/lib/tiptap-extensions.ts`
+- Use the Tiptap editor component: `/components/tiptap-editor.tsx`
+- Add new extensions to: `/lib/tiptap-extensions.ts`
+- For format conversions (Markdown ↔ HTML), use utilities in `/lib/tiptap-utils.ts`
+- **See `/docs/tiptap/editor_features.md` for detailed implementation guide**
 
 ### Internationalization
 - Add translations to both `/lib/i18n/locales/en.ts` and `/lib/i18n/locales/zh.ts`

@@ -18,6 +18,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { Article, ArticleDraft } from "./article-types"
+import { useEditorState } from "@/lib/editor-state"
+import { normalizeContentToHTML, detectContentFormat } from "@/lib/tiptap-utils"
 
 interface ArticleWritingProps {
   articleId?: string | null
@@ -44,10 +46,10 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null)
   const [isEditMode, setIsEditMode] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [articleContent, setArticleContent] = useState("")
-  const [articleMarkdown, setArticleMarkdown] = useState("")
-  const [articleHTML, setArticleHTML] = useState("")
   const [cleanConfirmOpen, setCleanConfirmOpen] = useState(false)
+
+  // ✅ 使用统一状态管理（替换 articleContent, articleHTML, articleMarkdown）
+  const editorState = useEditorState()
 
   // Generate user-specific localStorage key
   const getDraftKey = useCallback(() => {
@@ -88,37 +90,47 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
 
   // Build draft object from current state
   const buildDraft = useCallback((): ArticleDraft => {
-    const text = articleContent.replace(/<[^>]*>/g, "")
+    const { content, metadata } = editorState
 
     return {
       article: currentArticle,
       isEditMode,
       lastSaved: new Date().toISOString(),
       content: {
-        html: articleContent,
-        markdown: articleMarkdown,
-        text
+        html: content.html,
+        markdown: content.markdown || '',
+        text: content.text
       },
       metadata: {
-        wordCount: text.length,
-        hasUnsavedChanges: true,
+        wordCount: metadata.wordCount,
+        hasUnsavedChanges: metadata.isDirty,
         version: "v1.0.0"
       }
     }
-  }, [currentArticle, isEditMode, articleContent, articleMarkdown])
+  }, [editorState, currentArticle, isEditMode])
 
   // Load article from window state on mount (runs every time due to key prop)
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     // 1. 优先检查 Edit 跳转（第一次编辑时）
     const editArticle = (window as any).__editArticle
 
     if (editArticle) {
-      console.log("Loading edit article from window:", editArticle)
+      console.log('[ArticleWriting] Loading edit article from window:', editArticle)
+
+      // ✅ 检测内容格式并转换为 HTML
+      const format = detectContentFormat(editArticle.content)
+      const htmlContent = normalizeContentToHTML(editArticle.content, format)
+
+      // ✅ 使用统一状态管理
+      editorState.setContent({
+        html: htmlContent,
+        markdown: format === 'markdown' ? editArticle.content : null,
+        text: editArticle.content.replace(/<[^>]*>/g, "")
+      })
+
       setCurrentArticle(editArticle)
       setIsEditMode(true)
-      setArticleContent(editArticle.content)
-      setArticleHTML(editArticle.content)
-      setArticleMarkdown("")
 
       // Clear edit article data, but keep editArticleId for tab switching
       ;(window as any).__editArticle = null
@@ -143,43 +155,49 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         if (articleId) {
           // 编辑模式：只有 draft 中的文章 ID 匹配时才加载
           if (draft.article && draft.article.id === articleId) {
-            console.log("Loading edit article from localStorage:", draft.article)
+            console.log('[ArticleWriting] Loading edit article from localStorage:', draft.article)
+            editorState.setContent({
+              html: draft.content.html,
+              markdown: draft.content.markdown || null,
+              text: draft.content.text
+            })
             setCurrentArticle(draft.article)
             setIsEditMode(true)
-            setArticleContent(draft.content.html)
-            setArticleHTML(draft.content.html)
-            setArticleMarkdown(draft.content.markdown)
           } else {
-            console.log("Draft article ID mismatch, clearing state")
+            console.log('[ArticleWriting] Draft article ID mismatch, clearing state')
             // ID 不匹配，说明是切换到了另一篇文章，清除状态
+            editorState.reset()
             setCurrentArticle(null)
             setIsEditMode(false)
-            setArticleContent("")
-            setArticleHTML("")
-            setArticleMarkdown("")
           }
         } else {
           // 新文章模式：恢复草稿
+          editorState.setContent({
+            html: draft.content.html,
+            markdown: draft.content.markdown || null,
+            text: draft.content.text
+          })
           setCurrentArticle(draft.article)
           setIsEditMode(draft.isEditMode)
-          setArticleContent(draft.content.html)
-          setArticleHTML(draft.content.html)
-          setArticleMarkdown(draft.content.markdown)
 
           toast({
             description: t("contentWriting.editorHeader.draftRestored")
           })
         }
       } catch (error) {
-        console.error('Failed to load draft:', error)
+        console.error('[ArticleWriting] Failed to load draft:', error)
       }
     }
-  }, [getDraftKey, toast, t, articleId])
+  }, [getDraftKey, toast, t, articleId, editorState])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
-  const handleEditorChange = (_content: string, html: string, markdown: string) => {
-    setArticleContent(html)  // 改为保存 HTML，这样图片就不会丢失
-    setArticleHTML(html)
-    setArticleMarkdown(markdown)
+  const handleEditorChange = useCallback((_content: string, html: string, markdown: string) => {
+    // ✅ 使用统一状态管理
+    editorState.setContent({
+      html,
+      markdown: markdown || null,
+      text: _content
+    })
 
     // TODO: 实时保存到后端 API（EditMode）
     // API: PUT /api/articles/:id/draft
@@ -190,11 +208,15 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     // 3. 返回 draftId 用于后续更新
     // 4. 失败时静默重试3次
     // 5. 显示"自动保存中..."状态指示
-  }
+  }, [editorState])
 
-  const handleExport = (format: "markdown" | "html") => {
+  const handleExport = useCallback((format: "markdown" | "html") => {
+    const { content } = editorState
+
     if (format === "markdown") {
-      const blob = new Blob([articleMarkdown || articleContent], { type: "text/markdown" })
+      // ✅ 优先使用 Markdown，回退到 HTML
+      const exportContent = content.markdown || content.html
+      const blob = new Blob([exportContent], { type: "text/markdown" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
@@ -220,7 +242,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   </style>
 </head>
 <body>
-  ${articleHTML || articleContent}
+  ${content.html}
 </body>
 </html>`
       const blob = new Blob([htmlContent], { type: "text/html" })
@@ -231,7 +253,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       a.click()
       URL.revokeObjectURL(url)
     }
-  }
+  }, [editorState])
 
   const handleSaveArticle = (articleData: { title: string; category?: string; tags: string[] }) => {
     // TODO: Implement save logic
@@ -241,8 +263,11 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   }
 
   // Auto-save to localStorage when content changes
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-    if (articleContent || articleMarkdown) {
+    const { content } = editorState
+
+    if (content.html || content.markdown) {
       const draft = buildDraft()
       debouncedSave(draft)
     }
@@ -251,16 +276,13 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     return () => {
       debouncedSave.cancel?.()
     }
-  }, [articleContent, articleMarkdown, buildDraft, debouncedSave])
+  }, [editorState.content.html, editorState.content.markdown, buildDraft, debouncedSave])
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Clean confirm handler
-  const handleCleanConfirm = () => {
-    // 清空所有状态
-    setCurrentArticle(null)
-    setIsEditMode(false)
-    setArticleContent("")
-    setArticleHTML("")
-    setArticleMarkdown("")
+  const handleCleanConfirm = useCallback(() => {
+    // ✅ 使用统一状态管理重置编辑器
+    editorState.reset()
 
     // 清除 localStorage (使用用户特定的 key)
     localStorage.removeItem(getDraftKey())
@@ -271,7 +293,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     toast({
       description: t("contentWriting.editorHeader.cleanSuccess")
     })
-  }
+  }, [editorState, getDraftKey, toast, t])
 
   return (
     <div className="flex flex-col h-full gap-6">
@@ -282,7 +304,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
           <ArticleEditorHeader
             article={currentArticle}
             mode={isEditMode ? "edit" : "create"}
-            content={articleContent}
+            content={editorState.content.html}
             onSaveAsNew={() => setSaveDialogOpen(true)}
             onExport={handleExport}
             onClean={() => setCleanConfirmOpen(true)}
@@ -292,7 +314,8 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         {/* Tiptap Editor */}
         <div className="flex-1 overflow-auto p-6">
           <TiptapEditor
-            content={articleContent}
+            content={editorState.content.html}
+            markdown={editorState.content.markdown || undefined}
             onChange={handleEditorChange}
             placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}

@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import { Markdown } from "@tiptap/markdown";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
 import { CustomImage } from "@/lib/tiptap-extensions";
@@ -12,6 +13,7 @@ import { ImageMenu } from "./ui/image-menu";
 
 interface TiptapEditorProps {
   content?: string;
+  markdown?: string;
   onChange?: (content: string, html: string, markdown: string) => void;
   placeholder?: string;
   editable?: boolean;
@@ -19,6 +21,7 @@ interface TiptapEditorProps {
 
 export function TiptapEditor({
   content = "",
+  markdown = "",
   onChange,
   placeholder = "开始撰写您的内容...",
   editable = true,
@@ -26,13 +29,15 @@ export function TiptapEditor({
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+  // 确定初始内容：优先使用 Markdown，其次使用 HTML
+  const initialContent = markdown || content;
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3],
         },
-        // 禁用 StarterKit 中的某些扩展，避免重复
         bold: true,
         italic: true,
         strike: true,
@@ -59,13 +64,14 @@ export function TiptapEditor({
           class: "max-w-full h-auto rounded-lg",
         },
       }),
-      // 移除 Markdown extension - 它可能会干扰 HTML 插入
-      // Markdown.configure({
-      //   html: true,
-      //   transformPastedText: true,
-      // }),
+      // ✅ 启用 Markdown 扩展
+      Markdown.configure({
+        html: false,              // 不允许在 Markdown 中混合 HTML
+        transformPastedText: true, // 自动转换粘贴的文本
+        linkify: true,            // 自动识别链接
+      }),
     ],
-    content,
+    content: initialContent,
     editable,
     immediatelyRender: true,
     editorProps: {
@@ -78,29 +84,65 @@ export function TiptapEditor({
       const html = editor.getHTML();
       const text = editor.getText();
 
-      // Call onChange with text and html (markdown removed since we don't use that extension)
-      onChange?.(text, html, '');
+      // ✅ 尝试获取 Markdown
+      let md = '';
+      try {
+        md = (editor.storage.markdown as any)?.getMarkdown?.() || '';
+      } catch (error) {
+        // Markdown 序列化失败，使用空字符串
+        console.warn('[TiptapEditor] Markdown serialization failed:', error);
+      }
+
+      onChange?.(text, html, md);
     },
   });
 
   // Track if we're updating from props to avoid infinite loops
   const isExternalUpdate = useRef(false);
 
+  // 标准化 HTML（去除空格、换行等差异）
+  const normalizeHTML = useCallback((html: string) => {
+    return html.trim().replace(/\s+/g, ' ');
+  }, []);
+
   // Update editor content when content prop changes from parent
   useEffect(() => {
     if (editor && content !== undefined) {
       const currentHTML = editor.getHTML();
-      // Only update if content actually changed and it's different from current editor state
-      if (content !== currentHTML && !isExternalUpdate.current) {
+      const normalizedContent = normalizeHTML(content);
+      const normalizedCurrent = normalizeHTML(currentHTML);
+
+      // ✅ 使用标准化比较，只有内容真正不同时才更新
+      if (normalizedContent !== normalizedCurrent && !isExternalUpdate.current) {
         isExternalUpdate.current = true;
-        editor.commands.setContent(content);
-        // Reset flag after a short delay
-        setTimeout(() => {
+        editor.commands.setContent(content, false); // false = 不触发 onUpdate
+
+        // ✅ 使用 requestAnimationFrame 确保更新完成
+        requestAnimationFrame(() => {
           isExternalUpdate.current = false;
-        }, 100);
+        });
       }
     }
-  }, [content, editor]);
+  }, [content, editor, normalizeHTML]);
+
+  // ✅ 支持动态 Markdown 更新
+  useEffect(() => {
+    if (editor && markdown) {
+      try {
+        const currentMarkdown = (editor.storage.markdown as any)?.getMarkdown?.() || '';
+        if (markdown !== currentMarkdown && !isExternalUpdate.current) {
+          isExternalUpdate.current = true;
+          editor.commands.setContent(markdown, false); // Markdown 扩展会自动解析
+
+          requestAnimationFrame(() => {
+            isExternalUpdate.current = false;
+          });
+        }
+      } catch (error) {
+        console.warn('[TiptapEditor] Markdown update failed:', error);
+      }
+    }
+  }, [markdown, editor]);
 
   // Expose editor methods
   useEffect(() => {
