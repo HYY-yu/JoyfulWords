@@ -11,15 +11,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import {
   ExternalLink,
-  Edit,
   Trash2,
   Copy,
-  Eye,
-  Download,
-  Globe,
   Languages,
   UploadCloud,
   ChevronLeft,

@@ -50,7 +50,6 @@ export function ArticleEditorHeader({
 
   // Determine what to display
   const isCreateMode = mode === "create"
-  const isEditMode = mode === "edit"
   const hasContent = content.trim().length > 0
   const shouldShowSaveButton = isCreateMode && hasContent && onSaveAsNew
 

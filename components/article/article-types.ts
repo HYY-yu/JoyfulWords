@@ -274,35 +274,6 @@ export const mockArticles: Article[] = [
   }
 ]
 
-// Helper functions
-
-/**
- * 将纯文本转换为 HTML 格式
- * 用于将 Mock 数据的纯文本内容转换为 Tiptap 可识别的 HTML
- * 注意：这是临时方案，后端 API 实现后应直接返回 HTML 格式
- */
-function convertTextToHTML(text: string): string {
-  if (!text) return ''
-
-  // 将文本按双换行符分段，每段用 <p> 标签包裹
-  return text
-    .split('\n\n')
-    .map(para => para.trim())
-    .filter(para => para.length > 0)
-    .map(para => `<p>${para}</p>`)
-    .join('')
-}
-
-export const getStatusText = (status: ArticleStatus): string => {
-  const statusMap: Record<ArticleStatus, string> = {
-    init: '初始化',
-    draft: '草稿',
-    published: '已发布',
-    archived: '已归档'
-  }
-  return statusMap[status]
-}
-
 export const getStatusVariant = (status: ArticleStatus): "default" | "secondary" | "destructive" | "outline" => {
   const variantMap: Record<ArticleStatus, "default" | "secondary" | "destructive" | "outline"> = {
     init: 'outline',      // Gray outline for init
@@ -335,15 +306,4 @@ export interface ArticleDraft {
 export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'
-}
-
-export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
 }
