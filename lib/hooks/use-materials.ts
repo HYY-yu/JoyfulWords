@@ -47,7 +47,7 @@ export function useMaterials() {
   const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>([])
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
-  const [hasActivePolling, setHasActivePolling] = useState(false)
+  const [, setHasActivePolling] = useState(false)
   const [pagination, setPagination] = useState<{
     materials: { page: number; pageSize: number; total: number }
     logs: { page: number; pageSize: number; total: number }

@@ -11,8 +11,8 @@ import { useRef, useCallback, useState, useMemo } from 'react'
  * function ArticleEditor() {
  *   const editorState = useEditorState()
  *
- *   const handleChange = (text: string, html: string, markdown: string) => {
- *     editorState.setContent({ html, markdown, text })
+ *   const handleChange = (text: string, html: string) => {
+ *     editorState.setContent({ html, text })
  *   }
  *
  *   return (
@@ -30,7 +30,6 @@ import { useRef, useCallback, useState, useMemo } from 'react'
  */
 export interface EditorContent {
   html: string              // HTML 格式（主要）
-  markdown: string | null   // Markdown 格式（可选，用于重新编辑）
   text: string              // 纯文本（字数统计）
 }
 
@@ -70,7 +69,6 @@ export interface EditorState {
  *
  * // 访问内容
  * console.log(editorState.content.html)      // HTML
- * console.log(editorState.content.markdown)  // Markdown (可能为 null)
  * console.log(editorState.content.text)      // 纯文本
  *
  * // 访问元数据
@@ -80,7 +78,6 @@ export interface EditorState {
  * // 更新内容
  * editorState.setContent({
  *   html: '<p>New content</p>',
- *   markdown: '# New content',
  *   text: 'New content'
  * })
  *
@@ -95,7 +92,6 @@ export function useEditorState(initialHTML: string = ''): EditorState {
   // 使用 ref 存储状态，避免频繁重渲染
   const contentRef = useRef<EditorContent>({
     html: initialHTML,
-    markdown: null,
     text: ''
   })
 
@@ -160,7 +156,6 @@ export function useEditorState(initialHTML: string = ''): EditorState {
   const reset = useCallback(() => {
     contentRef.current = {
       html: '',
-      markdown: null,
       text: ''
     }
     metadataRef.current = {

@@ -4,7 +4,6 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
-import { Markdown } from "@tiptap/markdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
 import { CustomImage, CustomHighlight, CustomTextAlign } from "@/lib/tiptap-extensions";
@@ -17,15 +16,13 @@ import { useTranslation } from "@/lib/i18n/i18n-context";
 
 interface TiptapEditorProps {
   content?: string;
-  markdown?: string;
-  onChange?: (content: string, html: string, markdown: string) => void;
+  onChange?: (content: string, html: string) => void;
   placeholder?: string;
   editable?: boolean;
 }
 
 export function TiptapEditor({
   content = "",
-  markdown = "",
   onChange,
   placeholder = "开始撰写您的内容...",
   editable = true,
@@ -34,13 +31,13 @@ export function TiptapEditor({
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // 添加国际化支持
-  const { t, locale } = useTranslation();
+  const { t } = useTranslation();
 
   // 添加toast提示
   const { toast } = useToast();
 
-  // 确定初始内容：优先使用 Markdown，其次使用 HTML
-  const initialContent = markdown || content;
+  // 确定初始内容： HTML
+  const initialContent =  content;
 
   // 使用 useMemo 来稳定扩展配置，避免重新创建
   const extensions = useMemo(() => [
@@ -48,12 +45,11 @@ export function TiptapEditor({
       heading: {
         levels: [1, 2, 3],
       },
-      // 明确排除可能冲突的扩展（如果 StarterKit 包含它们）
       link: false,  // 禁用 StarterKit 中的 link（如果存在）
       underline: false,  // 禁用 StarterKit 中的 underline（如果存在）
     }),
     Link.configure({
-      openOnClick: false,  // Prevent direct opening, use BubbleMenu instead
+      openOnClick: false,  
       HTMLAttributes: {
         class: "text-blue-600 underline cursor-pointer",
       },
@@ -68,12 +64,6 @@ export function TiptapEditor({
     }),
     CustomHighlight,  // Text highlighting with colors
     CustomTextAlign,  // Text alignment (left, center, right, justify)
-    // ✅ 启用 Markdown 扩展
-    Markdown.configure({
-      html: false,              // 不允许在 Markdown 中混合 HTML
-      transformPastedText: true, // 自动转换粘贴的文本
-      linkify: true,            // 自动识别链接
-    }),
   ], []);
 
   const editor = useEditor({
@@ -91,16 +81,7 @@ export function TiptapEditor({
       const html = editor.getHTML();
       const text = editor.getText();
 
-      // ✅ 尝试获取 Markdown
-      let md = '';
-      try {
-        md = (editor.storage.markdown as any)?.getMarkdown?.() || '';
-      } catch (error) {
-        // Markdown 序列化失败，使用空字符串
-        console.warn('[TiptapEditor] Markdown serialization failed:', error);
-      }
-
-      onChange?.(text, html, md);
+      onChange?.(text, html);
     },
   });
 
@@ -122,7 +103,7 @@ export function TiptapEditor({
       // ✅ 使用标准化比较，只有内容真正不同时才更新
       if (normalizedContent !== normalizedCurrent && !isExternalUpdate.current) {
         isExternalUpdate.current = true;
-        editor.commands.setContent(content, false); // false = 不触发 onUpdate
+        editor.commands.setContent(content, { emitUpdate: false }); // 不触发 onUpdate
 
         // ✅ 使用 requestAnimationFrame 确保更新完成
         requestAnimationFrame(() => {
@@ -131,25 +112,6 @@ export function TiptapEditor({
       }
     }
   }, [content, editor, normalizeHTML]);
-
-  // ✅ 支持动态 Markdown 更新
-  useEffect(() => {
-    if (editor && markdown) {
-      try {
-        const currentMarkdown = (editor.storage.markdown as any)?.getMarkdown?.() || '';
-        if (markdown !== currentMarkdown && !isExternalUpdate.current) {
-          isExternalUpdate.current = true;
-          editor.commands.setContent(markdown, false); // Markdown 扩展会自动解析
-
-          requestAnimationFrame(() => {
-            isExternalUpdate.current = false;
-          });
-        }
-      } catch (error) {
-        console.warn('[TiptapEditor] Markdown update failed:', error);
-      }
-    }
-  }, [markdown, editor]);
 
   // Expose editor methods
   useEffect(() => {
@@ -240,41 +202,20 @@ export function TiptapEditor({
 
         // 方法 1: 使用 setImage 命令（推荐）
         console.log("尝试方法 1: setImage");
-        success = editor.chain().focus().setImage({ src: url, alt: file.name, align: 'left' }).run();
+        success = editor.chain().focus().setImage({ src: url, alt: file.name }).run();
         console.log("方法 1 结果:", success);
 
         if (!success) {
           // 方法 2: 插入节点对象
           console.log("尝试方法 2: insertContent with node");
           success = editor.chain().focus().insertContent({
-            type: 'customImage',
+            type: 'image',
             attrs: {
               src: url,
               alt: file.name,
-              align: 'left'
             },
           }).run();
           console.log("方法 2 结果:", success);
-        }
-
-        if (!success) {
-          // 方法 3: 插入 HTML 内容（自闭合标签）
-          console.log("尝试方法 3: insertContent with HTML (self-closing)");
-          success = editor.chain().focus().insertContent(
-            `<img src="${url}" alt="${file.name}" />`
-          ).run();
-          console.log("方法 3 结果:", success);
-        }
-
-        if (!success) {
-          // 方法 4: 先插入段落再插入图片
-          console.log("尝试方法 4: 在新段落中插入");
-          success = editor.chain()
-            .focus()
-            .insertContent('<p></p>')
-            .setImage({ src: url, alt: file.name, align: 'left' })
-            .run();
-          console.log("方法 4 结果:", success);
         }
 
         // 强制刷新编辑器视图
@@ -332,7 +273,6 @@ export function TiptapEditor({
       }
     };
 
-    console.log("准备打开文件选择器");
     input.click();
   }, [editor, handleImageUpload, isUploadingImage, toast, t]);
 

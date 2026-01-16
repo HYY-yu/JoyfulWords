@@ -59,18 +59,6 @@ export const CustomImage = Image.extend({
     }
   },
 
-  addCommands() {
-    return {
-      ...this.parent?.(),
-      setImage: (options: { src: string; alt?: string; title?: string; width?: string; height?: string; align?: string }) => ({ commands }: any) => {
-        return commands.insertContent({
-          type: this.name,
-          attrs: options,
-        })
-      },
-    }
-  },
-
   addNodeView() {
     return ({ node, editor, getPos }) => {
       const container = document.createElement('div')

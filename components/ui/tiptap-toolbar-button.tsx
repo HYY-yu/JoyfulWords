@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface ToolbarButtonProps extends ButtonProps {
+  children?: React.ReactNode;
   isActive?: boolean;
   tooltip?: string;
   shortcut?: string;
@@ -57,23 +58,3 @@ export const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonPr
 );
 
 ToolbarButton.displayName = "ToolbarButton";
-
-export const BoldToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonProps>(
-  ({ editor, ...props }, ref) => {
-    return (
-      <ToolbarButton
-        tooltip="Bold"
-        shortcut="⌘B"
-        isActive={editor?.isActive('bold')}
-        disabled={!editor?.can().chain().focus().toggleBold().run()}
-        onClick={() => editor?.chain().focus().toggleBold().run()}
-        ref={ref}
-        {...props}
-      >
-        <BoldIcon className="h-4 w-4" />
-      </ToolbarButton>
-    );
-  },
-);
-
-BoldToolbarButton.displayName = "BoldToolbarButton";

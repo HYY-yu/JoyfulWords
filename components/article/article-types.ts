@@ -292,7 +292,6 @@ export interface ArticleDraft {
 
   content: {
     html: string                    // HTML格式内容（主要）
-    markdown: string                // Markdown格式
     text: string                    // 纯文本（用于字数统计）
   }
 

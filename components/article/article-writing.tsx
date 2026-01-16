@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Article, ArticleDraft } from "./article-types"
 import { useEditorState } from "@/lib/editor-state"
-import { normalizeContentToHTML, detectContentFormat } from "@/lib/tiptap-utils"
+import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/lib/tiptap-utils"
 
 interface ArticleWritingProps {
   articleId?: string | null
@@ -66,8 +66,8 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     () => debounce((draft: ArticleDraft) => {
       try {
         const json = JSON.stringify(draft)
-        // 4MB 容量检查
-        if (json.length > 4 * 1024 * 1024) {
+        // 10MB 容量检查
+        if (json.length > 10 * 1024 * 1024) {
           toast({
             title: "警告",
             description: t("contentWriting.editorHeader.contentTooLarge"),
@@ -98,7 +98,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       lastSaved: new Date().toISOString(),
       content: {
         html: content.html,
-        markdown: content.markdown || '',
         text: content.text
       },
       metadata: {
@@ -125,7 +124,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       // ✅ 使用统一状态管理
       editorState.setContent({
         html: htmlContent,
-        markdown: format === 'markdown' ? editArticle.content : null,
         text: editArticle.content.replace(/<[^>]*>/g, "")
       })
 
@@ -158,7 +156,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             console.log('[ArticleWriting] Loading edit article from localStorage:', draft.article)
             editorState.setContent({
               html: draft.content.html,
-              markdown: draft.content.markdown || null,
               text: draft.content.text
             })
             setCurrentArticle(draft.article)
@@ -174,7 +171,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
           // 新文章模式：恢复草稿
           editorState.setContent({
             html: draft.content.html,
-            markdown: draft.content.markdown || null,
             text: draft.content.text
           })
           setCurrentArticle(draft.article)
@@ -191,11 +187,10 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   }, [getDraftKey, toast, t, articleId, editorState])
   /* eslint-enable react-hooks/exhaustive-deps */
 
-  const handleEditorChange = useCallback((_content: string, html: string, markdown: string) => {
+  const handleEditorChange = useCallback((_content: string, html: string) => {
     // ✅ 使用统一状态管理
     editorState.setContent({
       html,
-      markdown: markdown || null,
       text: _content
     })
 
@@ -214,8 +209,8 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     const { content } = editorState
 
     if (format === "markdown") {
-      // ✅ 优先使用 Markdown，回退到 HTML
-      const exportContent = content.markdown || content.html
+      // 将 HTML 转换为 Markdown 格式
+      const exportContent = htmlToMarkdown(content.html)
       const blob = new Blob([exportContent], { type: "text/markdown" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -267,7 +262,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   useEffect(() => {
     const { content } = editorState
 
-    if (content.html || content.markdown) {
+    if (content.html ) {
       const draft = buildDraft()
       debouncedSave(draft)
     }
@@ -276,7 +271,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     return () => {
       debouncedSave.cancel?.()
     }
-  }, [editorState.content.html, editorState.content.markdown, buildDraft, debouncedSave])
+  }, [editorState.content.html,  buildDraft, debouncedSave])
   /* eslint-enable react-hooks/exhaustive-deps */
 
   // Clean confirm handler
@@ -319,7 +314,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         <div className="flex-1 overflow-auto p-6">
           <TiptapEditor
             content={editorState.content.html}
-            markdown={editorState.content.markdown || undefined}
             onChange={handleEditorChange}
             placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}

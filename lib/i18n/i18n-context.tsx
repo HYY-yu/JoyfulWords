@@ -1,11 +1,10 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { zh } from './locales/zh';
 import { en } from './locales/en';
 
 type Locale = 'zh' | 'en';
-type Dictionary = typeof zh;
 
 interface I18nContextType {
   locale: Locale;

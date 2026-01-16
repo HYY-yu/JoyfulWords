@@ -89,7 +89,6 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
         lastSaved: new Date().toISOString(),
         content: {
           html: article.content,
-          markdown: "",
           text: article.content.replace(/<[^>]*>/g, "")
         },
         metadata: {
