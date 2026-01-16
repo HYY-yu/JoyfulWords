@@ -79,9 +79,9 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
   // 从 materials 中提取 type=image 的素材
   const images = article.materials?.filter(m => m.type === 'image').map(m => ({
     id: m.id,
-    url: m.source_url,
+    url: m.content || '',
     alt: m.title,
-    caption: m.title,
+    caption: '',
   })) || []
   if (images.length === 0) return null
 
@@ -229,6 +229,8 @@ export function MaterialsLinksDialog({ article, open, onOpenChange }: MaterialsL
                         {material.content}
                       </p>
                     )}
+                    // FIXME: 后端返回的 source_url 是一个逗号分割的字符串，如果字符串存在，需要设计成 Link1 \ Link2 \ Link3 ... 这种 badge 形式，可以点击，点击即可跳转。
+                    // Link+index 
                     {material.source_url && (
                       <a
                         href={material.source_url}
@@ -239,73 +241,6 @@ export function MaterialsLinksDialog({ article, open, onOpenChange }: MaterialsL
                         {material.source_url}
                       </a>
                     )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-interface LinksDialogProps {
-  article: Article | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function LinksDialog({ article, open, onOpenChange }: LinksDialogProps) {
-  if (!article) return null
-  // 后端 API 没有 referenceLinks 字段，使用空数组作为默认值
-  const referenceLinks = (article as any).referenceLinks || []
-  if (referenceLinks.length === 0) return null
-
-  const copyLink = (url: string) => {
-    navigator.clipboard.writeText(url)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="text-xl">{article.title}</DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[60vh]">
-          <div className="space-y-4">
-            {referenceLinks.map((link, index) => (
-              <div key={link.id} className="p-4 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate">{link.title}</h4>
-                    {link.description && (
-                      <p className="text-sm text-muted-foreground mt-1">{link.description}</p>
-                    )}
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-blue-600 hover:text-blue-800 truncate block mt-2"
-                    >
-                      {link.url}
-                    </a>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyLink(link.url)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               </div>

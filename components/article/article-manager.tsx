@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon,
-  Eye, RefreshCw, ChevronLeftIcon, ChevronRightIcon, SparklesIcon
+  Eye, RefreshCw, ChevronLeftIcon, ChevronRightIcon, SparklesIcon, CheckIcon, XIcon
 } from "lucide-react"
 import {
   Tooltip,
@@ -41,6 +41,7 @@ import {
 } from "./article-dialogs"
 import { ArticleAIHelpDialog } from "./article-ai-help-dialog"
 import { useToast } from "@/hooks/use-toast"
+import { articlesClient } from "@/lib/api/articles/client"
 
 interface ArticleManagerProps {
   onNavigateToWriting?: () => void
@@ -78,6 +79,10 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false)
   const [materialsLinksOpen, setMaterialsLinksOpen] = useState(false)
   const [postsOpen, setPostsOpen] = useState(false)
+
+  // Title editing states
+  const [editingArticleId, setEditingArticleId] = useState<number | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
@@ -134,23 +139,40 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     }
   }
 
-  const handleCreateNewArticle = () => {
-    // Clear any stored edit article
-    ;(window as any).__editArticle = null
-    ;(window as any).__editArticleId = null
-
-    if (onNavigateToWriting) {
-      onNavigateToWriting()
-    }
-
-    toast({
-      description: "新建文章"
-    })
-  }
-
   const handleAIArticleCreated = () => {
     // 刷新列表查看新文章
     handleRefresh()
+  }
+
+  // Title editing handlers
+  const startEditingTitle = (article: Article) => {
+    setEditingArticleId(article.id)
+    setEditingTitle(article.title)
+  }
+
+  const cancelEditingTitle = () => {
+    setEditingArticleId(null)
+    setEditingTitle("")
+  }
+
+  const saveTitle = async (articleId: number) => {
+    if (!editingTitle.trim()) {
+      return
+    }
+
+    const result = await articlesClient.updateArticleMetadata(articleId, {
+      title: editingTitle.trim()
+    })
+
+    if ('message' in result) {
+      setEditingArticleId(null)
+      handleRefresh()
+    } else {
+      toast({
+        variant: "destructive",
+        description: result.error
+      })
+    }
   }
 
   return (
@@ -285,11 +307,59 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                   key={article.id}
                   className="border-b border-border last:border-b-0 hover:bg-muted/30"
                 >
-                  {/* Title */}
+                  {/* Title - 可内联编辑 */}
                   <td className="py-3 px-4 text-sm">
-                    <div className="font-medium truncate" title={article.title}>
-                      {article.title}
-                    </div>
+                    {editingArticleId === article.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              saveTitle(article.id)
+                            } else if (e.key === 'Escape') {
+                              cancelEditingTitle()
+                            }
+                          }}
+                          className="h-8 text-sm"
+                          autoFocus
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => saveTitle(article.id)}
+                        >
+                          <CheckIcon className="w-4 h-4 text-green-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={cancelEditingTitle}
+                        >
+                          <XIcon className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        className="h-auto p-0 justify-start text-left hover:bg-transparent w-full"
+                        onClick={() => startEditingTitle(article)}
+                      >
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <EditIcon className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {t("contentWriting.manager.clickForEdit")}
+                            </span>
+                          </div>
+                          <div className="font-medium truncate" title={article.title}>
+                            {article.title}
+                          </div>
+                        </div>
+                      </Button>
+                    )}
                   </td>
 
                   {/* Content Preview */}
@@ -350,29 +420,35 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                       return (
                         <Button
                           variant="ghost"
-                          className="h-auto p-1 hover:bg-transparent"
+                          className="h-auto p-1 justify-start text-left hover:bg-transparent"
                           onClick={() => {
                             setSelectedArticle(article)
                             setImageGalleryOpen(true)
                           }}
                         >
-                          <div className="flex gap-1">
-                            {imageMaterials.slice(0, 2).map((material) => (
-                              material.source_url ? (
+                          <div>
+                            <div className="flex items-center gap-1 mb-1">
+                              <Eye className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {t("contentWriting.manager.clickForDetail")}
+                              </span>
+                            </div>
+                            <div className="flex gap-1">
+                              {imageMaterials.slice(0, 2).map((material) => (
                                 <div key={material.id} className="relative w-12 h-12 rounded overflow-hidden border">
                                   <img
-                                    src={material.source_url}
+                                    src={material.content || ''}
                                     alt={material.title}
                                     className="w-full h-full object-cover"
                                   />
                                 </div>
-                              ) : null
-                            ))}
-                            {imageMaterials.length > 2 && (
-                              <div className="w-12 h-12 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                                +{imageMaterials.length - 2}
-                              </div>
-                            )}
+                              ))}
+                              {imageMaterials.length > 2 && (
+                                <div className="w-12 h-12 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                  +{imageMaterials.length - 2}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </Button>
                       )
@@ -389,13 +465,23 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                       return (
                         <Button
                           variant="ghost"
-                          className="h-8 px-3"
+                          className="h-auto p-2 justify-start text-left hover:bg-transparent"
                           onClick={() => {
                             setSelectedArticle(article)
                             setMaterialsLinksOpen(true)
                           }}
                         >
-                          {otherMaterials.length} 个
+                          <div>
+                            <div className="flex items-center gap-1 mb-1">
+                              <Eye className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                {t("contentWriting.manager.clickForDetail")}
+                              </span>
+                            </div>
+                            <div className="text-sm text-foreground">
+                              {otherMaterials.length} 个素材 /* FIXME: 没做 i18n */
+                            </div>
+                          </div>
                         </Button>
                       )
                     })()}
@@ -412,17 +498,25 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                           setPostsOpen(true)
                         }}
                       >
-                        <div className="flex flex-col gap-1">
-                          {article.posts.slice(0, 2).map((post) => (
-                            <div key={post.id} className="text-xs text-foreground line-clamp-1 max-w-[150px]">
-                              {post.content.substring(0, 3)}...
-                            </div>
-                          ))}
-                          {article.posts.length > 2 && (
-                            <div className="text-xs text-muted-foreground">
-                              +{article.posts.length - 2}
-                            </div>
-                          )}
+                        <div>
+                          <div className="flex items-center gap-1 mb-1">
+                            <Eye className="w-3 h-3 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">
+                              {t("contentWriting.manager.clickForDetail")}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            {article.posts.slice(0, 2).map((post) => (
+                              <div key={post.id} className="text-xs text-foreground line-clamp-1 max-w-[150px]">
+                                {post.content.substring(0, 3)}...
+                              </div>
+                            ))}
+                            {article.posts.length > 2 && (
+                              <div className="text-xs text-muted-foreground">
+                                +{article.posts.length - 2}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </Button>
                     ) : (
