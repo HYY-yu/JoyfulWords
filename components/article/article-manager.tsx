@@ -37,7 +37,6 @@ import {
   DeleteConfirmDialog,
   ImageGalleryDialog,
   MaterialsLinksDialog,
-  PostsDialog,
 } from "./article-dialogs"
 import { ArticleAIHelpDialog } from "./article-ai-help-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -78,7 +77,6 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false)
   const [materialsLinksOpen, setMaterialsLinksOpen] = useState(false)
-  const [postsOpen, setPostsOpen] = useState(false)
 
   // Title editing states
   const [editingArticleId, setEditingArticleId] = useState<number | null>(null)
@@ -479,7 +477,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                               </span>
                             </div>
                             <div className="text-sm text-foreground">
-                              {otherMaterials.length} 个素材 /* FIXME: 没做 i18n */
+                              {t("contentWriting.manager.materialsCount", { count: otherMaterials.length })}
                             </div>
                           </div>
                         </Button>
@@ -490,35 +488,30 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                   {/* Posts - 竞品文章 */}
                   <td className="py-3 px-4 text-sm">
                     {article.posts && article.posts.length > 0 ? (
-                      <Button
-                        variant="ghost"
-                        className="h-auto p-2 justify-start text-left hover:bg-transparent"
-                        onClick={() => {
-                          setSelectedArticle(article)
-                          setPostsOpen(true)
-                        }}
-                      >
-                        <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <Eye className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {t("contentWriting.manager.clickForDetail")}
+                      <div className="flex flex-col gap-1">
+                        {article.posts.slice(0).map((post) => (
+                          post.original_link ? (
+                            <a
+                              key={post.id}
+                              href={post.original_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 line-clamp-1 max-w-[150px] hover:underline"
+                              title={`${post.platform || ''}${post.author_name ? ' - ' + post.author_name : ''}`}
+                            >
+                              {post.platform}{post.author_name ? ` - ${post.author_name}` : ''}
+                            </a>
+                          ) : (
+                            <span
+                              key={post.id}
+                              className="text-xs text-foreground line-clamp-1 max-w-[150px]"
+                              title={`${post.platform || ''}${post.author_name ? ' - ' + post.author_name : ''}`}
+                            >
+                              {post.platform}{post.author_name ? ` - ${post.author_name}` : ''}
                             </span>
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            {article.posts.slice(0, 2).map((post) => (
-                              <div key={post.id} className="text-xs text-foreground line-clamp-1 max-w-[150px]">
-                                {post.content.substring(0, 3)}...
-                              </div>
-                            ))}
-                            {article.posts.length > 2 && (
-                              <div className="text-xs text-muted-foreground">
-                                +{article.posts.length - 2}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </Button>
+                          )
+                        ))}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
@@ -643,11 +636,6 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
             article={selectedArticle}
             open={materialsLinksOpen}
             onOpenChange={setMaterialsLinksOpen}
-          />
-          <PostsDialog
-            article={selectedArticle}
-            open={postsOpen}
-            onOpenChange={setPostsOpen}
           />
           <DeleteConfirmDialog
             article={selectedArticle}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -181,12 +181,6 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
   )
 }
 
-interface LinksDialogProps {
-  article: Article | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
 interface MaterialsLinksDialogProps {
   article: Article | null
   open: boolean
@@ -229,80 +223,27 @@ export function MaterialsLinksDialog({ article, open, onOpenChange }: MaterialsL
                         {material.content}
                       </p>
                     )}
-                    // FIXME: 后端返回的 source_url 是一个逗号分割的字符串，如果字符串存在，需要设计成 Link1 \ Link2 \ Link3 ... 这种 badge 形式，可以点击，点击即可跳转。
-                    // Link+index 
                     {material.source_url && (
-                      <a
-                        href={material.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-800 truncate block mt-2"
-                      >
-                        {material.source_url}
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-interface PostsDialogProps {
-  article: Article | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}
-
-export function PostsDialog({ article, open, onOpenChange }: PostsDialogProps) {
-  const { t } = useTranslation()
-
-  if (!article) return null
-  const posts = article.posts || []
-  if (posts.length === 0) return null
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
-            {t("contentWriting.articleDialogs.posts.title")}
-          </DialogTitle>
-        </DialogHeader>
-        <ScrollArea className="max-h-[60vh]">
-          <div className="space-y-4">
-            {posts.map((post) => (
-              <div key={post.id} className="p-4 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-muted-foreground">
-                        {t("contentWriting.articleDialogs.posts.platform")}:
-                      </span>
-                      <span className="text-xs font-medium">{post.platform}</span>
-                    </div>
-                    <p className="text-sm text-foreground line-clamp-3">
-                      {post.content}
-                    </p>
-                    {post.author_name && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        作者: {post.author_name}
-                      </p>
-                    )}
-                    {post.original_link && (
-                      <a
-                        href={post.original_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 mt-2"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        {t("contentWriting.articleDialogs.posts.viewOriginal")}
-                      </a>
+                      <div className="flex flex-wrap items-center gap-1 mt-2">
+                        {material.source_url
+                          .split(/[,，]/)
+                          .map((url, index) => url.trim())
+                          .filter(url => url.length > 0)
+                          .map((url, index) => (
+                            <Fragment key={index}>
+                              {index > 0 && <span className="text-xs text-muted-foreground">\</span>}
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Link{index + 1}
+                              </a>
+                            </Fragment>
+                          ))}
+                      </div>
                     )}
                   </div>
                 </div>
@@ -358,7 +299,7 @@ interface PublishManagementDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function PublishManagementDialog({ article, open, onOpenChange }: PublishManagementDialogProps) {
+export function PublishManagementDialog({ article: _article, open, onOpenChange }: PublishManagementDialogProps) {
   const { t } = useTranslation()
 
   return (
@@ -394,7 +335,7 @@ interface TranslationDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function TranslationDialog({ article, open, onOpenChange }: TranslationDialogProps) {
+export function TranslationDialog({ article: _article, open, onOpenChange }: TranslationDialogProps) {
   const { t } = useTranslation()
 
   return (

@@ -8,9 +8,7 @@
     "lint": "eslint .",
     "start": "next start",
     "i18n:sync": "tsx scripts/i18n-sync.ts",
-    "i18n:sync:fix": "tsx scripts/i18n-sync.ts --fix",
-    "i18n:sync:clean": "tsx scripts/i18n-sync.ts --clean",
-    "i18n:sync:all": "tsx scripts/i18n-sync.ts --all"
+    "i18n:sync:clean": "tsx scripts/i18n-sync.ts --clean"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",

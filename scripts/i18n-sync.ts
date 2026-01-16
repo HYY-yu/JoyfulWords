@@ -5,18 +5,15 @@
  *
  * This script:
  * 1. Compares en.ts and zh.ts to find missing fields
- * 2. Adds missing fields with placeholders
- * 3. Searches codebase for i18n key usage
- * 4. Removes unused translation keys
+ * 2. Searches codebase for i18n key usage
+ * 3. Removes unused translation keys
  *
  * Usage:
  *   pnpm i18n:sync              - Sync and show report (dry run)
- *   pnpm i18n:sync --fix        - Apply changes
  *   pnpm i18n:sync --clean      - Remove unused keys
- *   pnpm i18n:sync --all        - Sync and remove unused keys
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
+import { readFileSync, writeFileSync, readdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -34,9 +31,7 @@ const ZH_FILE = join(LOCALES_DIR, 'zh.ts')
 
 // CLI args
 const args = process.argv.slice(2)
-const DRY_RUN = !args.includes('--fix')
-const CLEAN_UNUSED = args.includes('--clean') || args.includes('--all')
-const SYNC_AND_CLEAN = args.includes('--all')
+const CLEAN_UNUSED = args.includes('--clean')
 
 // ANSI colors
 const colors = {
@@ -64,7 +59,7 @@ function extractTranslations(filePath: string): TranslationObject {
     throw new Error(`Could not extract translations from ${filePath}`)
   }
 
-  // Use Function constructor to parse the object (safer than eval)
+  // Use Function constructor to parse the object
   try {
     const objectStr = 'return ' + match[1]
     return new Function(objectStr)()
@@ -93,77 +88,6 @@ function getAllKeys(obj: TranslationObject, prefix = ''): string[] {
 }
 
 /**
- * Check if a key exists in translation object
- */
-function hasKey(obj: TranslationObject, keyPath: string[]): boolean {
-  const [first, ...rest] = keyPath
-
-  if (!(first in obj)) {
-    return false
-  }
-
-  if (rest.length === 0) {
-    return true
-  }
-
-  const value = obj[first]
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-
-  return hasKey(value, rest)
-}
-
-/**
- * Set a key in translation object
- */
-function setKey(obj: TranslationObject, keyPath: string[], value: string): void {
-  const [first, ...rest] = keyPath
-
-  if (rest.length === 0) {
-    obj[first] = value
-  } else {
-    if (!(first in obj)) {
-      obj[first] = {}
-    }
-    const value = obj[first]
-    if (typeof value === 'object' && value !== null) {
-      setKey(value, rest, value)
-    }
-  }
-}
-
-/**
- * Remove a key from translation object
- */
-function removeKey(obj: TranslationObject, keyPath: string[]): boolean {
-  const [first, ...rest] = keyPath
-
-  if (!(first in obj)) {
-    return false
-  }
-
-  if (rest.length === 0) {
-    delete obj[first]
-    return true
-  }
-
-  const value = obj[first]
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-
-  const removed = removeKey(value, rest)
-
-  // Clean up empty objects
-  if (removed && typeof value === 'object' && Object.keys(value).length === 0) {
-    delete obj[first]
-  }
-
-  return removed
-}
-
-/**
  * Recursively find missing keys
  */
 function findMissingKeys(
@@ -187,23 +111,6 @@ function findMissingKeys(
   }
 
   return missing
-}
-
-/**
- * Generate placeholder for missing key
- */
-function generatePlaceholder(key: string, lang: 'en' | 'zh'): string {
-  // Convert camelCase to readable text
-  const readable = key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
-    .trim()
-
-  if (lang === 'en') {
-    return readable
-  } else {
-    return `[TODO: ${readable}]`
-  }
 }
 
 /**
@@ -256,7 +163,7 @@ function findKeyUsage(files: string[], keys: string[]): Set<string> {
         }
       }
     } catch (error) {
-      log(`  Error reading ${file}: ${error}`, 'yellow')
+      // Skip files that can't be read
     }
   }
 
@@ -318,6 +225,36 @@ function writeTranslations(filePath: string, translations: TranslationObject) {
 }
 
 /**
+ * Remove a key from translation object
+ */
+function removeKey(obj: TranslationObject, keyPath: string[]): boolean {
+  const [first, ...rest] = keyPath
+
+  if (!(first in obj)) {
+    return false
+  }
+
+  if (rest.length === 0) {
+    delete obj[first]
+    return true
+  }
+
+  const value = obj[first]
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const removed = removeKey(value, rest)
+
+  // Clean up empty objects
+  if (removed && typeof value === 'object' && Object.keys(value).length === 0) {
+    delete obj[first]
+  }
+
+  return removed
+}
+
+/**
  * Main sync function
  */
 async function syncTranslations() {
@@ -351,43 +288,8 @@ async function syncTranslations() {
     log('\n✅ No missing keys found!', 'green')
   }
 
-  // Apply fixes if not dry run
-  if (!DRY_RUN && (missingInEn.length > 0 || missingInZh.length > 0)) {
-    log('\n🔧 Applying fixes...', 'yellow')
-
-    // Add missing keys to en.ts
-    if (missingInEn.length > 0) {
-      for (const key of missingInEn) {
-        const keyPath = key.split('.')
-        // Get Chinese value
-        let current = zhTranslations as any
-        for (const part of keyPath) {
-          current = current[part]
-        }
-        setKey(enTranslations, keyPath, current)
-      }
-      writeTranslations(EN_FILE, enTranslations)
-      log(`  Added ${missingInEn.length} keys to en.ts`, 'green')
-    }
-
-    // Add missing keys to zh.ts
-    if (missingInZh.length > 0) {
-      for (const key of missingInZh) {
-        const keyPath = key.split('.')
-        // Get English value
-        let current = enTranslations as any
-        for (const part of keyPath) {
-          current = current[part]
-        }
-        setKey(zhTranslations, keyPath, current)
-      }
-      writeTranslations(ZH_FILE, zhTranslations)
-      log(`  Added ${missingInZh.length} keys to zh.ts`, 'green')
-    }
-  }
-
   // Clean unused keys
-  if (CLEAN_UNUSED || SYNC_AND_CLEAN) {
+  if (CLEAN_UNUSED) {
     log('\n🧹 Checking for unused keys...', 'cyan')
 
     // Get all source files
@@ -407,20 +309,23 @@ async function syncTranslations() {
 
     if (unusedEnKeys.length > 0) {
       log(`\n⚠️  Unused in en.ts (${unusedEnKeys.length} keys):`, 'yellow')
-      unusedEnKeys.forEach(key => log(`  - ${key}`, 'yellow'))
+      unusedEnKeys.slice(0, 20).forEach(key => log(`  - ${key}`, 'yellow'))
+      if (unusedEnKeys.length > 20) {
+        log(`  ... and ${unusedEnKeys.length - 20} more`, 'yellow')
+      }
     }
 
     if (unusedZhKeys.length > 0) {
       log(`\n⚠️  Unused in zh.ts (${unusedZhKeys.length} keys):`, 'yellow')
-      unusedZhKeys.forEach(key => log(`  - ${key}`, 'yellow'))
+      unusedZhKeys.slice(0, 20).forEach(key => log(`  - ${key}`, 'yellow'))
+      if (unusedZhKeys.length > 20) {
+        log(`  ... and ${unusedZhKeys.length - 20} more`, 'yellow')
+      }
     }
 
     if (unusedEnKeys.length === 0 && unusedZhKeys.length === 0) {
       log('\n✅ All keys are in use!', 'green')
-    }
-
-    // Remove unused keys if not dry run
-    if (!DRY_RUN && (unusedEnKeys.length > 0 || unusedZhKeys.length > 0)) {
+    } else {
       log('\n🗑️  Removing unused keys...', 'yellow')
 
       if (unusedEnKeys.length > 0) {
@@ -429,7 +334,7 @@ async function syncTranslations() {
           removeKey(enTranslations, keyPath)
         }
         writeTranslations(EN_FILE, enTranslations)
-        log(`  Removed ${unusedEnKeys.length} keys from en.ts`, 'green')
+        log(`  ✅ Removed ${unusedEnKeys.length} keys from en.ts`, 'green')
       }
 
       if (unusedZhKeys.length > 0) {
@@ -438,20 +343,18 @@ async function syncTranslations() {
           removeKey(zhTranslations, keyPath)
         }
         writeTranslations(ZH_FILE, zhTranslations)
-        log(`  Removed ${unusedZhKeys.length} keys from zh.ts`, 'green')
+        log(`  ✅ Removed ${unusedZhKeys.length} keys from zh.ts`, 'green')
       }
     }
   }
 
   // Summary
   log('\n' + '='.repeat(60), 'blue')
-  if (DRY_RUN) {
+  if (!CLEAN_UNUSED) {
     log('🔍 DRY RUN - No changes made', 'yellow')
-    log('Use --fix to apply changes', 'yellow')
-    log('Use --clean to check for unused keys', 'yellow')
-    log('Use --all to sync and remove unused keys', 'yellow')
+    log('Use --clean to remove unused keys', 'yellow')
   } else {
-    log('✅ Sync completed!', 'green')
+    log('✅ Cleanup completed!', 'green')
   }
   log('='.repeat(60) + '\n', 'blue')
 }
