@@ -5,3 +5,6 @@ node_modules
 .env.keys
 .env.local
 .env.*.local
+
+# TypeScript
+tsconfig.tsbuildinfo
