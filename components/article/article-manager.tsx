@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
+import { useArticles } from "@/lib/hooks/use-articles"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,17 +13,31 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select"
-import { SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon, Eye, FileText, Image as ImageIcon, Link, SparklesIcon } from "lucide-react"
-import { Article, ArticleDraft, ArticleStatus, mockArticles } from "./article-types"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon,
+  Eye, RefreshCw, ChevronLeftIcon, ChevronRightIcon, SparklesIcon
+} from "lucide-react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import type { Article } from "@/lib/api/articles/types"
+import { getStatusVariant, formatShortDate } from "./article-types"
 import {
   ContentPreviewDialog,
-  ImageGalleryDialog,
-  LinksDialog,
   DeleteConfirmDialog,
-  PublishManagementDialog,
-  TranslationDialog
+  ImageGalleryDialog,
+  MaterialsLinksDialog,
+  PostsDialog,
 } from "./article-dialogs"
 import { ArticleAIHelpDialog } from "./article-ai-help-dialog"
 import { useToast } from "@/hooks/use-toast"
@@ -36,45 +51,36 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   const { toast } = useToast()
   const { user } = useAuth()
   const router = useRouter()
-  const [articles, setArticles] = useState<Article[]>(mockArticles)
-  const [titleFilter, setTitleFilter] = useState("")
-  const [statusFilter, setStatusFilter] = useState<ArticleStatus | "all">("all")
+
+  // 使用 useArticles Hook
+  const {
+    articles,
+    loading,
+    pagination,
+    titleFilter,
+    statusFilter,
+    setTitleFilter,
+    setStatusFilter,
+    handleDelete,
+    handleStatusChange,
+    getAllowedStatuses,
+    fetchArticles,
+    handleRefresh,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useArticles()
 
   // Dialog states
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [contentPreviewOpen, setContentPreviewOpen] = useState(false)
-  const [imageGalleryOpen, setImageGalleryOpen] = useState(false)
-  const [linksDialogOpen, setLinksDialogOpen] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [publishManagementOpen, setPublishManagementOpen] = useState(false)
-  const [translationDialogOpen, setTranslationDialogOpen] = useState(false)
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
-
-  // Filter and search articles
-  const filteredArticles = useMemo(() => {
-    return articles.filter((article) => {
-      // Status filter
-      if (statusFilter !== "all" && article.status !== statusFilter) {
-        return false
-      }
-
-      // Title filter
-      if (titleFilter) {
-        const query = titleFilter.toLowerCase()
-        if (!article.title.toLowerCase().includes(query)) {
-          return false
-        }
-      }
-
-      return true
-    })
-  }, [articles, titleFilter, statusFilter])
+  const [imageGalleryOpen, setImageGalleryOpen] = useState(false)
+  const [materialsLinksOpen, setMaterialsLinksOpen] = useState(false)
+  const [postsOpen, setPostsOpen] = useState(false)
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
-    // TODO: Load full article data from API before navigation
-    // API: GET /api/articles/:id
-
     // 方案1：保留 window.__editArticle (向后兼容)
     ;(window as any).__editArticle = article
 
@@ -83,21 +89,20 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
 
     // 方案3：新增 localStorage 存储（使用用户特定的 key）
     try {
-      const draft: ArticleDraft = {
+      const draft = {
         article,
         isEditMode: true,
         lastSaved: new Date().toISOString(),
         content: {
           html: article.content,
-          text: article.content.replace(/<[^>]*>/g, "")
+          text: article.content.replace(/<[^>]*>/g, ""),
         },
         metadata: {
           wordCount: article.content.length,
           hasUnsavedChanges: false,
-          version: "v1.0.0"
-        }
+          version: "v1.0.0",
+        },
       }
-      // 使用用户特定的 key
       const draftKey = user ? `joyfulwords-article-draft-${user.id}` : 'joyfulwords-article-draft-guest'
       localStorage.setItem(draftKey, JSON.stringify(draft))
     } catch (error) {
@@ -113,45 +118,20 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     })
   }
 
-  const handleDeleteArticle = (article: Article) => {
-    setSelectedArticle(article)
-    setDeleteConfirmOpen(true)
-  }
-
   const confirmDeleteArticle = () => {
     if (selectedArticle) {
-      setArticles(prev => prev.filter(article => article.id !== selectedArticle.id))
-      toast({
-        description: t("common.delete")
-      })
+      handleDelete(selectedArticle.id)
+      setDeleteConfirmOpen(false)
+      setSelectedArticle(null)
     }
-    setDeleteConfirmOpen(false)
-    setSelectedArticle(null)
   }
 
-  const handlePublishArticle = (article: Article) => {
-    setSelectedArticle(article)
-    setPublishManagementOpen(true)
-  }
-
-  const handleTranslateArticle = (article: Article) => {
-    setSelectedArticle(article)
-    setTranslationDialogOpen(true)
-  }
-
-  const handlePreviewContent = (article: Article) => {
-    setSelectedArticle(article)
-    setContentPreviewOpen(true)
-  }
-
-  const handleViewImages = (article: Article) => {
-    setSelectedArticle(article)
-    setImageGalleryOpen(true)
-  }
-
-  const handleViewLinks = (article: Article) => {
-    setSelectedArticle(article)
-    setLinksDialogOpen(true)
+  // 状态更新处理器
+  const handleStatusUpdate = async (article: Article, newStatus: string) => {
+    const success = await handleStatusChange(article.id, newStatus as any)
+    if (success) {
+      setSelectedArticle(null)
+    }
   }
 
   const handleCreateNewArticle = () => {
@@ -168,36 +148,21 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     })
   }
 
-  const handleAIArticleCreated = (newArticle: Article) => {
-    setArticles(prev => [newArticle, ...prev])
-
-    // TODO: Optionally navigate to edit the new article
-    // router.push("/content-writing?tab=article-writing", {
-    //   state: { article: newArticle }
-    // })
-    // if (onNavigateToWriting) {
-    //   onNavigateToWriting()
-    // }
+  const handleAIArticleCreated = () => {
+    // 刷新列表查看新文章
+    handleRefresh()
   }
-
-  // Get statistics
-  const stats = useMemo(() => {
-    const total = articles.length
-    const published = articles.filter(a => a.status === 'published').length
-    const draft = articles.filter(a => a.status === 'draft').length
-    const archived = articles.filter(a => a.status === 'archived').length
-
-    return { total, published, draft, archived }
-  }, [articles])
 
   return (
     <div className="space-y-6">
-
-      {/* Filter Bar */}
+      {/* Filter Bar + Action Buttons */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 flex-1">
+          {/* Title Filter */}
           <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.manager.filterTitle")}</span>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {t("contentWriting.manager.filterTitle")}
+            </span>
             <div className="relative flex-1">
               <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -205,27 +170,55 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                 className="pl-8 h-9"
                 value={titleFilter}
                 onChange={(e) => setTitleFilter(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchArticles()}
               />
             </div>
           </div>
+
+          {/* Status Filter */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">{t("contentWriting.manager.filterStatus")}</span>
-            <Select value={statusFilter} onValueChange={(value: ArticleStatus | "all") => setStatusFilter(value)}>
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {t("contentWriting.manager.filterStatus")}
+            </span>
+            <Select
+              value={statusFilter}
+              onValueChange={(value: any) => setStatusFilter(value)}
+            >
               <SelectTrigger className="w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("contentWriting.manager.status.all")}</SelectItem>
                 <SelectItem value="init">{t("contentWriting.manager.status.init")}</SelectItem>
-                <SelectItem value="published">{t("contentWriting.manager.status.published")}</SelectItem>
                 <SelectItem value="draft">{t("contentWriting.manager.status.draft")}</SelectItem>
+                <SelectItem value="published">{t("contentWriting.manager.status.published")}</SelectItem>
                 <SelectItem value="archived">{t("contentWriting.manager.status.archived")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
+
         {/* Action buttons */}
         <div className="flex items-center gap-2">
+          {/* Refresh Button (for AI generation status) */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={loading}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{t("common.refresh")}</span>
+            </TooltipContent>
+          </Tooltip>
+
+          {/* AI Help Button */}
           <Button
             onClick={() => setAiHelpDialogOpen(true)}
             className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
@@ -241,129 +234,235 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
         <table className="w-full">
           <thead className="bg-muted/50 border-b border-border">
             <tr>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.title")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.content")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.images")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.links")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.created")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.modified")}</th>
-              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.manager.table.actions")}</th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.title")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.content")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.status")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.images")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.materials")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.posts")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.created")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.modified")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.manager.table.actions")}
+              </th>
             </tr>
           </thead>
           <tbody>
-            {filteredArticles.length === 0 ? (
+            {loading ? (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                  {t("contentWriting.manager.table.noData")}
+                <td colSpan={9} className="text-center py-12 text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2">
+                    <LoaderIcon className="w-5 h-5 animate-spin" />
+                    <span>{t("contentWriting.manager.loading")}</span>
+                  </div>
+                </td>
+              </tr>
+            ) : articles.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="text-center py-12 text-muted-foreground">
+                  {t("contentWriting.manager.emptyTitle")}
                 </td>
               </tr>
             ) : (
-              filteredArticles.map((article) => (
-                <tr key={article.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+              articles.map((article) => (
+                <tr
+                  key={article.id}
+                  className="border-b border-border last:border-b-0 hover:bg-muted/30"
+                >
+                  {/* Title */}
                   <td className="py-3 px-4 text-sm">
-                    <div className="space-y-1">
-                      <div className="font-medium truncate" title={article.title}>
-                        {article.title}
-                      </div>
-                      <Badge
-                        variant={article.status === 'published' ? 'default' : article.status === 'draft' ? 'secondary' : 'outline'}
-                        className="text-xs"
-                      >
-                        {article.status === 'published' ? t("contentWriting.manager.status.published") : article.status === 'draft' ? t("contentWriting.manager.status.draft") : t("contentWriting.manager.status.archived")}
-                      </Badge>
+                    <div className="font-medium truncate" title={article.title}>
+                      {article.title}
                     </div>
                   </td>
+
+                  {/* Content Preview */}
                   <td className="py-3 px-4 text-sm">
                     <Button
                       variant="ghost"
                       className="h-auto p-0 justify-start text-left hover:bg-transparent"
-                      onClick={() => handlePreviewContent(article)}
+                      onClick={() => {
+                        setSelectedArticle(article)
+                        setContentPreviewOpen(true)
+                      }}
                     >
                       <div className="max-w-md">
                         <div className="flex items-center gap-1 mb-1">
                           <Eye className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">{t("contentWriting.manager.clickForDetail")}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {t("contentWriting.manager.clickForDetail")}
+                          </span>
                         </div>
                         <div className="text-sm text-foreground line-clamp-2">
-                          {article.summary || article.content.substring(0, 100) + '...'}
+                          {article.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'}
                         </div>
                       </div>
                     </Button>
                   </td>
+
+                  {/* Status - 可点击编辑 */}
                   <td className="py-3 px-4 text-sm">
-                    {article.images.length > 0 ? (
-                      <Button
-                        variant="ghost"
-                        className="h-auto p-0 justify-start hover:bg-transparent"
-                        onClick={() => handleViewImages(article)}
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {article.images.length > 3 ? t("contentWriting.manager.viewAllImages") : t("contentWriting.manager.viewImages")}
-                            </span>
-                          </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Badge
+                          variant={getStatusVariant(article.status)}
+                          className="text-xs cursor-pointer hover:opacity-80"
+                        >
+                          {t(`contentWriting.manager.status.${article.status}`)}
+                        </Badge>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {getAllowedStatuses(article.status).map((status) => (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => handleStatusUpdate(article, status)}
+                          >
+                            {t(`contentWriting.manager.status.${status}`)}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+
+                  {/* Images - 图片素材 */}
+                  <td className="py-3 px-4 text-sm">
+                    {(() => {
+                      const imageMaterials = article.materials?.filter(m => m.type === 'image') || []
+                      if (imageMaterials.length === 0) {
+                        return <span className="text-muted-foreground">-</span>
+                      }
+                      return (
+                        <Button
+                          variant="ghost"
+                          className="h-auto p-1 hover:bg-transparent"
+                          onClick={() => {
+                            setSelectedArticle(article)
+                            setImageGalleryOpen(true)
+                          }}
+                        >
                           <div className="flex gap-1">
-                            {article.images.slice(0, 3).map((image, index) => (
-                              <img
-                                key={image.id}
-                                src={image.url}
-                                alt={image.alt}
-                                className="w-8 h-8 rounded object-cover border"
-                              />
+                            {imageMaterials.slice(0, 2).map((material) => (
+                              material.source_url ? (
+                                <div key={material.id} className="relative w-12 h-12 rounded overflow-hidden border">
+                                  <img
+                                    src={material.source_url}
+                                    alt={material.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : null
                             ))}
-                            {article.images.length > 3 && (
-                              <div className="w-8 h-8 rounded bg-muted border flex items-center justify-center text-xs text-muted-foreground">
-                                +{article.images.length - 3}
+                            {imageMaterials.length > 2 && (
+                              <div className="w-12 h-12 rounded border bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                                +{imageMaterials.length - 2}
                               </div>
                             )}
                           </div>
-                        </div>
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">{t("contentWriting.manager.noImages")}</span>
-                    )}
+                        </Button>
+                      )
+                    })()}
                   </td>
+
+                  {/* Materials - 其他素材 */}
                   <td className="py-3 px-4 text-sm">
-                    {article.referenceLinks.length > 0 ? (
+                    {(() => {
+                      const otherMaterials = article.materials?.filter(m => m.type !== 'image') || []
+                      if (otherMaterials.length === 0) {
+                        return <span className="text-muted-foreground">-</span>
+                      }
+                      return (
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-3"
+                          onClick={() => {
+                            setSelectedArticle(article)
+                            setMaterialsLinksOpen(true)
+                          }}
+                        >
+                          {otherMaterials.length} 个
+                        </Button>
+                      )
+                    })()}
+                  </td>
+
+                  {/* Posts - 竞品文章 */}
+                  <td className="py-3 px-4 text-sm">
+                    {article.posts && article.posts.length > 0 ? (
                       <Button
                         variant="ghost"
-                        className="h-auto p-0 justify-start text-left hover:bg-transparent"
-                        onClick={() => handleViewLinks(article)}
+                        className="h-auto p-2 justify-start text-left hover:bg-transparent"
+                        onClick={() => {
+                          setSelectedArticle(article)
+                          setPostsOpen(true)
+                        }}
                       >
-                        <div className="max-w-[130px] space-y-1">
-                          <div className="flex items-center gap-1">
-                            <Link className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {t("contentWriting.manager.linksCount").replace("{count}", article.referenceLinks.length.toString())}
-                            </span>
-                          </div>
-                          <p className="text-sm truncate">
-                            {article.referenceLinks[0].title}
-                          </p>
+                        <div className="flex flex-col gap-1">
+                          {article.posts.slice(0, 2).map((post) => (
+                            <div key={post.id} className="text-xs text-foreground line-clamp-1 max-w-[150px]">
+                              {post.content.substring(0, 3)}...
+                            </div>
+                          ))}
+                          {article.posts.length > 2 && (
+                            <div className="text-xs text-muted-foreground">
+                              +{article.posts.length - 2}
+                            </div>
+                          )}
                         </div>
                       </Button>
                     ) : (
-                      <span className="text-muted-foreground text-sm">{t("contentWriting.manager.noLinks")}</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">{article.createdAt.split(' ')[0]}</td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">{article.modifiedAt.split(' ')[0]}</td>
+
+                  {/* Created At */}
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {formatShortDate(article.created_at)}
+                  </td>
+
+                  {/* Modified At */}
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {formatShortDate(article.updated_at)}
+                  </td>
+
+                  {/* Actions */}
                   <td className="py-3 px-4 text-sm">
                     <div className="flex items-center gap-2">
                       {/* Edit button: Only show for draft and published */}
                       {(article.status === 'draft' || article.status === 'published') && (
-                        <Button variant="ghost" size="sm" onClick={() => handleEditArticle(article)} className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditArticle(article)}
+                          className="h-8 w-8 p-0"
+                        >
                           <EditIcon className="w-3.5 h-3.5" />
                         </Button>
                       )}
 
-                      {/* Delete button: Show for all statuses */}
+                      {/* Delete button */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteArticle(article)}
+                        onClick={() => {
+                          setSelectedArticle(article)
+                          setDeleteConfirmOpen(true)
+                        }}
                         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                       >
                         <TrashIcon className="w-3.5 h-3.5" />
@@ -377,6 +476,62 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
         </table>
       </div>
 
+      {/* Pagination UI */}
+      {pagination.total > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {t("contentWriting.manager.totalCount", { total: pagination.total, page: pagination.page })}
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Page size selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">{t("contentWriting.manager.perPage")}</span>
+              <Select
+                value={String(pagination.pageSize)}
+                onValueChange={(value) => handlePageSizeChange(Number(value))}
+              >
+                <SelectTrigger className="w-[70px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-sm text-muted-foreground">{t("contentWriting.manager.items")}</span>
+            </div>
+
+            {/* Pagination buttons */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1 || loading}
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+              </Button>
+
+              <div className="text-sm text-foreground min-w-[80px] text-center">
+                {pagination.page} / {Math.ceil(pagination.total / pagination.pageSize)}
+              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize) || loading}
+              >
+                <ChevronRightIcon className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dialogs */}
       {selectedArticle && (
         <>
@@ -385,36 +540,26 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
             open={contentPreviewOpen}
             onOpenChange={setContentPreviewOpen}
           />
-
           <ImageGalleryDialog
             article={selectedArticle}
             open={imageGalleryOpen}
             onOpenChange={setImageGalleryOpen}
           />
-
-          <LinksDialog
+          <MaterialsLinksDialog
             article={selectedArticle}
-            open={linksDialogOpen}
-            onOpenChange={setLinksDialogOpen}
+            open={materialsLinksOpen}
+            onOpenChange={setMaterialsLinksOpen}
           />
-
+          <PostsDialog
+            article={selectedArticle}
+            open={postsOpen}
+            onOpenChange={setPostsOpen}
+          />
           <DeleteConfirmDialog
             article={selectedArticle}
             open={deleteConfirmOpen}
             onOpenChange={setDeleteConfirmOpen}
             onConfirm={confirmDeleteArticle}
-          />
-
-          <PublishManagementDialog
-            article={selectedArticle}
-            open={publishManagementOpen}
-            onOpenChange={setPublishManagementOpen}
-          />
-
-          <TranslationDialog
-            article={selectedArticle}
-            open={translationDialogOpen}
-            onOpenChange={setTranslationDialogOpen}
           />
         </>
       )}

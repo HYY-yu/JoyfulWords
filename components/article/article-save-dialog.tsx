@@ -16,17 +16,20 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { LoaderIcon } from "lucide-react"
+import { articlesClient } from "@/lib/api/articles/client"
 
 interface ArticleSaveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSave: (articleData: { title: string; category?: string; tags: string[] }) => void
+  content?: string  // 新增：文章内容
 }
 
 export function ArticleSaveDialog({
   open,
   onOpenChange,
   onSave,
+  content = "",
 }: ArticleSaveDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -49,24 +52,24 @@ export function ArticleSaveDialog({
     setIsSaving(true)
 
     try {
-      // TODO: Replace with real API call
-      // API: POST /api/articles
-      // Request body: {
-      //   title,
-      //   content: "", // Will be filled later
-      //   category,
-      //   tags: tags.split(',').map(t => t.trim()).filter(t => t)
-      // }
-      // Response: Created article object
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500))
-
+      // 调用真实 API: POST /article
       const tagArray = tags
         .split(",")
         .map(t => t.trim())
         .filter(t => t.length > 0)
 
+      const result = await articlesClient.createArticle({
+        title: title.trim(),
+        content: content,  // 保存当前编辑器内容
+        category: category || undefined,
+        tags: tagArray.join(",") || undefined,
+      })
+
+      if ("error" in result) {
+        throw new Error(result.error)
+      }
+
+      // 保存成功
       onSave({
         title: title.trim(),
         category: category || undefined,
@@ -83,9 +86,10 @@ export function ArticleSaveDialog({
       setTags("")
       onOpenChange(false)
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t("contentWriting.saveDialog.saveFailed")
       toast({
         variant: "destructive",
-        description: "保存失败，请重试",
+        description: errorMessage,
       })
     } finally {
       setIsSaving(false)

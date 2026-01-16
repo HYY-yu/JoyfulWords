@@ -20,7 +20,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react"
-import { Article, ArticleImage, ReferenceLink } from "./article-types"
+import { Article, ArticleImage, ReferenceLink, parseTags } from "./article-types"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -33,6 +33,8 @@ interface ContentPreviewDialogProps {
 export function ContentPreviewDialog({ article, open, onOpenChange }: ContentPreviewDialogProps) {
   if (!article) return null
 
+  const tags = parseTags(article.tags)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh]">
@@ -42,9 +44,9 @@ export function ContentPreviewDialog({ article, open, onOpenChange }: ContentPre
         <ScrollArea className="max-h-[60vh] pr-4">
           <div className="space-y-4">
 
-            {article.tags.length > 0 && (
+            {tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {article.tags.map((tag, index) => (
+                {tags.map((tag, index) => (
                   <Badge key={index} variant="outline" className="text-xs">
                     {tag}
                   </Badge>
@@ -74,10 +76,17 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   if (!article) return null
-  if (article.images.length === 0) return null
+  // 从 materials 中提取 type=image 的素材
+  const images = article.materials?.filter(m => m.type === 'image').map(m => ({
+    id: m.id,
+    url: m.source_url,
+    alt: m.title,
+    caption: m.title,
+  })) || []
+  if (images.length === 0) return null
 
-  const currentImage = article.images[currentImageIndex]
-  const hasMultipleImages = article.images.length > 1
+  const currentImage = images[currentImageIndex]
+  const hasMultipleImages = images.length > 1
 
   const copyImageUrl = () => {
     navigator.clipboard.writeText(currentImage.url)
@@ -115,8 +124,8 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
                   variant="ghost"
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white"
-                  onClick={() => setCurrentImageIndex(Math.min(article.images.length - 1, currentImageIndex + 1))}
-                  disabled={currentImageIndex === article.images.length - 1}
+                  onClick={() => setCurrentImageIndex(Math.min(images.length - 1, currentImageIndex + 1))}
+                  disabled={currentImageIndex === images.length - 1}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -136,7 +145,7 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
               <div className="flex items-center gap-2">
                 {hasMultipleImages && (
                   <span className="text-sm text-muted-foreground">
-                    {currentImageIndex + 1} / {article.images.length}
+                    {currentImageIndex + 1} / {images.length}
                   </span>
                 )}
                 <Button variant="ghost" size="sm" onClick={copyImageUrl}>
@@ -149,7 +158,7 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
           {/* Thumbnail grid */}
           {hasMultipleImages && (
             <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-              {article.images.map((image, index) => (
+              {images.map((image, index) => (
                 <button
                   key={image.id}
                   className={`relative aspect-square rounded-md overflow-hidden border-2 transition-colors ${
@@ -178,9 +187,80 @@ interface LinksDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+interface MaterialsLinksDialogProps {
+  article: Article | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function MaterialsLinksDialog({ article, open, onOpenChange }: MaterialsLinksDialogProps) {
+  const { t } = useTranslation()
+
+  if (!article) return null
+  // 过滤出非图片类型的素材
+  const materials = article.materials?.filter(m => m.type !== 'image') || []
+  if (materials.length === 0) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">
+            {t("contentWriting.articleDialogs.materialsLinks.title")}
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh]">
+          <div className="space-y-4">
+            {materials.map((material) => (
+              <div key={material.id} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-muted-foreground">
+                        {t("contentWriting.articleDialogs.materialsLinks.type")}:
+                      </span>
+                      <span className="text-xs font-medium">
+                        {material.type === 'info' ? t("contentWriting.materials.types.info") : t("contentWriting.materials.types.news")}
+                      </span>
+                    </div>
+                    <h4 className="font-medium truncate">{material.title}</h4>
+                    {material.content && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-3">
+                        {material.content}
+                      </p>
+                    )}
+                    {material.source_url && (
+                      <a
+                        href={material.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 truncate block mt-2"
+                      >
+                        {material.source_url}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface LinksDialogProps {
+  article: Article | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
 export function LinksDialog({ article, open, onOpenChange }: LinksDialogProps) {
   if (!article) return null
-  if (article.referenceLinks.length === 0) return null
+  // 后端 API 没有 referenceLinks 字段，使用空数组作为默认值
+  const referenceLinks = (article as any).referenceLinks || []
+  if (referenceLinks.length === 0) return null
 
   const copyLink = (url: string) => {
     navigator.clipboard.writeText(url)
@@ -194,7 +274,7 @@ export function LinksDialog({ article, open, onOpenChange }: LinksDialogProps) {
         </DialogHeader>
         <ScrollArea className="max-h-[60vh]">
           <div className="space-y-4">
-            {article.referenceLinks.map((link, index) => (
+            {referenceLinks.map((link, index) => (
               <div key={link.id} className="p-4 border rounded-lg space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -226,6 +306,69 @@ export function LinksDialog({ article, open, onOpenChange }: LinksDialogProps) {
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface PostsDialogProps {
+  article: Article | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function PostsDialog({ article, open, onOpenChange }: PostsDialogProps) {
+  const { t } = useTranslation()
+
+  if (!article) return null
+  const posts = article.posts || []
+  if (posts.length === 0) return null
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle className="text-xl">
+            {t("contentWriting.articleDialogs.posts.title")}
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh]">
+          <div className="space-y-4">
+            {posts.map((post) => (
+              <div key={post.id} className="p-4 border rounded-lg space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-muted-foreground">
+                        {t("contentWriting.articleDialogs.posts.platform")}:
+                      </span>
+                      <span className="text-xs font-medium">{post.platform}</span>
+                    </div>
+                    <p className="text-sm text-foreground line-clamp-3">
+                      {post.content}
+                    </p>
+                    {post.author_name && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        作者: {post.author_name}
+                      </p>
+                    )}
+                    {post.original_link && (
+                      <a
+                        href={post.original_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 mt-2"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        {t("contentWriting.articleDialogs.posts.viewOriginal")}
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

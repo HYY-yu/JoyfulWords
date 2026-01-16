@@ -20,14 +20,15 @@ import { Badge } from "@/components/ui/badge"
 import { SparklesIcon, FileTextIcon, TrendingUpIcon, XIcon, LoaderIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { materialsClient } from "@/lib/api/materials/client"
+import { articlesClient } from "@/lib/api/articles/client"
 import type { Material } from "@/lib/api/materials/types"
-import type { Article } from "./article-types"
+import type { Article } from "@/lib/api/articles/types"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onArticleCreated: (article: Article) => void
+  onArticleCreated: (article: Article) => void  // 接收后端返回的 Article 对象
 }
 
 // Competitor type (fake data structure for now)
@@ -169,41 +170,38 @@ export function ArticleAIHelpDialog({
     setIsGenerating(true)
 
     try {
-      // TODO: Replace with real API call
-      // API: POST /api/articles/generate
-      // Request body: {
-      //   sourceMaterials: selectedMaterials,
-      //   sourceCompetitors: selectedCompetitors,
-      //   generationPrompt: prompt
-      // }
-      // Response: Article object with status='init' and empty content
+      // === 真实 API 调用 ===
+      // 转换材料 ID（string → number）
+      const materialIds = selectedMaterials.map(id => Number(id))
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 转换竞品 ID（string → number），目前只有一个竞品可选
+      const postId = selectedCompetitors.length > 0 ? Number(selectedCompetitors[0]) : 0
 
-      // Create new article with 'init' status and empty content
-      const newArticle: Article = {
-        id: `article-${Date.now()}`,
-        title: t("contentWriting.aiHelp.title"), // Temporary title
-        content: "", // Empty content initially
-        summary: "",
-        images: [],
-        referenceLinks: [],
-        createdAt: new Date().toISOString(),
-        modifiedAt: new Date().toISOString(),
-        status: "init",
-        tags: [],
-        category: "",
-        sourceMaterials: selectedMaterials,
-        sourceCompetitors: selectedCompetitors,
-        generationPrompt: prompt,
+      const result = await articlesClient.aiWrite({
+        req: prompt,
+        link_post: postId,
+        link_materials: materialIds,
+      })
+
+      if ('error' in result) {
+        throw new Error(result.error)
       }
 
-      onArticleCreated(newArticle)
-
+      // AI 写作启动成功
       toast({
         description: t("contentWriting.aiHelp.success"),
       })
+
+      // 通知父组件刷新列表查看新文章（status='init'）
+      onArticleCreated({
+        id: result.id,
+        title: "",
+        content: "",
+        status: "init",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        user_id: 0,
+      } as Article)
 
       // Reset form and close dialog
       setPrompt("")
@@ -211,9 +209,10 @@ export function ArticleAIHelpDialog({
       setSelectedCompetitors([])
       onOpenChange(false)
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "生成失败，请重试"
       toast({
         variant: "destructive",
-        description: "生成失败，请重试",
+        description: errorMessage,
       })
     } finally {
       setIsGenerating(false)

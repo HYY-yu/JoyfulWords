@@ -9,7 +9,7 @@ type Locale = 'zh' | 'en';
 interface I18nContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: (key: string) => any;
+  t: (key: string, params?: Record<string, any>) => any;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -35,10 +35,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const t = (key: string): any => {
+  const t = (key: string, params?: Record<string, any>): any => {
     const keys = key.split('.');
     let value: any = dictionaries[locale];
-    
+
     for (const k of keys) {
       if (value && value[k] !== undefined) {
         value = value[k];
@@ -55,7 +55,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         return fallback;
       }
     }
-    
+
+    // 如果有参数，替换字符串中的 {key} 占位符
+    if (params && typeof value === 'string') {
+      return value.replace(/\{(\w+)\}/g, (match, paramKey) => {
+        return params[paramKey] !== undefined ? String(params[paramKey]) : match;
+      });
+    }
+
     return value !== undefined ? value : key;
   };
 

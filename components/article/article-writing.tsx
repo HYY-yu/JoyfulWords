@@ -294,6 +294,14 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     })
   }, [editorState, getDraftKey, toast, t])
 
+  // Handle article metadata updated from editor header
+  const handleArticleUpdated = useCallback((updatedArticle: Article) => {
+    setCurrentArticle(updatedArticle)
+    toast({
+      description: t("contentWriting.editorHeader.saveMetadataSuccess"),
+    })
+  }, [toast, t])
+
   return (
     <div className="flex flex-col h-full gap-6">
       {/* Editor Section */}
@@ -307,6 +315,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             onSaveAsNew={() => setSaveDialogOpen(true)}
             onExport={handleExport}
             onClean={() => setCleanConfirmOpen(true)}
+            onArticleUpdated={handleArticleUpdated}
           />
         </div>
 
@@ -326,6 +335,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
         onSave={handleSaveArticle}
+        content={editorState.content.html}
       />
 
       {/* Clean Confirm Dialog */}

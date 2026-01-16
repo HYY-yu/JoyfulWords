@@ -21,6 +21,7 @@ export const en = {
         en: "English",
         account: "Account",
         aiHelp: "AI Writing Assistant",
+        refresh: "refresh"
     },
     sidebar: {
         title: "Creator Toolbox",

@@ -21,6 +21,7 @@ export const zh = {
         en: "English",
         account: "账号管理",
         aiHelp: "AI 帮写",
+        refresh: "刷新"
     },
     sidebar: {
         title: "创作者工具箱",
@@ -240,6 +241,8 @@ export const zh = {
             cancelBtn: "取消",
             confirmBtn: "确认生成",
             success: "文章已创建，正在生成内容...",
+            generateFailed: "生成失败，请重试",
+            loadMaterialsFailed: "加载素材失败",
         },
         // New: Save Dialog
         saveDialog: {
@@ -255,6 +258,7 @@ export const zh = {
             saveBtn: "保存",
             cancelBtn: "取消",
             saving: "保存中...",
+            saveFailed: "保存失败，请重试",
             success: "文章已保存",
         },
         // New: Editor Header
@@ -284,6 +288,19 @@ export const zh = {
             contentTooLarge: "文章内容过大，可能无法自动保存",
             autoSaveFailed: "自动保存失败，请手动导出文章",
             cleanSuccess: "已清空所有内容",
+            // 新增：元数据编辑
+            editMetadata: "编辑元数据",
+            cancelEdit: "取消",
+            save: "保存",
+            saving: "保存中...",
+            saveMetadataSuccess: "保存成功",
+            saveMetadataFailed: "保存失败",
+            titlePlaceholder: "文章标题",
+            categoryPlaceholder: "可选",
+            tagsPlaceholder: "可选，例如：AI,科技,未来",
+            tagsLabel: "标签（逗号分隔）",
+            categoryLabel: "分类",
+            titleLabel: "标题",
         },
         manager: {
             filterTitle: "文章标题：",
@@ -301,12 +318,17 @@ export const zh = {
             table: {
                 title: "文章标题",
                 content: "文章内容",
-                images: "文章图片",
-                links: "引用链接",
+                status: "状态",
+                images: "图片素材",
+                materials: "其他素材",
+                posts: "竞品文章",
                 created: "创建时间",
                 modified: "修改时间",
                 actions: "操作",
                 noData: "暂无文章数据",
+                viewImages: "查看图片",
+                viewMaterials: "查看素材",
+                viewPosts: "查看竞品",
             },
             clickForDetail: "点击查看详情",
             viewImages: "查看图片",
@@ -322,6 +344,21 @@ export const zh = {
             statusDraft: "草稿",
             statusPublished: "已发布",
             statusArchived: "已归档",
+            // 新增国际化
+            materialsCount: "{count} 素材",
+            postsCount: "{count} 竞品",
+            loading: "加载中...",
+            totalCount: "共 {total} 条，第 {page} 页",
+            perPage: "每页",
+            items: "条",
+            updateStatus: "状态",
+            createArticleSuccess: "新建文章",
+            editArticleSuccess: "编辑: {title}",
+            deleteSuccess: "文章删除成功",
+            deleteFailed: "删除文章失败",
+            statusUpdateSuccess: "状态更新成功",
+            statusUpdateFailed: "状态更新失败",
+            loadFailed: "获取文章列表失败",
         },
         articleDialogs: {
             deleteConfirm: {
@@ -340,6 +377,26 @@ export const zh = {
                 statusTitle: "Doing 中...",
                 statusDesc: "多语言翻译功能正在开发中，敬请期待",
                 confirmBtn: "我知道了",
+            },
+            // 新增对话框
+            imageGallery: {
+                title: "图片素材",
+                noImages: "暂无图片",
+            },
+            materialsLinks: {
+                title: "其他素材",
+                noMaterials: "暂无其他素材",
+                type: "类型",
+                materialTitle: "标题",
+                content: "内容",
+                link: "链接",
+            },
+            posts: {
+                title: "竞品文章",
+                noPosts: "暂无竞品文章",
+                platform: "平台",
+                content: "内容",
+                viewOriginal: "查看原文",
             },
         }
     },
