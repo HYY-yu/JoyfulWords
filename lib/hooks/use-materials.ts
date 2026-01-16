@@ -12,6 +12,9 @@ import type {
 } from "@/lib/api/materials/types"
 import { UI_TAB_TO_API_TYPE } from "@/lib/api/materials/enums"
 
+// Re-export types for use in other modules
+export type { Material, MaterialLog, MaterialType, MaterialStatus } from "@/lib/api/materials/types"
+
 export interface UploadForm {
   name: string
   type: "Info" | "Image"

@@ -7,6 +7,7 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-web'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
 import { registerInstrumentations } from '@opentelemetry/instrumentation'
+import { resourceFromAttributes } from '@opentelemetry/resources';
 
 let isInitialized = false
 
@@ -38,11 +39,11 @@ export function initClientTracing() {
     // Create WebTracerProvider with span processor
     const provider = new WebTracerProvider({
       // Service name and other resource attributes
-      resource: {
+      resource: resourceFromAttributes({
         [ATTR_SERVICE_NAME]: 'joyful-words-browser',
-      },
+      }),
       // Add batch span processor for efficient export
-      spanProcessor: new BatchSpanProcessor(exporter),
+      spanProcessors: [new BatchSpanProcessor(exporter)],
     })
 
     // Register provider with ZoneContextManager (required for async context)
