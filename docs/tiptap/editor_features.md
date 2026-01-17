@@ -368,7 +368,7 @@ export function ControlledEditor({ value, onChange }: Props) {
 │                    TiptapEditor                              │
 │  (Tiptap useEditor hook)                                     │
 │  - StarterKit, Underline, Link, CustomImage                 │
-│  - Markdown 扩展（已禁用）                                   │
+│  - CustomHighlight, CustomTextAlign, Markdown               │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -378,22 +378,39 @@ export function ControlledEditor({ value, onChange }: Props) {
 
 **配置：**
 ```typescript
-// 第 29-84 行
+// 第 44-69 行
+const extensions = useMemo(() => [
+  StarterKit.configure({
+    heading: {
+      levels: [1, 2, 3],
+    },
+    link: false,  // 禁用 StarterKit 中的 link（如果存在）
+    underline: false,  // 禁用 StarterKit 中的 underline（如果存在）
+  }),
+  Link.configure({
+    openOnClick: false,
+    HTMLAttributes: {
+      class: "text-blue-600 underline cursor-pointer",
+    },
+  }),
+  Underline,
+  CustomImage.configure({
+    inline: false,
+    allowBase64: true,
+    HTMLAttributes: {
+      class: "max-w-full h-auto rounded-lg",
+    },
+  }),
+  CustomHighlight,  // Text highlighting with colors
+  CustomTextAlign,  // Text alignment (left, center, right, justify)
+  Markdown,  // ✅ Markdown extension for export functionality
+], []);
+
 const editor = useEditor({
-  extensions: [
-    StarterKit,
-    Underline,
-    Link,
-    CustomImage,
-    // ❌ Markdown 扩展被禁用
-    // Markdown.configure({
-    //   html: true,
-    //   transformPastedText: true,
-    // }),
-  ],
-  content,              // 初始内容
+  extensions,
+  content: initialContent,
   editable,
-  immediatelyRender: true,
+  immediatelyRender: false,
   onUpdate: ({ editor }) => {
     const html = editor.getHTML()
     const text = editor.getText()
@@ -892,52 +909,71 @@ const editor = useEditor({
 })
 ```
 
-#### B2. 添加 Markdown → HTML 转换工具
+#### B2. Markdown ↔ HTML 格式转换工具
 
-**文件：** `lib/tiptap-extensions.ts`（新建工具函数）
+**文件：** `lib/tiptap-utils.ts`
 
+**实现方案**：项目使用混合方案进行格式转换
+
+1. **Markdown → HTML**: 使用 `marked.js` 库
 ```typescript
-import { Markdown } from '@tiptap/markdown'
-import { Editor } from '@tiptap/react'
+import { marked } from 'marked'
 
-/**
- * 将 Markdown 转换为 HTML
- * 使用 Tiptap 的 Markdown 扩展
- */
-export function markdownToHTML(markdown: string, extensions: any[] = []): string {
-  // 创建临时编辑器实例
-  const editor = new Editor({
-    extensions: [
-      ...extensions,
-      Markdown.configure({
-        html: false,
-        transformPastedText: true,
-      }),
-    ],
-    content: markdown,
-  })
+// Configure marked for GFM (GitHub Flavored Markdown)
+marked.use({
+  gfm: true,
+  breaks: false,  // Don't convert single line breaks to <br>
+})
 
-  const html = editor.getHTML()
-  editor.destroy()
+export async function markdownToHTML(markdown: string): Promise<string> {
+  if (!markdown) return ''
 
-  return html
+  try {
+    return await marked.parse(markdown)
+  } catch (error) {
+    console.error('[markdownToHTML] Conversion failed:', error)
+    return ''
+  }
 }
+```
 
-/**
- * 检测内容格式
- */
+2. **HTML → Markdown**: 使用 Tiptap 编辑器实例（通过 window 对象访问）
+```typescript
+export function htmlToMarkdown(html: string): string {
+  if (!html) return ''
+
+  try {
+    // Access main editor instance (exposed at tiptap-editor.tsx:120)
+    const editor = (window as any).tiptapEditor
+
+    if (!editor) {
+      console.error('[htmlToMarkdown] Editor not initialized.')
+      return ''
+    }
+
+    // Get Markdown using the Markdown extension
+    return editor.getMarkdown()
+  } catch (error) {
+    console.error('[htmlToMarkdown] Conversion failed:', error)
+    return html
+  }
+}
+```
+
+3. **格式检测**: 自动识别 Markdown、HTML 或纯文本
+```typescript
 export function detectContentFormat(content: string): 'markdown' | 'html' | 'text' {
   if (!content) return 'text'
 
   // 检测 Markdown 标记
   const markdownPatterns = [
-    /^#{1,6}\s+/m,        // 标题
-    /^\*{3,}$/m,           // 分隔线
-    /^\[.+\]\(.+\)/m,     // 链接
-    /^>\s+/m,              // 引用
-    /^\*{1,2}.+\*{1,2}/m, // 粗体/斜体
-    /^[-*+]\s+/m,          // 列表
-    /^\d+\.\s+/m,          // 有序列表
+    /^#{1,6}\s+/m,        // 标题 #, ##, ###
+    /^\*{3,}$/m,           // 分隔线 ***
+    /^\[.+?\]\(.+?\)/m,    // 链接 [text](url)
+    /^>\s+/m,              // 引用 >
+    /^\*{1,2}.+?\*{1,2}/m, // 粗体/斜体 *text* or **text**
+    /^[-*+]\s+/m,          // 无序列表 - * +
+    /^\d+\.\s+/m,          // 有序列表 1. 2. 3.
   ]
 
   for (const pattern of markdownPatterns) {
@@ -953,6 +989,37 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
 
   return 'text'
 }
+```
+
+4. **自动转换**: 根据格式自动转换为 HTML
+```typescript
+export async function normalizeContentToHTML(
+  content: string,
+  sourceFormat?: 'markdown' | 'html' | 'text'
+): Promise<string> {
+  if (!content) return ''
+
+  const format = sourceFormat || detectContentFormat(content)
+
+  switch (format) {
+    case 'markdown':
+      return await markdownToHTML(content)
+    case 'html':
+      return content
+    case 'text':
+      return textToHTML(content)
+    default:
+      return content
+  }
+}
+```
+
+**技术栈**: `marked` npm 包（已在 package.json 中）
+
+**优势**:
+- `marked.js` 性能优异，Markdown → HTML 转换速度快
+- Tiptap 编辑器实例复用，避免重复创建
+- 格式自动检测，用户无需手动指定
 ```
 
 #### B3. 更新 ArticleWriting 组件

@@ -100,6 +100,36 @@ Added translations for:
 
 ### Phase 2: New Components Created
 
+#### 新增组件列表
+
+1. **article-ai-help-dialog.tsx** - AI 写作辅助对话框
+   - 素材多选（支持搜索过滤）
+   - 竞品选择（单选）
+   - 自定义写作提示输入
+   - 集成 AI 写作 API
+
+2. **article-save-dialog.tsx** - 保存对话框
+   - 文章标题输入
+   - 分类和标签编辑
+   - 表单验证
+   - API 集成
+
+3. **article-editor-header.tsx** - 编辑器头部
+   - 文章元数据显示（标题、状态、字数）
+   - 内联编辑分类和标签
+   - 导出功能（Markdown/HTML）
+   - 清空编辑器
+
+4. **article-dialogs.tsx** - 对话框组件集合（6个）
+   - ContentPreviewDialog - 内容预览
+   - ImageGalleryDialog - 图片画廊
+   - MaterialsLinksDialog - 素材链接查看
+   - DeleteConfirmDialog - 删除确认
+   - PublishManagementDialog - 发布管理
+   - TranslationDialog - 翻译功能
+
+---
+
 #### 1. Article AI Help Dialog (`article-ai-help-dialog.tsx`)
 
 **Purpose**: Dialog for AI-generated article creation in Article Manager
@@ -210,6 +240,84 @@ const result = await materialsClient.getMaterials({
 | `draft` | ✅ | ✅ |
 | `published` | ✅ | ✅ |
 | `archived` | ❌ | ✅ |
+
+---
+
+#### 数据传递机制
+
+**实现方式**: 使用 window 对象在组件间传递编辑状态
+
+**编辑模式流程**:
+```typescript
+// article-manager.tsx - 发送数据
+const handleEdit = (article: Article) => {
+  (window as any).__editArticle = article;
+  router.push('/content-writing/article-writing');
+};
+
+// article-writing.tsx - 接收数据
+useEffect(() => {
+  const editArticle = (window as any).__editArticle;
+  if (editArticle) {
+    setCurrentArticle(editArticle);
+    setIsEditMode(true);
+    (window as any).__editArticle = null; // 清理
+  }
+}, []);
+```
+
+**注意事项**:
+- ⚠️ 此方式可能影响服务端渲染（SSR）兼容性
+- ✅ 当前实现适用于纯客户端渲染应用
+- 未来可考虑迁移到 React Context 或 router state
+
+---
+
+#### 草稿自动保存机制
+
+**实现方式**: localStorage + 防抖保存
+
+**草稿结构**:
+```typescript
+interface ArticleDraft {
+  article: Article | null;
+  isEditMode: boolean;
+  lastSaved: string;
+  content: {
+    html: string;      // HTML 格式
+    markdown: string;  // Markdown 格式（可选）
+    text: string;      // 纯文本（字数统计）
+  };
+  metadata: {
+    wordCount: number;
+    hasUnsavedChanges: boolean;
+    version: string;   // 草稿版本控制
+  };
+}
+```
+
+**关键特性**:
+1. **用户隔离**: 按用户 ID 隔离草稿
+   ```typescript
+   const getDraftKey = () => `article-draft-${user?.id || 'anonymous'}`;
+   ```
+
+2. **防抖保存**: 500ms 延迟，避免频繁写入
+   ```typescript
+   const debouncedSave = useDebouncedCallback((draft) => {
+     localStorage.setItem(getDraftKey(), JSON.stringify(draft));
+   }, 500);
+   ```
+
+3. **版本控制**: 支持草稿格式升级
+   ```typescript
+   if (draft.metadata?.version !== 'v1.0.0') {
+     console.warn('Draft version mismatch');
+     return;
+   }
+   ```
+
+4. **自动恢复**: 页面刷新后自动恢复未保存内容
 
 ---
 

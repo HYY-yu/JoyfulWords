@@ -85,6 +85,33 @@ The application uses **Tiptap 2.x** as the rich text editor for content creation
 **📚 Detailed Documentation:** For comprehensive information about Tiptap implementation, see:
 - `/docs/tiptap/editor_features.md` - Feature design, data flow, best practices, and implementation details
 
+**Markdown 支持**: 使用混合方案
+- Markdown → HTML: marked.js 库
+- HTML → Markdown: Tiptap 编辑器实例（通过 window.tiptapEditor 访问）
+- 格式自动检测: `detectContentFormat()`
+
+**扩展列表**:
+- StarterKit（标题、加粗、斜体等）
+- Link（链接管理）
+- Underline（下划线）
+- CustomImage（图片上传到 R2）
+- CustomHighlight（5种颜色高亮）
+- CustomTextAlign（4种对齐方式）
+- Markdown（Markdown 格式支持）
+
+**UI 组件**:
+- `components/ui/tiptap-toolbar.tsx` - 工具栏
+- `components/ui/tiptap-toolbar-button.tsx` - 工具栏按钮
+- `components/ui/highlight-buttons.tsx` - 高亮颜色选择
+- `components/ui/text-align-buttons.tsx` - 文本对齐按钮
+- `components/ui/image-menu.tsx` - 图片编辑浮动菜单
+- `components/ui/link-menu.tsx` - 链接编辑浮动菜单
+
+**工具函数**:
+- `lib/tiptap-utils.ts` - 格式转换（Markdown ↔ HTML）
+- `lib/tiptap-image-upload.ts` - 图片上传到 R2
+- `lib/editor-state.ts` - 编辑器状态管理
+
 ## Project Structure
 
 ```
