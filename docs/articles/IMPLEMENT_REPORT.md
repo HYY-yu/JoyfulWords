@@ -124,7 +124,6 @@ const result = await materialsClient.getMaterials({
   page_size: 100,
 })
 
-// TODO: POST /api/articles/generate - AI content generation
 // TODO: GET /api/competitors - Competitor posts (not implemented)
 ```
 
@@ -141,11 +140,6 @@ const result = await materialsClient.getMaterials({
 - Form validation
 - Loading states
 - Toast notifications
-
-**API Integration**:
-```typescript
-// TODO: POST /api/articles - Create new article
-```
 
 ---
 
@@ -272,20 +266,6 @@ components/article/
 
 ## API Integration
 
-### Already Implemented
-- ✅ **Materials API**: `materialsClient.getMaterials()` from `@/lib/api/materials/client`
-
-### Need Implementation (Marked with TODO)
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/articles` | GET | List articles |
-| `/api/articles/:id` | GET | Get single article |
-| `/api/articles` | POST | Create article |
-| `/api/articles/:id` | PUT | Update article |
-| `/api/articles/:id` | DELETE | Delete article |
-| `/api/competitors` | GET | Fetch competitor posts |
-| `/api/articles/generate` | POST | Trigger AI generation |
-
 ### Backend Data Structure
 ```typescript
 interface Article {
@@ -317,7 +297,6 @@ interface Article {
 ✅ Proper loading states for async operations
 ✅ Responsive design (mobile-friendly)
 ✅ i18n support (Chinese + English)
-✅ Clear TODO comments for future API work
 ✅ No console errors or warnings
 
 ---
@@ -360,7 +339,6 @@ interface Article {
    - `GET /api/competitors` - Fetch competitor posts
 
 ### For Frontend Team
-1. Replace TODO comments with real API calls
 2. Connect Save Dialog to `POST /api/articles`
 3. Connect Edit functionality to `PUT /api/articles/:id`
 4. Add unsaved changes detection

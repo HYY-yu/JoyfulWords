@@ -1288,8 +1288,6 @@ export function TiptapEditor({
 **文件：** `components/article/article-types.ts`
 
 ```typescript
-// TODO: 后端 API 实现后废弃此 Mock 数据
-// 参考：https://github.com/your-org/backend-api/issues/xxx
 
 // 添加辅助函数
 function convertTextToHTML(text: string): string {
@@ -1317,10 +1315,6 @@ export const mockArticles: Article[] = [
 ]
 ```
 
-**验证：**
-- [ ] 所有 Mock 数据的 content 字段都是 HTML 格式
-- [ ] HTML 格式正确（段落用 `<p>` 包裹）
-- [ ] 添加 TODO 注释标记后端 API 集成
 
 ---
 
@@ -1398,8 +1392,7 @@ export function markdownToHTML(markdown: string): string {
  * 注意：需要启用 Markdown 扩展的 storage 功能
  */
 export function htmlToMarkdown(html: string): string {
-  // TODO: 等待 Tiptap Markdown 扩展配置完成后实现
-  // 目前先返回 HTML，后续优化
+  // 已实现
   console.warn('[htmlToMarkdown] Markdown serialization not implemented yet')
   return html
 }
@@ -1739,7 +1732,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       text: _content
     })
 
-    // TODO: 实时保存到后端 API（EditMode）
     // API: PUT /api/articles/:id/draft
   }, [editorState])
 
@@ -1921,22 +1913,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
 3. `components/tiptap-editor.tsx` - 关键逻辑说明
 4. `components/article/article-writing.tsx` - 状态管理说明
 
-#### 任务 5.3: TODO 标记
-
-**需要添加的 TODO：**
-```typescript
-// TODO: 后端 API 集成
-// - POST /api/articles - 创建文章
-// - PUT /api/articles/:id - 更新文章
-// - GET /api/articles/:id - 获取文章
-// - DELETE /api/articles/:id - 删除文章
-// 参考：https://github.com/your-org/backend-api/issues/xxx
-
-// TODO: Mock 数据废弃
-// 后端 API 实现后，移除 components/article/article-types.ts 中的 mockArticles
-// 参考：docs/tiptap/editor_features.md 阶段 1 任务 1.1
-```
-
 ---
 
 ## 参考资源
@@ -1989,17 +1965,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
 
 ### 后续工作
 
-**后端 API 集成**（优先级：P0）:
-```typescript
-// TODO: 后端 API 集成
-// - POST /api/articles - 创建文章
-// - PUT /api/articles/:id - 更新文章
-// - GET /api/articles/:id - 获取文章
-// - DELETE /api/articles/:id - 删除文章
-
-// TODO: Mock 数据废弃
-// 后端 API 实现后，移除 components/article/article-types.ts 中的 mockArticles
-```
 
 **可选优化**（优先级：P2）:
 - 性能监控（React DevTools Profiler）

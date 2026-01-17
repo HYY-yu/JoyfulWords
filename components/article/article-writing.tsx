@@ -111,78 +111,97 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   // Load article from window state on mount (runs every time due to key prop)
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
-    // 1. 优先检查 Edit 跳转（第一次编辑时）
-    const editArticle = (window as any).__editArticle
+    const loadArticle = async () => {
+      // 1. 优先检查 Edit 跳转（第一次编辑时）
+      const editArticle = (window as any).__editArticle
 
-    if (editArticle) {
-      console.log('[ArticleWriting] Loading edit article from window:', editArticle)
+      if (editArticle) {
+        console.log('[ArticleWriting] Loading edit article from window:', editArticle)
 
-      // ✅ 检测内容格式并转换为 HTML
-      const format = detectContentFormat(editArticle.content)
-      const htmlOrJSONObj = normalizeContentToHTML(editArticle.content, format)
+        // ✅ 检测内容格式并转换为 HTML
+        const format = detectContentFormat(editArticle.content)
+        const html = await normalizeContentToHTML(editArticle.content, format)
 
-      editorState.setContent({
-        html: '',
-        text: editArticle.content.replace(/<[^>]*>/g, "")
-      })
+        console.log('[ArticleWriting] Converted HTML:', html)
 
-      setCurrentArticle(editArticle)
-      setIsEditMode(true)
+        // Update editor state for tracking
+        editorState.setContent({
+          html: html,
+          text: editArticle.content.replace(/<[^>]*>/g, "")
+        })
 
-      // Clear edit article data, but keep editArticleId for tab switching
-      ;(window as any).__editArticle = null
-      // 注意：不清除 window.__editArticleId，这样切换 tab 时能保持状态
-      return
-    }
-
-    // 2. 从 localStorage 加载（编辑模式切换 tab，或新建模式的草稿）
-    const savedDraft = localStorage.getItem(getDraftKey())
-    if (savedDraft) {
-      try {
-        const draft: ArticleDraft = JSON.parse(savedDraft)
-
-        // 版本检查
-        if (draft.metadata?.version !== 'v1.0.0') {
-          console.warn('Draft version mismatch:', draft.metadata?.version)
-          return
+        // ✅ 直接设置编辑器内容，避免时序问题
+        const editor = (window as any).tiptapEditor
+        if (editor) {
+          console.log('[ArticleWriting] Setting editor content directly')
+          console.log('[ArticleWriting] Before setContent - Editor HTML:', editor.getHTML())
+          editor.commands.setContent(html, { emitUpdate: false })
+          console.log('[ArticleWriting] After setContent - Editor HTML:', editor.getHTML())
+          console.log('[ArticleWriting] Editor JSON:', JSON.stringify(editor.state.doc.toJSON(), null, 2))
+        } else {
+          console.warn('[ArticleWriting] Editor not ready, content will be set via prop update')
         }
 
-        // 编辑模式：检查 draft 中的文章 ID 是否匹配
-        // 新文章模式：直接加载草稿
-        if (articleId) {
-          // 编辑模式：只有 draft 中的文章 ID 匹配时才加载
-          if (draft.article && draft.article.id === articleId) {
-            console.log('[ArticleWriting] Loading edit article from localStorage:', draft.article)
+        setCurrentArticle(editArticle)
+        setIsEditMode(true)
+
+        // Clear edit article data, but keep editArticleId for tab switching
+        ;(window as any).__editArticle = null
+        // 注意：不清除 window.__editArticleId，这样切换 tab 时能保持状态
+        return
+      }
+
+      // 2. 从 localStorage 加载（编辑模式切换 tab，或新建模式的草稿）
+      const savedDraft = localStorage.getItem(getDraftKey())
+      if (savedDraft) {
+        try {
+          const draft: ArticleDraft = JSON.parse(savedDraft)
+
+          // 版本检查
+          if (draft.metadata?.version !== 'v1.0.0') {
+            console.warn('Draft version mismatch:', draft.metadata?.version)
+            return
+          }
+
+          // 编辑模式：检查 draft 中的文章 ID 是否匹配
+          // 新文章模式：直接加载草稿
+          if (articleId) {
+            // 编辑模式：只有 draft 中的文章 ID 匹配时才加载
+            if (draft.article && draft.article.id === articleId) {
+              console.log('[ArticleWriting] Loading edit article from localStorage:', draft.article)
+              editorState.setContent({
+                html: draft.content.html,
+                text: draft.content.text
+              })
+              setCurrentArticle(draft.article)
+              setIsEditMode(true)
+            } else {
+              console.log('[ArticleWriting] Draft article ID mismatch, clearing state')
+              // ID 不匹配，说明是切换到了另一篇文章，清除状态
+              editorState.reset()
+              setCurrentArticle(null)
+              setIsEditMode(false)
+            }
+          } else {
+            // 新文章模式：恢复草稿
             editorState.setContent({
               html: draft.content.html,
               text: draft.content.text
             })
             setCurrentArticle(draft.article)
-            setIsEditMode(true)
-          } else {
-            console.log('[ArticleWriting] Draft article ID mismatch, clearing state')
-            // ID 不匹配，说明是切换到了另一篇文章，清除状态
-            editorState.reset()
-            setCurrentArticle(null)
-            setIsEditMode(false)
-          }
-        } else {
-          // 新文章模式：恢复草稿
-          editorState.setContent({
-            html: draft.content.html,
-            text: draft.content.text
-          })
-          setCurrentArticle(draft.article)
-          setIsEditMode(draft.isEditMode)
+            setIsEditMode(draft.isEditMode)
 
-          toast({
-            description: t("contentWriting.editorHeader.draftRestored")
-          })
+            toast({
+              description: t("contentWriting.editorHeader.draftRestored")
+            })
+          }
+        } catch (error) {
+          console.error('[ArticleWriting] Failed to load draft:', error)
         }
-      } catch (error) {
-        console.error('[ArticleWriting] Failed to load draft:', error)
       }
     }
+
+    loadArticle()
   }, [getDraftKey, toast, t, articleId, editorState])
   /* eslint-enable react-hooks/exhaustive-deps */
 

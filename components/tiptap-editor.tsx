@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
+import { Markdown } from "@tiptap/markdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/tiptap-toolbar";
 import { CustomImage, CustomHighlight, CustomTextAlign } from "@/lib/tiptap-extensions";
@@ -49,7 +50,7 @@ export function TiptapEditor({
       underline: false,  // 禁用 StarterKit 中的 underline（如果存在）
     }),
     Link.configure({
-      openOnClick: false,  
+      openOnClick: false,
       HTMLAttributes: {
         class: "text-blue-600 underline cursor-pointer",
       },
@@ -64,6 +65,7 @@ export function TiptapEditor({
     }),
     CustomHighlight,  // Text highlighting with colors
     CustomTextAlign,  // Text alignment (left, center, right, justify)
+    Markdown,  // Markdown extension for export functionality
   ], []);
 
   const editor = useEditor({

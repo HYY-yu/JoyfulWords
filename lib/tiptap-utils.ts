@@ -1,10 +1,10 @@
-import { Editor } from '@tiptap/react'
-import StarterKit from '@tiptap/starter-kit'
-import { Markdown } from '@tiptap/markdown'
-import Link from '@tiptap/extension-link'
+import { marked } from 'marked'
 
-// 从 tiptap-extensions.ts 导入自定义扩展
-import { UnderlineWithMarkdown, CustomImage, CustomHighlight, CustomTextAlign } from './tiptap-extensions'
+// Configure marked for GFM (GitHub Flavored Markdown)
+marked.use({
+  gfm: true,
+  breaks: false,  // Don't convert single line breaks to <br>
+})
 
 /**
  * Tiptap 编辑器工具函数集合
@@ -55,53 +55,8 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
 }
 
 /**
- * 转换编辑器的扩展配置
- * 确保与实际编辑器配置一致，以支持所有自定义扩展
- */
-const CONVERTER_EXTENSIONS = [
-  StarterKit.configure({
-    heading: {
-      levels: [1, 2, 3],
-    },
-    link: false,
-    underline: false,
-  }),
-  UnderlineWithMarkdown,
-  CustomImage,
-  CustomHighlight,
-  CustomTextAlign,
-  Link.configure({
-    openOnClick: false,
-    HTMLAttributes: {
-      class: "text-blue-600 underline cursor-pointer",
-    },
-  }),
-  Markdown,
-]
-
-/**
- * 全局转换编辑器实例（单例模式）
- * 生命周期跟随应用
- */
-let _converter: Editor | null = null
-
-/**
- * 获取转换编辑器实例
- */
-function getConverter(): Editor {
-  if (!_converter) {
-    _converter = new Editor({
-      extensions: CONVERTER_EXTENSIONS,
-      content: '',
-      contentType: 'markdown',
-    })
-  }
-  return _converter
-}
-
-/**
  * Markdown 转 HTML
- * 使用官方推荐的 contentType: 'markdown' 方式
+ * 使用 marked.js 库进行转换
  *
  * @param markdown - Markdown 格式字符串
  * @returns HTML 格式字符串
@@ -112,17 +67,11 @@ function getConverter(): Editor {
  * // 返回: '<h1>Hello</h1><p>This is <strong>bold</strong> text</p>'
  * ```
  */
-export function markdownToHTML(markdown: string): any {
+export async function markdownToHTML(markdown: string): Promise<string> {
   if (!markdown) return ''
-
+ 
   try {
-    console.log(markdown)
-    const editor = getConverter()
-
-    // 使用官方推荐的 API
-    editor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: true })
-
-    return editor.getJSON()
+    return await marked.parse(markdown)
   } catch (error) {
     console.error('[markdownToHTML] Conversion failed:', error)
     return ''
@@ -131,7 +80,7 @@ export function markdownToHTML(markdown: string): any {
 
 /**
  * HTML 转 Markdown
- * 使用官方推荐的 getMarkdown() 方法
+ * 使用主编辑器的 getMarkdown() 方法（需要 Markdown 扩展）
  *
  * @param html - HTML 格式字符串
  * @returns Markdown 格式字符串
@@ -146,12 +95,15 @@ export function htmlToMarkdown(html: string): string {
   if (!html) return ''
 
   try {
-    const editor = getConverter()
+    // Access main editor instance (exposed at tiptap-editor.tsx:120)
+    const editor = (window as any).tiptapEditor
 
-    // 设置 HTML 内容
-    editor.commands.setContent(html)
+    if (!editor) {
+      console.error('[htmlToMarkdown] Editor not initialized. Call this after editor is ready.')
+      return ''
+    }
 
-    // 使用官方推荐的 API
+    // Get Markdown using the Markdown extension
     return editor.getMarkdown()
   } catch (error) {
     console.error('[htmlToMarkdown] Conversion failed:', error)
@@ -198,17 +150,17 @@ export function textToHTML(text: string): string {
  * normalizeContentToHTML('<p>Hello</p>', 'html') // 直接返回
  * ```
  */
-export function normalizeContentToHTML(
+export async function normalizeContentToHTML(
   content: string,
   sourceFormat?: 'markdown' | 'html' | 'text'
-): string {
+): Promise<string> {
   if (!content) return ''
 
   const format = sourceFormat || detectContentFormat(content)
 
   switch (format) {
     case 'markdown':
-      return markdownToHTML(content)
+      return await markdownToHTML(content)
     case 'html':
       return content
     case 'text':
@@ -235,21 +187,4 @@ export function extractTextFromHTML(html: string): string {
 
   // 移除 HTML 标签
   return html.replace(/<[^>]*>/g, '')
-}
-
-/**
- * 清理转换编辑器（可选，仅在需要时手动调用）
- * 通常不需要调用，让编辑器跟随应用生命周期
- *
- * @example
- * ```ts
- * // 仅在特殊场景下使用，例如应用卸载前需要释放内存
- * cleanupConverter()
- * ```
- */
-export function cleanupConverter() {
-  if (_converter) {
-    _converter.destroy()
-    _converter = null
-  }
 }
