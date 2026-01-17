@@ -119,11 +119,10 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
 
       // ✅ 检测内容格式并转换为 HTML
       const format = detectContentFormat(editArticle.content)
-      const htmlContent = normalizeContentToHTML(editArticle.content, format)
+      const htmlOrJSONObj = normalizeContentToHTML(editArticle.content, format)
 
-      // ✅ 使用统一状态管理
       editorState.setContent({
-        html: htmlContent,
+        html: '',
         text: editArticle.content.replace(/<[^>]*>/g, "")
       })
 
@@ -250,13 +249,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     }
   }, [editorState])
 
-  const handleSaveArticle = (articleData: { title: string; category?: string; tags: string[] }) => {
-    // TODO: Implement save logic
-    // API: POST /api/articles to create new article
-    console.log("Saving article:", articleData)
-    // Will be connected to API later
-  }
-
   // Auto-save to localStorage when content changes
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
@@ -334,7 +326,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       <ArticleSaveDialog
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
-        onSave={handleSaveArticle}
         content={editorState.content.html}
       />
 

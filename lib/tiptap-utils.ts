@@ -63,6 +63,8 @@ const CONVERTER_EXTENSIONS = [
     heading: {
       levels: [1, 2, 3],
     },
+    link: false,
+    underline: false,
   }),
   UnderlineWithMarkdown,
   CustomImage,
@@ -91,7 +93,7 @@ function getConverter(): Editor {
     _converter = new Editor({
       extensions: CONVERTER_EXTENSIONS,
       content: '',
-      editable: false, // 转换用途，无需可编辑
+      contentType: 'markdown',
     })
   }
   return _converter
@@ -110,16 +112,17 @@ function getConverter(): Editor {
  * // 返回: '<h1>Hello</h1><p>This is <strong>bold</strong> text</p>'
  * ```
  */
-export function markdownToHTML(markdown: string): string {
+export function markdownToHTML(markdown: string): any {
   if (!markdown) return ''
 
   try {
+    console.log(markdown)
     const editor = getConverter()
 
     // 使用官方推荐的 API
-    editor.commands.setContent(markdown, { contentType: 'markdown' })
+    editor.commands.setContent(markdown, { contentType: 'markdown', emitUpdate: true })
 
-    return editor.getHTML()
+    return editor.getJSON()
   } catch (error) {
     console.error('[markdownToHTML] Conversion failed:', error)
     return ''

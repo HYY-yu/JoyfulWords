@@ -84,13 +84,13 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
-    // 方案1：保留 window.__editArticle (向后兼容)
+    // 保留 window.__editArticle (向后兼容)
     ;(window as any).__editArticle = article
 
-    // 方案2：设置文章 ID（用于 React key）
+    // 设置文章 ID（用于 React key）
     ;(window as any).__editArticleId = article.id
 
-    // 方案3：新增 localStorage 存储（使用用户特定的 key）
+    // 新增 localStorage 存储（使用用户特定的 key）
     try {
       const draft = {
         article,
