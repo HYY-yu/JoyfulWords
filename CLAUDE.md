@@ -74,7 +74,7 @@ pnpm lint
 
 ### Tiptap Rich Text Editor
 
-The application uses **Tiptap 2.x** as the rich text editor for content creation (article-writing, etc.).
+The application uses **Tiptap 3.x** as the rich text editor for content creation (article-writing, etc.).
 
 **Key Files:**
 - Component: `/components/tiptap-editor.tsx`
