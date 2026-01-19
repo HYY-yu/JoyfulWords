@@ -161,16 +161,17 @@ export const zh = {
             logs: {
                 table: {
                     id: "日志 ID",
-                    type: "类型",
+                    snapshotId: "快照 ID",
                     status: "状态",
                     createdAt: "创建时间",
                     updatedAt: "更新时间",
                     noData: "暂无抓取日志",
                 },
                 status: {
+                    pending: "等待处理",
+                    doing: "进行中",
                     success: "成功",
                     failed: "失败",
-                    doing: "进行中",
                 },
             },
             dialog: {
@@ -186,6 +187,12 @@ export const zh = {
                 unitDays: "天",
                 confirmDeleteTitle: "确认删除",
                 confirmDeleteDesc: "确定要删除这个定时任务吗？此操作无法撤销。",
+            },
+            pagination: {
+                perPage: "每页",
+                items: "条",
+                totalInfo: "共 {total} 条，第 {current}/{total} 页",
+                pageOf: "/",
             },
         },
         writing: {

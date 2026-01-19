@@ -161,16 +161,17 @@ export const en = {
             logs: {
                 table: {
                     id: "Log ID",
-                    type: "Type",
+                    snapshotId: "Snapshot ID",
                     status: "Status",
                     createdAt: "Created At",
                     updatedAt: "Updated At",
                     noData: "No crawl logs",
                 },
                 status: {
+                    pending: "Pending",
+                    doing: "Doing",
                     success: "Success",
                     failed: "Failed",
-                    doing: "Doing",
                 },
             },
             dialog: {
@@ -186,6 +187,12 @@ export const en = {
                 unitDays: "Days",
                 confirmDeleteTitle: "Confirm Delete",
                 confirmDeleteDesc: "Are you sure you want to delete this scheduled task? This action cannot be undone.",
+            },
+            pagination: {
+                perPage: "Per page",
+                items: "items",
+                totalInfo: "Total {total}, Page {current}/{total}",
+                pageOf: "/",
             },
         },
         writing: {

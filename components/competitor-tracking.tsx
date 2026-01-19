@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { SearchIcon, ClockIcon, ExternalLinkIcon, TrashIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -26,267 +26,183 @@ import {
 } from "@/components/ui/alert-dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-
-type Platform = "linkedin" | "facebook" | "x.com" | "reddit"
-
-type Post = {
-  id: string
-  platform: Platform
-  content: string
-  url: string
-  likes: number
-  comments: number
-  createdAt: string
-  sourceUrl: string
-}
-
-type ScheduledTask = {
-  id: string
-  platform: Platform
-  profileUrl: string
-  interval: string
-  lastRun: string
-  nextRun: string
-  status: "active" | "paused"
-}
-
-type ScheduleConfig = {
-  mode: "simple" | "custom"
-  simpleInterval: number
-  simpleUnit: "hours" | "days"
-  cronExpression: string
-}
-
-const platforms: { id: Platform; label: string; placeholder: string }[] = [
-  { id: "linkedin", label: "LinkedIn", placeholder: "https://www.linkedin.com/in/username" },
-  { id: "facebook", label: "Facebook", placeholder: "https://www.facebook.com/username" },
-  { id: "x.com", label: "X.com", placeholder: "https://x.com/username" },
-  { id: "reddit", label: "Reddit", placeholder: "https://www.reddit.com/user/username" },
-]
-
-type UrlType = "profile" | "post"
-
-type CrawlLog = {
-  id: string
-  type: "profile" | "post"
-  status: "doing" | "success" | "failed"
-  created_at: string
-  updated_at: string
-}
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+  PaginationEllipsis,
+} from "@/components/ui/pagination"
+import { useCompetitors } from "@/lib/hooks/use-competitors"
+import { PLATFORM_OPTIONS, CRAWL_LOG_STATUS_COLOR_CONFIG } from "@/lib/api/competitors/enums"
+import { formatApiTime } from "@/lib/api/competitors/utils"
+import type { SocialPlatform, UrlType, ScheduleConfig } from "@/lib/api/competitors/types"
 
 export function CompetitorTracking() {
   const { t } = useTranslation()
-  const [activePlatform, setActivePlatform] = useState<Platform>("linkedin")
+  const {
+    // 数据状态
+    tasks,
+    results,
+    crawlLogs,
+    loading,
+    searching,
+
+    // 分页状态
+    pagination,
+
+    // UI 状态
+    editingIntervalTaskId,
+    deleteTaskId,
+    scheduleConfig,
+
+    // Setters
+    setEditingIntervalTaskId,
+    setDeleteTaskId,
+    setScheduleConfig,
+
+    // 数据获取
+    fetchTasks,
+    fetchResults,
+    fetchCrawlLogs,
+
+    // 抓取功能
+    handleFetch,
+    handleSchedule,
+
+    // 任务管理
+    toggleTaskStatus,
+    handleDeleteTask,
+    handleUpdateInterval,
+    openEditIntervalDialog,
+
+    // 分页
+    handlePageChange,
+  } = useCompetitors()
+
+  // 本地状态
+  const [activePlatform, setActivePlatform] = useState<SocialPlatform>("LinkedIn")
   const [profileUrl, setProfileUrl] = useState("")
   const [urlType, setUrlType] = useState<UrlType>("profile")
-  const [isSearching, setIsSearching] = useState(false)
-  const [activeDataTab, setActiveDataTab] = useState<"scheduled" | "results" | "logs">("scheduled")
+  const [activeDataTab, setActiveDataTab] = useState<"tasks" | "results" | "logs">("tasks")
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
-  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
-    mode: "simple",
-    simpleInterval: 1,
-    simpleUnit: "days",
-    cronExpression: "0 0 * * *",
-  })
-  const [editingIntervalTaskId, setEditingIntervalTaskId] = useState<string | null>(null)
-  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
 
-  const STATUS_COLOR_CONFIG = {
-    doing: { bg: "bg-blue-500/10", text: "text-blue-600" },
-    success: { bg: "bg-green-500/10", text: "text-green-600" },
-    failed: { bg: "bg-red-500/10", text: "text-red-600" },
-  }
+  // 当前平台配置
+  const currentPlatform = PLATFORM_OPTIONS.find((p) => p.value === activePlatform)!
 
-  const [crawlLogs, setCrawlLogs] = useState<CrawlLog[]>([
-    {
-      id: "log-1",
-      type: "profile",
-      status: "success",
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 80000000).toISOString(),
-    },
-    {
-      id: "log-2",
-      type: "post",
-      status: "doing",
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      updated_at: new Date(Date.now() - 3000000).toISOString(),
-    },
-    {
-      id: "log-3",
-      type: "profile",
-      status: "failed",
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-      updated_at: new Date(Date.now() - 7000000).toISOString(),
-    },
-  ])
-
-  const [posts, setPosts] = useState<Post[]>([
-    {
-      id: "1",
-      platform: "linkedin",
-      content: "Excited to announce our new AI-powered content creation tool...",
-      url: "https://linkedin.com/post/123",
-      likes: 245,
-      comments: 38,
-      createdAt: "2024-01-15 14:30",
-      sourceUrl: "https://www.linkedin.com/in/competitor1",
-    },
-    {
-      id: "2",
-      platform: "linkedin",
-      content: "5 tips for building better SaaS products in 2024...",
-      url: "https://linkedin.com/post/124",
-      likes: 189,
-      comments: 22,
-      createdAt: "2024-01-14 09:15",
-      sourceUrl: "https://www.linkedin.com/in/competitor1",
-    },
-  ])
-
-  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([
-    {
-      id: "1",
-      platform: "linkedin",
-      profileUrl: "https://www.linkedin.com/in/competitor1",
-      interval: "每天",
-      lastRun: "2024-01-15 08:00",
-      nextRun: "2024-01-16 08:00",
-      status: "active",
-    },
-    {
-      id: "2",
-      platform: "x.com",
-      profileUrl: "https://x.com/competitor2",
-      interval: "每小时",
-      lastRun: "2024-01-15 14:00",
-      nextRun: "2024-01-15 15:00",
-      status: "active",
-    },
-  ])
-
-  const currentPlatform = platforms.find((p) => p.id === activePlatform)!
-
-  const handleSearch = async () => {
+  // 立即抓取处理
+  const handleSearchClick = async () => {
     if (!profileUrl.trim()) return
 
-    setIsSearching(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    // Add mock results
-    const newPosts: Post[] = Array.from({ length: 10 }, (_, i) => ({
-      id: `new-${Date.now()}-${i}`,
-      platform: activePlatform,
-      content: `Sample post content from ${currentPlatform.label} #${i + 1}...`,
-      url: `${profileUrl}/post/${i + 1}`,
-      likes: Math.floor(Math.random() * 500),
-      comments: Math.floor(Math.random() * 100),
-      createdAt: new Date(Date.now() - i * 86400000).toISOString().slice(0, 16).replace("T", " "),
-      sourceUrl: profileUrl,
-    }))
-
-    setPosts([...newPosts, ...posts])
-    setIsSearching(false)
-    setActiveDataTab("results")
+    const success = await handleFetch(activePlatform, profileUrl, urlType, 3)
+    if (success) {
+      setActiveDataTab("results")
+    }
   }
 
-  const handleSchedule = () => {
+  // 定时抓取处理
+  const handleScheduleClick = async () => {
     if (!profileUrl.trim()) return
 
-    let intervalDisplay = ""
-    if (scheduleConfig.mode === "simple") {
-      intervalDisplay = `${t("contentWriting.competitors.dialog.modeSimple")}: ${scheduleConfig.simpleInterval} ${scheduleConfig.simpleUnit === "hours" ? t("contentWriting.competitors.dialog.unitHours") : t("contentWriting.competitors.dialog.unitDays")}`
-    } else {
-      intervalDisplay = `Cron: ${scheduleConfig.cronExpression}`
-    }
-
-    const newTask: ScheduledTask = {
-      id: Date.now().toString(),
-      platform: activePlatform,
-      profileUrl: profileUrl,
-      interval: intervalDisplay,
-      lastRun: "-",
-      nextRun: new Date(Date.now() + 3600000).toISOString().slice(0, 16).replace("T", " "),
-      status: "active",
-    }
-
-    setScheduledTasks([newTask, ...scheduledTasks])
-    setShowScheduleDialog(false)
-    // Reset config
-    setScheduleConfig({
-      mode: "simple",
-      simpleInterval: 1,
-      simpleUnit: "days",
-      cronExpression: "0 0 * * *",
-    })
-  }
-
-  const toggleTaskStatus = (taskId: string) => {
-    setScheduledTasks(
-      scheduledTasks.map((task) =>
-        task.id === taskId ? { ...task, status: task.status === "active" ? "paused" : "active" } : task,
-      ),
-    )
-  }
-
-  const openIntervalDialog = (task: ScheduledTask) => {
-    setEditingIntervalTaskId(task.id)
-
-    // Parse existing interval
-    if (task.interval.startsWith("Cron:")) {
+    const success = await handleSchedule(activePlatform, profileUrl, scheduleConfig)
+    if (success) {
+      setShowScheduleDialog(false)
+      setActiveDataTab("tasks")
+      // 重置配置
       setScheduleConfig({
-        mode: "custom",
+        mode: "simple",
         simpleInterval: 1,
         simpleUnit: "days",
-        cronExpression: task.interval.replace("Cron: ", ""),
+        cronExpression: "0 0 * * *",
       })
-    } else {
-      const match = task.interval.match(/每 (\d+) (小时|天)/)
-      if (match) {
-        setScheduleConfig({
-          mode: "simple",
-          simpleInterval: Number.parseInt(match[1]),
-          simpleUnit: match[2] === "小时" ? "hours" : "days",
-          cronExpression: "0 0 * * *",
-        })
-      }
     }
   }
 
-  const handleUpdateInterval = () => {
-    if (!editingIntervalTaskId) return
+  // 计算总页数
+  const getTotalPages = (total: number, pageSize: number) => {
+    return Math.ceil(total / pageSize)
+  }
 
-    let intervalDisplay = ""
-    if (scheduleConfig.mode === "simple") {
-      intervalDisplay = `${t("contentWriting.competitors.dialog.modeSimple")}: ${scheduleConfig.simpleInterval} ${scheduleConfig.simpleUnit === "hours" ? t("contentWriting.competitors.dialog.unitHours") : t("contentWriting.competitors.dialog.unitDays")}`
-    } else {
-      intervalDisplay = `Cron: ${scheduleConfig.cronExpression}`
-    }
+  // 渲染分页组件
+  const renderPagination = (type: "tasks" | "results" | "logs") => {
+    const { page, pageSize, total } = pagination[type]
+    const totalPages = getTotalPages(total, pageSize)
 
-    setScheduledTasks(
-      scheduledTasks.map((task) =>
-        task.id === editingIntervalTaskId
-          ? {
-              ...task,
-              interval: intervalDisplay,
-            }
-          : task,
-      ),
+    if (totalPages <= 1) return null
+
+    return (
+      <div className="flex items-center justify-between mt-4 px-4">
+        <div className="text-sm text-muted-foreground">
+          {t("contentWriting.competitors.pagination.totalInfo", {
+            current: page,
+            total: totalPages,
+            items: total,
+          })}
+        </div>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => page > 1 && handlePageChange(type, page - 1)}
+                className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+
+            {/* 显示页码 */}
+            {page > 2 && (
+              <PaginationItem>
+                <PaginationLink onClick={() => handlePageChange(type, 1)} className="cursor-pointer">
+                  1
+                </PaginationLink>
+              </PaginationItem>
+            )}
+
+            {page > 3 && <PaginationEllipsis />}
+
+            {page > 1 && (
+              <PaginationItem>
+                <PaginationLink onClick={() => handlePageChange(type, page - 1)} className="cursor-pointer">
+                  {page - 1}
+                </PaginationLink>
+              </PaginationItem>
+            )}
+
+            <PaginationItem>
+              <PaginationLink isActive className="cursor-default">
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+
+            {page < totalPages && (
+              <PaginationItem>
+                <PaginationLink onClick={() => handlePageChange(type, page + 1)} className="cursor-pointer">
+                  {page + 1}
+                </PaginationLink>
+              </PaginationItem>
+            )}
+
+            {page < totalPages - 2 && <PaginationEllipsis />}
+
+            {page < totalPages - 1 && (
+              <PaginationItem>
+                <PaginationLink onClick={() => handlePageChange(type, totalPages)} className="cursor-pointer">
+                  {totalPages}
+                </PaginationLink>
+              </PaginationItem>
+            )}
+
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => page < totalPages && handlePageChange(type, page + 1)}
+                className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
     )
-    setEditingIntervalTaskId(null)
-    // Reset config
-    setScheduleConfig({
-      mode: "simple",
-      simpleInterval: 1,
-      simpleUnit: "days",
-      cronExpression: "0 0 * * *",
-    })
-  }
-
-  const handleDeleteTask = (id: string) => {
-    setScheduledTasks(scheduledTasks.filter((task) => task.id !== id))
-    setDeleteTaskId(null)
   }
 
   return (
@@ -296,17 +212,17 @@ export function CompetitorTracking() {
         <div className="space-y-4">
           {/* Platform Tabs */}
           <div className="flex gap-2">
-            {platforms.map((platform) => (
+            {PLATFORM_OPTIONS.map((platform) => (
               <button
-                key={platform.id}
+                key={platform.value}
                 onClick={() => {
-                  setActivePlatform(platform.id)
+                  setActivePlatform(platform.value as SocialPlatform)
                   setProfileUrl("")
                 }}
                 className={`
                   flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all
                   ${
-                    activePlatform === platform.id
+                    activePlatform === platform.value
                       ? "bg-primary text-primary-foreground shadow-sm"
                       : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                   }
@@ -344,11 +260,11 @@ export function CompetitorTracking() {
                   placeholder={currentPlatform.placeholder}
                   value={profileUrl}
                   onChange={(e) => setProfileUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearchClick()}
                   className="h-11"
                 />
               </div>
-              <Button onClick={handleSearch} disabled={!profileUrl.trim() || isSearching} className="h-11 px-6">
+              <Button onClick={handleSearchClick} disabled={!profileUrl.trim() || searching} className="h-11 px-6">
                 <SearchIcon className="w-4 h-4 mr-2" />
                 {t("contentWriting.competitors.crawlBtn")}
               </Button>
@@ -364,7 +280,7 @@ export function CompetitorTracking() {
             </div>
 
             {/* Loading State */}
-            {isSearching && (
+            {searching && (
               <div className="flex items-center gap-2 px-4 py-3 bg-primary/10 border border-primary/20 rounded-md animate-in slide-in-from-top-2 fade-in duration-300">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                 <span className="text-sm text-primary font-medium">{t("contentWriting.competitors.aiSearching")}</span>
@@ -382,11 +298,11 @@ export function CompetitorTracking() {
         {/* Table Tabs */}
         <div className="flex gap-2 border-b border-border/50">
           <button
-            onClick={() => setActiveDataTab("scheduled")}
+            onClick={() => setActiveDataTab("tasks")}
             className={`
               px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
               ${
-                activeDataTab === "scheduled"
+                activeDataTab === "tasks"
                   ? "text-primary border-primary bg-primary/5"
                   : "text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50"
               }
@@ -423,75 +339,86 @@ export function CompetitorTracking() {
         </div>
 
         {/* Scheduled Tasks Table */}
-        {activeDataTab === "scheduled" && (
-          <div className="border border-border rounded-lg overflow-hidden animate-in fade-in duration-300">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.platform")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.url")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.interval")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.lastRun")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.nextRun")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                    {t("contentWriting.competitors.table.status")}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.actions")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scheduledTasks.length === 0 ? (
+        {activeDataTab === "tasks" && (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                      {t("contentWriting.competitors.table.noTasks")}
-                    </td>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.platform")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.url")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.interval")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.lastRun")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.nextRun")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.status")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.actions")}</th>
                   </tr>
-                ) : (
-                  scheduledTasks.map((task) => (
-                    <tr key={task.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
-                      <td className="py-3 px-4 text-sm">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {platforms.find((p) => p.id === task.platform)?.label}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-foreground max-w-xs truncate">{task.profileUrl}</td>
-                      <td className="py-3 px-4 text-sm">
-                        <button
-                          onClick={() => openIntervalDialog(task)}
-                          className="text-primary hover:underline cursor-pointer text-left"
-                        >
-                          {task.interval}
-                        </button>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{task.lastRun}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{task.nextRun}</td>
-                      <td className="py-3 px-4 text-sm">
-                        <button
-                          onClick={() => toggleTaskStatus(task.id)}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
-                            task.status === "active"
-                              ? "bg-green-500/10 text-green-600 hover:bg-green-500/20"
-                              : "bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20"
-                          }`}
-                        >
-                          {task.status === "active" ? t("contentWriting.competitors.table.running") : t("contentWriting.competitors.table.paused")}
-                        </button>
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTaskId(task.id)}
-                        >
-                          <TrashIcon className="w-3.5 h-3.5" />
-                        </Button>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                        加载中...
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : tasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                        {t("contentWriting.competitors.table.noTasks")}
+                      </td>
+                    </tr>
+                  ) : (
+                    tasks.map((task) => (
+                      <tr key={task.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+                        <td className="py-3 px-4 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {task.platform}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground max-w-xs truncate">{task.url}</td>
+                        <td className="py-3 px-4 text-sm">
+                          <button
+                            onClick={() => openEditIntervalDialog(task)}
+                            className="text-primary hover:underline cursor-pointer text-left"
+                          >
+                            {task.interval_desc}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {task.last_run_at ? formatApiTime(task.last_run_at) : "-"}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {task.next_run_at ? formatApiTime(task.next_run_at) : "-"}
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          <button
+                            onClick={() => toggleTaskStatus(task.id, task.status)}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-all hover:opacity-80 ${
+                              task.status === "running"
+                                ? "bg-green-500/10 text-green-600 hover:bg-green-500/20"
+                                : "bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20"
+                            }`}
+                          >
+                            {task.status === "running" ? t("contentWriting.competitors.table.running") : t("contentWriting.competitors.table.paused")}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTaskId(task.id)}
+                          >
+                            <TrashIcon className="w-3.5 h-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {renderPagination("tasks")}
           </div>
         )}
 
@@ -502,25 +429,21 @@ export function CompetitorTracking() {
               <table className="w-full">
                 <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      {t("contentWriting.competitors.logs.table.id")}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      {t("contentWriting.competitors.logs.table.type")}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      {t("contentWriting.competitors.logs.table.status")}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      {t("contentWriting.competitors.logs.table.createdAt")}
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
-                      {t("contentWriting.competitors.logs.table.updatedAt")}
-                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.logs.table.id")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.logs.table.snapshotId")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.logs.table.status")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.logs.table.createdAt")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.logs.table.updatedAt")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {crawlLogs.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                        加载中...
+                      </td>
+                    </tr>
+                  ) : crawlLogs.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="text-center py-12 text-muted-foreground">
                         {t("contentWriting.competitors.logs.table.noData")}
@@ -530,25 +453,23 @@ export function CompetitorTracking() {
                     crawlLogs.map((log) => (
                       <tr key={log.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
                         <td className="py-3 px-4 text-sm font-medium">{log.id}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                            {log.type === "profile" ? t("contentWriting.competitors.urlType.profile") : t("contentWriting.competitors.urlType.post")}
-                          </span>
+                        <td className="py-3 px-4 text-sm text-muted-foreground max-w-xs truncate" title={log.snapshot_id}>
+                          {log.snapshot_id}
                         </td>
                         <td className="py-3 px-4 text-sm">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              STATUS_COLOR_CONFIG[log.status].bg
-                            } ${STATUS_COLOR_CONFIG[log.status].text}`}
+                              CRAWL_LOG_STATUS_COLOR_CONFIG[log.status].bg
+                            } ${CRAWL_LOG_STATUS_COLOR_CONFIG[log.status].text}`}
                           >
                             {t(`contentWriting.competitors.logs.status.${log.status}`)}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">
-                          {new Date(log.created_at).toLocaleString("zh-CN")}
+                          {formatApiTime(log.created_at)}
                         </td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">
-                          {new Date(log.updated_at).toLocaleString("zh-CN")}
+                          {formatApiTime(log.updated_at)}
                         </td>
                       </tr>
                     ))
@@ -556,72 +477,72 @@ export function CompetitorTracking() {
                 </tbody>
               </table>
             </div>
+            {renderPagination("logs")}
           </div>
         )}
 
         {/* Results Table */}
         {activeDataTab === "results" && (
-          <div className="border border-border rounded-lg overflow-hidden animate-in fade-in duration-300">
-            <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.platform")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.content")}</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")} (Source)</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")} (Post)</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Likes</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Comments</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.time")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {posts.length === 0 ? (
+          <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="border border-border rounded-lg overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                      {t("contentWriting.competitors.table.noResults")}
-                    </td>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.competitors.table.platform")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.content")}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.link")} (Source)</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Likes</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Comments</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">{t("contentWriting.materials.table.time")}</th>
                   </tr>
-                ) : (
-                  posts.map((post) => (
-                    <tr key={post.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
-                      <td className="py-3 px-4 text-sm">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                          {platforms.find((p) => p.id === post.platform)?.label}
-                        </span>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        加载中...
                       </td>
-                      <td className="py-3 px-4 text-sm text-foreground max-w-md">
-                        <div className="line-clamp-2">{post.content}</div>
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        <a
-                          href={post.sourceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline max-w-xs truncate"
-                        >
-                          <span className="truncate">{post.sourceUrl}</span>
-                          <ExternalLinkIcon className="w-3 h-3 flex-shrink-0" />
-                        </a>
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        <a
-                          href={post.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary hover:underline"
-                        >
-                          <span>{t("common.preview")}</span>
-                          <ExternalLinkIcon className="w-3 h-3" />
-                        </a>
-                      </td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{post.likes}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{post.comments}</td>
-                      <td className="py-3 px-4 text-sm text-muted-foreground">{post.createdAt}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : results.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        {t("contentWriting.competitors.table.noResults")}
+                      </td>
+                    </tr>
+                  ) : (
+                    results.map((post) => (
+                      <tr key={post.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+                        <td className="py-3 px-4 text-sm">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                            {post.platform}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-foreground max-w-md">
+                          <div className="line-clamp-2">{post.content}</div>
+                        </td>
+                        <td className="py-3 px-4 text-sm">
+                          <a
+                            href={post.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-primary hover:underline max-w-xs truncate"
+                          >
+                            <span className="truncate">{post.url}</span>
+                            <ExternalLinkIcon className="w-3 h-3 flex-shrink-0" />
+                          </a>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">{post.like_count}</td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">{post.comment_count}</td>
+                        <td className="py-3 px-4 text-sm text-muted-foreground">
+                          {formatApiTime(post.posted_at)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {renderPagination("results")}
           </div>
         )}
       </div>
@@ -633,7 +554,7 @@ export function CompetitorTracking() {
           if (!open) {
             setShowScheduleDialog(false)
             setEditingIntervalTaskId(null)
-            // Reset config
+            // 重置配置
             setScheduleConfig({
               mode: "simple",
               simpleInterval: 1,
@@ -702,9 +623,7 @@ export function CompetitorTracking() {
                   <label className="text-sm text-muted-foreground">{t("contentWriting.competitors.dialog.unit")}</label>
                   <Select
                     value={scheduleConfig.simpleUnit}
-                    onValueChange={(value) =>
-                      setScheduleConfig({ ...scheduleConfig, simpleUnit: value as "hours" | "days" })
-                    }
+                    onValueChange={(value) => setScheduleConfig({ ...scheduleConfig, simpleUnit: value as "hours" | "days" })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -740,7 +659,9 @@ export function CompetitorTracking() {
             >
               {t("common.cancel")}
             </Button>
-            <Button onClick={editingIntervalTaskId ? handleUpdateInterval : handleSchedule}>{t("common.submit")}</Button>
+            <Button onClick={editingIntervalTaskId ? () => handleUpdateInterval(editingIntervalTaskId, scheduleConfig) : handleScheduleClick}>
+              {t("common.submit")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
