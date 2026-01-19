@@ -92,6 +92,24 @@ export function CompetitorTracking() {
   // 当前平台配置
   const currentPlatform = PLATFORM_OPTIONS.find((p) => p.value === activePlatform)!
 
+  // ==================== 数据获取 ====================
+
+  // 组件初始加载时获取数据
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
+  // 监听 tab 切换，自动刷新数据
+  useEffect(() => {
+    if (activeDataTab === "tasks") {
+      fetchTasks()
+    } else if (activeDataTab === "results") {
+      fetchResults()
+    } else if (activeDataTab === "logs") {
+      fetchCrawlLogs()
+    }
+  }, [activeDataTab, fetchTasks, fetchResults, fetchCrawlLogs])
+
   // 立即抓取处理
   const handleSearchClick = async () => {
     if (!profileUrl.trim()) return
@@ -645,7 +663,6 @@ export function CompetitorTracking() {
                   value={scheduleConfig.cronExpression}
                   onChange={(e) => setScheduleConfig({ ...scheduleConfig, cronExpression: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground">例如：0 0 * * * (每天午夜)，0 */6 * * * (每 6 小时)</p>
               </div>
             )}
           </div>
