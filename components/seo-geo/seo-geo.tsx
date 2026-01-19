@@ -62,7 +62,7 @@ export function SeoGeo() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="h-5 w-5" />
-                  {t("seoGeo.recommendationTitle")} (Keyword: "{analysisResult.keyword}")
+                  {t("seoGeo.recommendationTitle")} (Keyword: &quot;{analysisResult.keyword}&quot;)
                 </CardTitle>
                 <CardDescription>
                   {t("seoGeo.recommendationDesc")}
@@ -78,7 +78,7 @@ export function SeoGeo() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  {t("seoGeo.insightTitle")} (Keyword: "{analysisResult.keyword}")
+                  {t("seoGeo.insightTitle")} (Keyword: &quot;{analysisResult.keyword}&quot;)
                 </CardTitle>
                 <CardDescription>
                   {t("seoGeo.insightDesc")}

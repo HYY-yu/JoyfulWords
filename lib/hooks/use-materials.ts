@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { useTranslation } from "@/lib/i18n/client"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   materialsClient,
   uploadFileToPresignedUrl,

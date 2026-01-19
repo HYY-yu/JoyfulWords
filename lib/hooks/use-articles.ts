@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { useTranslation } from "@/lib/i18n/client"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { articlesClient } from "@/lib/api/articles/client"
 import { getAllowedStatusTransitions } from "@/lib/api/articles/enums"
 import type {
@@ -157,7 +157,7 @@ export function useArticles() {
     await fetchArticles()
 
     return true
-  }, [toast, fetchArticles, t]
+  }, [toast, fetchArticles, t])
 
   const handleEdit = useCallback((article: Article) => {
     setEditingArticle(article)
@@ -196,7 +196,7 @@ export function useArticles() {
     await fetchArticles()
 
     return true
-  }, [editingArticle, toast, fetchArticles, t]
+  }, [editingArticle, toast, fetchArticles, t])
 
   // ==================== 状态更新 ====================
 
@@ -228,7 +228,7 @@ export function useArticles() {
     )
 
     return true
-  }, [toast, t]
+  }, [toast, t])
 
   // 获取允许的状态转换选项
   const getAllowedStatuses = useCallback((currentStatus: ArticleStatus): ArticleStatus[] => {

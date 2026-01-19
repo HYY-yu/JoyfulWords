@@ -469,7 +469,7 @@ export function CompetitorTracking() {
                     </tr>
                   ) : (
                     crawlLogs.map((log) => (
-                      <tr key={log.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
+                      <tr key={log.snapshot_id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
                         <td className="py-3 px-4 text-sm font-medium">{log.id}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground max-w-xs truncate" title={log.snapshot_id}>
                           {log.snapshot_id}
