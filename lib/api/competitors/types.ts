@@ -58,7 +58,7 @@ export interface CrawlResult {
   comment_count: number // 评论数
   share_count: number // 分享数
   posted_at: string // 帖子发布时间（格式：2006-01-02T15:04:05Z，UTC）
-  scraped_at: string // 抓取时间（格式：2006-01-02T15:04:05Z，UTC）
+  created_at: string // 抓取时间（格式：2006-01-02T15:04:05Z，UTC）
 }
 
 /**

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "@/lib/i18n/client"
 import { articlesClient } from "@/lib/api/articles/client"
 import { getAllowedStatusTransitions } from "@/lib/api/articles/enums"
 import type {
@@ -43,6 +44,7 @@ export interface ArticlesState {
  */
 export function useArticles() {
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   // ==================== 状态管理 ====================
 
@@ -83,7 +85,7 @@ export function useArticles() {
       if ("error" in result) {
         toast({
           variant: "destructive",
-          title: "加载失败",
+          title: t("contentWriting.manager.toast.loadFailed"),
           description: result.error,
         })
         return false
@@ -96,7 +98,7 @@ export function useArticles() {
         return true
       }
     },
-    [pagination.page, pagination.pageSize, titleFilter, toast]
+    [pagination.page, pagination.pageSize, titleFilter, toast, t]
   )
 
   // 初始加载
@@ -138,14 +140,14 @@ export function useArticles() {
     if ("error" in result) {
       toast({
         variant: "destructive",
-        title: "删除文章失败",
+        title: t("contentWriting.manager.toast.deleteFailed"),
         description: result.error,
       })
       return false
     }
 
     toast({
-      title: "文章删除成功",
+      title: t("contentWriting.manager.toast.deleteSuccess"),
     })
 
     // 从列表中移除
@@ -155,7 +157,7 @@ export function useArticles() {
     await fetchArticles()
 
     return true
-  }, [toast, fetchArticles])
+  }, [toast, fetchArticles, t]
 
   const handleEdit = useCallback((article: Article) => {
     setEditingArticle(article)
@@ -177,14 +179,14 @@ export function useArticles() {
     if ("error" in result) {
       toast({
         variant: "destructive",
-        title: "更新文章失败",
+        title: t("contentWriting.manager.toast.updateFailed"),
         description: result.error,
       })
       return false
     }
 
     toast({
-      title: "文章更新成功",
+      title: t("contentWriting.manager.toast.updateSuccess"),
     })
 
     // 关闭编辑对话框
@@ -194,7 +196,7 @@ export function useArticles() {
     await fetchArticles()
 
     return true
-  }, [editingArticle, toast, fetchArticles])
+  }, [editingArticle, toast, fetchArticles, t]
 
   // ==================== 状态更新 ====================
 
@@ -210,14 +212,14 @@ export function useArticles() {
     if ("error" in result) {
       toast({
         variant: "destructive",
-        title: "状态更新失败",
+        title: t("contentWriting.manager.toast.statusUpdateFailed"),
         description: result.error,
       })
       return false
     }
 
     toast({
-      title: "状态更新成功",
+      title: t("contentWriting.manager.toast.statusUpdateSuccess"),
     })
 
     // 更新本地状态
@@ -226,7 +228,7 @@ export function useArticles() {
     )
 
     return true
-  }, [toast])
+  }, [toast, t]
 
   // 获取允许的状态转换选项
   const getAllowedStatuses = useCallback((currentStatus: ArticleStatus): ArticleStatus[] => {
@@ -253,20 +255,20 @@ export function useArticles() {
     if ("error" in result) {
       toast({
         variant: "destructive",
-        title: "AI 写作启动失败",
+        title: t("contentWriting.manager.toast.aiWriteStartFailed"),
         description: result.error,
       })
       return null
     }
 
     toast({
-      title: "AI 写作已启动",
+      title: t("contentWriting.manager.toast.aiWriteStarted"),
       description: "文章正在生成中，请稍候...",
     })
 
     // 返回创建的文章 ID
     return result.id
-  }, [toast])
+  }, [toast, t])
 
   // ==================== 手动刷新（用于 AI 生成完成） ====================
 

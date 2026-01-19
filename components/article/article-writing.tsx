@@ -69,7 +69,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         // 10MB 容量检查
         if (json.length > 10 * 1024 * 1024) {
           toast({
-            title: "警告",
+            title: t("contentWriting.writing.toast.warning"),
             description: t("contentWriting.editorHeader.contentTooLarge"),
             variant: "destructive"
           })
@@ -79,7 +79,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       } catch (error) {
         console.error('Failed to save draft:', error)
         toast({
-          title: "自动保存失败",
+          title: t("contentWriting.writing.toast.autoSaveFailed"),
           description: t("contentWriting.editorHeader.autoSaveFailed"),
           variant: "destructive"
         })

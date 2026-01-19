@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "@/lib/i18n/client"
 import {
   materialsClient,
   uploadFileToPresignedUrl,
@@ -43,6 +44,7 @@ export interface MaterialsState {
 
 export function useMaterials() {
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   // ==================== 状态管理 ====================
 
@@ -107,7 +109,7 @@ export function useMaterials() {
       if ("error" in result) {
         toast({
           variant: "destructive",
-          title: "获取素材列表失败",
+          title: t("contentWriting.materials.toast.fetchListFailed"),
           description: result.error,
         })
         return false
@@ -120,7 +122,7 @@ export function useMaterials() {
         return true
       }
     },
-    [pagination.materials.page, pagination.materials.pageSize, toast]
+    [pagination.materials.page, pagination.materials.pageSize, toast, t]
   )
 
   const fetchSearchLogs = useCallback(
@@ -138,7 +140,7 @@ export function useMaterials() {
       if ("error" in result) {
         toast({
           variant: "destructive",
-          title: "获取搜索日志失败",
+          title: t("contentWriting.materials.toast.fetchLogsFailed"),
           description: result.error,
         })
         return false
@@ -151,7 +153,7 @@ export function useMaterials() {
         return true
       }
     },
-    [pagination.logs.page, pagination.logs.pageSize, toast]
+    [pagination.logs.page, pagination.logs.pageSize, toast, t]
   )
 
   // ==================== 搜索功能 ====================
@@ -210,13 +212,13 @@ export function useMaterials() {
       await fetchMaterials()
 
       toast({
-        title: "搜索完成",
+        title: t("contentWriting.materials.toast.searchCompleted"),
         description: "素材搜索已完成，已自动加载到列表中",
       })
     }
 
     return allCompleted
-  }, [fetchMaterials, fetchSearchLogs, toast])
+  }, [fetchMaterials, fetchSearchLogs, toast, t])
 
   const handleSearch = useCallback(
     async (searchQuery: string, activeSearchTab: string) => {
@@ -232,7 +234,7 @@ export function useMaterials() {
       if ("error" in result) {
         toast({
           variant: "destructive",
-          title: "搜索启动失败",
+          title: t("contentWriting.materials.toast.searchStartFailed"),
           description: result.error,
         })
         setSearching(false)
@@ -244,14 +246,14 @@ export function useMaterials() {
 
       // 显示提示并开始后台轮询
       toast({
-        title: "搜索已启动",
+        title: t("contentWriting.materials.toast.searchStarted"),
         description: "AI 正在搜索相关素材，请稍候...",
       })
 
       startSearchPolling()
       return true
     },
-    [startSearchPolling, toast]
+    [startSearchPolling, toast, t]
   )
 
   // ==================== CRUD 操作 ====================
@@ -266,14 +268,14 @@ export function useMaterials() {
     if ("error" in result) {
       toast({
         variant: "destructive",
-        title: "删除素材失败",
+        title: t("contentWriting.materials.toast.deleteFailed"),
         description: result.error,
       })
       return false
     }
 
     toast({
-      title: "素材删除成功",
+      title: t("contentWriting.materials.toast.deleteSuccess"),
     })
 
     // 从列表中移除
@@ -283,7 +285,7 @@ export function useMaterials() {
     setDeletingId(null)
 
     return true
-  }, [toast])
+  }, [toast, t])
 
   const handleEdit = useCallback((material: Material) => {
     setEditingMaterial(material)
@@ -305,21 +307,21 @@ export function useMaterials() {
     if ("error" in result) {
       toast({
         variant: "destructive",
-        title: "更新素材失败",
+        title: t("contentWriting.materials.toast.updateFailed"),
         description: result.error,
       })
       return false
     }
 
     toast({
-      title: "素材更新成功",
+      title: t("contentWriting.materials.toast.updateSuccess"),
     })
 
     // 关闭编辑对话框
     setEditingMaterial(null)
 
     return true
-  }, [editingMaterial, toast])
+  }, [editingMaterial, toast, t])
 
   // ==================== 上传功能 ====================
 
@@ -390,7 +392,7 @@ export function useMaterials() {
 
       // 成功
       toast({
-        title: "素材创建成功",
+        title: t("contentWriting.materials.toast.createSuccess"),
         description: `素材 "${uploadForm.name}" 已成功添加到列表`,
       })
 
@@ -411,14 +413,14 @@ export function useMaterials() {
 
       toast({
         variant: "destructive",
-        title: "创建素材失败",
+        title: t("contentWriting.materials.toast.createFailed"),
         description: errorMessage,
       })
       return false
     } finally {
       setLoading(false)
     }
-  }, [uploadForm, toast])
+  }, [uploadForm, toast, t])
 
   const handleUploadCancel = useCallback(() => {
     setShowUploadDialog(false)

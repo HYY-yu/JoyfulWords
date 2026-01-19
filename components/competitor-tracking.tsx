@@ -552,7 +552,7 @@ export function CompetitorTracking() {
                         <td className="py-3 px-4 text-sm text-muted-foreground">{post.like_count}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">{post.comment_count}</td>
                         <td className="py-3 px-4 text-sm text-muted-foreground">
-                          {formatApiTime(post.posted_at)}
+                          {formatApiTime(post.created_at)}
                         </td>
                       </tr>
                     ))

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { useTranslation } from '@/lib/i18n/client'
 import { competitorsClient } from '@/lib/api/competitors/client'
 import { simpleToCron, cronToSimple } from '@/lib/api/competitors/enums'
 import { transformCrawlLogStatusList } from '@/lib/api/competitors/utils'
@@ -65,6 +66,7 @@ export interface CompetitorsState {
  */
 export function useCompetitors() {
   const { toast } = useToast()
+  const { t } = useTranslation()
 
   // ==================== 状态管理 ====================
 
@@ -113,7 +115,7 @@ export function useCompetitors() {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '获取定时任务列表失败',
+        title: t('contentWriting.competitors.toast.fetchTasksFailed'),
         description: result.error,
       })
       return false
@@ -126,7 +128,7 @@ export function useCompetitors() {
     }))
 
     return true
-  }, [pagination.tasks.page, pagination.tasks.pageSize, toast])
+  }, [pagination.tasks.page, pagination.tasks.pageSize, toast, t])
 
   /**
    * 获取抓取结果列表
@@ -144,7 +146,7 @@ export function useCompetitors() {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '获取抓取结果列表失败',
+        title: t('contentWriting.competitors.toast.fetchResultsFailed'),
         description: result.error,
       })
       return false
@@ -157,7 +159,7 @@ export function useCompetitors() {
     }))
 
     return true
-  }, [pagination.results.page, pagination.results.pageSize, toast])
+  }, [pagination.results.page, pagination.results.pageSize, toast, t])
 
   /**
    * 获取抓取日志列表
@@ -175,7 +177,7 @@ export function useCompetitors() {
     if ('error' in result) {
       toast({
         variant: 'destructive',
-        title: '获取抓取日志列表失败',
+        title: t('contentWriting.competitors.toast.fetchLogsFailed'),
         description: result.error,
       })
       return false
@@ -190,7 +192,7 @@ export function useCompetitors() {
     }))
 
     return true
-  }, [pagination.logs.page, pagination.logs.pageSize, toast])
+  }, [pagination.logs.page, pagination.logs.pageSize, toast, t])
 
   /**
    * 初始化加载所有数据
@@ -222,7 +224,7 @@ export function useCompetitors() {
       if (!url.trim()) {
         toast({
           variant: 'destructive',
-          title: 'URL 不能为空',
+          title: t('contentWriting.competitors.toast.urlRequired'),
           description: '请输入要抓取的 URL',
         })
         return false
@@ -243,14 +245,14 @@ export function useCompetitors() {
       if ('error' in result) {
         toast({
           variant: 'destructive',
-          title: '启动抓取失败',
+          title: t('contentWriting.competitors.toast.fetchStartFailed'),
           description: result.error,
         })
         return false
       }
 
       toast({
-        title: '抓取已启动',
+        title: t('contentWriting.competitors.toast.fetchStarted'),
         description: result.message,
       })
 
@@ -259,7 +261,7 @@ export function useCompetitors() {
 
       return true
     },
-    [toast, fetchResults]
+    [toast, fetchResults, t]
   )
 
   /**
@@ -277,7 +279,7 @@ export function useCompetitors() {
       if (!url.trim()) {
         toast({
           variant: 'destructive',
-          title: 'URL 不能为空',
+          title: t('contentWriting.competitors.toast.urlRequired'),
           description: '请输入要抓取的 URL',
         })
         return false
@@ -307,14 +309,14 @@ export function useCompetitors() {
       if ('error' in result) {
         toast({
           variant: 'destructive',
-          title: '创建定时任务失败',
+          title: t('contentWriting.competitors.toast.scheduleCreateFailed'),
           description: result.error,
         })
         return false
       }
 
       toast({
-        title: '定时任务创建成功',
+        title: t('contentWriting.competitors.toast.scheduleCreateSuccess'),
         description: result.message,
       })
 
@@ -323,7 +325,7 @@ export function useCompetitors() {
 
       return true
     },
-    [toast, fetchTasks]
+    [toast, fetchTasks, t]
   )
 
   // ==================== 任务管理 ====================
@@ -342,14 +344,14 @@ export function useCompetitors() {
       if ('error' in result) {
         toast({
           variant: 'destructive',
-          title: '更新任务状态失败',
+          title: t('contentWriting.competitors.toast.statusUpdateFailed'),
           description: result.error,
         })
         return false
       }
 
       toast({
-        title: '任务状态更新成功',
+        title: t('contentWriting.competitors.toast.statusUpdateSuccess'),
         description: result.message,
       })
 
@@ -358,7 +360,7 @@ export function useCompetitors() {
 
       return true
     },
-    [toast, fetchTasks]
+    [toast, fetchTasks, t]
   )
 
   /**
@@ -372,14 +374,14 @@ export function useCompetitors() {
       if ('error' in result) {
         toast({
           variant: 'destructive',
-          title: '删除任务失败',
+          title: t('contentWriting.competitors.toast.deleteFailed'),
           description: result.error,
         })
         return false
       }
 
       toast({
-        title: '任务删除成功',
+        title: t('contentWriting.competitors.toast.deleteSuccess'),
         description: result.message,
       })
 
@@ -397,7 +399,7 @@ export function useCompetitors() {
 
       return true
     },
-    [toast]
+    [toast, t]
   )
 
   /**
@@ -413,7 +415,7 @@ export function useCompetitors() {
 
       toast({
         variant: 'destructive',
-        title: '暂不支持直接修改',
+        title: t('contentWriting.competitors.toast.notSupported'),
         description: '请删除旧任务后创建新任务',
       })
 
@@ -421,7 +423,7 @@ export function useCompetitors() {
 
       return false
     },
-    [toast]
+    [toast, t]
   )
 
   /**
