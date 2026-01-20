@@ -88,6 +88,31 @@ export const URL_TYPE_OPTIONS = [
   { value: URL_TYPES.POST, label: 'post', i18nKey: 'post' },
 ] as const
 
+/**
+ * 平台 URL 类型限制配置
+ * 定义每个平台支持的 URL 类型
+ * 文档：/docs/COMPETITORS_API.md
+ */
+export const PLATFORM_URL_TYPE_RESTRICTIONS: Record<SocialPlatform, UrlType[]> = {
+  Facebook: [URL_TYPES.PROFILE, URL_TYPES.POST],
+  LinkedIn: [URL_TYPES.POST], // LinkedIn 禁止按 profile 抓取（无法限制数量）
+  X: [URL_TYPES.POST], // X 禁止按 profile 抓取（无法限制数量）
+  Reddit: [URL_TYPES.PROFILE, URL_TYPES.POST],
+} as const
+
+/**
+ * 平台强制 URL 类型配置（派生自 PLATFORM_URL_TYPE_RESTRICTIONS）
+ * 当平台只有一个允许的 URL 类型时，自动使用该类型
+ */
+export const PLATFORM_FORCED_URL_TYPE: Partial<Record<SocialPlatform, UrlType>> = Object.entries(
+  PLATFORM_URL_TYPE_RESTRICTIONS
+).reduce<Partial<Record<SocialPlatform, UrlType>>>((acc, [platform, types]) => {
+  if (types.length === 1) {
+    acc[platform as SocialPlatform] = types[0]
+  }
+  return acc
+}, {})
+
 // ==================== Task Status ====================
 
 /**

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
 import { useCompetitors } from "@/lib/hooks/use-competitors"
 import { PLATFORM_OPTIONS } from "@/lib/api/competitors/enums"
+import { getDefaultUrlType, isUrlTypeAllowedForPlatform } from "@/lib/api/competitors/utils"
 import type { SocialPlatform, UrlType } from "@/lib/api/competitors/types"
 import { CompetitorSearchBar } from "@/components/competitors/competitor-search-bar"
 import { CompetitorTasksTable } from "@/components/competitors/competitor-tasks-table"
@@ -13,6 +15,7 @@ import { CompetitorDialogs } from "@/components/competitors/competitor-dialogs"
 
 export function CompetitorTracking() {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const {
     // 数据状态
     tasks,
@@ -57,7 +60,7 @@ export function CompetitorTracking() {
   // 本地状态
   const [activePlatform, setActivePlatform] = useState<SocialPlatform>("LinkedIn")
   const [profileUrl, setProfileUrl] = useState("")
-  const [urlType, setUrlType] = useState<UrlType>("profile")
+  const [urlType, setUrlType] = useState<UrlType>(() => getDefaultUrlType("LinkedIn"))
   const [activeDataTab, setActiveDataTab] = useState<"tasks" | "results" | "logs">("tasks")
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
 
@@ -87,6 +90,16 @@ export function CompetitorTracking() {
   // 立即抓取处理
   const handleSearchClick = async () => {
     if (!profileUrl.trim()) return
+
+    // 验证 URL 类型是否允许
+    if (!isUrlTypeAllowedForPlatform(urlType, activePlatform)) {
+      toast({
+        variant: 'destructive',
+        title: t('contentWriting.competitors.toast.warning'),
+        description: `URL type ${urlType} is not allowed for platform ${activePlatform}`,
+      })
+      return
+    }
 
     const success = await handleFetch(activePlatform, profileUrl, urlType, 3)
     if (success) {
@@ -156,7 +169,12 @@ export function CompetitorTracking() {
       {/* Search Bar */}
       <CompetitorSearchBar
         activePlatform={activePlatform}
-        setActivePlatform={setActivePlatform}
+        setActivePlatform={(platform) => {
+          setActivePlatform(platform)
+          // 切换平台时，自动设置正确的 URL 类型
+          setUrlType(getDefaultUrlType(platform))
+          setProfileUrl("")
+        }}
         profileUrl={profileUrl}
         setProfileUrl={setProfileUrl}
         urlType={urlType}

@@ -1,11 +1,14 @@
 "use client"
 
+import { useMemo } from "react"
 import { SearchIcon, ClockIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { PLATFORM_OPTIONS } from "@/lib/api/competitors/enums"
+import { cn } from "@/lib/utils"
+import { PLATFORM_OPTIONS, URL_TYPES } from "@/lib/api/competitors/enums"
+import { getAllowedUrlTypes } from "@/lib/api/competitors/utils"
 import type { SocialPlatform, UrlType } from "@/lib/api/competitors/types"
 
 interface CompetitorSearchBarProps {
@@ -34,6 +37,13 @@ export function CompetitorSearchBar({
   t,
 }: CompetitorSearchBarProps) {
   const currentPlatform = PLATFORM_OPTIONS.find((p) => p.value === activePlatform)!
+
+  // 缓存允许的 URL 类型（性能优化）
+  const allowedUrlTypes = useMemo(() => getAllowedUrlTypes(activePlatform), [activePlatform])
+
+  // 检查每个 URL 类型是否被允许
+  const isProfileAllowed = allowedUrlTypes.includes(URL_TYPES.PROFILE)
+  const isPostAllowed = allowedUrlTypes.includes(URL_TYPES.POST)
 
   return (
     <div className="bg-card rounded-lg border border-border p-6">
@@ -68,14 +78,34 @@ export function CompetitorSearchBar({
             <span className="text-sm font-medium text-foreground">{t("contentWriting.competitors.urlType.label")}:</span>
             <RadioGroup value={urlType} onValueChange={(value) => setUrlType(value as UrlType)} className="flex gap-6">
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="profile" id="profile" />
-                <Label htmlFor="profile" className="font-normal cursor-pointer">
+                <RadioGroupItem
+                  value="profile"
+                  id="profile"
+                  disabled={!isProfileAllowed}
+                />
+                <Label
+                  htmlFor="profile"
+                  className={cn(
+                    "font-normal cursor-pointer",
+                    !isProfileAllowed && "opacity-50 cursor-not-allowed"
+                  )}
+                >
                   {t("contentWriting.competitors.urlType.profile")}
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="post" id="post" />
-                <Label htmlFor="post" className="font-normal cursor-pointer">
+                <RadioGroupItem
+                  value="post"
+                  id="post"
+                  disabled={!isPostAllowed}
+                />
+                <Label
+                  htmlFor="post"
+                  className={cn(
+                    "font-normal cursor-pointer",
+                    !isPostAllowed && "opacity-50 cursor-not-allowed"
+                  )}
+                >
                   {t("contentWriting.competitors.urlType.post")}
                 </Label>
               </div>

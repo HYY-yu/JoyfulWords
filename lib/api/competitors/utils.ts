@@ -2,8 +2,8 @@
  * Competitor API 辅助工具函数
  */
 
-import type { CrawlLog, CrawlLogWithStatus, SocialPlatform } from './types'
-import { STATE_NUMBER_TO_STATUS, PLATFORM_URL_PATTERNS } from './enums'
+import type { CrawlLog, CrawlLogWithStatus, SocialPlatform, UrlType } from './types'
+import { STATE_NUMBER_TO_STATUS, PLATFORM_URL_PATTERNS, PLATFORM_URL_TYPE_RESTRICTIONS, URL_TYPES } from './enums'
 
 // ==================== Crawl Log Status Transformation ====================
 
@@ -156,6 +156,37 @@ export function validateUrlForPlatform(
   }
 
   return { valid: true }
+}
+
+/**
+ * 获取平台允许的 URL 类型
+ * @param platform - 社交媒体平台
+ * @returns 允许的 URL 类型列表
+ */
+export function getAllowedUrlTypes(platform: SocialPlatform): UrlType[] {
+  return PLATFORM_URL_TYPE_RESTRICTIONS[platform]
+}
+
+/**
+ * 获取平台的默认 URL 类型
+ * 如果平台强制使用某种类型（只支持一种类型），返回该类型；否则返回 profile
+ * @param platform - 社交媒体平台
+ * @returns 默认的 URL 类型
+ */
+export function getDefaultUrlType(platform: SocialPlatform): UrlType {
+  const allowedTypes = getAllowedUrlTypes(platform)
+  return allowedTypes.length === 1 ? allowedTypes[0] : URL_TYPES.PROFILE
+}
+
+/**
+ * 检查 URL 类型是否对平台有效
+ * @param urlType - URL 类型
+ * @param platform - 社交媒体平台
+ * @returns 是否有效
+ */
+export function isUrlTypeAllowedForPlatform(urlType: UrlType, platform: SocialPlatform): boolean {
+  const allowedTypes = getAllowedUrlTypes(platform)
+  return allowedTypes.includes(urlType)
 }
 
 // ==================== Cron Expression Validation ====================
