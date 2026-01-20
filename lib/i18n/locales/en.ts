@@ -185,6 +185,11 @@ export const en = {
                 noResults: "No crawl results",
                 running: "Running",
                 paused: "Paused",
+                loading: "Loading...",
+                likes: "Likes",
+                comments: "Comments",
+                clickToViewContent: "Click to view full content",
+                contentDialogTitle: "Full Content",
             },
             logs: {
                 table: {
@@ -219,7 +224,7 @@ export const en = {
             pagination: {
                 perPage: "Per page",
                 items: "items",
-                totalInfo: "Total {total}, Page {current}/{total}",
+                totalInfo: "Total {total}, Page {page}",
                 pageOf: "/",
             },
         },

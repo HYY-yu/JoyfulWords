@@ -185,6 +185,11 @@ export const zh = {
                 noResults: "暂无抓取结果",
                 running: "运行中",
                 paused: "已暂停",
+                loading: "加载中...",
+                likes: "点赞数",
+                comments: "评论数",
+                clickToViewContent: "点击查看完整内容",
+                contentDialogTitle: "全文内容",
             },
             logs: {
                 table: {
@@ -219,7 +224,7 @@ export const zh = {
             pagination: {
                 perPage: "每页",
                 items: "条",
-                totalInfo: "共 {total} 条，第 {current}/{total} 页",
+                totalInfo: "共 {total} 条，第 {page} 页",
                 pageOf: "/",
             },
         },
