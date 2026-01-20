@@ -30,11 +30,13 @@ export function CompetitorTracking() {
     // UI 状态
     editingIntervalTaskId,
     deleteTaskId,
+    deleteResultId,
     scheduleConfig,
 
     // Setters
     setEditingIntervalTaskId,
     setDeleteTaskId,
+    setDeleteResultId,
     setScheduleConfig,
 
     // 数据获取
@@ -49,6 +51,7 @@ export function CompetitorTracking() {
     // 任务管理
     toggleTaskStatus,
     handleDeleteTask,
+    handleDeleteResult,
     handleUpdateInterval,
     openEditIntervalDialog,
 
@@ -255,6 +258,7 @@ export function CompetitorTracking() {
             pagination={pagination.results}
             onPageChange={handleResultsPageChange}
             onPageSizeChange={handleResultsPageSizeChange}
+            onDelete={(resultId) => setDeleteResultId(resultId)}
             t={t}
           />
         )}
@@ -283,6 +287,9 @@ export function CompetitorTracking() {
         deleteTaskId={deleteTaskId}
         setDeleteTaskId={setDeleteTaskId}
         onDeleteConfirm={handleDeleteTask}
+        deleteResultId={deleteResultId}
+        setDeleteResultId={setDeleteResultId}
+        onDeleteResultConfirm={handleDeleteResult}
         loading={loading}
         profileUrl={profileUrl}
         currentPlatform={currentPlatform}

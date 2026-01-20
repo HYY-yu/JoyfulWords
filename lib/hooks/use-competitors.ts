@@ -90,6 +90,7 @@ export function useCompetitors() {
   // UI 状态
   const [editingIntervalTaskId, setEditingIntervalTaskId] = useState<number | null>(null)
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null)
+  const [deleteResultId, setDeleteResultId] = useState<string | null>(null)
   const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
     mode: 'simple',
     simpleInterval: 1,
@@ -403,6 +404,45 @@ export function useCompetitors() {
   )
 
   /**
+   * 删除抓取结果
+   * @param resultId - 抓取结果 ID (string 类型)
+   */
+  const handleDeleteResult = useCallback(
+    async (resultId: string) => {
+      const result = await competitorsClient.deleteResult(resultId)
+
+      if ('error' in result) {
+        toast({
+          variant: 'destructive',
+          title: t('contentWriting.competitors.toast.deleteFailed'),
+          description: result.error,
+        })
+        return false
+      }
+
+      toast({
+        title: t('contentWriting.competitors.toast.deleteSuccess'),
+        description: result.message,
+      })
+
+      // 从列表中移除
+      setResults((prev) => prev.filter((result) => result.id !== resultId))
+
+      // 更新总数
+      setPagination((prev) => ({
+        ...prev,
+        results: { ...prev.results, total: Math.max(0, prev.results.total - 1) },
+      }))
+
+      // 关闭删除确认对话框
+      setDeleteResultId(null)
+
+      return true
+    },
+    [toast, t]
+  )
+
+  /**
    * 更新任务执行间隔
    * @param taskId - 任务 ID
    * @param config - 新的定时配置
@@ -516,11 +556,13 @@ export function useCompetitors() {
     // UI 状态
     editingIntervalTaskId,
     deleteTaskId,
+    deleteResultId,
     scheduleConfig,
 
     // Setters
     setEditingIntervalTaskId,
     setDeleteTaskId,
+    setDeleteResultId,
     setScheduleConfig,
 
     // 数据获取
@@ -536,6 +578,7 @@ export function useCompetitors() {
     // 任务管理
     toggleTaskStatus,
     handleDeleteTask,
+    handleDeleteResult,
     handleUpdateInterval,
     openEditIntervalDialog,
 

@@ -40,10 +40,15 @@ interface CompetitorDialogsProps {
   onScheduleSubmit: () => void
   onScheduleCancel: () => void
 
-  // Delete Dialog
+  // Delete Task Dialog
   deleteTaskId: number | null
   setDeleteTaskId: (id: number | null) => void
   onDeleteConfirm: (taskId: number) => void
+
+  // Delete Result Dialog
+  deleteResultId: string | null
+  setDeleteResultId: (id: string | null) => void
+  onDeleteResultConfirm: (resultId: string) => void
 
   // Common
   loading: boolean
@@ -63,6 +68,9 @@ export function CompetitorDialogs({
   deleteTaskId,
   setDeleteTaskId,
   onDeleteConfirm,
+  deleteResultId,
+  setDeleteResultId,
+  onDeleteResultConfirm,
   loading,
   profileUrl,
   currentPlatform,
@@ -188,6 +196,26 @@ export function CompetitorDialogs({
             <AlertDialogCancel disabled={loading}>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteTaskId && onDeleteConfirm(deleteTaskId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={loading}
+            >
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Result Confirmation Dialog */}
+      <AlertDialog open={!!deleteResultId} onOpenChange={(open) => !open && setDeleteResultId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("contentWriting.competitors.dialog.confirmDeleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("contentWriting.competitors.dialog.confirmDeleteDesc")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={loading}>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteResultId && onDeleteResultConfirm(deleteResultId)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={loading}
             >

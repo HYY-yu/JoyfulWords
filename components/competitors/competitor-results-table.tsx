@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon, TrashIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -19,6 +19,7 @@ interface CompetitorResultsTableProps {
   pagination: { page: number; pageSize: number; total: number }
   onPageChange: (page: number) => void
   onPageSizeChange: (pageSize: number) => void
+  onDelete?: (resultId: string) => void
   t: (key: string) => string
 }
 
@@ -28,6 +29,7 @@ export function CompetitorResultsTable({
   pagination,
   onPageChange,
   onPageSizeChange,
+  onDelete,
   t,
 }: CompetitorResultsTableProps) {
   const totalPages = Math.ceil(pagination.total / pagination.pageSize)
@@ -65,18 +67,21 @@ export function CompetitorResultsTable({
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.materials.table.time")}
               </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.competitors.table.actions")}
+              </th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                <td colSpan={7} className="text-center py-12 text-muted-foreground">
                   {t("contentWriting.competitors.table.loading")}
                 </td>
               </tr>
             ) : results.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                <td colSpan={7} className="text-center py-12 text-muted-foreground">
                   {t("contentWriting.competitors.table.noResults")}
                 </td>
               </tr>
@@ -112,6 +117,18 @@ export function CompetitorResultsTable({
                   <td className="py-3 px-4 text-sm text-muted-foreground">{post.comment_count}</td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">
                     {formatApiTime(post.created_at)}
+                  </td>
+                  <td className="py-3 px-4 text-sm">
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={() => onDelete(post.id)}
+                      >
+                        <TrashIcon className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))

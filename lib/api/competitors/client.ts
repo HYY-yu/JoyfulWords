@@ -194,6 +194,32 @@ export const competitorsClient = {
   },
 
   /**
+   * 6. 删除抓取结果
+   * DELETE /social/results/:id
+   *
+   * 删除指定的抓取帖子
+   *
+   * @param id - 帖子 ID (string 类型)
+   * @returns Promise<MessageResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await competitorsClient.deleteResult("456")
+   */
+  async deleteResult(
+    id: string
+  ): Promise<MessageResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<MessageResponse>(`/social/results/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Accept-Language': 'zh-CN',
+      },
+    })
+  },
+
+  /**
    * 6. 获取抓取日志列表
    * GET /social/craw-logs
    *
