@@ -28,8 +28,12 @@ export function TallyFeedbackButton({ className }: TallyFeedbackButtonProps) {
     try {
       // 打开 Tally 弹窗，传递用户信息作为 hidden fields
       open({
-        user_id: user?.id ? String(user.id) : '',
-        email: user?.email || '',
+        hideTitle: true,
+        emoji: {text: "👋", animation: "wave"},
+        hiddenFields:{
+          user_id: user?.id ? String(user.id) : '',
+          email: user?.email || '',
+        }
       })
     } catch (error) {
       console.error('Failed to open feedback form:', error)
