@@ -41,6 +41,7 @@ import { I18nProvider } from "@/lib/i18n/i18n-context"
 import { AuthProvider } from "@/lib/auth/auth-context"
 import { Toaster } from "@/components/ui/toaster"
 import { OpenTelemetryProvider } from "@/components/otel/client-tracing-provider"
+import { TallyFeedbackButton } from "@/components/feedback"
 
 export default function RootLayout({
   children,
@@ -56,6 +57,7 @@ export default function RootLayout({
             <Analytics />
             <Toaster />
             <OpenTelemetryProvider />
+            <TallyFeedbackButton />
           </AuthProvider>
         </I18nProvider>
       </body>

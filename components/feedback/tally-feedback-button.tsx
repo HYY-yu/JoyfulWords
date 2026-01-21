@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslation } from '@/lib/i18n/i18n-context'
-import { useTally } from 'react-tally'
+import { useTallyPopup } from 'react-tally'
 
 // Tally 表单配置
 const TALLY_FORM_ID = 'Zj2jda' // 替换为实际的表单 ID
@@ -12,7 +12,7 @@ export function TallyFeedbackButton() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
-  const { openPopup } = useTally()
+  const { open } = useTallyPopup(TALLY_FORM_ID)
 
   const handleFeedbackClick = async () => {
     if (isLoading) return
@@ -20,24 +20,10 @@ export function TallyFeedbackButton() {
     setIsLoading(true)
 
     try {
-      // 构建带有用户信息的 URL
-      const url = new URL(`https://tally.so/${TALLY_FORM_ID}`)
-
-      // 添加 hidden fields（用户信息）
-      if (user) {
-        url.searchParams.append('user_id', String(user.id))
-        url.searchParams.append('email', user.email)
-      }
-
-      // 打开 Tally 弹窗
-      await openPopup({
-        url: url.toString(),
-        layout: 'popup',
-        width: 600,
-        emoji: {
-          text: '👋',
-          animation: 'wave',
-        },
+      // 打开 Tally 弹窗，传递用户信息作为 hidden fields
+      open({
+        user_id: user?.id ? String(user.id) : '',
+        email: user?.email || '',
       })
     } catch (error) {
       console.error('Failed to open feedback form:', error)
