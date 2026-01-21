@@ -17,6 +17,10 @@ export const en = {
         account: "Account",
         aiHelp: "AI Writing Assistant",
         refresh: "refresh",
+        feedback: "Feedback",
+        feedbackButton: "Feedback",
+        feedbackTitle: "Send Feedback",
+        feedbackLoading: "Loading...",
     },
     sidebar: {
         title: "Creator Toolbox",
