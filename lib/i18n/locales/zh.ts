@@ -17,6 +17,10 @@ export const zh = {
         account: "账号管理",
         aiHelp: "AI 帮写",
         refresh: "刷新",
+        feedback: "反馈",
+        feedbackButton: "反馈",
+        feedbackTitle: "意见反馈",
+        feedbackLoading: "加载中...",
     },
     sidebar: {
         title: "创作者工具箱",
