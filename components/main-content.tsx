@@ -6,6 +6,7 @@ import { ContentWriting } from "./content-writing"
 import { KnowledgeCards } from "./knowledge-cards"
 import { SeoGeo } from "./seo-geo/seo-geo"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { isFeatureEnabled } from "@/lib/config"
 
 interface MainContentProps {
   activeTab: string
@@ -13,6 +14,24 @@ interface MainContentProps {
 
 export function MainContent({ activeTab }: MainContentProps) {
   const { t } = useTranslation()
+
+  // ============ 功能开关逻辑 ============
+  // 已上线功能的早期返回
+  if (activeTab === "image-generation" && isFeatureEnabled("image-generation")) {
+    return <ImageGeneration />
+  }
+
+  if (activeTab === "content-writing") {
+    return <ContentWriting />
+  }
+
+  if (activeTab === "knowledge-cards" && isFeatureEnabled("knowledge-cards")) {
+    return <KnowledgeCards />
+  }
+
+  if (activeTab === "seo-geo" && isFeatureEnabled("seo-geo")) {
+    return <SeoGeo />
+  }
 
   const tabConfig = {
     "image-generation": {
@@ -40,22 +59,6 @@ export function MainContent({ activeTab }: MainContentProps) {
       description: t("common.comingSoon"),
       icon: VideoIcon,
     },
-  }
-
-  if (activeTab === "image-generation") {
-    return <ImageGeneration />
-  }
-
-  if (activeTab === "content-writing") {
-    return <ContentWriting />
-  }
-
-  if (activeTab === "knowledge-cards") {
-    return <KnowledgeCards />
-  }
-
-  if (activeTab === "seo-geo") {
-    return <SeoGeo />
   }
 
   const config = tabConfig[activeTab as keyof typeof tabConfig]
