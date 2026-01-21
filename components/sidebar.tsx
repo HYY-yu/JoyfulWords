@@ -7,6 +7,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Button } from "@/components/ui/button"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
+import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -91,6 +92,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
       {/* Bottom Actions */}
       <div className="p-4 border-t border-sidebar-border space-y-2">
+        {/* Feedback Button */}
+        <FeedbackErrorBoundary>
+          <TallyFeedbackButton />
+        </FeedbackErrorBoundary>
+
         {/* Language Switcher */}
         <div className="flex bg-sidebar-accent/30 rounded-lg p-1">
           <button

@@ -1,14 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import { MessageSquareIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { useTallyPopup } from 'react-tally'
+import { cn } from '@/lib/utils'
 
 // Tally 表单配置
 const TALLY_FORM_ID = 'Zj2jda' // 替换为实际的表单 ID
 
-export function TallyFeedbackButton() {
+interface TallyFeedbackButtonProps {
+  className?: string
+}
+
+export function TallyFeedbackButton({ className }: TallyFeedbackButtonProps) {
   const { t } = useTranslation()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
@@ -41,8 +47,12 @@ export function TallyFeedbackButton() {
     <button
       onClick={handleFeedbackClick}
       disabled={isLoading}
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 dark:bg-primary-foreground dark:text-primary"
-      aria-label={t('common.feedbackButton')}
+      className={cn(
+        "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium",
+        "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+        "transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        className
+      )}
     >
       {isLoading ? (
         <>
@@ -51,8 +61,8 @@ export function TallyFeedbackButton() {
         </>
       ) : (
         <>
-          <span>💬</span>
-          <span>{t('common.feedbackButton')}</span>
+          <MessageSquareIcon className="w-5 h-5 text-sidebar-foreground/60" />
+          <span>{t('common.feedback')}</span>
         </>
       )}
     </button>
