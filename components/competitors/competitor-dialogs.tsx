@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/base/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,12 +17,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "@/components/ui/base/alert-dialog"
+import { Button } from "@/components/ui/base/button"
+import { Input } from "@/components/ui/base/input"
+import { Label } from "@/components/ui/base/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/base/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import type { ScheduleConfig, ScheduledTask } from "@/lib/api/competitors/types"
 
 interface PlatformConfig {

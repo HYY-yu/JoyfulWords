@@ -8,7 +8,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/components/ui/base/popover";
 
 interface HighlightButtonsProps {
   editor: Editor | null;

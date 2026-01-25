@@ -5,7 +5,7 @@ import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, UserCir
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/base/button"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
 import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
 import {
@@ -15,7 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/base/dropdown-menu"
 
 interface SidebarProps {
   activeTab: string

@@ -9,10 +9,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/base/dialog"
+import { Button } from "@/components/ui/base/button"
+import { Input } from "@/components/ui/base/input"
+import { Label } from "@/components/ui/base/label"
 import { useToast } from "@/hooks/use-toast"
 import { LoaderIcon } from "lucide-react"
 import { articlesClient } from "@/lib/api/articles/client"

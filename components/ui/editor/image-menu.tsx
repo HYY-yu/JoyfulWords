@@ -8,8 +8,8 @@ import {
   AlignRightIcon,
   TrashIcon,
 } from "lucide-react";
-import { Button } from "./button";
-import { Input } from "./input";
+import { Button } from "../base/button";
+import { Input } from "../base/input";
 
 interface ImageMenuProps {
   editor: Editor;

@@ -1,7 +1,7 @@
 import type React from "react"
 import { SearchIcon, LoaderIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/base/button"
+import { Input } from "@/components/ui/base/input"
 import { SEARCH_TAB_OPTIONS } from "@/lib/api/materials/enums"
 
 interface MaterialSearchBarProps {

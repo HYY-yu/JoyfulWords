@@ -5,22 +5,22 @@ import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useArticles } from "@/lib/hooks/use-articles"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/base/input"
+import { Button } from "@/components/ui/base/button"
+import { Badge } from "@/components/ui/base/badge"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/base/select"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/base/dropdown-menu"
 import {
   SearchIcon, PlusIcon, EditIcon, TrashIcon, LoaderIcon,
   Eye, RefreshCw, ChevronLeftIcon, ChevronRightIcon, SparklesIcon, CheckIcon, XIcon
@@ -29,7 +29,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/base/tooltip"
 import type { Article } from "@/lib/api/articles/types"
 import { getStatusVariant, formatShortDate } from "./article-types"
 import {

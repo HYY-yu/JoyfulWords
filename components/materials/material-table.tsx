@@ -1,15 +1,15 @@
 import { SearchIcon, LoaderIcon, UploadIcon, PencilIcon, TrashIcon, LinkIcon, ExternalLinkIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/base/button"
+import { Input } from "@/components/ui/base/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/base/dialog"
 import type { Material, MaterialType } from "@/lib/api/materials/types"
 
 interface MaterialTableProps {

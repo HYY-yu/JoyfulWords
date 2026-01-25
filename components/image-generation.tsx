@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import Image from "next/image"
 import { ImageIcon, PaperclipIcon, SendIcon, XIcon, UserIcon, BotIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"
 
 type Message = {

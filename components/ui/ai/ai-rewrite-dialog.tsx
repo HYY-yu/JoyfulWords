@@ -7,8 +7,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./dialog";
-import { Button } from "./button";
+} from "../base/dialog";
+import { Button } from "../base/button";
 import {
   SparklesIcon,
   Loader2Icon,
@@ -20,8 +20,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./select";
-import { Textarea } from "./textarea";
+} from "../base/select";
+import { Textarea } from "../base/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 interface AIRewriteDialogProps {

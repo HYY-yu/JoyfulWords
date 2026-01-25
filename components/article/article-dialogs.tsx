@@ -7,10 +7,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
+} from "@/components/ui/base/dialog"
+import { Button } from "@/components/ui/base/button"
+import { Badge } from "@/components/ui/base/badge"
+import { ScrollArea } from "@/components/ui/base/scroll-area"
 import {
   ExternalLink,
   Trash2,

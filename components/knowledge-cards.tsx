@@ -15,18 +15,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/forms/form"
+import { Button } from "@/components/ui/base/button"
+import { Textarea } from "@/components/ui/base/textarea"
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+} from "@/components/ui/base/select"
+import { Input } from "@/components/ui/base/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/base/card"
 import { toast } from "sonner"
 
 type FormData = {

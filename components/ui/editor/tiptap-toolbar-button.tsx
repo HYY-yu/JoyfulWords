@@ -6,12 +6,12 @@ import React from "react";
 import {
   Button,
   type ButtonProps,
-} from "@/components/ui/button";
+} from "@/components/ui/base/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from "@/components/ui/base/tooltip";
 import { cn } from "@/lib/utils";
 
 export interface ToolbarButtonProps extends ButtonProps {

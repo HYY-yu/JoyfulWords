@@ -2,14 +2,14 @@
 
 import { useState } from "react"
 import { ChevronLeftIcon, ChevronRightIcon, ExternalLinkIcon, TrashIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/base/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/base/dialog"
 import { formatApiTime } from "@/lib/api/competitors/utils"
 import type { CrawlResult } from "@/lib/api/competitors/types"
 

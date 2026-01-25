@@ -7,8 +7,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/base/popover";
+import { Button } from "@/components/ui/base/button";
 
 interface LinkPopoverProps {
   editor: Editor;

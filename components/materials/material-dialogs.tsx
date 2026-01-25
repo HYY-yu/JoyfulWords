@@ -1,7 +1,7 @@
 import type React from "react"
 import { UploadIcon, ImageIcon, XIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/base/button"
+import { Input } from "@/components/ui/base/input"
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/base/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,10 +19,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "@/components/ui/base/alert-dialog"
+import { Label } from "@/components/ui/base/label"
+import { Textarea } from "@/components/ui/base/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import type { Material, UploadForm, UploadErrors } from "@/lib/hooks/use-materials"
 
 interface MaterialDialogsProps {

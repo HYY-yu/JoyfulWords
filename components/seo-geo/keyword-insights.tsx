@@ -1,6 +1,6 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/base/card"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   ChartContainer,
@@ -8,7 +8,7 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
-} from "@/components/ui/chart"
+} from "@/components/ui/base/chart"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, AreaChart, Area, ResponsiveContainer } from "recharts"
 import { TrendingUp, Users, BarChart3, Target } from "lucide-react"
 import { mockSearchVolumeData, mockDifficultyDistribution, mockCompetitorData } from "./mock-data"

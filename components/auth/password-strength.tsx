@@ -1,4 +1,4 @@
-import { Progress } from "@/components/ui/progress"
+import { Progress } from "@/components/ui/base/progress"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface PasswordStrengthProps {

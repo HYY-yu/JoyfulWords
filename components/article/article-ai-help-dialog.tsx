@@ -9,14 +9,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/base/dialog"
+import { Button } from "@/components/ui/base/button"
+import { Input } from "@/components/ui/base/input"
+import { Label } from "@/components/ui/base/label"
+import { Textarea } from "@/components/ui/base/textarea"
+import { ScrollArea } from "@/components/ui/base/scroll-area"
+import { Checkbox } from "@/components/ui/base/checkbox"
+import { Badge } from "@/components/ui/base/badge"
 import { SparklesIcon, FileTextIcon, TrendingUpIcon, XIcon, LoaderIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { materialsClient } from "@/lib/api/materials/client"

@@ -1,7 +1,7 @@
 "use client"
 
 import { AuthCard } from "@/components/auth/auth-card"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/base/button"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import Link from "next/link"
 import { Mail } from "lucide-react"

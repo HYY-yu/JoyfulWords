@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/base/card"
 import { Search, TrendingUp, BarChart3 } from "lucide-react"
 import { KeywordAnalysis } from "./keyword-analysis"
 import { KeywordRecommendations } from "./keyword-recommendations"

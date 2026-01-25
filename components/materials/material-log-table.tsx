@@ -1,5 +1,5 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
+import { Button } from "@/components/ui/base/button"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import type { MaterialLog, MaterialType } from "@/lib/api/materials/types"
 import { STATUS_COLOR_CONFIG } from "@/lib/api/materials/enums"

@@ -39,7 +39,7 @@ export const metadata: Metadata = {
 
 import { I18nProvider } from "@/lib/i18n/i18n-context"
 import { AuthProvider } from "@/lib/auth/auth-context"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/hooks/toaster"
 import { OpenTelemetryProvider } from "@/components/otel/client-tracing-provider"
 
 export default function RootLayout({

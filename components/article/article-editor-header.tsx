@@ -2,20 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/base/button"
+import { Badge } from "@/components/ui/base/badge"
+import { Input } from "@/components/ui/base/input"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/base/dropdown-menu"
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/base/tooltip"
 import { ChevronDownIcon, ChevronUpIcon, SaveIcon, DownloadIcon, Trash2, XIcon, CheckIcon, LoaderIcon } from "lucide-react"
 import type { Article, ArticleStatus } from "@/lib/api/articles/types"
 import { getStatusVariant, formatDateTime } from "./article-types"

@@ -1,8 +1,8 @@
 "use client"
 
 import { ChevronLeftIcon, ChevronRightIcon, TrashIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/base/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { formatApiTime } from "@/lib/api/competitors/utils"
 import { TASK_STATUS_COLOR_CONFIG } from "@/lib/api/competitors/enums"
 import type { ScheduledTask } from "@/lib/api/competitors/types"
