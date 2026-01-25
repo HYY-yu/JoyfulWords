@@ -6,10 +6,26 @@ import { Sidebar } from "@/components/sidebar"
 import { MainContent } from "@/components/main-content"
 import { useAuth } from "@/lib/auth/auth-context"
 
+const TAB_STORAGE_KEY = 'joyfulwords-active-tab'
+
 export default function DashboardPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("content-writing")
+
+  // 从 localStorage 读取上次的 tab，如果没有则默认为 "content-writing"
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(TAB_STORAGE_KEY) || "content-writing"
+    }
+    return "content-writing"
+  })
+
+  // 当 activeTab 改变时，保存到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(TAB_STORAGE_KEY, activeTab)
+    }
+  }, [activeTab])
 
   // 临时禁用登录验证 - 允许未登录用户访问
   // useEffect(() => {

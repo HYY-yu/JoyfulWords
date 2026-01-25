@@ -16,6 +16,7 @@ import {
   Redo2Icon,
   SeparatorHorizontalIcon,
   Loader2Icon,
+  SparklesIcon,
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useCallback } from "react";
@@ -27,9 +28,10 @@ interface TiptapToolbarProps {
   editor: Editor | null;
   onInsertImage?: () => void;
   isUploadingImage?: boolean;
+  onAIRewrite?: () => void;
 }
 
-export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite }: TiptapToolbarProps) {
   const setImage = useCallback(() => {
     console.log("setImage 函数被调用");
 
@@ -247,6 +249,17 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         ) : (
           <ImageIcon className="h-4 w-4" />
         )}
+      </ToolbarButton>
+
+      <div className="w-px h-8 bg-border mx-1" />
+
+      {/* AI Rewrite */}
+      <ToolbarButton
+        tooltip="AI 智能改写"
+        onClick={onAIRewrite}
+        className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20"
+      >
+        <SparklesIcon className="h-4 w-4" />
       </ToolbarButton>
     </div>
   );

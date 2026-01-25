@@ -8,6 +8,8 @@ import { ArticleWriting } from "./article/article-writing"
 import { ArticleManager } from "./article/article-manager"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
+const CONTENT_TAB_STORAGE_KEY = 'joyfulwords-content-writing-tab'
+
 export function ContentWriting() {
   const { t } = useTranslation()
   const [editTrigger, setEditTrigger] = useState(0)
@@ -20,7 +22,20 @@ export function ContentWriting() {
     { id: "article-manager", label: t("contentWriting.tabs.articleManager"), icon: NotebookTabs },
   ]
 
-  const [activeTab, setActiveTab] = useState("material-search")
+  // 从 localStorage 读取上次的子 tab，如果没有则默认为 "article-writing"
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem(CONTENT_TAB_STORAGE_KEY) || "article-writing"
+    }
+    return "article-writing"
+  })
+
+  // 当 activeTab 改变时，保存到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CONTENT_TAB_STORAGE_KEY, activeTab)
+    }
+  }, [activeTab])
 
   // Listen for edit navigation
   useEffect(() => {

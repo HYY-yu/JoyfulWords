@@ -10,6 +10,7 @@ import { TiptapToolbar } from "./ui/tiptap-toolbar";
 import { CustomImage, CustomHighlight, CustomTextAlign } from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/image-menu";
 import { LinkMenu } from "./ui/link-menu";
+import { AIRewriteDialog } from "./ui/ai-rewrite-dialog";
 import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
@@ -30,6 +31,10 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  // 添加 AI 改写对话框状态
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
+  const [selectedTextForAI, setSelectedTextForAI] = useState("");
 
   // 添加国际化支持
   const { t } = useTranslation();
@@ -278,16 +283,56 @@ export function TiptapEditor({
     input.click();
   }, [editor, handleImageUpload, isUploadingImage, toast, t]);
 
+  // 处理 AI 改写
+  const handleAIRewrite = useCallback(() => {
+    if (!editor) return;
+
+    const { state } = editor;
+    const { from, to } = state.selection;
+    const text = state.doc.textBetween(from, to, ' ');
+
+    if (text.trim().length === 0) {
+      toast({
+        variant: "destructive",
+        title: "请先选中文本",
+        description: "请在编辑器中选中要改写的文本",
+      });
+      return;
+    }
+
+    setSelectedTextForAI(text);
+    setIsAIDialogOpen(true);
+  }, [editor, toast]);
+
+  // 应用 AI 改写结果
+  const applyAIRewrite = useCallback((rewrittenText: string) => {
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+    editor.chain()
+      .focus()
+      .deleteRange({ from, to })
+      .insertContent(rewrittenText)
+      .run();
+  }, [editor]);
+
   return (
     <div className="border rounded-lg overflow-hidden bg-background">
       <TiptapToolbar
         editor={editor}
         onInsertImage={insertImage}
         isUploadingImage={isUploadingImage}
+        onAIRewrite={handleAIRewrite}
       />
       <EditorContent editor={editor} />
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}
+      <AIRewriteDialog
+        open={isAIDialogOpen}
+        onOpenChange={setIsAIDialogOpen}
+        selectedText={selectedTextForAI}
+        onRewrite={applyAIRewrite}
+      />
     </div>
   );
 }
