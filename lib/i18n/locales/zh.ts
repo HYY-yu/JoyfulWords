@@ -179,7 +179,7 @@ export const zh = {
             aiSearching: "AI 正在全力搜索，请稍候...",
             table: {
                 platform: "平台",
-                url: "资料页 URL",
+                url: "URL",
                 interval: "抓取间隔",
                 lastRun: "上次运行",
                 nextRun: "下次运行",

@@ -179,7 +179,7 @@ export const en = {
             aiSearching: "AI is searching hard, please wait...",
             table: {
                 platform: "Platform",
-                url: "Profile URL",
+                url: "URL",
                 interval: "Interval",
                 lastRun: "Last Run",
                 nextRun: "Next Run",
