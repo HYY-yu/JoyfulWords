@@ -21,8 +21,10 @@ import { SparklesIcon, FileTextIcon, TrendingUpIcon, XIcon, LoaderIcon } from "l
 import { useToast } from "@/hooks/use-toast"
 import { materialsClient } from "@/lib/api/materials/client"
 import { articlesClient } from "@/lib/api/articles/client"
+import { competitorsClient } from "@/lib/api/competitors/client"
 import type { Material } from "@/lib/api/materials/types"
 import type { Article } from "@/lib/api/articles/types"
+import type { CrawlResult } from "@/lib/api/competitors/types"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -30,53 +32,6 @@ interface ArticleAIHelpDialogProps {
   onOpenChange: (open: boolean) => void
   onArticleCreated: (article: Article) => void  // 接收后端返回的 Article 对象
 }
-
-// Competitor type (fake data structure for now)
-// TODO: Replace with real API call - GET /api/competitors (not implemented yet)
-type CompetitorPost = {
-  id: string
-  platform: string
-  content: string
-  url: string
-  sourceUrl: string
-  likes: number
-  comments: number
-  createdAt: string
-}
-
-// Mock competitor data for now
-const mockCompetitors: CompetitorPost[] = [
-  {
-    id: "1",
-    platform: "小红书",
-    content: "分享一个超实用的AI工具，让你的工作效率翻倍！具体用法请看图～",
-    url: "https://xiaohongshu.com/post/123",
-    sourceUrl: "https://xiaohongshu.com",
-    likes: 1250,
-    comments: 89,
-    createdAt: "2024-01-15",
-  },
-  {
-    id: "2",
-    platform: "抖音",
-    content: "5分钟学会使用AI写文案，这个技巧太神奇了！#AI #文案创作",
-    url: "https://douyin.com/video/456",
-    sourceUrl: "https://douyin.com",
-    likes: 3580,
-    comments: 210,
-    createdAt: "2024-01-14",
-  },
-  {
-    id: "3",
-    platform: "知乎",
-    content: "作为一名内容创作者，我是如何利用AI工具提升创作效率的？",
-    url: "https://zhihu.com/question/789",
-    sourceUrl: "https://zhihu.com",
-    likes: 890,
-    comments: 156,
-    createdAt: "2024-01-13",
-  },
-]
 
 export function ArticleAIHelpDialog({
   open,
@@ -87,7 +42,7 @@ export function ArticleAIHelpDialog({
   const { toast } = useToast()
 
   const [prompt, setPrompt] = useState("")
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])
+  const [selectedMaterials, setSelectedMaterials] = useState<number[]>([])
   const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [materialSearch, setMaterialSearch] = useState("")
@@ -97,27 +52,35 @@ export function ArticleAIHelpDialog({
   const [materials, setMaterials] = useState<Material[]>([])
   const [materialsLoading, setMaterialsLoading] = useState(false)
 
+  // Use real Competitors API
+  const [competitors, setCompetitors] = useState<CrawlResult[]>([])
+  const [competitorsLoading, setCompetitorsLoading] = useState(false)
+
   // Load materials on mount
   useEffect(() => {
     const loadMaterials = async () => {
       setMaterialsLoading(true)
       try {
+        console.log('[AI Help] Loading materials...')
         const result = await materialsClient.getMaterials({
           page: 1,
           page_size: 100,
         })
         if ('list' in result) {
+          console.log('[AI Help] Materials loaded successfully:', result.list.length)
           setMaterials(result.list)
         } else if ('error' in result) {
+          console.warn('[AI Help] Materials load failed:', result.error)
           toast({
             variant: "destructive",
             description: result.error,
           })
         }
       } catch (error) {
+        console.error('[AI Help] Materials load error:', error)
         toast({
           variant: "destructive",
-          description: "加载素材失败",
+          description: t("contentWriting.aiHelp.loadMaterialsFailed"),
         })
       } finally {
         setMaterialsLoading(false)
@@ -127,17 +90,53 @@ export function ArticleAIHelpDialog({
     if (open) {
       loadMaterials()
     }
-  }, [open, toast])
+  }, [open, toast, t])
+
+  // Load competitors on mount
+  useEffect(() => {
+    const loadCompetitors = async () => {
+      setCompetitorsLoading(true)
+      try {
+        console.log('[AI Help] Loading competitors...')
+        const result = await competitorsClient.getResults({
+          page: 1,
+          page_size: 100,
+        })
+        if ('posts' in result) {
+          console.log('[AI Help] Competitors loaded successfully:', result.posts.length)
+          setCompetitors(result.posts)
+        } else if ('error' in result) {
+          console.warn('[AI Help] Competitors load failed:', result.error)
+          toast({
+            variant: "destructive",
+            description: result.error,
+          })
+        }
+      } catch (error) {
+        console.error('[AI Help] Competitors load error:', error)
+        toast({
+          variant: "destructive",
+          description: t("contentWriting.aiHelp.loadCompetitorsFailed"),
+        })
+      } finally {
+        setCompetitorsLoading(false)
+      }
+    }
+
+    if (open) {
+      loadCompetitors()
+    }
+  }, [open, toast, t])
 
   const filteredMaterials = materials.filter(m =>
-    m.title.toLowerCase().includes(materialSearch.toLowerCase())
+    m.title?.toLowerCase().includes(materialSearch.toLowerCase()) ?? false
   )
 
-  const filteredCompetitors = mockCompetitors.filter(c =>
-    c.platform.toLowerCase().includes(competitorSearch.toLowerCase())
+  const filteredCompetitors = competitors.filter(c =>
+    c.content?.toLowerCase().includes(competitorSearch.toLowerCase()) ?? false
   )
 
-  const handleToggleMaterial = (id: string) => {
+  const handleToggleMaterial = (id: number) => {
     setSelectedMaterials(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
@@ -149,7 +148,7 @@ export function ArticleAIHelpDialog({
     )
   }
 
-  const handleRemoveMaterial = (id: string) => {
+  const handleRemoveMaterial = (id: number) => {
     setSelectedMaterials(prev => prev.filter(i => i !== id))
   }
 
@@ -170,17 +169,13 @@ export function ArticleAIHelpDialog({
     setIsGenerating(true)
 
     try {
-      // === 真实 API 调用 ===
-      // 转换材料 ID（string → number）
-      const materialIds = selectedMaterials.map(id => Number(id))
-
       // 转换竞品 ID（string → number），目前只有一个竞品可选
       const postId = selectedCompetitors.length > 0 ? Number(selectedCompetitors[0]) : 0
 
       const result = await articlesClient.aiWrite({
         req: prompt,
         link_post: postId,
-        link_materials: materialIds,
+        link_materials: selectedMaterials,
       })
 
       if ('error' in result) {
@@ -209,7 +204,8 @@ export function ArticleAIHelpDialog({
       setSelectedCompetitors([])
       onOpenChange(false)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "生成失败，请重试"
+      const errorMessage = error instanceof Error ? error.message : t("contentWriting.aiHelp.generateFailed")
+      console.error('[AI Help] Generate failed:', error)
       toast({
         variant: "destructive",
         description: errorMessage,
@@ -264,8 +260,13 @@ export function ArticleAIHelpDialog({
                 />
 
                 <ScrollArea className="h-[200px] border rounded-md p-2">
-                  <div className="space-y-1">
-                    {filteredCompetitors.map((post) => (
+                  {competitorsLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <LoaderIcon className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {filteredCompetitors.map((post) => (
                       <div
                         key={post.id}
                         className={`flex items-center space-x-2 p-2 rounded cursor-pointer ${
@@ -287,11 +288,12 @@ export function ArticleAIHelpDialog({
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{post.platform}</div>
-                          <div className="text-xs text-muted-foreground truncate">{post.content}</div>
+                          <div className="text-xs text-muted-foreground line-clamp-2">{post.content}</div>
                         </div>
                       </div>
                     ))}
-                  </div>
+                    </div>
+                  )}
                 </ScrollArea>
               </div>
 
@@ -299,11 +301,11 @@ export function ArticleAIHelpDialog({
               {selectedCompetitors.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs text-muted-foreground">
-                    已选择竞品
+                    {t("contentWriting.aiHelp.selectedCompetitor")}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedCompetitors.map((id) => {
-                      const post = mockCompetitors.find(p => p.id === id)
+                      const post = competitors.find(p => p.id === id)
                       return post ? (
                         <Badge key={id} variant="secondary" className="gap-1">
                           <span>{post.platform}</span>
@@ -346,9 +348,9 @@ export function ArticleAIHelpDialog({
                         <div
                           key={material.id}
                           className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                          onClick={() => handleToggleMaterial(String(material.id))}
+                          onClick={() => handleToggleMaterial(material.id)}
                         >
-                          <Checkbox checked={selectedMaterials.includes(String(material.id))} />
+                          <Checkbox checked={selectedMaterials.includes(material.id)} />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate">{material.title}</div>
                             <div className="text-xs text-muted-foreground">{material.material_type}</div>
@@ -368,7 +370,7 @@ export function ArticleAIHelpDialog({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {selectedMaterials.map((id) => {
-                      const material = materials.find(m => String(m.id) === id)
+                      const material = materials.find(m => m.id === id)
                       return material ? (
                         <Badge key={id} variant="secondary" className="gap-1">
                           <span>{material.title}</span>
