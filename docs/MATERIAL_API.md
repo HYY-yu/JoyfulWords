@@ -115,7 +115,8 @@ curl -X GET "http://localhost:8080/materials/search-logs/list?page=1&page_size=2
       "id": 1,
       "user_id": 123,
       "material_type": "news",
-      "status": "success",
+      "status": "success", 
+       "query": "xxx",
       "remark": "搜索完成，找到 15 条素材",
       "created_at": "2024-01-01T00:00:00Z",
       "updated_at": "2024-01-01T00:05:00Z"
@@ -124,15 +125,16 @@ curl -X GET "http://localhost:8080/materials/search-logs/list?page=1&page_size=2
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | number | 搜索日志 ID |
-| user_id | number | 用户 ID |
-| material_type | string | 素材类型 |
-| status | string | 搜索状态：doing(进行中)/success(成功)/failed(失败) |
-| remark | string | n8n 标注的执行信息 |
-| created_at | string | 创建时间（ISO 8601 格式） |
-| updated_at | string | 更新时间（ISO 8601 格式） |
+| 字段            | 类型 | 说明                                     |
+|---------------|------|----------------------------------------|
+| id            | number | 搜索日志 ID                                |
+| user_id       | number | 用户 ID                                  |
+| material_type | string | 素材类型                                   |
+| status        | string | 搜索状态：doing(进行中)/success(成功)/failed(失败) |
+| remark        | string | n8n 标注的执行信息                            |
+| query         | string | 查询的字符串                                 |
+| created_at    | string | 创建时间（ISO 8601 格式）                      |
+| updated_at    | string | 更新时间（ISO 8601 格式）                      |
 
 **错误响应**
 

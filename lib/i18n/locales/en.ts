@@ -123,6 +123,7 @@ export const en = {
                     id: "ID",
                     type: "Type",
                     status: "Status",
+                    query: "Query",
                     createdAt: "Created At",
                     updatedAt: "Updated At",
                     noData: "No generation logs available",

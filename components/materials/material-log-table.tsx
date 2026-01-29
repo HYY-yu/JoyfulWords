@@ -83,6 +83,9 @@ export function MaterialLogTable({
                 {t("contentWriting.materials.logs.table.type")}
               </th>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
+                {t("contentWriting.materials.logs.table.query")}
+              </th>
+              <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.materials.logs.table.status")}
               </th>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
@@ -96,7 +99,7 @@ export function MaterialLogTable({
           <tbody>
             {materialLogs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                <td colSpan={6} className="text-center py-12 text-muted-foreground">
                   {t("contentWriting.materials.logs.table.noData")}
                 </td>
               </tr>
@@ -108,6 +111,9 @@ export function MaterialLogTable({
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                       {getMaterialTypeLabel(log.material_type)}
                     </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground max-w-[300px] truncate" title={log.query}>
+                    {log.query}
                   </td>
                   <td className="py-3 px-4 text-sm">
                     <span

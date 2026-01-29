@@ -123,6 +123,7 @@ export const zh = {
                     id: "ID",
                     type: "类型",
                     status: "状态",
+                    query: "查询请求",
                     createdAt: "创建时间",
                     updatedAt: "更新时间",
                     noData: "暂无生成记录",

@@ -39,6 +39,7 @@ export interface MaterialLog {
   user_id: number
   material_type: MaterialType
   status: MaterialStatus
+  query: string // 查询的字符串
   remark: string // n8n 标注的执行信息
   created_at: string // ISO 8601 格式时间
   updated_at: string // ISO 8601 格式时间
