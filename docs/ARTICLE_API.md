@@ -97,13 +97,13 @@ curl -X POST http://localhost:8080/article/ai-write \
 
 ### 请求参数
 
-| 参数         | 类型     | 必填      | 说明                                   |
-|------------|--------|---------|--------------------------------------|
-| article_id | string | 是｜文章 id |
-| article    | string | 是       | 完整文章内容                               |
-| cut_text   | string | 是       | 用户选择的需要编辑的段落（必须是 article 的子集）        |
-| type       | string | 是       | 编辑类型，可选值：`material`、`style`、`struct` |
-| data       | object | 是       | 编辑数据，根据 type 不同结构不同                  |
+| 参数         | 类型     | 必填 | 说明                                   |
+|------------|--------|----|--------------------------------------|
+| article_id | string | 是  | 文章 id                                |
+| article    | string | 是  | 完整文章内容                               |
+| cut_text   | string | 是  | 用户选择的需要编辑的段落（必须是 article 的子集）        |
+| type       | string | 是  | 编辑类型，可选值：`material`、`style`、`struct` |
+| data       | object | 是  | 编辑数据，根据 type 不同结构不同                  |
 
 #### type="material" - 素材扩充
 
