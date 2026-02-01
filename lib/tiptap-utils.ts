@@ -29,16 +29,17 @@ marked.use({
 export function detectContentFormat(content: string): 'markdown' | 'html' | 'text' {
   if (!content) return 'text'
 
-  // 检测 Markdown 标记
   const markdownPatterns = [
-    /^#{1,6}\s+/m,        // 标题 #, ##, ###
+    /^#{1,6}\s+/m,         // 标题 #, ##, ###
     /^\*{3,}$/m,           // 分隔线 ***
     /^\[.+?\]\(.+?\)/m,    // 链接 [text](url)
     /^>\s+/m,              // 引用 >
     /^\*{1,2}.+?\*{1,2}/m, // 粗体/斜体 *text* or **text**
     /^[-*+]\s+/m,          // 无序列表 - * +
     /^\d+\.\s+/m,          // 有序列表 1. 2. 3.
+    /!\[.*?\]\(.*?\)/m     // 图片 ![alt](url)
   ]
+
 
   for (const pattern of markdownPatterns) {
     if (pattern.test(content)) {
@@ -69,7 +70,7 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
  */
 export async function markdownToHTML(markdown: string): Promise<string> {
   if (!markdown) return ''
- 
+
   try {
     return await marked.parse(markdown)
   } catch (error) {
