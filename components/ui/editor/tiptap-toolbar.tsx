@@ -259,7 +259,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         onClick={onAIRewrite}
         className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20"
       >
-        <SparklesIcon className="h-4 w-4" />
+        <SparklesIcon className="h-4 w-4 animate-heartbeat" />
       </ToolbarButton>
     </div>
   );

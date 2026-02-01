@@ -11,11 +11,7 @@ const publicRoutes = [
   '/auth/verify-email',     // 邮箱验证页面
 ]
 
-export async function proxy(request: NextRequest) {
-  // TODO: 临时禁用登录验证，用于开发测试
-  // 正式环境需要恢复认证逻辑
-  // return NextResponse.next()
-
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Get refresh token from cookies

@@ -331,6 +331,7 @@ export function TiptapEditor({
         open={isAIDialogOpen}
         onOpenChange={setIsAIDialogOpen}
         selectedText={selectedTextForAI}
+        articleContent={editor?.getHTML() || ''}
         onRewrite={applyAIRewrite}
       />
     </div>
