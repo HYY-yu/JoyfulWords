@@ -24,16 +24,16 @@ steps:
       - cp /home/admin/JoyfulWords/.env .env
       - |
         docker build -f Dockerfile.prod \
-          --build-arg NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" \
-          --build-arg NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL}" \
-          --build-arg NEXT_PUBLIC_ENABLE_TELEMETRY="${NEXT_PUBLIC_ENABLE_TELEMETRY}" \
-          --build-arg NEXT_PUBLIC_OTEL_EXPORTER_URL="${NEXT_PUBLIC_OTEL_EXPORTER_URL}" \
-          --build-arg NEXT_PUBLIC_FEATURE_IMAGE_GENERATION="${NEXT_PUBLIC_FEATURE_IMAGE_GENERATION}" \
-          --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="${NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS}" \
-          --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="${NEXT_PUBLIC_FEATURE_SEO_GEO}" \
-          --build-arg PORT="${PORT}" \
-          --build-arg OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME}" \
-          --build-arg NEXT_OTEL_VERBOSE="${NEXT_OTEL_VERBOSE}" \
+          --build-arg NEXT_PUBLIC_API_BASE_URL="$(grep NEXT_PUBLIC_API_BASE_URL .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_APP_URL="$(grep NEXT_PUBLIC_APP_URL .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_ENABLE_TELEMETRY="$(grep NEXT_PUBLIC_ENABLE_TELEMETRY .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_OTEL_EXPORTER_URL="$(grep NEXT_PUBLIC_OTEL_EXPORTER_URL .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_FEATURE_IMAGE_GENERATION="$(grep NEXT_PUBLIC_FEATURE_IMAGE_GENERATION .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="$(grep NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="$(grep NEXT_PUBLIC_FEATURE_SEO_GEO .env | cut -d '=' -f2)" \
+          --build-arg PORT="$(grep PORT .env | cut -d '=' -f2)" \
+          --build-arg OTEL_SERVICE_NAME="$(grep OTEL_SERVICE_NAME .env | cut -d '=' -f2)" \
+          --build-arg NEXT_OTEL_VERBOSE="$(grep NEXT_OTEL_VERBOSE .env | cut -d '=' -f2)" \
           -t joyful-words-frontend:latest .
       - rm .env
 
