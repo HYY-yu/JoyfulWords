@@ -10,6 +10,8 @@ steps:
   - name: test
     commands:
       - pnpm lint
+    environment:
+      PATH: /home/admin/.nvm/versions/node/v22.22.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
   - name: build
     commands:
