@@ -65,7 +65,7 @@ export function CompetitorTasksTable({
             {loading ? (
               <tr>
                 <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                  加载中...
+                  Looding...
                 </td>
               </tr>
             ) : tasks.length === 0 ? (
