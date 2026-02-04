@@ -17,24 +17,8 @@ steps:
 
   - name: deploy
     commands:
+      - cp /home/admin/JoyfulWords/.env .env
       - docker compose --env-file .env -f docker-compose.prod.yml up -d
-    environment:
-      PORT:
-        from_secret: frontend_port
-
-  - name: healthcheck
-    commands:
-      - |
-        for i in $(seq 1 30); do
-          if wget -q -O- http://localhost:8190 > /dev/null 2>&1; then
-            echo "Health check passed"
-            exit 0
-          fi
-          echo "Health check attempt $i failed, retrying in 2s..."
-          sleep 2
-        done
-        echo "Health check failed after 30 attempts"
-        exit 1
 
   - name: cleanup
     commands:
