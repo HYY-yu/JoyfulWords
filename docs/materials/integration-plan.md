@@ -707,7 +707,6 @@ const fetchMaterials = async () => {
     setError(result.error)
     toast({
       variant: 'destructive',
-      title: '获取素材列表失败',
       description: result.error,
     })
   } else {
@@ -734,7 +733,6 @@ const fetchSearchLogs = async () => {
   if ('error' in result) {
     toast({
       variant: 'destructive',
-      title: '获取搜索日志失败',
       description: result.error,
     })
   } else {
@@ -780,7 +778,6 @@ const handleSearch = async () => {
     setError(result.error)
     toast({
       variant: 'destructive',
-      title: '搜索启动失败',
       description: result.error,
     })
     setSearching(false)

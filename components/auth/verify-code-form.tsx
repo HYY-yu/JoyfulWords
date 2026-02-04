@@ -49,13 +49,13 @@ export function VerifyCodeForm({ mode, email, onSuccess }: VerifyCodeFormProps) 
         await verifySignupCode(email, code, password)
         toast({
           title: t("auth.signupComplete"),
-          description: "请使用您的邮箱和密码登录",
+          description: t("auth.toast.loginWithCredentials"),
         })
       } else {
         await verifyPasswordReset(email, code, password)
         toast({
           title: t("auth.passwordResetComplete"),
-          description: "请使用新密码登录",
+          description: t("auth.toast.loginWithNewPassword"),
         })
       }
 

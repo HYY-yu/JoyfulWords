@@ -255,9 +255,9 @@ export function KnowledgeCards() {
       })
 
       setGeneratedCards(mockCards)
-      toast.success(`成功生成 ${data.cardCount} 张知识卡片！`)
+      toast.success(t("knowledgeCards.toast.generateSuccess", { count: data.cardCount }))
     } catch (error) {
-      toast.error("生成卡片时发生错误，请重试")
+      toast.error(t("knowledgeCards.toast.generateError"))
     } finally {
       setIsGenerating(false)
     }

@@ -154,7 +154,7 @@ export function TiptapEditor({
       toast({
         variant: "destructive",
         title: t("contentWriting.writing.uploadFailed"),
-        description: "编辑器未初始化，请稍后再试",
+        description: t("tiptapEditor.toast.editorNotReady"),
       });
       return;
     }
@@ -192,7 +192,7 @@ export function TiptapEditor({
         // 显示上传中提示
         toast({
           title: t("contentWriting.writing.uploading"),
-          description: "正在上传图片...",
+          description: t("tiptapEditor.toast.uploadingImage"),
         });
 
         console.log("开始上传图片...");
@@ -231,7 +231,7 @@ export function TiptapEditor({
         // 显示成功提示
         toast({
           title: t("contentWriting.writing.uploadSuccess"),
-          description: "图片已插入到编辑器",
+          description: t("tiptapEditor.toast.imageInserted"),
         });
 
         // 验证图片是否成功插入（仅用于调试，不显示错误提示）
@@ -294,8 +294,8 @@ export function TiptapEditor({
     if (text.trim().length === 0) {
       toast({
         variant: "destructive",
-        title: "请先选中文本",
-        description: "请在编辑器中选中要改写的文本",
+        title: t("tiptapEditor.toast.selectTextFirst"),
+        description: t("tiptapEditor.toast.selectTextFirstDesc"),
       });
       return;
     }

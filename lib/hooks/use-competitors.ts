@@ -226,7 +226,7 @@ export function useCompetitors() {
         toast({
           variant: 'destructive',
           title: t('contentWriting.competitors.toast.urlRequired'),
-          description: '请输入要抓取的 URL',
+          description: t('contentWriting.competitors.toast.urlRequiredDesc'),
         })
         return false
       }
@@ -281,7 +281,7 @@ export function useCompetitors() {
         toast({
           variant: 'destructive',
           title: t('contentWriting.competitors.toast.urlRequired'),
-          description: '请输入要抓取的 URL',
+          description: t('contentWriting.competitors.toast.urlRequiredDesc'),
         })
         return false
       }
@@ -456,7 +456,7 @@ export function useCompetitors() {
       toast({
         variant: 'destructive',
         title: t('contentWriting.competitors.toast.notSupported'),
-        description: '请删除旧任务后创建新任务',
+        description: t('contentWriting.competitors.toast.notSupportedDesc'),
       })
 
       setEditingIntervalTaskId(null)

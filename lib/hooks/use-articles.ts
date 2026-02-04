@@ -263,7 +263,7 @@ export function useArticles() {
 
     toast({
       title: t("contentWriting.manager.toast.aiWriteStarted"),
-      description: "文章正在生成中，请稍候...",
+      description: t("contentWriting.manager.toast.aiWriteStartedDesc"),
     })
 
     // 返回创建的文章 ID

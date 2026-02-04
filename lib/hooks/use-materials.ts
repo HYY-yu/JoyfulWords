@@ -213,7 +213,6 @@ export function useMaterials() {
 
       toast({
         title: t("contentWriting.materials.toast.searchCompleted"),
-        description: "素材搜索已完成，已自动加载到列表中",
       })
     }
 
@@ -247,7 +246,7 @@ export function useMaterials() {
       // 显示提示并开始后台轮询
       toast({
         title: t("contentWriting.materials.toast.searchStarted"),
-        description: "AI 正在搜索相关素材，请稍候...",
+        description: t("contentWriting.materials.toast.searchStartedDesc"),
       })
 
       startSearchPolling()
@@ -393,7 +392,7 @@ export function useMaterials() {
       // 成功
       toast({
         title: t("contentWriting.materials.toast.createSuccess"),
-        description: `素材 "${uploadForm.name}" 已成功添加到列表`,
+        description: t("contentWriting.materials.toast.createSuccessDesc", { name: uploadForm.name }),
       })
 
       // 关闭对话框并重置表单

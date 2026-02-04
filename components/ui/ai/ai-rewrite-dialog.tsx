@@ -24,6 +24,7 @@ import {
 import { Textarea } from "../base/textarea";
 import { Input } from "../base/input";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/lib/i18n/i18n-context";
 import { API_BASE_URL } from "@/lib/config";
 
 interface AIRewriteDialogProps {
@@ -63,6 +64,7 @@ export function AIRewriteDialog({
   const [selectedStyle, setSelectedStyle] = useState<StyleType>('Professional');
   const [customText, setCustomText] = useState("");
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   // 当对话框打开或 selectedText 改变时，更新 textContent 并清空改写结果
   useEffect(() => {
@@ -144,8 +146,8 @@ export function AIRewriteDialog({
     if (selectedStyle === 'Custom' && !customText.trim()) {
       toast({
         variant: "destructive",
-        title: "请输入自定义风格",
-        description: "选择自定义风格时，需要填写风格要求",
+        title: t("aiRewrite.toast.customStyleRequired"),
+        description: t("aiRewrite.toast.customStyleRequiredDesc"),
       });
       return;
     }
@@ -194,7 +196,7 @@ export function AIRewriteDialog({
       toast({
         variant: "destructive",
         title: "生成失败",
-        description: error instanceof Error ? error.message : "请稍后重试",
+        description: error instanceof Error ? error.message : t("aiRewrite.toast.retryError"),
       });
     } finally {
       setIsRewriting(false);
@@ -211,7 +213,7 @@ export function AIRewriteDialog({
       onOpenChange(false);
       toast({
         title: "应用成功",
-        description: "已将内容应用到编辑器",
+        description: t("aiRewrite.toast.contentApplied"),
       });
     }
   };
