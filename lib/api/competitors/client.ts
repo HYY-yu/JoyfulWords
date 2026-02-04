@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api/client'
+import { apiRequest, getLanguageHeader } from '@/lib/api/client'
 import type {
   FetchContentRequest,
   GetTasksRequest,
@@ -57,7 +57,7 @@ export const competitorsClient = {
       method: 'POST',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
       body: JSON.stringify(request),
     })
@@ -94,7 +94,7 @@ export const competitorsClient = {
     return apiRequest<TaskListResponse>(url, {
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
     })
   },
@@ -130,7 +130,7 @@ export const competitorsClient = {
     return apiRequest<ResultListResponse>(url, {
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
     })
   },
@@ -161,7 +161,7 @@ export const competitorsClient = {
       method: 'PUT',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
       body: JSON.stringify({ status } as UpdateTaskStatusRequest),
     })
@@ -188,7 +188,7 @@ export const competitorsClient = {
       method: 'DELETE',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
     })
   },
@@ -214,7 +214,7 @@ export const competitorsClient = {
       method: 'DELETE',
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
     })
   },
@@ -250,7 +250,7 @@ export const competitorsClient = {
     return apiRequest<CrawlLogListResponse>(url, {
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
-        'Accept-Language': 'zh-CN',
+        'Accept-Language': getLanguageHeader(),
       },
     })
   },
