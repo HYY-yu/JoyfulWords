@@ -53,7 +53,7 @@ export function CompetitorLogsTable({
             {loading ? (
               <tr>
                 <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                  加载中...
+                  Loading...
                 </td>
               </tr>
             ) : logs.length === 0 ? (

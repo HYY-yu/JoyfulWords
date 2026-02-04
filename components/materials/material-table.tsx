@@ -152,7 +152,7 @@ export function MaterialTable({
                 <td colSpan={6} className="text-center py-12 text-muted-foreground">
                   <div className="flex items-center justify-center gap-2">
                     <LoaderIcon className="w-5 h-5 animate-spin" />
-                    <span>加载中...</span>
+                    <span>Loading...</span>
                   </div>
                 </td>
               </tr>
