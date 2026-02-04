@@ -21,7 +21,21 @@ steps:
 
   - name: build
     commands:
-      - docker build -f Dockerfile.prod -t joyful-words-frontend:latest .
+      - cp /home/admin/JoyfulWords/.env .env
+      - |
+        docker build -f Dockerfile.prod \
+          --build-arg NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" \
+          --build-arg NEXT_PUBLIC_APP_URL="${NEXT_PUBLIC_APP_URL}" \
+          --build-arg NEXT_PUBLIC_ENABLE_TELEMETRY="${NEXT_PUBLIC_ENABLE_TELEMETRY}" \
+          --build-arg NEXT_PUBLIC_OTEL_EXPORTER_URL="${NEXT_PUBLIC_OTEL_EXPORTER_URL}" \
+          --build-arg NEXT_PUBLIC_FEATURE_IMAGE_GENERATION="${NEXT_PUBLIC_FEATURE_IMAGE_GENERATION}" \
+          --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="${NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS}" \
+          --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="${NEXT_PUBLIC_FEATURE_SEO_GEO}" \
+          --build-arg PORT="${PORT}" \
+          --build-arg OTEL_SERVICE_NAME="${OTEL_SERVICE_NAME}" \
+          --build-arg NEXT_OTEL_VERBOSE="${NEXT_OTEL_VERBOSE}" \
+          -t joyful-words-frontend:latest .
+      - rm .env
 
   - name: deploy
     commands:
