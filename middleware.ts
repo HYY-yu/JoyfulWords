@@ -9,6 +9,7 @@ const publicRoutes = [
   '/auth/forgot-password',
   '/auth/google/callback',  // Google OAuth 回调页面
   '/auth/verify-email',     // 邮箱验证页面
+  '/cookie-policy',         // Cookie 政策页面
 ]
 
 export async function middleware(request: NextRequest) {

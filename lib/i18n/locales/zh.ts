@@ -608,5 +608,56 @@ export const zh = {
             creditLink: "免费获取此横幅",
             creditLinkLabel: "免费获取此横幅"
         }
+    },
+    cookiePolicy: {
+        title: "Cookie 政策",
+        subtitle: "了解我们如何使用 Cookie 和类似技术",
+        introduction: "本 Cookie 政策解释了 JoyfulWords（创作者工具箱）如何使用 Cookie 和类似技术，以及您如何管理您的 Cookie 偏好设置。",
+        whatAreCookies: {
+            title: "什么是 Cookie？",
+            description: "Cookie 是当您访问网站时存储在您的设备上的小型文本文件。它们被广泛用于记住您的偏好、让您在网站之间保持登录状态、了解您如何使用网站以及提供相关内容。"
+        },
+        types: {
+            title: "我们使用的 Cookie 类型",
+            necessary: {
+                name: "必要 Cookie",
+                description: "这些 Cookie 对于网站的正常运行是必需的，没有它们，网站无法正常工作。它们通常仅在您执行特定操作时才设置。",
+                examples: [
+                    "保持您的登录状态",
+                    "记住您的隐私偏好设置",
+                    "确保网站安全运行"
+                ]
+            },
+            analytics: {
+                name: "分析 Cookie",
+                description: "这些 Cookie 帮助我们了解访客如何使用我们的网站，收集哪些页面最受欢迎以及访客如何浏览网站等信息。这些信息帮助我们改进网站的性能和用户体验。",
+                examples: [
+                    "跟踪页面访问量和用户行为",
+                    "分析网站性能和用户参与度",
+                    "识别网站问题和改进机会"
+                ]
+            }
+        },
+        howToManage: {
+            title: "如何管理 Cookie",
+            description: "您可以通过多种方式管理 Cookie。您可以通过网站的 Cookie 横幅设置您的偏好，也可以通过浏览器设置管理所有 Cookie。",
+            browserSettings: {
+                title: "浏览器设置",
+                chrome: "Chrome: 设置 > 隐私和安全 > Cookie 和其他网站数据",
+                firefox: "Firefox: 选项 > 隐私与安全 > Cookie 和网站数据",
+                safari: "Safari: 偏好设置 > 隐私 > 管理 Cookie",
+                edge: "Edge: 设置 > Cookie 和网站权限 > Cookie 和网站数据"
+            }
+        },
+        updates: {
+            title: "政策的更新",
+            description: "我们可能会不时更新本 Cookie 政策。任何变更都将在此页面上发布，并会在政策生效前通过网站通知您。"
+        },
+        contact: {
+            title: "联系我们",
+            description: "如果您对本 Cookie 政策有任何疑问或疑虑，请通过以下方式联系我们：",
+            email: "support@joyword.link"
+        },
+        lastUpdated: "最后更新"
     }
 };

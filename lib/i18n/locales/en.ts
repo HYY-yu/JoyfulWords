@@ -608,5 +608,56 @@ export const en = {
             creditLink: "Get this banner free",
             creditLinkLabel: "Get this banner free"
         }
+    },
+    cookiePolicy: {
+        title: "Cookie Policy",
+        subtitle: "Learn how we use cookies and similar technologies",
+        introduction: "This Cookie Policy explains how JoyfulWords (Creator Toolbox) uses cookies and similar technologies, and how you can manage your cookie preferences.",
+        whatAreCookies: {
+            title: "What are Cookies?",
+            description: "Cookies are small text files stored on your device when you visit websites. They are widely used to remember your preferences, keep you logged in, understand how you use the site, and provide relevant content."
+        },
+        types: {
+            title: "Types of Cookies We Use",
+            necessary: {
+                name: "Necessary Cookies",
+                description: "These cookies are essential for the website to function properly. Without them, the site cannot work as intended. They are usually only set in response to actions you take.",
+                examples: [
+                    "Keeping you logged in",
+                    "Remembering your privacy preferences",
+                    "Ensuring the website runs securely"
+                ]
+            },
+            analytics: {
+                name: "Analytics Cookies",
+                description: "These cookies help us understand how visitors use our website by collecting information about which pages are most popular and how visitors navigate through the site. This information helps us improve site performance and user experience.",
+                examples: [
+                    "Tracking page views and user behavior",
+                    "Analyzing site performance and engagement",
+                    "Identifying site issues and improvement opportunities"
+                ]
+            }
+        },
+        howToManage: {
+            title: "How to Manage Cookies",
+            description: "You can manage cookies in several ways. You can set your preferences through our website's cookie banner, or manage all cookies through your browser settings.",
+            browserSettings: {
+                title: "Browser Settings",
+                chrome: "Chrome: Settings > Privacy and security > Cookies and other site data",
+                firefox: "Firefox: Options > Privacy & Security > Cookies and Site Data",
+                safari: "Safari: Preferences > Privacy > Manage Website Data",
+                edge: "Edge: Settings > Cookies and site permissions > Cookies and site data"
+            }
+        },
+        updates: {
+            title: "Updates to This Policy",
+            description: "We may update this Cookie Policy from time to time. Any changes will be posted on this page, and you will be notified through the website before the policy takes effect."
+        },
+        contact: {
+            title: "Contact Us",
+            description: "If you have any questions or concerns about this Cookie Policy, please contact us at:",
+            email: "support@joyword.link"
+        },
+        lastUpdated: "Last Updated"
     }
 };
