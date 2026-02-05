@@ -582,4 +582,31 @@ export const en = {
             contentApplied: "Content applied to editor",
         },
     },
+    cookieBanner: {
+        types: {
+            necessary: {
+                name: "Necessary",
+                description: "These cookies are essential for the website to function properly and cannot be disabled. They help with logging in and setting privacy preferences."
+            },
+            analytics: {
+                name: "Analytics",
+                description: "These cookies help us improve the website by tracking which pages are most popular and how visitors navigate through the site."
+            }
+        },
+        banner: {
+            description: "We use cookies on our site to enhance your user experience, provide personalized content, and analyze our traffic.<a href=\"/cookie-policy\" target=\"_blank\">Cookie Policy</a>",
+            acceptAll: "Accept All",
+            acceptAllLabel: "Accept all cookies",
+            rejectNonEssential: "Reject Non-Essential",
+            rejectNonEssentialLabel: "Reject non-essential cookies",
+            preferences: "Preferences",
+            preferencesLabel: "Toggle cookie preferences"
+        },
+        preferences: {
+            title: "Customize Your Cookie Preferences",
+            description: "We respect your privacy. You can choose to disable certain types of cookies. Your cookie preferences will apply to this entire website.",
+            creditLink: "Get this banner free",
+            creditLinkLabel: "Get this banner free"
+        }
+    }
 };

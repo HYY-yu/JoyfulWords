@@ -3,6 +3,7 @@
 import { ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
+import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 
 interface AuthCardProps {
   children: ReactNode
@@ -68,6 +69,9 @@ export function AuthCard({ children, title, subtitle }: AuthCardProps) {
             </button>
           </div>
         </div>
+
+        {/* Cookie Banner (仅在认证页面显示) */}
+        <CookieBannerProvider />
       </div>
     </div>
   )

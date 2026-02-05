@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie Banner 测试</title>
+  <link rel="stylesheet" href="/components/cookie-banner/silktide-consent-manager.css">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; }
+    .info { background: #e3f2fd; padding: 15px; border-radius: 4px; margin: 20px 0; }
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover { background: #1565c0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🍪 Cookie Banner 集成测试</h1>
+
+    <div class="info">
+      <strong>测试说明:</strong>
+      <ul>
+        <li>首次访问应在页面底部看到 Cookie Banner</li>
+        <li>点击按钮后,Banner 应消失并显示 Cookie Icon</li>
+        <li>点击 Cookie Icon 应打开偏好设置 Modal</li>
+      </ul>
+    </div>
+
+    <div>
+      <button onclick="checkLocalStorage()">检查 localStorage</button>
+      <button onclick="clearLocalStorage()">清除 localStorage</button>
+      <button onclick="location.reload()">刷新页面</button>
+    </div>
+
+    <div id="output" style="margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 4px; font-family: monospace; font-size: 12px;"></div>
+  </div>
+
+  <script src="/components/cookie-banner/silktide-consent-manager.js"></script>
+  <script>
+    // 配置 Silktide Cookie Banner
+    const config = {
+      background: {
+        showBackground: true,
+      },
+      cookieIcon: {
+        position: "bottomLeft",
+      },
+      bannerSuffix: "_auth",
+      cookieTypes: [
+        {
+          id: "necessary",
+          name: "必要 Cookie",
+          description: "这些 cookie 对于网站正常运行是必需的,无法关闭。",
+          required: true,
+          defaultValue: true,
+        },
+        {
+          id: "analytics",
+          name: "分析",
+          description: "这些 Cookie 通过跟踪哪些页面最受欢迎来帮助我们改进网站。",
+          defaultValue: false,
+          onAccept: () => console.log("[测试] Analytics cookies accepted"),
+          onReject: () => console.log("[测试] Analytics cookies rejected"),
+        },
+      ],
+      text: {
+        banner: {
+          description: "我们在网站上使用 Cookie 来提升您的用户体验。<a href=\"/cookie-policy\" target=\"_blank\">Cookie 政策</a>",
+          acceptAllButtonText: "全部接受",
+          acceptAllButtonAccessibleLabel: "接受所有 Cookie",
+          rejectNonEssentialButtonText: "拒绝非必要 Cookie",
+          rejectNonEssentialButtonAccessibleLabel: "拒绝非必要 Cookie",
+          preferencesButtonText: "偏好设置",
+          preferencesButtonAccessibleLabel: "切换偏好设置",
+        },
+        preferences: {
+          title: "自定义您的 Cookie 偏好设置",
+          description: "我们尊重您的隐私权。您可以选择不允许某些类型的 Cookie。",
+          creditLinkText: "免费获取此横幅",
+          creditLinkAccessibleLabel: "免费获取此横幅",
+        },
+      },
+      onAcceptAll: () => console.log("[测试] All cookies accepted"),
+      onRejectAll: () => console.log("[测试] Non-essential cookies rejected"),
+      onBackdropOpen: () => console.log("[测试] Preferences modal opened"),
+    }
+
+    // 等待 Silktide 脚本加载完成
+    function initCookieBanner() {
+      if (window.silktideCookieBannerManager) {
+        console.log("[测试] Silktide 脚本已加载,初始化配置...")
+        window.silktideCookieBannerManager.updateCookieBannerConfig(config)
+      } else {
+        console.log("[测试] 等待 Silktide 脚本加载...")
+        setTimeout(initCookieBanner, 100)
+      }
+    }
+
+    // 页面加载后初始化
+    window.addEventListener('DOMContentLoaded', initCookieBanner)
+
+    // 辅助函数
+    function checkLocalStorage() {
+      const output = document.getElementById('output')
+      const keys = [
+        'silktideCookieChoice_necessary_auth',
+        'silktideCookieChoice_analytics_auth',
+        'silktideCookieBanner_InitialChoice_auth'
+      ]
+
+      let html = '<strong>localStorage 内容:</strong><br><br>'
+      keys.forEach(key => {
+        const value = localStorage.getItem(key)
+        html += `${key}: ${value || '(未设置)'}<br>`
+      })
+
+      output.innerHTML = html
+    }
+
+    function clearLocalStorage() {
+      localStorage.removeItem('silktideCookieChoice_necessary_auth')
+      localStorage.removeItem('silktideCookieChoice_analytics_auth')
+      localStorage.removeItem('silktideCookieBanner_InitialChoice_auth')
+
+      document.getElementById('output').innerHTML = '<strong>✓ localStorage 已清除</strong><br>请刷新页面以重新显示 Banner'
+      console.log("[测试] localStorage 已清除")
+    }
+
+    // 初始显示 localStorage 状态
+    setTimeout(checkLocalStorage, 1000)
+  </script>
+</body>
+</html>

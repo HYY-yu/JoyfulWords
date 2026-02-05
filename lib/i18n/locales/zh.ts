@@ -582,4 +582,31 @@ export const zh = {
             contentApplied: "已将内容应用到编辑器",
         },
     },
+    cookieBanner: {
+        types: {
+            necessary: {
+                name: "必要 Cookie",
+                description: "这些 cookie 对于网站正常运行是必需的,无法关闭。它们有助于登录和设置隐私偏好等操作。"
+            },
+            analytics: {
+                name: "分析",
+                description: "这些 Cookie 通过跟踪哪些页面最受欢迎以及访问者如何在网站上浏览来帮助我们改进网站。"
+            }
+        },
+        banner: {
+            description: "我们在网站上使用 Cookie 来提升您的用户体验、提供个性化内容并分析网站流量。<a href=\"/cookie-policy\" target=\"_blank\">Cookie 政策</a>",
+            acceptAll: "全部接受",
+            acceptAllLabel: "接受所有 Cookie",
+            rejectNonEssential: "拒绝非必要 Cookie",
+            rejectNonEssentialLabel: "拒绝非必要 Cookie",
+            preferences: "偏好设置",
+            preferencesLabel: "切换偏好设置"
+        },
+        preferences: {
+            title: "自定义您的 Cookie 偏好设置",
+            description: "我们尊重您的隐私权。您可以选择不允许某些类型的 Cookie。您的 Cookie 偏好设置将应用于我们整个网站。",
+            creditLink: "免费获取此横幅",
+            creditLinkLabel: "免费获取此横幅"
+        }
+    }
 };
