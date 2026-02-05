@@ -10,6 +10,8 @@ const publicRoutes = [
   '/auth/google/callback',  // Google OAuth 回调页面
   '/auth/verify-email',     // 邮箱验证页面
   '/cookie-policy',         // Cookie 政策页面
+  '/terms-of-use',          // 使用条款页面
+  '/privacy-policy',        // 隐私政策页面
 ]
 
 export async function middleware(request: NextRequest) {

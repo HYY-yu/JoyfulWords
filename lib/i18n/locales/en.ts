@@ -564,6 +564,9 @@ export const en = {
             loginFailedTitle: "Login failed",
             redirectingToLogin: "Redirecting to login page...",
         },
+        agreeToTerms: "I have read and agree to the",
+        and: "and",
+        termsRequired: "You must agree to all terms to continue registration",
     },
     tiptapEditor: {
         toast: {
@@ -656,6 +659,156 @@ export const en = {
         contact: {
             title: "Contact Us",
             description: "If you have any questions or concerns about this Cookie Policy, please contact us at:",
+            email: "support@joyword.link"
+        },
+        lastUpdated: "Last Updated"
+    },
+    legal: {
+        termsOfUse: "Terms of Use",
+        privacyPolicy: "Privacy Policy",
+        cookiePolicy: "Cookie Policy"
+    },
+    termsOfUse: {
+        title: "Terms of Use",
+        subtitle: "Welcome to JoyfulWords (Creator Toolbox)",
+        introduction: "Welcome to JoyfulWords (Creator Toolbox). These Terms of Use ('Terms') govern your use of our website and services. By accessing or using our services, you agree to be bound by these Terms.",
+        acceptance: {
+            title: "Acceptance of Terms",
+            description: "By creating an account or using our services, you confirm that you have read, understood, and agree to be bound by these Terms. If you do not agree to these Terms, please do not use our services."
+        },
+        services: {
+            title: "Our Services",
+            description: "JoyfulWords is a content creation tool platform that provides the following features:",
+            features: [
+                "Material search and management",
+                "Competitor tracking and analysis",
+                "AI-assisted article writing",
+                "Knowledge card generation",
+                "Image generation tools",
+                "SEO/GEO analysis"
+            ]
+        },
+        responsibilities: {
+            title: "User Responsibilities",
+            description: "When using our services, you agree to:",
+            items: [
+                "Provide accurate and complete registration information",
+                "Maintain account security and be responsible for all activities under your account",
+                "Comply with all applicable laws and regulations",
+                "Not abuse the service or interfere with other users' experience"
+            ]
+        },
+        intellectualProperty: {
+            title: "Intellectual Property",
+            description: "All content in the services, including but not limited to text, graphics, logos, images, and software, is the property of JoyfulWords or its content suppliers and is protected by intellectual property laws. You may not reproduce, modify, distribute, or otherwise use our content without written permission."
+        },
+        liability: {
+            title: "Limitation of Liability",
+            description: "To the maximum extent permitted by law, JoyfulWords shall not be liable for any indirect, incidental, special, or consequential damages resulting from the use or inability to use the services."
+        },
+        termination: {
+            title: "Service Termination",
+            description: "We reserve the right to suspend or terminate your access to the services at any time without prior notice, including but not limited to violations of these Terms."
+        },
+        changes: {
+            title: "Changes to Terms",
+            description: "We may update these Terms from time to time. Continued use of the services after changes indicates your acceptance of the updated Terms. We will notify you of significant changes through the website."
+        },
+        governingLaw: {
+            title: "Governing Law",
+            description: "These Terms are governed by the laws of your jurisdiction."
+        },
+        contact: {
+            title: "Contact Us",
+            description: "If you have any questions about these Terms of Use, please contact us at:",
+            email: "support@joyword.link"
+        },
+        lastUpdated: "Last Updated"
+    },
+    privacyPolicy: {
+        title: "Privacy Policy",
+        subtitle: "Learn how we protect your information",
+        introduction: "JoyfulWords (Creator Toolbox) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and protect your information, in compliance with GDPR, CCPA, and other international privacy regulations.",
+        dataCollection: {
+            title: "Information We Collect",
+            description: "We collect the following types of information:",
+            personalInfo: {
+                title: "Personal Information",
+                items: [
+                    "Account information: email address, name",
+                    "Usage data: created articles, materials, settings",
+                    "Payment information: payment transaction details (processed through third-party payment processors)"
+                ]
+            },
+            usageData: {
+                title: "Usage Data",
+                items: [
+                    "Access logs: IP address, browser type, device information",
+                    "Usage statistics: page visits, feature usage",
+                    "Cookie data: preferences collected through cookies"
+                ]
+            }
+        },
+        dataUsage: {
+            title: "How We Use Your Information",
+            purposes: [
+                "To provide, maintain, and improve our services",
+                "To process transactions and send related notifications",
+                "To send you technical notices, updates, and security alerts",
+                "To respond to your comments, questions, and requests",
+                "To monitor and analyze usage trends to improve the service"
+            ]
+        },
+        dataSharing: {
+            title: "Information Disclosure",
+            description: "We do not sell, rent, or trade your personal information. We only disclose information in the following circumstances:",
+            exceptions: [
+                "With your consent",
+                "To comply with legal obligations or respond to court orders",
+                "To protect our rights, property, or safety",
+                "With trusted service providers (under confidentiality agreements)"
+            ]
+        },
+        security: {
+            title: "Data Security",
+            description: "We implement reasonable technical and organizational measures to protect your information from unauthorized access, use, or disclosure. However, no method of transmission or storage is completely secure."
+        },
+        rights: {
+            title: "Your Rights (GDPR/CCPA)",
+            description: "Under applicable privacy laws, you have the following rights:",
+            items: [
+                "Access: Request a copy of your personal information we hold",
+                "Rectification: Request correction of inaccurate information",
+                "Erasure: Request deletion of your personal information",
+                "Restriction: Request restriction on how we use your information",
+                "Portability: Request transfer of your information to another service",
+                "Object: Object to our processing of your information"
+            ]
+        },
+        retention: {
+            title: "Data Retention",
+            description: "We retain your personal information for as long as necessary to achieve the purposes outlined in this policy, unless a longer retention period is required or permitted by law."
+        },
+        international: {
+            title: "International Data Transfers",
+            description: "Your information may be transferred to and processed in countries other than your own. We take appropriate steps to ensure your data remains protected."
+        },
+        children: {
+            title: "Children's Privacy",
+            description: "Our services are not directed to children under 16. We do not knowingly collect personal information from children under 16. If we discover we have collected such information, we will take steps to delete it."
+        },
+        cookies: {
+            title: "Cookies and Tracking Technologies",
+            description: "We use cookies and similar technologies to collect and track information. You can manage your cookie preferences through your browser settings. For more information, please see our",
+            cookiePolicyLink: "Cookie Policy"
+        },
+        changes: {
+            title: "Policy Changes",
+            description: "We may update this Privacy Policy from time to time. Continued use of the services after changes indicates your acceptance of the updated policy. We will notify you of significant changes through the website."
+        },
+        contact: {
+            title: "Contact Us",
+            description: "If you have any questions about this Privacy Policy or wish to exercise your rights, please contact us at:",
             email: "support@joyword.link"
         },
         lastUpdated: "Last Updated"

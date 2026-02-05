@@ -4,6 +4,7 @@ import { ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
+import Link from "next/link"
 
 interface AuthCardProps {
   children: ReactNode
@@ -68,6 +69,30 @@ export function AuthCard({ children, title, subtitle }: AuthCardProps) {
               <span className="hidden sm:inline">{t("common.en")}</span>
             </button>
           </div>
+        </div>
+
+        {/* Legal Links */}
+        <div className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
+          <Link
+            href="/terms-of-use"
+            className="hover:text-foreground hover:underline transition-colors"
+          >
+            {t("legal.termsOfUse")}
+          </Link>
+          <span>•</span>
+          <Link
+            href="/privacy-policy"
+            className="hover:text-foreground hover:underline transition-colors"
+          >
+            {t("legal.privacyPolicy")}
+          </Link>
+          <span>•</span>
+          <Link
+            href="/cookie-policy"
+            className="hover:text-foreground hover:underline transition-colors"
+          >
+            {t("legal.cookiePolicy")}
+          </Link>
         </div>
 
         {/* Cookie Banner (仅在认证页面显示) */}

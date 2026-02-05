@@ -9,7 +9,7 @@ import { BANNER_SUFFIX } from "./types"
  * CookieBannerProvider - Silktide Cookie Banner 包装组件
  *
  * 功能:
- * - 动态加载 Silktide 脚本和样式
+ * - 动态加载 Silktide 脚本和样式（确保全局只加载一次）
  * - 将 i18n 翻译转换为 Silktide 配置
  * - 监听语言切换,动态更新配置
  * - 处理组件卸载和清理
@@ -27,7 +27,11 @@ export function CookieBannerProvider() {
       return
     }
 
-    if (isScriptLoaded) return
+    // 检查是否已经加载过脚本（全局检查）
+    if (window.silktideCookieBannerManager || isScriptLoaded) {
+      setIsScriptLoaded(true)
+      return
+    }
 
     const cleanup = loadSilktideAssets()
     cleanupRef.current = cleanup
@@ -42,7 +46,8 @@ export function CookieBannerProvider() {
 
     return () => {
       clearInterval(checkInterval)
-      cleanup?.()
+      // 注意：不执行 cleanup，因为脚本需要保留在全局
+      // 这样即使用户在页面间切换，脚本也不会重复加载
     }
   }, [])
 
@@ -67,40 +72,45 @@ export function CookieBannerProvider() {
 
 /**
  * 动态加载 Silktide CSS 和 JS 文件
+ * 确保每个资源只被加载一次
  *
  * @returns 清理函数,用于移除添加的 DOM 元素
  */
 function loadSilktideAssets() {
   try {
+    // 检查是否已经加载过这些资源
+    const existingCss = document.querySelector('link[data-silktide-cookie-banner]')
+    const existingScript = document.querySelector('script[data-silktide-cookie-banner]')
+
+    // 如果已经加载过，直接返回空清理函数
+    if (existingCss && existingScript) {
+      console.debug("[Cookie Banner] Assets already loaded, skipping...")
+      return () => {}
+    }
+
     // 加载 CSS
-    const cssLink = document.createElement("link")
-    cssLink.rel = "stylesheet"
-    cssLink.href = "/components/cookie-banner/silktide-consent-manager.css"
-    cssLink.dataset.silktideCookieBanner = ""
-    document.head.appendChild(cssLink)
+    if (!existingCss) {
+      const cssLink = document.createElement("link")
+      cssLink.rel = "stylesheet"
+      cssLink.href = "/components/cookie-banner/silktide-consent-manager.css"
+      cssLink.dataset.silktideCookieBanner = ""
+      document.head.appendChild(cssLink)
+    }
 
     // 加载 JS
-    const script = document.createElement("script")
-    script.src = "/components/cookie-banner/silktide-consent-manager.js"
-    script.dataset.silktideCookieBanner = ""
-    document.head.appendChild(script)
+    if (!existingScript) {
+      const script = document.createElement("script")
+      script.src = "/components/cookie-banner/silktide-consent-manager.js"
+      script.dataset.silktideCookieBanner = ""
+      document.head.appendChild(script)
+    }
 
     console.debug("[Cookie Banner] Assets loaded")
 
-    // 返回清理函数
+    // 返回空的清理函数（保留脚本在全局）
     return () => {
-      // 移除 CSS
-      if (cssLink.parentNode) {
-        cssLink.parentNode.removeChild(cssLink)
-      }
-      // 移除 JS
-      if (script.parentNode) {
-        script.parentNode.removeChild(script)
-      }
-      // 移除 Silktide 创建的 DOM 元素
-      const silktideElements = document.querySelectorAll('[id^="silktide-"]')
-      silktideElements.forEach((el) => el.remove())
-      console.debug("[Cookie Banner] Assets cleaned up")
+      // 不清理，因为脚本需要在全局保持活跃
+      // 这样可以避免用户在页面间切换时重复加载
     }
   } catch (error) {
     console.error("[Cookie Banner] Failed to load assets:", error)

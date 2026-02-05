@@ -564,6 +564,9 @@ export const zh = {
             loginFailedTitle: "登录失败",
             redirectingToLogin: "正在跳转到登录页面...",
         },
+        agreeToTerms: "我已阅读并同意",
+        and: "和",
+        termsRequired: "您必须同意所有条款才能继续注册",
     },
     tiptapEditor: {
         toast: {
@@ -656,6 +659,156 @@ export const zh = {
         contact: {
             title: "联系我们",
             description: "如果您对本 Cookie 政策有任何疑问或疑虑，请通过以下方式联系我们：",
+            email: "support@joyword.link"
+        },
+        lastUpdated: "最后更新"
+    },
+    legal: {
+        termsOfUse: "使用条款",
+        privacyPolicy: "隐私政策",
+        cookiePolicy: "Cookie 政策"
+    },
+    termsOfUse: {
+        title: "使用条款",
+        subtitle: "欢迎使用 JoyfulWords（创作者工具箱）",
+        introduction: "欢迎使用 JoyfulWords（创作者工具箱）。这些使用条款 govern 您使用我们的网站和服务。通过访问或使用我们的服务，您同意受这些条款的约束。",
+        acceptance: {
+            title: "接受条款",
+            description: "通过创建账户或使用我们的服务，您确认您已阅读、理解并同意受这些条款的约束。如果您不同意这些条款，请不要使用我们的服务。"
+        },
+        services: {
+            title: "我们的服务",
+            description: "JoyfulWords 是一个内容创作工具平台，提供以下功能：",
+            features: [
+                "素材搜索和管理",
+                "竞品跟踪和分析",
+                "AI 辅助文章创作",
+                "知识卡片生成",
+                "图片生成工具",
+                "SEO/GEO 分析"
+            ]
+        },
+        responsibilities: {
+            title: "用户责任",
+            description: "使用我们的服务时，您同意：",
+            items: [
+                "提供准确、完整的注册信息",
+                "维护账户安全性，并对账户下的所有活动负责",
+                "遵守所有适用的法律法规",
+                "不滥用服务或干扰其他用户体验"
+            ]
+        },
+        intellectualProperty: {
+            title: "知识产权",
+            description: "服务中的所有内容，包括但不限于文本、图形、logo、图像和软件，均为 JoyfulWords 或其内容供应商的财产，受知识产权法保护。未经书面许可，您不得复制、修改、分发或以其他方式使用我们的内容。"
+        },
+        liability: {
+            title: "责任限制",
+            description: "在法律允许的最大范围内，JoyfulWords 不对因使用或无法使用服务而导致的任何间接、偶然、特殊或后果性损害承担责任。"
+        },
+        termination: {
+            title: "服务终止",
+            description: "我们保留随时暂停或终止您访问服务的权利，无需提前通知，原因包括但不限于违反这些条款。"
+        },
+        changes: {
+            title: "条款变更",
+            description: "我们可能会不时更新这些条款。变更后继续使用服务即表示您接受更新后的条款。重大变更将通过网站通知您。"
+        },
+        governingLaw: {
+            title: "适用法律",
+            description: "这些条款受您所在司法管辖区的法律管辖。"
+        },
+        contact: {
+            title: "联系我们",
+            description: "如果您对这些使用条款有任何疑问，请通过以下方式联系我们：",
+            email: "support@joyword.link"
+        },
+        lastUpdated: "最后更新"
+    },
+    privacyPolicy: {
+        title: "隐私政策",
+        subtitle: "了解我们如何保护您的信息",
+        introduction: "JoyfulWords（创作者工具箱）致力于保护您的隐私。本隐私政策解释了我们如何收集、使用、披露和保护您的信息，符合 GDPR、CCPA 等国际隐私法规。",
+        dataCollection: {
+            title: "我们收集的信息",
+            description: "我们收集以下类型的信息：",
+            personalInfo: {
+                title: "个人信息",
+                items: [
+                    "账户信息：电子邮件地址、姓名",
+                    "使用数据：创建的文章、素材、设置",
+                    "支付信息：支付交易详情（通过第三方支付处理器处理）"
+                ]
+            },
+            usageData: {
+                title: "使用数据",
+                items: [
+                    "访问日志：IP 地址、浏览器类型、设备信息",
+                    "使用统计：页面访问、功能使用情况",
+                    "Cookie 数据：通过 Cookie 收集的偏好设置"
+                ]
+            }
+        },
+        dataUsage: {
+            title: "我们如何使用您的信息",
+            purposes: [
+                "提供、维护和改进我们的服务",
+                "处理交易和发送相关通知",
+                "向您发送技术通知、更新和安全警报",
+                "响应您的评论、问题和请求",
+                "监控和分析使用趋势，以改进服务"
+            ]
+        },
+        dataSharing: {
+            title: "信息披露",
+            description: "我们不会出售、出租或交易您的个人信息。我们仅在以下情况下披露信息：",
+            exceptions: [
+                "经您同意",
+                "为遵守法律义务或响应法院命令",
+                "保护我们的权利、财产或安全",
+                "与可信服务提供商合作（在保密协议下）"
+            ]
+        },
+        security: {
+            title: "数据安全",
+            description: "我们采取合理的技术和组织措施来保护您的信息免受未经授权的访问、使用或披露。然而，没有任何传输或存储方法是完全安全的。"
+        },
+        rights: {
+            title: "您的权利（GDPR/CCPA）",
+            description: "根据适用的隐私法律，您拥有以下权利：",
+            items: [
+                "访问权：请求访问我们持有的您的个人信息副本",
+                "更正权：请求更正不准确的信息",
+                "删除权：请求删除您的个人信息",
+                "限制处理权：请求限制我们如何使用您的信息",
+                "数据可携权：请求将您的信息传输到另一个服务",
+                "反对权：反对我们处理您的信息"
+            ]
+        },
+        retention: {
+            title: "数据保留",
+            description: "我们会在实现本政策所述目的所需的时间内保留您的个人信息，除非法律要求或允许更长的保留期限。"
+        },
+        international: {
+            title: "国际数据传输",
+            description: "您的信息可能会被传输到您所在国家/地区以外的国家/地区并在那里处理。我们将采取适当措施确保您的数据得到保护。"
+        },
+        children: {
+            title: "儿童隐私",
+            description: "我们的服务不面向 16 岁以下的儿童。我们不会故意收集 16 岁以下儿童的个人信息。如果我们发现我们已收集此类信息，我们将采取步骤删除它。"
+        },
+        cookies: {
+            title: "Cookies 和跟踪技术",
+            description: "我们使用 Cookie 和类似技术来收集和跟踪信息。您可以通过浏览器设置管理 Cookie 偏好。有关详细信息，请参阅我们的",
+            cookiePolicyLink: "Cookie 政策"
+        },
+        changes: {
+            title: "政策变更",
+            description: "我们可能会不时更新本隐私政策。变更后继续使用服务即表示您接受更新后的政策。重大变更将通过网站通知您。"
+        },
+        contact: {
+            title: "联系我们",
+            description: "如果您对本隐私政策有任何疑问或想要行使您的权利，请通过以下方式联系我们：",
             email: "support@joyword.link"
         },
         lastUpdated: "最后更新"
