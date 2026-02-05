@@ -51,7 +51,7 @@ export function SignupForm() {
           onClick={handleBack}
           className="mb-2"
         >
-          ← 返回
+          ← {t("auth.back")}
         </Button>
         <VerifyCodeForm
           mode="signup"
@@ -77,14 +77,14 @@ export function SignupForm() {
           disabled={loading}
         />
         <p className="text-xs text-muted-foreground">
-          我们将向您的邮箱发送6位验证码
+          {t("auth.sendCodeHint")}
         </p>
       </div>
 
       {/* Send Code Button */}
       <Button type="submit" className="w-full" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        发送验证码
+        {t("auth.sendVerificationCode")}
       </Button>
 
       {/* Login Link */}

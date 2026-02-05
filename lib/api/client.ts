@@ -23,7 +23,7 @@ const DEFAULT_HEADERS = {
 /**
  * Get Accept-Language header based on browser locale
  */
-function getLanguageHeader(): string {
+export function getLanguageHeader(): string {
   if (typeof window === 'undefined') return 'en-US'
 
   const locale = localStorage.getItem('locale') || navigator.language || 'en-US'

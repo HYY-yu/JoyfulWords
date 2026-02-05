@@ -101,17 +101,17 @@ export function VerifyCodeForm({ mode, email, onSuccess }: VerifyCodeFormProps) 
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="text-center mb-4">
         <p className="text-sm text-muted-foreground">
-          验证码已发送至 <span className="font-medium">{email}</span>
+          {t("auth.verificationCodeSent")} <span className="font-medium">{email}</span>
         </p>
       </div>
 
       {/* Verification Code */}
       <div className="space-y-2">
-        <Label htmlFor="code">验证码</Label>
+        <Label htmlFor="code">{t("auth.verificationCode")}</Label>
         <Input
           id="code"
           type="text"
-          placeholder="请输入6位验证码"
+          placeholder={t("auth.verificationCodePlaceholder")}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
           required
@@ -121,7 +121,7 @@ export function VerifyCodeForm({ mode, email, onSuccess }: VerifyCodeFormProps) 
           className="text-center text-lg tracking-widest"
         />
         <div className="flex justify-between items-center text-xs">
-          <span className="text-muted-foreground">有效期15分钟</span>
+          <span className="text-muted-foreground">{t("auth.verificationCodeValid")}</span>
           <button
             type="button"
             onClick={handleResendCode}
@@ -129,22 +129,22 @@ export function VerifyCodeForm({ mode, email, onSuccess }: VerifyCodeFormProps) 
             className="text-primary hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {resendLoading
-              ? "发送中..."
+              ? t("auth.sending")
               : countdown > 0
-              ? `${countdown}秒后重新发送`
-              : "重新发送"}
+              ? `${countdown}${t("auth.resendInSeconds")}`
+              : t("auth.resend")}
           </button>
         </div>
       </div>
 
       {/* Password */}
       <div className="space-y-2">
-        <Label htmlFor="password">新密码</Label>
+        <Label htmlFor="password">{t("auth.newPassword")}</Label>
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="至少8位字符"
+            placeholder={t("auth.newPasswordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -164,12 +164,12 @@ export function VerifyCodeForm({ mode, email, onSuccess }: VerifyCodeFormProps) 
 
       {/* Confirm Password */}
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">确认密码</Label>
+        <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
         <div className="relative">
           <Input
             id="confirmPassword"
             type={showConfirmPassword ? "text" : "password"}
-            placeholder="再次输入密码"
+            placeholder={t("auth.confirmPasswordPlaceholder")}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
@@ -189,7 +189,7 @@ export function VerifyCodeForm({ mode, email, onSuccess }: VerifyCodeFormProps) 
       {/* Submit Button */}
       <Button type="submit" className="w-full" disabled={loading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {mode === "signup" ? "验证并注册" : "重置密码"}
+        {mode === "signup" ? t("auth.verifyAndSignup") : t("auth.resetPassword")}
       </Button>
 
       {/* Back to Login */}
