@@ -1,9 +1,17 @@
 "use client"
 
-import { ChevronLeftIcon, ChevronRightIcon, Search } from "lucide-react"
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
-import type { Transaction, PaginationState } from "@/lib/api/billing/types"
+import { DateRangePicker } from "@/components/ui/base/date-range-picker"
+import type { Transaction } from "@/lib/api/billing/types"
+import type { DateRange } from "@/components/ui/base/date-range-picker"
+
+interface PaginationState {
+  page: number
+  pageSize: number
+  total: number
+}
 
 interface TransactionTableProps {
   transactions: Transaction[]
@@ -15,12 +23,9 @@ interface TransactionTableProps {
   // 筛选相关
   statusFilter: string
   onStatusFilterChange: (status: string) => void
-  startDateFilter: string
-  onStartDateFilterChange: (date: string) => void
-  endDateFilter: string
-  onEndDateFilterChange: (date: string) => void
-  onApplyFilters: () => void
-  t: (key: string) => string
+  dateRange?: DateRange
+  onDateRangeChange?: (range: DateRange | undefined) => void
+  t: (key: string, params?: Record<string, any>) => any
 }
 
 export function TransactionTable({
@@ -32,11 +37,8 @@ export function TransactionTable({
   type,
   statusFilter,
   onStatusFilterChange,
-  startDateFilter,
-  onStartDateFilterChange,
-  endDateFilter,
-  onEndDateFilterChange,
-  onApplyFilters,
+  dateRange,
+  onDateRangeChange,
   t,
 }: TransactionTableProps) {
   const getStatusBadge = (status: Transaction['status']) => {
@@ -89,7 +91,7 @@ export function TransactionTable({
   return (
     <div className="space-y-4 animate-in fade-in duration-300">
       {/* Filter Bar */}
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex items-center gap-4 flex-wrap">
         {/* 状态筛选 */}
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -108,41 +110,14 @@ export function TransactionTable({
           </Select>
         </div>
 
-        {/* 开始时间筛选 */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {t("billing.table.filterStartDate")}
-          </span>
-          <input
-            type="datetime-local"
-            value={startDateFilter}
-            onChange={(e) => onStartDateFilterChange(e.target.value)}
-            className="border border-border rounded-md px-3 py-1.5 text-sm bg-background"
-          />
-        </div>
-
-        {/* 结束时间筛选 */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {t("billing.table.filterEndDate")}
-          </span>
-          <input
-            type="datetime-local"
-            value={endDateFilter}
-            onChange={(e) => onEndDateFilterChange(e.target.value)}
-            className="border border-border rounded-md px-3 py-1.5 text-sm bg-background"
-          />
-        </div>
-
-        {/* 搜索按钮 */}
-        <Button
-          size="sm"
-          onClick={onApplyFilters}
-          className="h-8"
-        >
-          <Search className="w-4 h-4 mr-1.5" />
-          {t("billing.table.search")}
-        </Button>
+        {/* 日期范围筛选 */}
+        <DateRangePicker
+          t={t}
+          value={dateRange}
+          onChange={onDateRangeChange}
+          showPresets={true}
+          presetTypes={['last7Days', 'thisMonth', 'lastMonth']}
+        />
       </div>
 
       {/* Transaction Table */}
