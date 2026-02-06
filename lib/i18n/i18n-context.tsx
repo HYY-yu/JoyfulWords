@@ -16,16 +16,44 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 const dictionaries = { zh, en };
 
+/**
+ * 检测浏览器语言
+ * - zh-CN, zh-TW, zh-HK 等 → zh
+ * - en-US, en-GB, en-CA 等 → en
+ * - 其他语言 → zh (默认)
+ */
+function detectBrowserLocale(): Locale {
+  if (typeof window === 'undefined') return 'zh';
+
+  const browserLang = navigator.language || navigator.languages?.[0];
+  if (!browserLang) return 'zh';
+
+  // 提取语言代码的前两位 (如 zh-CN → zh)
+  const langCode = browserLang.toLowerCase().split('-')[0];
+
+  if (langCode === 'zh') return 'zh';
+  if (langCode === 'en') return 'en';
+
+  // 其他语言回退到默认中文
+  return 'zh';
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   // Always start with default locale to avoid hydration mismatch
   const [locale, setLocaleState] = useState<Locale>('zh');
 
-  // Sync with localStorage after mount (client-side only)
+  // 初始化语言：localStorage 优先 > 浏览器语言 > 默认 zh
   useEffect(() => {
+    // 1. 优先使用 localStorage 保存的用户选择
     const savedLocale = localStorage.getItem('locale') as Locale;
     if (savedLocale === 'zh' || savedLocale === 'en') {
       setLocaleState(savedLocale);
+      return;
     }
+
+    // 2. 检测浏览器语言（不持久化）
+    const detectedLocale = detectBrowserLocale();
+    setLocaleState(detectedLocale);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
