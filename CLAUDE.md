@@ -40,6 +40,7 @@ JoyfulWords (创作者工具箱) is a Next.js 16-based SaaS application providin
 **规则**:
 1. 每个 `NEXT_PUBLIC_*` 变量必须在 Dockerfile.prod 中声明为 `ARG`
 2. 必须在 Dockerfile.prod 中设置对应的 `ENV`
+3. .drone.yml 中，docker build 也要增加。
 
 **示例**:
 ```dockerfile

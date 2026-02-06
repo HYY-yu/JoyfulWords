@@ -31,6 +31,7 @@ steps:
           --build-arg NEXT_PUBLIC_FEATURE_IMAGE_GENERATION="$(grep NEXT_PUBLIC_FEATURE_IMAGE_GENERATION .env | cut -d '=' -f2)" \
           --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="$(grep NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS .env | cut -d '=' -f2)" \
           --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="$(grep NEXT_PUBLIC_FEATURE_SEO_GEO .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_ENABLE_COOKIE_BANNER="$(grep NEXT_PUBLIC_ENABLE_COOKIE_BANNER .env | cut -d '=' -f2)" \
           --build-arg PORT="$(grep PORT .env | cut -d '=' -f2)" \
           --build-arg OTEL_SERVICE_NAME="$(grep OTEL_SERVICE_NAME .env | cut -d '=' -f2)" \
           --build-arg NEXT_OTEL_VERBOSE="$(grep NEXT_OTEL_VERBOSE .env | cut -d '=' -f2)" \
