@@ -38,6 +38,8 @@ export const en = {
             lastYear: "Last year",
             custom: "Custom",
             clear: "Clear",
+            cancel: "Cancel",
+            confirm: "Confirm",
         },
     },
     sidebar: {

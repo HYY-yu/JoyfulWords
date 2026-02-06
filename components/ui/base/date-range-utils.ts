@@ -1,6 +1,12 @@
 import { format, startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths, type Locale } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import type { DateRange } from './date-range-picker'
+import type { DateRange } from 'react-day-picker'
+export type { DateRange } from 'react-day-picker'
+
+/**
+ * 预设日期范围类型
+ */
+export type PresetType = 'today' | 'yesterday' | 'last7Days' | 'last30Days' | 'thisMonth' | 'lastMonth'
 
 /**
  * 日期范围工具函数
@@ -76,11 +82,6 @@ export const DateRangeUtils = {
     return r1Start === r2Start && r1End === r2End
   },
 }
-
-/**
- * 预设日期范围类型
- */
-export type PresetType = 'today' | 'yesterday' | 'last7Days' | 'last30Days' | 'thisMonth' | 'lastMonth'
 
 /**
  * 获取预设日期范围

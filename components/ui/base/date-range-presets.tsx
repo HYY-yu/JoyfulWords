@@ -4,7 +4,8 @@ import { CalendarIcon } from 'lucide-react'
 import { startOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/base/button'
-import type { DateRange, DateRangePreset } from './date-range-picker'
+import type { DateRange } from './date-range-picker'
+import type { DateRangePreset } from './date-range-picker'
 
 interface DateRangePresetsProps {
   /** 当前选中的日期范围 */
@@ -29,7 +30,7 @@ export function DateRangePresets({
   return (
     <div
       data-slot="date-range-presets"
-      className={cn('flex flex-col gap-2 border-b border-border pb-4 mb-4', className)}
+      className={cn('flex flex-col gap-2 border-b border-border px-3 pt-3 pb-4 mb-2', className)}
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
         <CalendarIcon className="h-3.5 w-3.5" />

@@ -93,6 +93,37 @@ t("section.key")
 
 3. Translation key format: `feature.action` or `section.subsection.key`
 
+## Date & Time Handling
+
+### DateRangePicker Component
+
+Use the `DateRangePicker` component for date range selection with:
+- Dual-month calendar display
+- Quick preset options (Last 7 days, This month, Last month, etc.)
+- Confirm/Cancel mechanism to prevent excessive API calls
+- Built-in timezone handling
+
+**Usage:**
+```typescript
+import { DateRangePicker } from '@/components/ui/base/date-range-picker'
+import { format, startOfDay, endOfDay } from 'date-fns'
+
+// Component
+<DateRangePicker value={dateRange} onChange={setDateRange} t={t} />
+
+// Backend integration (IMPORTANT: use format, NOT toISOString)
+const params = {
+  issuing_date_start: format(startOfDay(dateRange.from), "yyyy-MM-dd'T'HH:mm:ss"),
+  issuing_date_end: format(endOfDay(dateRange.to), "yyyy-MM-dd'T'HH:mm:ss"),
+}
+```
+
+**⚠️ Timezone Warning**: Never use `toISOString()` for date ranges in China (UTC+8) - it will shift dates by one day. Always use `format()` to preserve local time.
+
+**Documentation:**
+- [DateRangePicker 使用指南](./DATERANGE_PICKER_GUIDE.md)
+- [DateRangePicker 重构报告](./DATERANGE_PICKER_REFACTOR.md)
+
 ## Project Structure Reference
 
 ```

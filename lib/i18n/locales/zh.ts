@@ -38,6 +38,8 @@ export const zh = {
             lastYear: "去年",
             custom: "自定义",
             clear: "清除",
+            cancel: "取消",
+            confirm: "确认",
         },
     },
     sidebar: {

@@ -2,9 +2,10 @@ import { useState, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { billingClient } from '@/lib/api/billing/client'
+import { startOfDay, endOfDay, format } from 'date-fns'
 import type { BalanceResponse, Transaction, Invoice, InvoiceDetail } from '@/lib/api/billing/types'
 import type { InvoiceStatus } from '@/lib/api/billing/types'
-import type { DateRange } from '@/components/ui/base/date-range-picker'
+import type { DateRange } from 'react-day-picker'
 
 // Re-export types for use in other modules
 export type { BalanceResponse, Transaction, Invoice, InvoiceDetail } from '@/lib/api/billing/types'
@@ -245,15 +246,13 @@ export function useBilling() {
     }
 
     if (currentFilters.dateRange?.from) {
-      params.issuing_date_start = new Date(
-        currentFilters.dateRange.from.setHours(0, 0, 0, 0)
-      ).toISOString()
+      // 使用本地时间，避免时区转换导致日期偏移
+      params.issuing_date_start = format(startOfDay(currentFilters.dateRange.from), "yyyy-MM-dd'T'HH:mm:ss")
     }
 
     if (currentFilters.dateRange?.to) {
-      params.issuing_date_end = new Date(
-        currentFilters.dateRange.to.setHours(23, 59, 59, 999)
-      ).toISOString()
+      // 使用本地时间，避免时区转换导致日期偏移
+      params.issuing_date_end = format(endOfDay(currentFilters.dateRange.to), "yyyy-MM-dd'T'HH:mm:ss")
     }
 
     const result = await billingClient.getInvoices(params)

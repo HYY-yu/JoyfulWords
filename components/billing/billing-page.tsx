@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { useToast } from '@/hooks/use-toast'
 import { useBilling, type PaginationState } from '@/lib/hooks/use-billing'
@@ -9,7 +9,7 @@ import { BalanceCard } from './balance-card'
 import { TransactionTable } from './transaction-table'
 import { InvoiceTable } from './invoice-table'
 import { InvoiceDetailDialog } from './invoice-detail-dialog'
-import type { DateRange } from '@/components/ui/base/date-range-picker'
+import type { DateRange } from 'react-day-picker'
 
 export function BillingPage() {
   const { t } = useTranslation()
@@ -42,23 +42,37 @@ export function BillingPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDetail | null>(null)
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
 
+  // 使用 ref 保存 fetch 函数，避免 useEffect 依赖数组问题
+  const fetchRechargesRef = useRef(fetchRecharges)
+  const fetchUsageRef = useRef(fetchUsage)
+  const fetchInvoicesRef = useRef(fetchInvoices)
+  const fetchBalanceRef = useRef(fetchBalance)
+
+  // 保持 ref 为最新值
+  useEffect(() => {
+    fetchRechargesRef.current = fetchRecharges
+    fetchUsageRef.current = fetchUsage
+    fetchInvoicesRef.current = fetchInvoices
+    fetchBalanceRef.current = fetchBalance
+  }, [fetchRecharges, fetchUsage, fetchInvoices, fetchBalance])
+
   // ==================== 数据获取 ====================
 
   // 组件初始加载时获取余额
   useEffect(() => {
-    fetchBalance()
-  }, [fetchBalance])
+    fetchBalanceRef.current()
+  }, [])
 
   // 监听 Tab 切换，自动加载对应数据（每次切换都刷新）
   useEffect(() => {
     if (activeTab === 'recharges') {
-      fetchRecharges()
+      fetchRechargesRef.current()
     } else if (activeTab === 'usage') {
-      fetchUsage()
+      fetchUsageRef.current()
     } else if (activeTab === 'invoices') {
-      fetchInvoices()
+      fetchInvoicesRef.current()
     }
-  }, [activeTab, fetchRecharges, fetchUsage, fetchInvoices])
+  }, [activeTab])
 
   // ==================== 事件处理 ====================
 
@@ -88,6 +102,15 @@ export function BillingPage() {
     } else {
       fetchInvoices()
     }
+  }
+
+  // 日期范围筛选处理（仅用于 invoices）
+  const handleDateRangeChange = (range?: DateRange) => {
+    updateFilters('invoices', { dateRange: range })
+    // 重置到第一页
+    updatePagination('invoices', { page: 1 })
+    // 触发数据获取
+    fetchInvoices()
   }
 
   // 发票编号点击处理
@@ -224,7 +247,7 @@ export function BillingPage() {
             statusFilter={filters.invoices.status}
             onStatusFilterChange={handleStatusFilterChange}
             dateRange={filters.invoices.dateRange}
-            onDateRangeChange={(range) => updateFilters('invoices', { dateRange: range })}
+            onDateRangeChange={handleDateRangeChange}
             onInvoiceClick={handleInvoiceClick}
             t={t}
           />
