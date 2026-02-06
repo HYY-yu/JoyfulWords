@@ -6,8 +6,6 @@ import { useToast } from '@/hooks/use-toast'
 import { useBilling, type PaginationState } from '@/lib/hooks/use-billing'
 import { BalanceCard } from './balance-card'
 import { TransactionTable } from './transaction-table'
-import { DateRangeUtils, getPresetRange } from '@/components/ui/base/date-range-utils'
-import type { DateRange } from '@/components/ui/base/date-range-picker'
 
 export function BillingPage() {
   const { t } = useTranslation()
@@ -32,9 +30,6 @@ export function BillingPage() {
 
   // Tab 状态
   const [activeTab, setActiveTab] = useState<'recharges' | 'usage'>('recharges')
-
-  // 日期范围状态（默认最近7天）
-  const [dateRange, setDateRange] = useState<DateRange>(() => getPresetRange('last7Days'))
 
   // ==================== 数据获取 ====================
 
@@ -72,32 +67,11 @@ export function BillingPage() {
     updateFilters(activeTab, { status })
     // 重置到第一页
     updatePagination(activeTab, { page: 1 })
-  }
-
-  // 处理日期范围变化
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    if (!range?.from || !range?.to) {
-      // 清除日期筛选
-      updateFilters(activeTab, { started_at: '', ended_at: '' })
-      // 自动触发数据获取
-      if (activeTab === 'recharges') {
-        fetchRecharges()
-      } else {
-        fetchUsage()
-      }
+    // 触发数据获取
+    if (activeTab === 'recharges') {
+      fetchRecharges()
     } else {
-      // 转换为 API 需要的格式
-      const { start, end } = DateRangeUtils.getRangeBoundaries(range)
-      updateFilters(activeTab, {
-        started_at: DateRangeUtils.formatToISO(range).start || '',
-        ended_at: DateRangeUtils.formatToISO(range).end || '',
-      })
-      // 自动触发数据获取
-      if (activeTab === 'recharges') {
-        fetchRecharges()
-      } else {
-        fetchUsage()
-      }
+      fetchUsage()
     }
   }
 
@@ -181,8 +155,6 @@ export function BillingPage() {
             type="recharges"
             statusFilter={filters.recharges.status}
             onStatusFilterChange={handleStatusFilterChange}
-            dateRange={dateRange}
-            onDateRangeChange={handleDateRangeChange}
             t={t}
           />
         )}
@@ -197,8 +169,6 @@ export function BillingPage() {
             type="usage"
             statusFilter={filters.usage.status}
             onStatusFilterChange={handleStatusFilterChange}
-            dateRange={dateRange}
-            onDateRangeChange={handleDateRangeChange}
             t={t}
           />
         )}

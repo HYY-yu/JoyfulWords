@@ -228,12 +228,9 @@ curl -X POST http://localhost:8080/billing/balance/refresh \
 | page | number | 否 | 页码，从 1 开始，默认 1 |
 | page_size | number | 否 | 每页数量，默认 20，最大 100 |
 | status | string | 否 | 状态过滤：pending/settled |
-| started_at | string | 否 | 开始时间（ISO 8601 UTC 格式） |
-| ended_at | string | 否 | 结束时间（ISO 8601 UTC 格式） |
 
 **参数说明:**
 - `page_size` 超过 100 时自动限制为 100
-- 时间参数必须严格遵循 ISO 8601 格式（如：`2026-01-01T00:00:00Z`）
 - `status` 为可选参数，不传则查询所有状态
 
 ### 请求示例
@@ -244,12 +241,6 @@ curl -X GET "http://localhost:8080/billing/recharges?page=1&page_size=20" \
   -H "Accept-Language: zh-CN" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo4LCJlbWFpbCI6ImZlbmdAZXhhbXBsZS5jb20iLCJleHAiOjE3NzA0Mzk3MzgsIm5iZiI6MTc3MDM0OTczOCwiaWF0IjoxNzcwMzQ5NzM4fQ.pSZDvTG54Gf6pOR_rE37dxsJT0Cssw2N59kePDR3i54"
 ```
-```bash
-# 查询已结算的充值记录，时间范围过滤
-curl -X GET "http://localhost:8080/billing/recharges?status=settled&started_at=2026-01-01T00:00:00Z&ended_at=2026-01-31T23:59:59Z" \
-  -H "Accept-Language: zh-CN" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
 
 ### 响应
 
@@ -259,6 +250,7 @@ curl -X GET "http://localhost:8080/billing/recharges?status=settled&started_at=2
 {
   "transactions": [
     {
+      "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
       "type": "inbound",
       "amount": "10.00",
       "credits": "1000",
@@ -273,6 +265,7 @@ curl -X GET "http://localhost:8080/billing/recharges?status=settled&started_at=2
       }
     },
     {
+      "transaction_id": "987fcdeb-51a2-43f1-a456-426614174999",
       "type": "inbound",
       "amount": "20.00",
       "credits": "2000",
@@ -295,6 +288,7 @@ curl -X GET "http://localhost:8080/billing/recharges?status=settled&started_at=2
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
+| transaction_id | string | 交易 ID（Lago UUID） |
 | type | string | 交易类型，固定为 "inbound" |
 | amount | string | 充值金额（美元，保留2位小数） |
 | credits | string | 充值积分数量（整数） |
@@ -339,8 +333,6 @@ curl -X GET "http://localhost:8080/billing/recharges?status=settled&started_at=2
 | page | number | 否 | 页码，从 1 开始，默认 1 |
 | page_size | number | 否 | 每页数量，默认 20，最大 100 |
 | status | string | 否 | 状态过滤：pending/settled |
-| started_at | string | 否 | 开始时间（ISO 8601 UTC 格式） |
-| ended_at | string | 否 | 结束时间（ISO 8601 UTC 格式） |
 
 ### 请求示例
 
@@ -352,14 +344,6 @@ curl -X GET "http://localhost:8080/billing/usage?page=1&page_size=20" \
 
 ```
 
-```bash
-
-# 查询已结算的使用记录，时间范围过滤
-curl -X GET "http://localhost:8080/billing/usage?status=settled&started_at=2026-01-01T00:00:00Z&ended_at=2026-01-31T23:59:59Z" \
-  -H "Accept-Language: zh-CN" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
 ### 响应
 
 **成功 (200 OK)**
@@ -368,6 +352,7 @@ curl -X GET "http://localhost:8080/billing/usage?status=settled&started_at=2026-
 {
   "transactions": [
     {
+      "transaction_id": "456e7890-e89b-12d3-a456-426614174111",
       "type": "outbound",
       "amount": "5.00",
       "credits": "500",
@@ -379,6 +364,7 @@ curl -X GET "http://localhost:8080/billing/usage?status=settled&started_at=2026-
       "metadata": {}
     },
     {
+      "transaction_id": "789f0123-e89b-12d3-a456-426614174222",
       "type": "outbound",
       "amount": "3.50",
       "credits": "350",

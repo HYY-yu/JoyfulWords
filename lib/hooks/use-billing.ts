@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { billingClient } from '@/lib/api/billing/client'
@@ -27,11 +27,11 @@ export function useBilling() {
 
   // 筛选状态
   const [filters, setFilters] = useState<{
-    recharges: { status: string; started_at: string; ended_at: string }
-    usage: { status: string; started_at: string; ended_at: string }
+    recharges: { status: string }
+    usage: { status: string }
   }>({
-    recharges: { status: 'all', started_at: '', ended_at: '' },
-    usage: { status: 'all', started_at: '', ended_at: '' },
+    recharges: { status: 'all' },
+    usage: { status: 'all' },
   })
 
   const [pagination, setPagination] = useState<{
@@ -42,13 +42,35 @@ export function useBilling() {
     usage: { page: 1, pageSize: 20, total: 0 },
   })
 
-  // 更新分页的辅助函数
+  // 使用 ref 保存最新状态，避免闭包陷阱
+  const filtersRef = useRef(filters)
+  const paginationRef = useRef(pagination)
+
+  // 更新分页的辅助函数（同时更新 ref）
   const updatePagination = useCallback(
     (type: 'recharges' | 'usage', updates: Partial<PaginationState>) => {
-      setPagination((prev) => ({
-        ...prev,
-        [type]: { ...prev[type], ...updates },
-      }))
+      setPagination((prev) => {
+        const updated = {
+          ...prev,
+          [type]: { ...prev[type], ...updates },
+        }
+        paginationRef.current = updated
+        return updated
+      })
+    },
+    []
+  )
+
+  const updateFilters = useCallback(
+    (type: 'recharges' | 'usage', newFilters: Partial<{ status: string }>) => {
+      setFilters((prev) => {
+        const updated = {
+          ...prev,
+          [type]: { ...prev[type], ...newFilters },
+        }
+        filtersRef.current = updated
+        return updated
+      })
     },
     []
   )
@@ -107,26 +129,21 @@ export function useBilling() {
   const fetchRecharges = useCallback(async () => {
     setLoading(true)
 
+    const currentPagination = paginationRef.current.recharges
+    const currentFilters = filtersRef.current.recharges
+
     const params: {
       page?: number
       page_size?: number
       status?: 'pending' | 'settled'
-      started_at?: string
-      ended_at?: string
     } = {
-      page: pagination.recharges.page,
-      page_size: pagination.recharges.pageSize,
+      page: currentPagination.page,
+      page_size: currentPagination.pageSize,
     }
 
     // 添加筛选参数
-    if (filters.recharges.status && filters.recharges.status !== 'all') {
-      params.status = filters.recharges.status as 'pending' | 'settled'
-    }
-    if (filters.recharges.started_at) {
-      params.started_at = filters.recharges.started_at
-    }
-    if (filters.recharges.ended_at) {
-      params.ended_at = filters.recharges.ended_at
+    if (currentFilters.status && currentFilters.status !== 'all') {
+      params.status = currentFilters.status as 'pending' | 'settled'
     }
 
     const result = await billingClient.getRecharges(params)
@@ -149,7 +166,7 @@ export function useBilling() {
     }))
 
     return true
-  }, [pagination.recharges.page, pagination.recharges.pageSize, filters.recharges, toast, t])
+  }, [toast, t])
 
   /**
    * 查询使用记录
@@ -157,26 +174,21 @@ export function useBilling() {
   const fetchUsage = useCallback(async () => {
     setLoading(true)
 
+    const currentPagination = paginationRef.current.usage
+    const currentFilters = filtersRef.current.usage
+
     const params: {
       page?: number
       page_size?: number
       status?: 'pending' | 'settled'
-      started_at?: string
-      ended_at?: string
     } = {
-      page: pagination.usage.page,
-      page_size: pagination.usage.pageSize,
+      page: currentPagination.page,
+      page_size: currentPagination.pageSize,
     }
 
     // 添加筛选参数
-    if (filters.usage.status && filters.usage.status !== 'all') {
-      params.status = filters.usage.status as 'pending' | 'settled'
-    }
-    if (filters.usage.started_at) {
-      params.started_at = filters.usage.started_at
-    }
-    if (filters.usage.ended_at) {
-      params.ended_at = filters.usage.ended_at
+    if (currentFilters.status && currentFilters.status !== 'all') {
+      params.status = currentFilters.status as 'pending' | 'settled'
     }
 
     const result = await billingClient.getUsage(params)
@@ -199,7 +211,7 @@ export function useBilling() {
     }))
 
     return true
-  }, [pagination.usage.page, pagination.usage.pageSize, filters.usage, toast, t])
+  }, [toast, t])
 
   return {
     // 状态
@@ -219,11 +231,6 @@ export function useBilling() {
 
     // 分页和筛选
     updatePagination,
-    updateFilters: (type: 'recharges' | 'usage', newFilters: Partial<{ status: string; started_at: string; ended_at: string }>) => {
-      setFilters((prev) => ({
-        ...prev,
-        [type]: { ...prev[type], ...newFilters },
-      }))
-    },
+    updateFilters,
   }
 }

@@ -3,9 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
-import { DateRangePicker } from "@/components/ui/base/date-range-picker"
 import type { Transaction } from "@/lib/api/billing/types"
-import type { DateRange } from "@/components/ui/base/date-range-picker"
 
 interface PaginationState {
   page: number
@@ -23,8 +21,6 @@ interface TransactionTableProps {
   // 筛选相关
   statusFilter: string
   onStatusFilterChange: (status: string) => void
-  dateRange?: DateRange
-  onDateRangeChange?: (range: DateRange | undefined) => void
   t: (key: string, params?: Record<string, any>) => any
 }
 
@@ -37,8 +33,6 @@ export function TransactionTable({
   type,
   statusFilter,
   onStatusFilterChange,
-  dateRange,
-  onDateRangeChange,
   t,
 }: TransactionTableProps) {
   const getStatusBadge = (status: Transaction['status']) => {
@@ -109,15 +103,6 @@ export function TransactionTable({
             </SelectContent>
           </Select>
         </div>
-
-        {/* 日期范围筛选 */}
-        <DateRangePicker
-          t={t}
-          value={dateRange}
-          onChange={onDateRangeChange}
-          showPresets={true}
-          presetTypes={['last7Days', 'thisMonth', 'lastMonth']}
-        />
       </div>
 
       {/* Transaction Table */}
