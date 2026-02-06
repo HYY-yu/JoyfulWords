@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { useToast } from '@/hooks/use-toast'
 import { useBilling, type PaginationState } from '@/lib/hooks/use-billing'
+import type { InvoiceDetail } from '@/lib/api/billing/types'
 import { BalanceCard } from './balance-card'
 import { TransactionTable } from './transaction-table'
+import { InvoiceTable } from './invoice-table'
+import { InvoiceDetailDialog } from './invoice-detail-dialog'
+import type { DateRange } from '@/components/ui/base/date-range-picker'
 
 export function BillingPage() {
   const { t } = useTranslation()
@@ -16,6 +20,7 @@ export function BillingPage() {
     balance,
     recharges,
     usage,
+    invoices,
     loading,
     refreshing,
     pagination,
@@ -24,12 +29,18 @@ export function BillingPage() {
     refreshBalance,
     fetchRecharges,
     fetchUsage,
+    fetchInvoices,
+    fetchInvoiceDetail,
     updatePagination,
     updateFilters,
   } = useBilling()
 
   // Tab 状态
-  const [activeTab, setActiveTab] = useState<'recharges' | 'usage'>('recharges')
+  const [activeTab, setActiveTab] = useState<'recharges' | 'usage' | 'invoices'>('recharges')
+
+  // 发票详情状态
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDetail | null>(null)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
 
   // ==================== 数据获取 ====================
 
@@ -38,14 +49,16 @@ export function BillingPage() {
     fetchBalance()
   }, [fetchBalance])
 
-  // 监听 Tab 切换，自动加载对应数据
+  // 监听 Tab 切换，自动加载对应数据（每次切换都刷新）
   useEffect(() => {
-    if (activeTab === 'recharges' && recharges.length === 0) {
+    if (activeTab === 'recharges') {
       fetchRecharges()
-    } else if (activeTab === 'usage' && usage.length === 0) {
+    } else if (activeTab === 'usage') {
       fetchUsage()
+    } else if (activeTab === 'invoices') {
+      fetchInvoices()
     }
-  }, [activeTab, fetchRecharges, fetchUsage, recharges.length, usage.length])
+  }, [activeTab, fetchRecharges, fetchUsage, fetchInvoices])
 
   // ==================== 事件处理 ====================
 
@@ -70,8 +83,19 @@ export function BillingPage() {
     // 触发数据获取
     if (activeTab === 'recharges') {
       fetchRecharges()
-    } else {
+    } else if (activeTab === 'usage') {
       fetchUsage()
+    } else {
+      fetchInvoices()
+    }
+  }
+
+  // 发票编号点击处理
+  const handleInvoiceClick = async (lagoId: string) => {
+    const detail = await fetchInvoiceDetail(lagoId)
+    if (detail) {
+      setSelectedInvoice(detail)
+      setInvoiceDialogOpen(true)
     }
   }
 
@@ -80,8 +104,10 @@ export function BillingPage() {
     updatePagination(key, { page })
     if (activeTab === 'recharges') {
       fetchRecharges()
-    } else {
+    } else if (activeTab === 'usage') {
       fetchUsage()
+    } else {
+      fetchInvoices()
     }
   }
 
@@ -90,8 +116,10 @@ export function BillingPage() {
     updatePagination(key, { pageSize, page: 1 })
     if (activeTab === 'recharges') {
       fetchRecharges()
-    } else {
+    } else if (activeTab === 'usage') {
       fetchUsage()
+    } else {
+      fetchInvoices()
     }
   }
 
@@ -142,6 +170,19 @@ export function BillingPage() {
           >
             {t('billing.tabs.usage')}
           </button>
+          <button
+            onClick={() => setActiveTab('invoices')}
+            className={`
+              px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
+              ${
+                activeTab === 'invoices'
+                  ? 'text-primary border-primary bg-primary/5'
+                  : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
+              }
+            `}
+          >
+            {t('billing.tabs.invoices')}
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -172,7 +213,31 @@ export function BillingPage() {
             t={t}
           />
         )}
+
+        {activeTab === 'invoices' && (
+          <InvoiceTable
+            invoices={invoices}
+            loading={loading}
+            pagination={pagination.invoices}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            statusFilter={filters.invoices.status}
+            onStatusFilterChange={handleStatusFilterChange}
+            dateRange={filters.invoices.dateRange}
+            onDateRangeChange={(range) => updateFilters('invoices', { dateRange: range })}
+            onInvoiceClick={handleInvoiceClick}
+            t={t}
+          />
+        )}
       </div>
+
+      {/* Invoice Detail Dialog */}
+      <InvoiceDetailDialog
+        invoice={selectedInvoice}
+        open={invoiceDialogOpen}
+        onOpenChange={setInvoiceDialogOpen}
+        t={t}
+      />
     </div>
   )
 }

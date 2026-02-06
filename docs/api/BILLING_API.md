@@ -21,6 +21,10 @@
 4. [查询充值记录](#4-查询充值记录)
 5. [查询使用记录](#5-查询使用记录)
 
+### 用户发票接口
+6. [查询发票列表 (V2)](#6-查询发票列表-v2)
+7. [查询发票详情](#7-查询发票详情)
+
 ---
 
 ## 1. 初始化 Lago 配置
@@ -400,6 +404,246 @@ curl -X GET "http://localhost:8080/billing/usage?page=1&page_size=20" \
 
 ---
 
+## 6. 查询发票列表 (V2)
+
+分页查询用户的发票列表（基于 Lago Invoice API）。
+
+### 接口信息
+
+- **URL:** `/billing/usage_v2`
+- **方法:** `GET`
+- **需要认证:** 是（需要有效的 access_token）
+
+### 描述
+
+此接口基于 Lago Invoice API 提供更丰富的计费信息：
+
+1. **完整的费用明细** - 显示所有计费项的汇总
+2. **支付状态** - 发票的支付状态（succeeded/pending/failed）
+3. **发票状态** - draft/finalized/voided/failed/pending
+4. **时间筛选** - 支持按签发日期范围筛选
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| page | number | 否 | 页码，从 1 开始，默认 1 |
+| page_size | number | 否 | 每页数量，默认 20，最大 100 |
+| status | string | 否 | 发票状态筛选：draft/finalized/voided/failed/pending |
+| issuing_date_start | string | 否 | 开始日期（ISO 8601 格式） |
+| issuing_date_end | string | 否 | 结束日期（ISO 8601 格式） |
+
+**参数说明:**
+- `page_size` 超过 100 时自动限制为 100
+- `status` 为可选参数，不传则查询所有状态
+- 日期参数必须成对使用或单独使用
+
+### 请求示例
+
+```bash
+# 查询第 1 页，每页 20 条
+curl -X GET "http://localhost:8080/billing/usage_v2?page=1&page_size=20" \
+  -H "Accept-Language: zh-CN" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# 查询已支付的发票
+curl -X GET "http://localhost:8080/billing/usage_v2?status=finalized" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+
+# 按日期范围查询
+curl -X GET "http://localhost:8080/billing/usage_v2?issuing_date_start=2026-01-01T00:00:00Z&issuing_date_end=2026-01-31T23:59:59Z" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### 响应
+
+**成功 (200 OK)**
+
+```json
+{
+  "invoices": [
+    {
+      "lago_id": "b7abd317-5c01-0000-0000-000000000000",
+      "status": "finalized",
+      "issuing_date": "2026-01-15T00:00:00Z",
+      "number": "INV-2026-001",
+      "payment_status": "succeeded",
+      "fees_amount_cents": 1000,
+      "prepaid_credit_amount_cents": 200,
+      "total_amount_cents": 1200,
+      "currency": "USD"
+    },
+    {
+      "lago_id": "a8bce428-6d12-0000-0000-000000000001",
+      "status": "finalized",
+      "issuing_date": "2026-01-01T00:00:00Z",
+      "number": "INV-2026-002",
+      "payment_status": "succeeded",
+      "fees_amount_cents": 500,
+      "prepaid_credit_amount_cents": 100,
+      "total_amount_cents": 600,
+      "currency": "USD"
+    }
+  ],
+  "meta": {
+    "total_count": 45,
+    "page": 1,
+    "per_page": 20,
+    "total_pages": 3
+  }
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| lago_id | string | Lago 发票唯一标识 |
+| status | string | 发票状态：draft/finalized/voided/failed/pending |
+| issuing_date | string | 签发日期（ISO 8601 格式，UTC） |
+| number | string | 发票编号 |
+| payment_status | string | 支付状态：succeeded/pending/failed |
+| fees_amount_cents | number | 费用金额（分） |
+| prepaid_credit_amount_cents | number | 预付费积分扣减金额（分） |
+| total_amount_cents | number | 总金额（分） |
+| currency | string | 货币类型：USD |
+| total_count | number | 总发票数 |
+| page | number | 当前页码 |
+| per_page | number | 每页数量 |
+| total_pages | number | 总页数 |
+
+**错误响应**
+
+| 状态码 | 说明 |
+|--------|------|
+| 400 | 分页参数无效、时间格式错误或时间范围无效 |
+| 401 | 未授权 |
+| 503 | 计费服务暂时不可用 |
+
+---
+
+## 7. 查询发票详情
+
+获取单个发票的详细信息，包含计费项明细和单价信息。
+
+### 接口信息
+
+- **URL:** `/billing/usage/:lago_id`
+- **方法:** `GET`
+- **需要认证:** 是（需要有效的 access_token）
+
+### 描述
+
+此接口返回发票的详细信息，包括：
+
+1. **计费项分组** - 按 `filter_invoice_display_name` 分组显示
+2. **单价信息** - 显示每个计费项的单价
+3. **使用量统计** - 显示实际使用的数量
+4. **金额计算** - 显示每个计费项的总金额
+
+### URL 参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| lago_id | string | 是 | 发票的 Lago ID |
+
+### 请求示例
+
+```bash
+# 获取发票详情
+curl -X GET "http://localhost:8080/billing/usage/b7abd317-5c01-0000-0000-000000000000" \
+  -H "Accept-Language: zh-CN" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### 响应
+
+**成功 (200 OK)**
+
+```json
+{
+  "lago_id": "b7abd317-5c01-0000-0000-000000000000",
+  "status": "finalized",
+  "number": "INV-2026-001",
+  "issuing_date": "2026-01-15T00:00:00Z",
+  "payment_status": "succeeded",
+  "fees_amount_cents": 1000,
+  "prepaid_credit_amount_cents": 500,
+  "fee_items": [
+    {
+      "name": "cheaper-llm-input-token",
+      "code": "llm_tokens",
+      "units": "5000",
+      "unit_price": "0.01",
+      "amount_cents": 50
+    },
+    {
+      "name": "cheaper-llm-output-token",
+      "code": "llm_tokens",
+      "units": "2000",
+      "unit_price": "0.03",
+      "amount_cents": 60
+    },
+    {
+      "name": "material-search-info",
+      "code": "search_actions",
+      "units": "10",
+      "unit_price": "0.30",
+      "amount_cents": 300
+    },
+    {
+      "name": "material-search-image",
+      "code": "search_actions",
+      "units": "5",
+      "unit_price": "0.40",
+      "amount_cents": 200
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| lago_id | string | Lago 发票唯一标识 |
+| status | string | 发票状态 |
+| number | string | 发票编号 |
+| issuing_date | string | 签发日期（ISO 8601 格式，UTC） |
+| payment_status | string | 支付状态 |
+| fees_amount_cents | number | 费用金额（分） |
+| prepaid_credit_amount_cents | number | 预付费积分扣减金额（分） |
+| fee_items | array | 计费项明细数组 |
+| fee_items[].name | string | 计费项名称：cheaper-llm-input-token 等 |
+| fee_items[].code | string | 计费编号：llm_tokens / search_actions |
+| fee_items[].units | string | 使用量（字符串格式） |
+| fee_items[].unit_price | string | 单价（美元，保留2位小数） |
+| fee_items[].amount_cents | number | 总金额（分） |
+
+**计费项说明:**
+
+| 计费项名称 | 计费编号 | 单价 | 计费模型 | 说明 |
+|-----------|---------|------|---------|------|
+| cheaper-llm-input-token | llm_tokens | $0.01 | Package (1000 tokens) | 便宜模型输入 |
+| cheaper-llm-output-token | llm_tokens | $0.03 | Package (1000 tokens) | 便宜模型输出 |
+| stronger-llm-input-token | llm_tokens | $0.02 | Package (1000 tokens) | 强力模型输入 |
+| stronger-llm-output-token | llm_tokens | $0.10 | Package (1000 tokens) | 强力模型输出 |
+| material-search-info | search_actions | $0.30 | Standard (按次) | 信息搜索 |
+| material-search-news | search_actions | $0.30 | Standard (按次) | 新闻搜索 |
+| material-search-image | search_actions | $0.40 | Standard (按次) | 图片搜索 |
+| post-crawler | search_actions | $0.01 | Standard (按次) | 文章爬取 |
+
+**错误响应**
+
+| 状态码 | 说明 |
+|--------|------|
+| 400 | 无效的请求 |
+| 401 | 未授权 |
+| 404 | 发票不存在或无权访问 |
+| 503 | 计费服务暂时不可用 |
+
+**权限说明:**
+- 用户只能查询自己的发票
+- 访问其他用户的发票会返回 404 错误
+
+---
+
 ## 国际化支持
 
 所有接口支持通过 `Accept-Language` 请求头设置语言：
@@ -515,9 +759,13 @@ curl -X GET http://localhost:8080/billing/balance \
 | 用户未接入计费系统 | User not onboarded to billing system | 用户未创建 Lago 账户 |
 | 无效的分页参数 | Invalid pagination parameters | page < 1 或 page_size > 100 |
 | 无效的时间格式 | Invalid time format, use ISO 8601 | 时间格式错误 |
+| 无效的时间范围 | Invalid time range | 开始时间晚于结束时间 |
 | 刷新余额失败 | Failed to refresh balance, please try again later | Lago API 异常 |
 | 获取交易记录失败 | Failed to fetch transactions | Lago API 异常 |
+| 发票不存在或无权访问 | Invoice not found or access denied | 发票不存在或权限不足 |
+| 无效的发票状态 | Invalid invoice status | 发票状态参数无效 |
 | 计费服务暂时不可用 | Billing service temporarily unavailable | Lago 服务不可用 |
+| 服务器内部错误，请稍后再试 | Internal server error | 未知错误 |
 
 ---
 

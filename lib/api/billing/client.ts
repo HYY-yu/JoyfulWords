@@ -3,6 +3,9 @@ import type {
   BalanceResponse,
   TransactionListResponse,
   GetTransactionsRequest,
+  InvoiceListResponse,
+  InvoiceDetail,
+  GetInvoicesRequest,
   ErrorResponse,
 } from './types'
 
@@ -98,6 +101,48 @@ export const billingClient = {
     const url = queryString ? `/billing/usage?${queryString}` : '/billing/usage'
 
     return apiRequest<TransactionListResponse>(url, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+  },
+
+  /**
+   * 5. 查询发票列表
+   * GET /billing/usage_v2
+   */
+  async getInvoices(
+    params?: GetInvoicesRequest
+  ): Promise<InvoiceListResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.append('page', String(params.page))
+    if (params?.page_size) searchParams.append('page_size', String(params.page_size))
+    if (params?.status) searchParams.append('status', params.status)
+    if (params?.issuing_date_start) searchParams.append('issuing_date_start', params.issuing_date_start)
+    if (params?.issuing_date_end) searchParams.append('issuing_date_end', params.issuing_date_end)
+
+    const queryString = searchParams.toString()
+    const url = queryString ? `/billing/usage_v2?${queryString}` : '/billing/usage_v2'
+
+    return apiRequest<InvoiceListResponse>(url, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+  },
+
+  /**
+   * 6. 查询发票详情
+   * GET /billing/usage/:lago_id
+   */
+  async getInvoiceDetail(
+    lagoId: string
+  ): Promise<InvoiceDetail | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<InvoiceDetail>(`/billing/usage/${lagoId}`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
       },

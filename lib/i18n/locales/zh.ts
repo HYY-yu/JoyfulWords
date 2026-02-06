@@ -850,12 +850,53 @@ export const zh = {
         tabs: {
             recharges: "充值记录",
             usage: "使用记录",
+            invoices: "发票",
         },
         recharges: {
             fetchFailed: "获取充值记录失败",
         },
         usage: {
             fetchFailed: "获取使用记录失败",
+        },
+        invoices: {
+            fetchFailed: "获取发票列表失败",
+            detailFetchFailed: "获取发票详情失败",
+            status: {
+                draft: "草稿",
+                finalized: "已定稿",
+                voided: "已作废",
+                failed: "失败",
+                pending: "处理中",
+            },
+            paymentStatus: {
+                succeeded: "已支付",
+                pending: "待支付",
+                failed: "支付失败",
+            },
+            table: {
+                issuingDate: "签发日期",
+                number: "发票编号",
+                status: "发票状态",
+                paymentStatus: "支付状态",
+                credit: "积分抵扣",
+                totalAmount: "总金额",
+            },
+            detail: {
+                title: "发票详情",
+                number: "发票编号",
+                issuingDate: "签发日期",
+                status: "发票状态",
+                paymentStatus: "支付状态",
+                feesAmount: "费用金额",
+                prepaidAmount: "预付费扣减",
+                totalAmount: "总计金额",
+                feeItems: "计费项明细",
+                itemName: "项目",
+                units: "数量",
+                unitPrice: "单价",
+                amount: "金额",
+                createdAt: "创建时间",
+            },
         },
         status: {
             pending: "处理中",

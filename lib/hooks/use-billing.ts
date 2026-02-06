@@ -2,10 +2,12 @@ import { useState, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { billingClient } from '@/lib/api/billing/client'
-import type { BalanceResponse, Transaction } from '@/lib/api/billing/types'
+import type { BalanceResponse, Transaction, Invoice, InvoiceDetail } from '@/lib/api/billing/types'
+import type { InvoiceStatus } from '@/lib/api/billing/types'
+import type { DateRange } from '@/components/ui/base/date-range-picker'
 
 // Re-export types for use in other modules
-export type { BalanceResponse, Transaction } from '@/lib/api/billing/types'
+export type { BalanceResponse, Transaction, Invoice, InvoiceDetail } from '@/lib/api/billing/types'
 
 export interface PaginationState {
   page: number
@@ -22,24 +24,29 @@ export function useBilling() {
   const [balance, setBalance] = useState<BalanceResponse | null>(null)
   const [recharges, setRecharges] = useState<Transaction[]>([])
   const [usage, setUsage] = useState<Transaction[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   // 筛选状态
   const [filters, setFilters] = useState<{
-    recharges: { status: string }
-    usage: { status: string }
+    recharges: { status: string; dateRange?: DateRange }
+    usage: { status: string; dateRange?: DateRange }
+    invoices: { status: string; dateRange?: DateRange }
   }>({
     recharges: { status: 'all' },
     usage: { status: 'all' },
+    invoices: { status: 'all' },
   })
 
   const [pagination, setPagination] = useState<{
     recharges: PaginationState
     usage: PaginationState
+    invoices: PaginationState
   }>({
     recharges: { page: 1, pageSize: 20, total: 0 },
     usage: { page: 1, pageSize: 20, total: 0 },
+    invoices: { page: 1, pageSize: 20, total: 0 },
   })
 
   // 使用 ref 保存最新状态，避免闭包陷阱
@@ -48,7 +55,7 @@ export function useBilling() {
 
   // 更新分页的辅助函数（同时更新 ref）
   const updatePagination = useCallback(
-    (type: 'recharges' | 'usage', updates: Partial<PaginationState>) => {
+    (type: 'recharges' | 'usage' | 'invoices', updates: Partial<PaginationState>) => {
       setPagination((prev) => {
         const updated = {
           ...prev,
@@ -62,7 +69,7 @@ export function useBilling() {
   )
 
   const updateFilters = useCallback(
-    (type: 'recharges' | 'usage', newFilters: Partial<{ status: string }>) => {
+    (type: 'recharges' | 'usage' | 'invoices', newFilters: Partial<{ status: string; dateRange?: DateRange }>) => {
       setFilters((prev) => {
         const updated = {
           ...prev,
@@ -213,11 +220,88 @@ export function useBilling() {
     return true
   }, [toast, t])
 
+  /**
+   * 查询发票列表
+   */
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true)
+
+    const currentPagination = paginationRef.current.invoices
+    const currentFilters = filtersRef.current.invoices
+
+    const params: {
+      page?: number
+      page_size?: number
+      status?: InvoiceStatus
+      issuing_date_start?: string
+      issuing_date_end?: string
+    } = {
+      page: currentPagination.page,
+      page_size: currentPagination.pageSize,
+    }
+
+    if (currentFilters.status && currentFilters.status !== 'all') {
+      params.status = currentFilters.status as InvoiceStatus
+    }
+
+    if (currentFilters.dateRange?.from) {
+      params.issuing_date_start = new Date(
+        currentFilters.dateRange.from.setHours(0, 0, 0, 0)
+      ).toISOString()
+    }
+
+    if (currentFilters.dateRange?.to) {
+      params.issuing_date_end = new Date(
+        currentFilters.dateRange.to.setHours(23, 59, 59, 999)
+      ).toISOString()
+    }
+
+    const result = await billingClient.getInvoices(params)
+
+    setLoading(false)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: t('billing.invoices.fetchFailed'),
+        description: result.error,
+      })
+      return false
+    }
+
+    setInvoices(result.invoices)
+    setPagination((prev) => ({
+      ...prev,
+      invoices: { ...prev.invoices, total: result.meta.total_count },
+    }))
+
+    return true
+  }, [toast, t])
+
+  /**
+   * 查询发票详情
+   */
+  const fetchInvoiceDetail = useCallback(async (lagoId: string) => {
+    const result = await billingClient.getInvoiceDetail(lagoId)
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: t('billing.invoices.detailFetchFailed'),
+        description: result.error,
+      })
+      return null
+    }
+
+    return result
+  }, [toast, t])
+
   return {
     // 状态
     balance,
     recharges,
     usage,
+    invoices,
     loading,
     refreshing,
     pagination,
@@ -228,6 +312,8 @@ export function useBilling() {
     refreshBalance,
     fetchRecharges,
     fetchUsage,
+    fetchInvoices,
+    fetchInvoiceDetail,
 
     // 分页和筛选
     updatePagination,

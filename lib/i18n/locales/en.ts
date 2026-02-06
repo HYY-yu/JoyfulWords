@@ -850,12 +850,53 @@ export const en = {
         tabs: {
             recharges: "Recharges",
             usage: "Usage",
+            invoices: "Invoices",
         },
         recharges: {
             fetchFailed: "Failed to fetch recharge records",
         },
         usage: {
             fetchFailed: "Failed to fetch usage records",
+        },
+        invoices: {
+            fetchFailed: "Failed to fetch invoices",
+            detailFetchFailed: "Failed to fetch invoice detail",
+            status: {
+                draft: "Draft",
+                finalized: "Finalized",
+                voided: "Voided",
+                failed: "Failed",
+                pending: "Pending",
+            },
+            paymentStatus: {
+                succeeded: "Succeeded",
+                pending: "Pending",
+                failed: "Failed",
+            },
+            table: {
+                issuingDate: "Issuing Date",
+                number: "Invoice Number",
+                status: "Status",
+                paymentStatus: "Payment Status",
+                credit: "Credit",
+                totalAmount: "Total Amount",
+            },
+            detail: {
+                title: "Invoice Details",
+                number: "Invoice Number",
+                issuingDate: "Issuing Date",
+                status: "Status",
+                paymentStatus: "Payment Status",
+                feesAmount: "Fees Amount",
+                prepaidAmount: "Prepaid Credits",
+                totalAmount: "Total Amount",
+                feeItems: "Fee Items",
+                itemName: "Item",
+                units: "Units",
+                unitPrice: "Unit Price",
+                amount: "Amount",
+                createdAt: "Created At",
+            },
         },
         status: {
             pending: "Pending",

@@ -63,3 +63,80 @@ export interface TransactionListResponse {
 export interface ErrorResponse {
   error: string
 }
+
+// ==================== Invoice Types ====================
+
+/**
+ * 发票状态
+ */
+export type InvoiceStatus = 'draft' | 'finalized' | 'voided' | 'failed' | 'pending'
+
+/**
+ * 支付状态
+ */
+export type PaymentStatus = 'succeeded' | 'pending' | 'failed'
+
+/**
+ * 发票实体
+ */
+export interface Invoice {
+  lago_id: string                      // Lago ID（用于查询详情）
+  status: InvoiceStatus                // 发票状态
+  issuing_date: string                 // 签发日期（ISO 8601）
+  number: string                       // 发票编号（点击查看详情）
+  payment_status: PaymentStatus        // 支付状态
+  fees_amount_cents: number            // 费用金额（分）
+  prepaid_credit_amount_cents: number  // 预付费金额（分）
+  total_amount_cents: number           // 总金额（分）
+  currency: string                     // 货币类型
+}
+
+/**
+ * 计费项明细
+ */
+export interface FeeItem {
+  name: string           // 计费项名称
+  code: string           // 计费编号
+  units: string          // 使用量
+  unit_price: string     // 单价（美元）
+  amount_cents: number   // 总金额（分）
+  created_at: string     // 创建时间（ISO 8601 格式）
+}
+
+/**
+ * 发票详情
+ */
+export interface InvoiceDetail {
+  lago_id: string
+  status: string
+  number: string
+  issuing_date: string
+  payment_status: string
+  fees_amount_cents: number
+  prepaid_credit_amount_cents: number
+  fee_items: FeeItem[]
+}
+
+/**
+ * 查询发票列表请求参数
+ */
+export interface GetInvoicesRequest {
+  page?: number
+  page_size?: number
+  status?: InvoiceStatus
+  issuing_date_start?: string  // ISO 8601 格式
+  issuing_date_end?: string    // ISO 8601 格式
+}
+
+/**
+ * 发票列表响应
+ */
+export interface InvoiceListResponse {
+  invoices: Invoice[]
+  meta: {
+    total_count: number
+    page: number
+    per_page: number
+    total_pages: number
+  }
+}
