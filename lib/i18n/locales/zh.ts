@@ -30,6 +30,7 @@ export const zh = {
         knowledgeCards: "知识卡片",
         seoGeo: "SEO/GEO",
         videoEditing: "基础视频剪辑",
+        billing: "计费管理",
     },
     contentWriting: {
         title: "悦文悦己",
@@ -812,5 +813,62 @@ export const zh = {
             email: "support@joyword.link"
         },
         lastUpdated: "最后更新"
-    }
+    },
+    billing: {
+        balance: {
+            title: "积分余额",
+            credits: "积分",
+            refresh: "刷新",
+            recharge: "充值",
+            updatedAt: "更新于 {time}",
+            cached: "缓存",
+            exchangeRate: "100 credit = $1",
+            fetchFailed: "获取余额失败",
+            refreshFailed: "刷新余额失败",
+            refreshSuccess: "刷新成功",
+            rechargeComingSoon: "充值功能即将上线",
+            rechargeComingSoonDesc: "我们正在完善充值功能，敬请期待",
+        },
+        tabs: {
+            recharges: "充值记录",
+            usage: "使用记录",
+        },
+        recharges: {
+            fetchFailed: "获取充值记录失败",
+        },
+        usage: {
+            fetchFailed: "获取使用记录失败",
+        },
+        status: {
+            pending: "处理中",
+            settled: "已结算",
+            failed: "失败",
+        },
+        table: {
+            date: "时间",
+            transactionId: "交易ID",
+            description: "描述",
+            amount: "金额",
+            credits: "积分",
+            status: "状态",
+            metadata: "元数据",
+            loading: "加载中...",
+            noData: "暂无数据",
+            totalInfo: "共 {total} 条，第 {page} 页",
+            pageInfo: "第 {page} / {totalPages} 页",
+            prevPage: "上一页",
+            nextPage: "下一页",
+            filterStatus: "状态：",
+            filterStatusAll: "全部状态",
+            filterStartDate: "开始时间：",
+            filterEndDate: "结束时间：",
+            search: "搜索",
+            perPage: "每页",
+            items: "条",
+        },
+        transaction: {
+            recharge: "充值",
+            usage: "消费",
+        },
+    },
 };

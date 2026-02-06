@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, UserCircleIcon, LogOutIcon } from "lucide-react"
+import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet, UserCircleIcon, LogOutIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -55,6 +55,13 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     },
   ]
 
+  // Billing 菜单项（独立于功能菜单）
+  const billingMenuItem = {
+    id: "billing",
+    label: t("sidebar.billing"),
+    icon: Wallet,
+  }
+
   return (
     <aside className="w-64 border-r border-sidebar-border bg-sidebar flex flex-col fixed left-0 top-0 h-screen z-20">
       {/* Header */}
@@ -87,6 +94,34 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
               </button>
             )
           })}
+        </div>
+
+        {/* 功能菜单和 Billing 之间的分割线 */}
+        <div className="border-t border-sidebar-border/60 my-4" />
+
+        {/* Billing 菜单项 */}
+        <div className="space-y-1">
+          {(() => {
+            const Icon = billingMenuItem.icon
+            const isActive = activeTab === billingMenuItem.id
+
+            return (
+              <button
+                key={billingMenuItem.id}
+                onClick={() => onTabChange(billingMenuItem.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  "text-sm font-medium",
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{billingMenuItem.label}</span>
+              </button>
+            )
+          })()}
         </div>
       </nav>
 

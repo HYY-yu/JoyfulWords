@@ -30,6 +30,7 @@ export const en = {
         knowledgeCards: "Knowledge Cards",
         seoGeo: "SEO/GEO",
         videoEditing: "Video Editing",
+        billing: "Billing & Credit",
     },
     contentWriting: {
         title: "JoyfulWords",
@@ -812,5 +813,62 @@ export const en = {
             email: "support@joyword.link"
         },
         lastUpdated: "Last Updated"
-    }
+    },
+    billing: {
+        balance: {
+            title: "Credit Balance",
+            credits: "credits",
+            refresh: "Refresh",
+            recharge: "Recharge",
+            updatedAt: "Updated {time}",
+            cached: "cached",
+            exchangeRate: "100 credits = $1",
+            fetchFailed: "Failed to fetch balance",
+            refreshFailed: "Failed to refresh balance",
+            refreshSuccess: "Refreshed successfully",
+            rechargeComingSoon: "Recharge feature coming soon",
+            rechargeComingSoonDesc: "We are working on the recharge feature, stay tuned",
+        },
+        tabs: {
+            recharges: "Recharges",
+            usage: "Usage",
+        },
+        recharges: {
+            fetchFailed: "Failed to fetch recharge records",
+        },
+        usage: {
+            fetchFailed: "Failed to fetch usage records",
+        },
+        status: {
+            pending: "Pending",
+            settled: "Settled",
+            failed: "Failed",
+        },
+        table: {
+            date: "Time",
+            transactionId: "Transaction ID",
+            description: "Description",
+            amount: "Amount",
+            credits: "Credits",
+            status: "Status",
+            metadata: "Metadata",
+            loading: "Loading...",
+            noData: "No data available",
+            totalInfo: "Total {total}, Page {page}",
+            pageInfo: "Page {page} of {totalPages}",
+            prevPage: "Previous",
+            nextPage: "Next",
+            filterStatus: "Status:",
+            filterStatusAll: "All Status",
+            filterStartDate: "Start Date:",
+            filterEndDate: "End Date:",
+            search: "Search",
+            perPage: "Per page",
+            items: "items",
+        },
+        transaction: {
+            recharge: "Recharge",
+            usage: "Usage",
+        },
+    },
 };
