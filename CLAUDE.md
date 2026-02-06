@@ -31,6 +31,25 @@ JoyfulWords (创作者工具箱) is a Next.js 16-based SaaS application providin
 - Use Shadcn/ui from `/components/ui/`
 - Tab-based navigation structure
 
+## Critical Gotchas
+
+### ⚠️ Dockerfile.prod 环境变量配置
+
+**易错点**: 添加新的 `NEXT_PUBLIC_*` 环境变量时，必须同步更新 Dockerfile.prod
+
+**规则**:
+1. 每个 `NEXT_PUBLIC_*` 变量必须在 Dockerfile.prod 中声明为 `ARG`
+2. 必须在 Dockerfile.prod 中设置对应的 `ENV`
+
+**示例**:
+```dockerfile
+# 必须添加这两行
+ARG NEXT_PUBLIC_ENABLE_COOKIE_BANNER
+ENV NEXT_PUBLIC_ENABLE_COOKIE_BANNER=${NEXT_PUBLIC_ENABLE_COOKIE_BANNER}
+```
+
+**原因**: Next.js 的 `NEXT_PUBLIC_*` 变量在**构建时**被内联到客户端代码中。如果 Dockerfile 中没有声明，即使 `.env.local` 中有值，构建后的代码中该变量仍为 `undefined`。
+
 ## Documentation Index
 
 | Topic | Documentation |
