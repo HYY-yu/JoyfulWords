@@ -19,9 +19,10 @@ import { useTranslation } from '@/lib/i18n/i18n-context'
 interface RechargeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  initialCredits?: number
 }
 
-export function RechargeDialog({ open, onOpenChange }: RechargeDialogProps) {
+export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeDialogProps) {
   const { t } = useTranslation()
   const { createOrder } = usePayment()
 
@@ -80,6 +81,7 @@ export function RechargeDialog({ open, onOpenChange }: RechargeDialogProps) {
                     onSubmit={(data) => handleSubmit(data)}
                     loading={submitting}
                     t={t}
+                    initialCredits={initialCredits}
                   />
                 )}
                 {selectedProvider === 'payin' && (
@@ -87,6 +89,7 @@ export function RechargeDialog({ open, onOpenChange }: RechargeDialogProps) {
                     onSubmit={(data) => handleSubmit(data)}
                     loading={submitting}
                     t={t}
+                    initialCredits={initialCredits}
                   />
                 )}
                 {selectedProvider === 'paydify' && (
@@ -94,6 +97,7 @@ export function RechargeDialog({ open, onOpenChange }: RechargeDialogProps) {
                     onSubmit={(data) => handleSubmit(data)}
                     loading={submitting}
                     t={t}
+                    initialCredits={initialCredits}
                   />
                 )}
               </>

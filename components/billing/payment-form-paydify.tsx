@@ -33,17 +33,19 @@ interface PaymentFormPaydifyProps {
   onSubmit: (data: { credits: number }) => void
   loading?: boolean
   t: (key: string) => string
+  initialCredits?: number
 }
 
 export function PaymentFormPaydify({
   onSubmit,
   loading = false,
   t,
+  initialCredits,
 }: PaymentFormPaydifyProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      credits: 100,
+      credits: initialCredits || 500,
     },
   })
 

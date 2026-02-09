@@ -45,6 +45,35 @@ export function BillingPage() {
 
   // 充值弹窗状态
   const [rechargeDialogOpen, setRechargeDialogOpen] = useState(false)
+  const [initialCredits, setInitialCredits] = useState<number | undefined>(undefined)
+
+  // ==================== 自动打开充值弹窗逻辑 ====================
+
+  // 检查是否有积分不足弹窗传递的标记
+  useEffect(() => {
+    const autoOpenRecharge = localStorage.getItem('billing-auto-open-recharge')
+    const recommendedAmount = localStorage.getItem('billing-recommended-amount')
+
+    if (autoOpenRecharge === 'true') {
+      // 将 USD 金额转换为积分数 (100 credits = $1)
+      if (recommendedAmount) {
+        const amount = parseFloat(recommendedAmount)
+        if (!isNaN(amount)) {
+          setInitialCredits(Math.round(amount * 100))
+        }
+        // 清除推荐金额
+        localStorage.removeItem('billing-recommended-amount')
+      }
+
+      // 延迟打开，确保组件已完全渲染
+      setTimeout(() => {
+        setRechargeDialogOpen(true)
+      }, 300)
+
+      // 清除标记
+      localStorage.removeItem('billing-auto-open-recharge')
+    }
+  }, [])
 
   // 使用 ref 保存 fetch 函数，避免 useEffect 依赖数组问题
   const fetchRechargesRef = useRef(fetchRecharges)
@@ -265,6 +294,7 @@ export function BillingPage() {
       <RechargeDialog
         open={rechargeDialogOpen}
         onOpenChange={setRechargeDialogOpen}
+        initialCredits={initialCredits}
       />
     </div>
   )

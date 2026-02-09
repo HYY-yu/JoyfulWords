@@ -44,17 +44,19 @@ interface PaymentFormPayinProps {
   onSubmit: (data: { credits: number; network: PayinNetwork }) => void
   loading?: boolean
   t: (key: string) => string
+  initialCredits?: number
 }
 
 export function PaymentFormPayin({
   onSubmit,
   loading = false,
   t,
+  initialCredits,
 }: PaymentFormPayinProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      credits: 100,
+      credits: initialCredits || 500,
       network: 'TRC20',
     },
   })

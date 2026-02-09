@@ -127,6 +127,19 @@ export async function apiRequest<T>(
         return { error: 'Session expired' } as T
       }
 
+      // Handle 402 Payment Required - insufficient credits
+      if (response.status === 402 && data?.data) {
+        // 在客户端环境下触发积分不足弹窗
+        if (typeof window !== 'undefined') {
+          // 动态导入避免服务端渲染问题
+          const { showInsufficientCreditsDialog } = await import(
+            '@/lib/credits/insufficient-credits-dialog-handler'
+          )
+          showInsufficientCreditsDialog(data.data)
+        }
+        return { error: data.error || 'Insufficient credits' } as T
+      }
+
       // Return error in standard format
       return { error: data.error || data.message || 'Request failed' } as T
     }

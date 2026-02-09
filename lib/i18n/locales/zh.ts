@@ -849,6 +849,16 @@ export const zh = {
             rechargeComingSoon: "充值功能即将上线",
             rechargeComingSoonDesc: "我们正在完善充值功能，敬请期待",
         },
+        insufficientCredits: {
+            title: "积分余额不足",
+            description: "您的积分余额不足以执行此操作",
+            currentCredits: "当前积分",
+            requiredCredits: "所需积分",
+            shortageCredits: "缺少积分",
+            recommendedRecharge: "建议充值",
+            goToRecharge: "前往充值",
+            cancel: "取消",
+        },
         payment: {
             dialog: {
                 title: "充值积分",

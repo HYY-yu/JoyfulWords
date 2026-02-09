@@ -71,17 +71,19 @@ interface PaymentFormPaypalProps {
   onSubmit: (data: { credits: number }) => void
   loading?: boolean
   t: (key: string) => string
+  initialCredits?: number
 }
 
 export function PaymentFormPaypal({
   onSubmit,
   loading = false,
   t,
+  initialCredits,
 }: PaymentFormPaypalProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      credits: 100,
+      credits: initialCredits || 500,
     },
   })
 

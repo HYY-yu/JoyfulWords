@@ -849,6 +849,16 @@ export const en = {
             rechargeComingSoon: "Recharge feature coming soon",
             rechargeComingSoonDesc: "We are working on the recharge feature, stay tuned",
         },
+        insufficientCredits: {
+            title: "Insufficient Credits",
+            description: "You don't have enough credits to perform this action",
+            currentCredits: "Current Credits",
+            requiredCredits: "Required Credits",
+            shortageCredits: "Shortage",
+            recommendedRecharge: "Recommended Recharge",
+            goToRecharge: "Go to Recharge",
+            cancel: "Cancel",
+        },
         payment: {
             dialog: {
                 title: "Recharge Credits",
