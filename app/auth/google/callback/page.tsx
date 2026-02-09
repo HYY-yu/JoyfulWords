@@ -1,5 +1,8 @@
 'use client'
 
+// 强制动态渲染,因为需要读取 URL 参数中的 OAuth code 和 state
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'

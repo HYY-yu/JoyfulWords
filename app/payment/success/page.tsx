@@ -1,5 +1,8 @@
 "use client"
 
+// 强制动态渲染,因为需要读取 URL 参数中的订单号
+export const dynamic = 'force-dynamic'
+
 import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { usePayment } from '@/lib/hooks/use-payment'
