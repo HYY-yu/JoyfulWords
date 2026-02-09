@@ -51,6 +51,15 @@ ENV NEXT_PUBLIC_ENABLE_COOKIE_BANNER=${NEXT_PUBLIC_ENABLE_COOKIE_BANNER}
 
 **原因**: Next.js 的 `NEXT_PUBLIC_*` 变量在**构建时**被内联到客户端代码中。如果 Dockerfile 中没有声明，即使 `.env.local` 中有值，构建后的代码中该变量仍为 `undefined`。
 
+### When implementing components with Next.js i18n: 
+(1) Avoid nested buttons in forms to prevent HTML5 validation conflicts, 
+(2) Handle server/client date format hydration mismatches, 
+(3) Never use dynamic strings in toast() calls - use pre-defined translation keys only.
+
+### TypeScript/React Best Practices section
+
+Always verify time zone handling when working with Date objects. Never mutate Date objects directly - create new Date instances to avoid side effects. Use toISOString() with caution as it converts to UTC.
+
 ## Documentation Index
 
 | Topic | Documentation |

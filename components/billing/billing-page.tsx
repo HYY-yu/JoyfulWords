@@ -9,6 +9,7 @@ import { BalanceCard } from './balance-card'
 import { TransactionTable } from './transaction-table'
 import { InvoiceTable } from './invoice-table'
 import { InvoiceDetailDialog } from './invoice-detail-dialog'
+import { RechargeDialog } from './recharge-dialog'
 import type { DateRange } from 'react-day-picker'
 
 export function BillingPage() {
@@ -41,6 +42,9 @@ export function BillingPage() {
   // 发票详情状态
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDetail | null>(null)
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
+
+  // 充值弹窗状态
+  const [rechargeDialogOpen, setRechargeDialogOpen] = useState(false)
 
   // 使用 ref 保存 fetch 函数，避免 useEffect 依赖数组问题
   const fetchRechargesRef = useRef(fetchRecharges)
@@ -81,12 +85,7 @@ export function BillingPage() {
   }
 
   const onRecharge = () => {
-    // 充值功能预留：显示 Toast 提示
-    // TODO: 未来可以跳转到 Stripe 或打开充值对话框
-    toast({
-      title: t('billing.balance.rechargeComingSoon'),
-      description: t('billing.balance.rechargeComingSoonDesc'),
-    })
+    setRechargeDialogOpen(true)
   }
 
   // 筛选处理
@@ -260,6 +259,12 @@ export function BillingPage() {
         open={invoiceDialogOpen}
         onOpenChange={setInvoiceDialogOpen}
         t={t}
+      />
+
+      {/* Recharge Dialog */}
+      <RechargeDialog
+        open={rechargeDialogOpen}
+        onOpenChange={setRechargeDialogOpen}
       />
     </div>
   )
