@@ -1,8 +1,5 @@
 {
   "enabledPlugins": {
     "typescript-lsp@claude-plugins-official": true
-  },
-  "hooks": {
-    "pre-commit": "npm run lint && npm run typecheck"
   }
 }

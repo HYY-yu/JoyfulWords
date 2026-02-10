@@ -18,10 +18,11 @@ const PROVIDERS = {
     icon: CoinsIcon,
     labelKey: 'billing.payment.providers.payin',
   },
-  paydify: {
-    icon: WalletIcon,
-    labelKey: 'billing.payment.providers.paydify',
-  },
+  // ⚠️ 弃用此供应商，但代码不删除，代码未经测试，请勿启用。
+  // paydify: {
+  //   icon: WalletIcon,
+  //   labelKey: 'billing.payment.providers.paydify',
+  // },
 } as const
 
 export function PaymentProviderSelector({
