@@ -10,7 +10,7 @@ import {
 import { PaymentProviderSelector } from './payment-provider-selector'
 import { PaymentFormPaypal } from './payment-form-paypal'
 import { PaymentFormPayin } from './payment-form-payin'
-import { PaymentProvider, PayinNetwork } from '@/lib/api/payment/types'
+import { PaymentProvider, PayinNetwork, PayinCurrency } from '@/lib/api/payment/types'
 import { usePayment } from '@/lib/hooks/use-payment'
 import { Loader2Icon } from 'lucide-react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
@@ -28,14 +28,15 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
   const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>('paypal')
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = async (data: { credits: number; network?: PayinNetwork }) => {
+  const handleSubmit = async (data: { credits: number; network?: PayinNetwork; currency?: PayinCurrency }) => {
     setSubmitting(true)
 
     try {
       const result = await createOrder(
         selectedProvider,
         data.credits,
-        data.network
+        data.network,
+        data.currency
       )
 
       if (result && result.approval_url) {

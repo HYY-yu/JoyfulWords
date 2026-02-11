@@ -919,6 +919,7 @@ export const zh = {
                 goBack: "返回上一页",
             },
             orderNo: "订单号",
+            provider: "支付方式",
             error: {
                 unauthorized: "未授权，请重新登录",
                 createFailed: "创建订单失败",
@@ -927,8 +928,8 @@ export const zh = {
             },
         },
         tabs: {
-            recharges: "充值记录",
-            usage: "使用记录",
+            recharges: "积分充值",
+            usage: "积分使用",
             invoices: "发票",
         },
         recharges: {

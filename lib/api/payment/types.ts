@@ -13,7 +13,12 @@ export type PaymentProvider = 'paypal' | 'payin' | 'paydify'
 /**
  * Payin 网络类型
  */
-export type PayinNetwork = 'TRC20' | 'ERC20'
+export type PayinNetwork = 'base' | 'polygon' | 'solana'
+
+/**
+ * Payin 币种类型
+ */
+export type PayinCurrency = 'USDT' | 'USDC'
 
 /**
  * 订单状态
@@ -39,6 +44,7 @@ export interface CreateOrderRequest {
   timestamp: number // 请求时间戳（Unix 秒）
   metadata?: {
     network?: PayinNetwork // Payin 网络选择
+    currency?: PayinCurrency // Payin 币种选择
     [key: string]: any
   }
 }

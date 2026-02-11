@@ -21,13 +21,13 @@ import {
 } from '@/components/ui/base/select'
 import { Button } from '@/components/ui/base/button'
 import { Loader2Icon } from 'lucide-react'
-import { PayinNetwork } from '@/lib/api/payment/types'
+import { PayinNetwork, PayinCurrency } from '@/lib/api/payment/types'
 import { CreditTierSelector } from './credit-tier-selector'
 
 const formSchema = z.object({
   credits: z
     .number({
-      requiredError: 'billing.payment.form.credits.required' as never,
+      required_error: 'billing.payment.form.credits.required' as never,
       invalid_type_error: 'billing.payment.form.credits.invalid' as never,
     })
     .min(200, { message: 'billing.payment.form.credits.min' })
@@ -35,13 +35,16 @@ const formSchema = z.object({
     .refine((val) => val % 100 === 0, {
       message: 'billing.payment.form.credits.multiple',
     }),
-  network: z.enum(['TRC20', 'ERC20'] as [PayinNetwork, PayinNetwork], {
-    requiredError: 'billing.payment.form.network.required' as never,
+  network: z.enum(['base', 'polygon', 'solana'] as [PayinNetwork, PayinNetwork, PayinNetwork], {
+    required_error: 'billing.payment.form.network.required' as never,
+  }),
+  currency: z.enum(['USDT', 'USDC'] as [PayinCurrency, PayinCurrency], {
+    required_error: 'billing.payment.form.currency.required' as never,
   }),
 })
 
 interface PaymentFormPayinProps {
-  onSubmit: (data: { credits: number; network: PayinNetwork }) => void
+  onSubmit: (data: { credits: number; network: PayinNetwork; currency: PayinCurrency }) => void
   loading?: boolean
   t: (key: string) => string
   initialCredits?: number
@@ -57,7 +60,8 @@ export function PaymentFormPayin({
     resolver: zodResolver(formSchema),
     defaultValues: {
       credits: initialCredits || 500,
-      network: 'TRC20',
+      network: 'base',
+      currency: 'USDT',
     },
   })
 
@@ -130,17 +134,41 @@ export function PaymentFormPayin({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="TRC20">
-                    {t('billing.payment.form.network.trc20')}
-                  </SelectItem>
-                  <SelectItem value="ERC20">
-                    {t('billing.payment.form.network.erc20')}
-                  </SelectItem>
+                  <SelectItem value="base">Base</SelectItem>
+                  <SelectItem value="polygon">Polygon</SelectItem>
+                  <SelectItem value="solana">Solana</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage>
                 {form.formState.errors.network?.message
                   ? t(String(form.formState.errors.network.message))
+                  : null}
+              </FormMessage>
+            </FormItem>
+          )}
+        />
+
+        {/* 币种选择 */}
+        <FormField
+          control={form.control}
+          name="currency"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('billing.payment.form.currency.label')}</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t('billing.payment.form.currency.placeholder')} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="USDT">USDT</SelectItem>
+                  <SelectItem value="USDC">USDC</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage>
+                {form.formState.errors.currency?.message
+                  ? t(String(form.formState.errors.currency.message))
                   : null}
               </FormMessage>
             </FormItem>

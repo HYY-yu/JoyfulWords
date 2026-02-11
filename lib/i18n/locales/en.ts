@@ -919,6 +919,7 @@ export const en = {
                 goBack: "Go Back",
             },
             orderNo: "Order No.",
+            provider: "Payment Provider",
             error: {
                 unauthorized: "Unauthorized, please login again",
                 createFailed: "Failed to create order",
@@ -927,8 +928,8 @@ export const en = {
             },
         },
         tabs: {
-            recharges: "Recharges",
-            usage: "Usage",
+            recharges: "Credit Recharges",
+            usage: "Credit Usage",
             invoices: "Invoices",
         },
         recharges: {
