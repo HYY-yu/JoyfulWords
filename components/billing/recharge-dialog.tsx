@@ -10,7 +10,6 @@ import {
 import { PaymentProviderSelector } from './payment-provider-selector'
 import { PaymentFormPaypal } from './payment-form-paypal'
 import { PaymentFormPayin } from './payment-form-payin'
-import { PaymentFormPaydify } from './payment-form-paydify'
 import { PaymentProvider, PayinNetwork } from '@/lib/api/payment/types'
 import { usePayment } from '@/lib/hooks/use-payment'
 import { Loader2Icon } from 'lucide-react'
@@ -92,14 +91,7 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
                     initialCredits={initialCredits}
                   />
                 )}
-                {selectedProvider === 'paydify' && (
-                  <PaymentFormPaydify
-                    onSubmit={(data) => handleSubmit(data)}
-                    loading={submitting}
-                    t={t}
-                    initialCredits={initialCredits}
-                  />
-                )}
+                
               </>
             )}
           </div>
