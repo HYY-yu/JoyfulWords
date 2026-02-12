@@ -79,21 +79,19 @@ export function BillingPage() {
   const fetchRechargesRef = useRef(fetchRecharges)
   const fetchUsageRef = useRef(fetchUsage)
   const fetchInvoicesRef = useRef(fetchInvoices)
-  const fetchBalanceRef = useRef(fetchBalance)
 
   // 保持 ref 为最新值
   useEffect(() => {
     fetchRechargesRef.current = fetchRecharges
     fetchUsageRef.current = fetchUsage
     fetchInvoicesRef.current = fetchInvoices
-    fetchBalanceRef.current = fetchBalance
-  }, [fetchRecharges, fetchUsage, fetchInvoices, fetchBalance])
+  }, [fetchRecharges, fetchUsage, fetchInvoices])
 
   // ==================== 数据获取 ====================
 
-  // 组件初始加载时获取余额
+  // 组件初始加载时刷新余额（每次进入页面自动刷新）
   useEffect(() => {
-    fetchBalanceRef.current()
+    refreshBalance()
   }, [])
 
   // 监听 Tab 切换，自动加载对应数据（每次切换都刷新）

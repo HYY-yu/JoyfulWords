@@ -45,6 +45,20 @@ export function PaymentSuccessContent() {
   const shouldContinuePollingRef = useRef(true)
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
   const retryCountRef = useRef(0)
+  const orderNoRef = useRef(orderNo)
+  const getOrderStatusRef = useRef(getOrderStatus)
+
+  // 同步 ref
+  useEffect(() => {
+    orderNoRef.current = orderNo
+    getOrderStatusRef.current = getOrderStatus
+  }, [orderNo, getOrderStatus])
+
+  // 将 detection 也存入 ref，避免依赖变化
+  const detectionRef = useRef(detection)
+  useEffect(() => {
+    detectionRef.current = detection
+  }, [detection])
 
   const verifyOrder = useCallback(async () => {
     // 检查是否应该继续轮询
@@ -54,7 +68,8 @@ export function PaymentSuccessContent() {
       return
     }
 
-    if (!orderNo) {
+    const currentOrderNo = orderNoRef.current
+    if (!currentOrderNo) {
       console.warn('[PaymentSuccess] 订单号缺失，无法查询订单状态')
       shouldContinuePollingRef.current = false
       setOrderStatus('failed')
@@ -62,8 +77,15 @@ export function PaymentSuccessContent() {
     }
 
     const currentRetryCount = retryCountRef.current
-    console.debug('[PaymentSuccess] 开始查询订单状态', { orderNo, provider: detection?.provider, retryCount: currentRetryCount })
-    const result = await getOrderStatus(orderNo)
+    console.debug('[PaymentSuccess] 开始查询订单状态', { orderNo: currentOrderNo, provider: detectionRef.current?.provider, retryCount: currentRetryCount })
+    const result = await getOrderStatusRef.current(currentOrderNo)
+
+    // Debug: 打印完整的 API 返回数据
+    console.log('[PaymentSuccess] API 返回数据:', result, {
+      hasStatus: !!result?.status,
+      status: result?.status,
+      statusType: typeof result?.status,
+    })
 
     // 检查是否应该继续轮询（API 返回后可能已经停止）
     if (!shouldContinuePollingRef.current) {
@@ -73,7 +95,7 @@ export function PaymentSuccessContent() {
 
     if (!result) {
       console.debug('[PaymentSuccess] 订单状态未返回，继续轮询', {
-        orderNo,
+        orderNo: currentOrderNo,
         retryCount: currentRetryCount + 1,
       })
       if (currentRetryCount < MAX_RETRIES) {
@@ -83,7 +105,7 @@ export function PaymentSuccessContent() {
         timeoutIdRef.current = setTimeout(verifyOrder, 5000)
       } else {
         // 超时
-        console.warn('[PaymentSuccess] 订单状态查询超时', { orderNo, MAX_RETRIES })
+        console.warn('[PaymentSuccess] 订单状态查询超时', { orderNo: currentOrderNo, MAX_RETRIES })
         shouldContinuePollingRef.current = false
         setOrderStatus('timeout')
       }
@@ -92,18 +114,18 @@ export function PaymentSuccessContent() {
 
     setCredits(result.credits)
     console.info('[PaymentSuccess] 订单状态已更新', {
-      orderNo,
+      orderNo: currentOrderNo,
       status: result.status,
       credits: result.credits,
     })
 
     if (result.status === 'completed') {
-      console.info('[PaymentSuccess] 订单已完成', { orderNo, credits: result.credits })
+      console.info('[PaymentSuccess] 订单已完成', { orderNo: currentOrderNo, credits: result.credits })
       shouldContinuePollingRef.current = false
       setOrderStatus('success')
     } else if (result.status === 'pending' || result.status === 'paid') {
       console.debug('[PaymentSuccess] 订单处理中，继续轮询', {
-        orderNo,
+        orderNo: currentOrderNo,
         status: result.status,
         retryCount: currentRetryCount + 1,
       })
@@ -114,22 +136,22 @@ export function PaymentSuccessContent() {
         timeoutIdRef.current = setTimeout(verifyOrder, 5000)
       } else {
         // 超时
-        console.warn('[PaymentSuccess] 订单处理超时', { orderNo, status: result.status })
+        console.warn('[PaymentSuccess] 订单处理超时', { orderNo: currentOrderNo, status: result.status })
         shouldContinuePollingRef.current = false
         setOrderStatus('timeout')
       }
     } else {
       // failed, cancelled, compensation_needed
-      console.warn('[PaymentSuccess] 订单失败', { orderNo, status: result.status })
+      console.warn('[PaymentSuccess] 订单失败', { orderNo: currentOrderNo, status: result.status })
       shouldContinuePollingRef.current = false
       setOrderStatus('failed')
     }
-  }, [orderNo, getOrderStatus, MAX_RETRIES, detection?.provider])
+  }, [])
 
   useEffect(() => {
     verifyOrder()
 
-    // cleanup 函数：组件卸载或状态改变时清除 timeout
+    // cleanup 函数：组件卸载时清除 timeout
     return () => {
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current)
@@ -137,7 +159,7 @@ export function PaymentSuccessContent() {
       }
       shouldContinuePollingRef.current = false
     }
-  }, [verifyOrder])
+  }, [])
 
   const handleBackToBilling = () => {
     router.push('/?tab=billing')
