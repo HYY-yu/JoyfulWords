@@ -8,8 +8,6 @@ import type {
   CreateOrderResponse,
   OrderDetail,
   PaymentProvider,
-  PayinNetwork,
-  PayinCurrency,
 } from '@/lib/api/payment/types'
 
 /**
@@ -34,9 +32,7 @@ export function usePayment() {
   const createOrder = useCallback(
     async (
       provider: PaymentProvider,
-      credits: number,
-      network?: PayinNetwork,
-      currency?: PayinCurrency
+      credits: number
     ): Promise<CreateOrderResponse | null> => {
       setLoading(true)
 
@@ -63,16 +59,6 @@ export function usePayment() {
           return_url: returnUrl,
           cancel_url: cancelUrl,
           timestamp: Math.floor(Date.now() / 1000),
-        }
-
-        // Payin 需要添加 network 和 currency metadata
-        if (provider === 'payin') {
-          const metadata: Record<string, string> = {}
-          if (network) metadata.network = network
-          if (currency) metadata.currency = currency
-          if (Object.keys(metadata).length > 0) {
-            request.metadata = metadata
-          }
         }
 
         // 调用 API 创建订单

@@ -8,17 +8,7 @@
 /**
  * 支付提供商类型
  */
-export type PaymentProvider = 'paypal' | 'payin' | 'paydify'
-
-/**
- * Payin 网络类型
- */
-export type PayinNetwork = 'base' | 'polygon' | 'solana'
-
-/**
- * Payin 币种类型
- */
-export type PayinCurrency = 'USDT' | 'USDC'
+export type PaymentProvider = 'paypal' | 'oxapay'
 
 /**
  * 订单状态
@@ -42,11 +32,7 @@ export interface CreateOrderRequest {
   return_url: string // 支付成功后返回的 URL
   cancel_url: string // 支付取消后返回的 URL
   timestamp: number // 请求时间戳（Unix 秒）
-  metadata?: {
-    network?: PayinNetwork // Payin 网络选择
-    currency?: PayinCurrency // Payin 币种选择
-    [key: string]: any
-  }
+  metadata?: Record<string, any>
 }
 
 // ==================== Response Types ====================

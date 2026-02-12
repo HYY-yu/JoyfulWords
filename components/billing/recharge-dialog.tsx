@@ -9,8 +9,8 @@ import {
 } from '@/components/ui/base/dialog'
 import { PaymentProviderSelector } from './payment-provider-selector'
 import { PaymentFormPaypal } from './payment-form-paypal'
-import { PaymentFormPayin } from './payment-form-payin'
-import { PaymentProvider, PayinNetwork, PayinCurrency } from '@/lib/api/payment/types'
+import { PaymentFormOxapay } from './payment-form-oxapay'
+import { PaymentProvider } from '@/lib/api/payment/types'
 import { usePayment } from '@/lib/hooks/use-payment'
 import { Loader2Icon } from 'lucide-react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
@@ -25,18 +25,16 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
   const { t } = useTranslation()
   const { createOrder } = usePayment()
 
-  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>('paypal')
+  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>('oxapay')
   const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = async (data: { credits: number; network?: PayinNetwork; currency?: PayinCurrency }) => {
+  const handleSubmit = async (data: { credits: number }) => {
     setSubmitting(true)
 
     try {
       const result = await createOrder(
         selectedProvider,
-        data.credits,
-        data.network,
-        data.currency
+        data.credits
       )
 
       if (result && result.approval_url) {
@@ -84,8 +82,8 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
                     initialCredits={initialCredits}
                   />
                 )}
-                {selectedProvider === 'payin' && (
-                  <PaymentFormPayin
+                {selectedProvider === 'oxapay' && (
+                  <PaymentFormOxapay
                     onSubmit={(data) => handleSubmit(data)}
                     loading={submitting}
                     t={t}

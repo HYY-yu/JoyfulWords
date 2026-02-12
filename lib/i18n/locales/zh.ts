@@ -865,8 +865,7 @@ export const zh = {
             },
             providers: {
                 paypal: "PayPal",
-                payin: "加密货币",
-                paydify: "Paydify",
+                oxapay: "加密货币",
             },
             form: {
                 selectTier: "选择充值档位",

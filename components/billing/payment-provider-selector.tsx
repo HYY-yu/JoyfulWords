@@ -14,15 +14,10 @@ const PROVIDERS = {
     icon: CreditCardIcon,
     labelKey: 'billing.payment.providers.paypal',
   },
-  payin: {
+  oxapay: {
     icon: CoinsIcon,
-    labelKey: 'billing.payment.providers.payin',
+    labelKey: 'billing.payment.providers.oxapay',
   },
-  // ⚠️ 弃用此供应商，但代码不删除，代码未经测试，请勿启用。
-  // paydify: {
-  //   icon: WalletIcon,
-  //   labelKey: 'billing.payment.providers.paydify',
-  // },
 } as const
 
 export function PaymentProviderSelector({

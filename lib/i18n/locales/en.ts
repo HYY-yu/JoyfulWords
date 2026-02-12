@@ -865,8 +865,7 @@ export const en = {
             },
             providers: {
                 paypal: "PayPal",
-                payin: "Crypto",
-                paydify: "Paydify",
+                oxapay: "Crypto",
             },
             form: {
                 selectTier: "Select Recharge Tier",

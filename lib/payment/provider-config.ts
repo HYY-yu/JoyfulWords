@@ -29,11 +29,11 @@ export const PAYMENT_PROVIDER_CONFIG: ProviderUrlPattern[] = [
     description: 'PayPal 回调',
   },
   {
-    provider: 'payin',
+    provider: 'oxapay',
     requiredParams: ['payment_id'],
     optionalParams: ['order_no', 'txid'],
-    orderIdField: 'payment_id', // Payin 的 payment_id 就是订单 ID
-    description: 'Payin 加密货币支付',
+    orderIdField: 'payment_id', // Oxapay 的 payment_id 就是订单 ID
+    description: 'Oxapay 加密货币支付',
   },
   // {
   //   provider: 'paydify',
