@@ -73,6 +73,13 @@ export function usePayment() {
           return null
         }
 
+        // 保存订单号到 localStorage（用于支付成功页回退查询）
+        if (result.order_no) {
+          const { saveLastOrderNo } = await import('@/lib/payment')
+          saveLastOrderNo(result.order_no)
+          console.info('[usePayment] 订单号已保存到 localStorage', { orderNo: result.order_no })
+        }
+
         return result
       } catch (error) {
         toast({

@@ -30,9 +30,9 @@ export const PAYMENT_PROVIDER_CONFIG: ProviderUrlPattern[] = [
   },
   {
     provider: 'oxapay',
-    requiredParams: ['payment_id'],
-    optionalParams: ['order_no', 'txid'],
-    orderIdField: 'payment_id', // Oxapay 的 payment_id 就是订单 ID
+    requiredParams: [''],
+    optionalParams: ['', ''],
+    orderIdField: '', // Oxapay 没有任何参数
     description: 'Oxapay 加密货币支付',
   },
   // {

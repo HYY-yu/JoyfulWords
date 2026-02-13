@@ -6,9 +6,9 @@ import { usePayment } from '@/lib/hooks/use-payment'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { Loader2Icon, CheckCircle2Icon, XCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/base/button'
-import { detectPaymentProvider, getProviderDescription } from '@/lib/payment'
+import { detectPaymentProvider, getProviderDescription, getLastOrderNo, clearLastOrderNo } from '@/lib/payment'
 
-type OrderStatus = 'loading' | 'pending' | 'success' | 'failed' | 'timeout'
+type OrderStatus = 'loading' | 'pending' | 'success' | 'failed' | 'timeout' | 'processing'
 
 export function PaymentSuccessContent() {
   const { t } = useTranslation()
@@ -35,8 +35,13 @@ export function PaymentSuccessContent() {
     }
   }, [detection, searchParams])
 
-  const orderNo = detection?.orderNo || null
-  const [orderStatus, setOrderStatus] = useState<OrderStatus>(detection ? 'loading' : 'failed')
+  const urlOrderNo = detection?.orderNo || null
+  const [orderNo, setOrderNo] = useState<string | null>(urlOrderNo)
+
+  // 初始状态：URL 有参数 → loading，无参数 → processing（等待 localStorage 回退）
+  const [orderStatus, setOrderStatus] = useState<OrderStatus>(
+    urlOrderNo ? 'loading' : 'processing'
+  )
   const [credits, setCredits] = useState<number>(0)
   const [retryCount, setRetryCount] = useState(0)
   const MAX_RETRIES = 15 // 最多轮询 15 次（75 秒，5 秒间隔）
@@ -47,9 +52,11 @@ export function PaymentSuccessContent() {
   const retryCountRef = useRef(0)
   const orderNoRef = useRef(orderNo)
   const getOrderStatusRef = useRef(getOrderStatus)
+  const isUnmountedRef = useRef(false) // 追踪组件是否真正卸载
 
   // 同步 ref
   useEffect(() => {
+    console.log('[PaymentSuccess] 同步 ref', { orderNo, orderNoRefBefore: orderNoRef.current })
     orderNoRef.current = orderNo
     getOrderStatusRef.current = getOrderStatus
   }, [orderNo, getOrderStatus])
@@ -60,19 +67,58 @@ export function PaymentSuccessContent() {
     detectionRef.current = detection
   }, [detection])
 
+  // localStorage 回退逻辑：URL 无参数时，尝试从 localStorage 读取订单号
+  useEffect(() => {
+    // 如果 URL 中已有订单号，直接跳过
+    if (urlOrderNo) {
+      console.debug('[PaymentSuccess] URL 中已有订单号，跳过 localStorage 回退', { urlOrderNo })
+      return
+    }
+
+    // 尝试从 localStorage 读取订单号
+    console.debug('[PaymentSuccess] URL 中无订单号，尝试从 localStorage 读取')
+    const storedOrderNo = getLastOrderNo()
+
+    if (storedOrderNo) {
+      console.info('[PaymentSuccess] 从 localStorage 读取到订单号', { storedOrderNo })
+      console.log('[PaymentSuccess] 设置 orderNo 前，shouldContinuePollingRef.current =', shouldContinuePollingRef.current)
+      setOrderNo(storedOrderNo)
+      // 注意：不调用 setOrderStatus，避免触发重新渲染导致 cleanup 提前执行
+    } else {
+      console.warn('[PaymentSuccess] localStorage 中也无订单号，显示"处理中"状态')
+      setOrderStatus('processing') // URL 和 localStorage 都没有，显示处理中
+    }
+  }, [urlOrderNo])
+
+  // 追踪组件卸载
+  useEffect(() => {
+    return () => {
+      console.log('[PaymentSuccess] 组件卸载')
+      isUnmountedRef.current = true
+      shouldContinuePollingRef.current = false
+    }
+  }, [])
+
   const verifyOrder = useCallback(async () => {
+    console.log('[PaymentSuccess] verifyOrder 被调用', {
+      shouldContinuePolling: shouldContinuePollingRef.current,
+      orderNoRef: orderNoRef.current,
+      orderNoState: orderNo,
+    })
+
     // 检查是否应该继续轮询
     if (!shouldContinuePollingRef.current) {
-      console.debug('[PaymentSuccess] 轮询已停止，跳过本次查询')
+      console.warn('[PaymentSuccess] 轮询已停止，跳过本次查询', {
+        shouldContinuePolling: shouldContinuePollingRef.current,
+      })
       setOrderStatus('failed')
       return
     }
 
     const currentOrderNo = orderNoRef.current
     if (!currentOrderNo) {
-      console.warn('[PaymentSuccess] 订单号缺失，无法查询订单状态')
-      shouldContinuePollingRef.current = false
-      setOrderStatus('failed')
+      console.debug('[PaymentSuccess] 订单号暂未获取，等待 localStorage 回退')
+      // 不要停止轮询，等待 localStorage 回退完成
       return
     }
 
@@ -123,6 +169,9 @@ export function PaymentSuccessContent() {
       console.info('[PaymentSuccess] 订单已完成', { orderNo: currentOrderNo, credits: result.credits })
       shouldContinuePollingRef.current = false
       setOrderStatus('success')
+
+      // 清除 localStorage 中的订单号
+      clearLastOrderNo()
     } else if (result.status === 'pending' || result.status === 'paid') {
       console.debug('[PaymentSuccess] 订单处理中，继续轮询', {
         orderNo: currentOrderNo,
@@ -145,21 +194,33 @@ export function PaymentSuccessContent() {
       console.warn('[PaymentSuccess] 订单失败', { orderNo: currentOrderNo, status: result.status })
       shouldContinuePollingRef.current = false
       setOrderStatus('failed')
+
+      // 清除 localStorage 中的订单号
+      clearLastOrderNo()
     }
   }, [])
 
   useEffect(() => {
-    verifyOrder()
+    // 只有当 orderNo 有效时才开始轮询
+    if (orderNo) {
+      console.debug('[PaymentSuccess] 订单号已就绪，开始轮询', { orderNo })
+      console.log('[PaymentSuccess] 调用 verifyOrder 前，shouldContinuePollingRef.current =', shouldContinuePollingRef.current)
+      verifyOrder()
+    }
 
     // cleanup 函数：组件卸载时清除 timeout
     return () => {
+      console.log('[PaymentSuccess] useEffect cleanup 执行，isUnmounted =', isUnmountedRef.current)
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current)
         timeoutIdRef.current = null
       }
-      shouldContinuePollingRef.current = false
+      // 只在组件真正卸载时停止轮询，不要在 re-render cleanup 时停止
+      if (isUnmountedRef.current) {
+        shouldContinuePollingRef.current = false
+      }
     }
-  }, [])
+  }, [orderNo])
 
   const handleBackToBilling = () => {
     router.push('/?tab=billing')
@@ -168,6 +229,27 @@ export function PaymentSuccessContent() {
   return (
     <div className="min-h-[50vh] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
+        {/* Processing 状态 - 等待获取订单号 */}
+        {orderStatus === 'processing' && (
+          <div className="text-center space-y-6">
+            <Loader2Icon className="w-16 h-16 animate-spin text-muted-foreground mx-auto" />
+            <div>
+              <h1 className="text-2xl font-bold mb-2">
+                {t('billing.payment.success.processing')}
+              </h1>
+              <p className="text-muted-foreground">
+                {t('billing.payment.success.processingDesc')}
+              </p>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {t('billing.payment.success.processingHint')}
+            </div>
+            <Button onClick={handleBackToBilling} className="w-full">
+              {t('billing.payment.success.backToBilling')}
+            </Button>
+          </div>
+        )}
+
         {/* Loading 状态 */}
         {orderStatus === 'loading' && (
           <div className="text-center space-y-4">
