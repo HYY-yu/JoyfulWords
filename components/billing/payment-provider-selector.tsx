@@ -2,6 +2,7 @@
 
 import { PaymentProvider } from '@/lib/api/payment/types'
 import { CreditCardIcon, WalletIcon, CoinsIcon } from 'lucide-react'
+import { getEnabledPaymentProviders } from '@/lib/config/payment-providers'
 
 interface PaymentProviderSelectorProps {
   value: PaymentProvider
@@ -25,16 +26,19 @@ export function PaymentProviderSelector({
   onChange,
   t,
 }: PaymentProviderSelectorProps) {
+  // 获取启用的支付渠道
+  const enabledProviders = getEnabledPaymentProviders()
+
   return (
     <div className="flex gap-2 border-b border-border/50">
-      {(Object.keys(PROVIDERS) as PaymentProvider[]).map((provider) => {
-        const { icon: Icon, labelKey } = PROVIDERS[provider]
+      {enabledProviders.map((provider) => {
+        const { icon: Icon, labelKey } = PROVIDERS[provider as PaymentProvider]
         const isActive = value === provider
 
         return (
           <button
             key={provider}
-            onClick={() => onChange(provider)}
+            onClick={() => onChange(provider as PaymentProvider)}
             className={`
               px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px
               flex items-center gap-2

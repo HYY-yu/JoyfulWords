@@ -14,6 +14,7 @@ import { PaymentProvider } from '@/lib/api/payment/types'
 import { usePayment } from '@/lib/hooks/use-payment'
 import { Loader2Icon } from 'lucide-react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
+import { getEnabledPaymentProviders } from '@/lib/config/payment-providers'
 
 interface RechargeDialogProps {
   open: boolean
@@ -25,7 +26,11 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
   const { t } = useTranslation()
   const { createOrder } = usePayment()
 
-  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>('oxapay')
+  // 获取启用的支付渠道，默认选择第一个
+  const enabledProviders = getEnabledPaymentProviders()
+  const defaultProvider = (enabledProviders[0] || 'oxapay') as PaymentProvider
+
+  const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>(defaultProvider)
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async (data: { credits: number }) => {
