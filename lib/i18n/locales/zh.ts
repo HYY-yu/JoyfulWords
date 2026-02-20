@@ -498,6 +498,11 @@ export const zh = {
         },
     },
     auth: {
+        brand: {
+            title: "JoyfulWords",
+            subtitle: "给创作者提供最大帮助",
+            features: "文章辅助创作,图片辅助创作,SEO/GEO 优化",
+        },
         login: "登录",
         signup: "注册",
         email: "邮箱",

@@ -498,6 +498,11 @@ export const en = {
         },
     },
     auth: {
+        brand: {
+            title: "JoyfulWords",
+            subtitle: "Empowering Content Creators",
+            features: "AI Article Writing, Image Generation, SEO/GEO Optimization",
+        },
         login: "Login",
         signup: "Sign Up",
         email: "Email",
