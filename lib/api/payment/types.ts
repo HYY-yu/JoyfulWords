@@ -8,7 +8,7 @@
 /**
  * 支付提供商类型
  */
-export type PaymentProvider = 'paypal' | 'oxapay'
+export type PaymentProvider = 'paypal' | 'oxapay' | 'stripe'
 
 /**
  * 订单状态

@@ -1,7 +1,7 @@
 "use client"
 
 import { PaymentProvider } from '@/lib/api/payment/types'
-import { CreditCardIcon, WalletIcon, CoinsIcon } from 'lucide-react'
+import { CreditCardIcon, WalletIcon, CoinsIcon, BanknoteIcon } from 'lucide-react'
 import { getEnabledPaymentProviders } from '@/lib/config/payment-providers'
 
 interface PaymentProviderSelectorProps {
@@ -18,6 +18,10 @@ const PROVIDERS = {
   oxapay: {
     icon: CoinsIcon,
     labelKey: 'billing.payment.providers.oxapay',
+  },
+  stripe: {
+    icon: BanknoteIcon,
+    labelKey: 'billing.payment.providers.stripe',
   },
 } as const
 

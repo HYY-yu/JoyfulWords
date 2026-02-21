@@ -871,6 +871,7 @@ export const en = {
             providers: {
                 paypal: "PayPal",
                 oxapay: "Crypto",
+                stripe: "Stripe",
             },
             form: {
                 selectTier: "Select Recharge Tier",
@@ -895,6 +896,8 @@ export const en = {
                 submit: "Proceed to Payment",
                 payWithPaypal: "Pay with PayPal",
                 paypalSecure: "Secure PayPal payment",
+                payWithStripe: "Pay with Stripe",
+                stripeSecure: "Secure payment powered by Stripe",
                 submitting: "Processing...",
             },
             processing: "Processing order...",

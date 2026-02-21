@@ -871,6 +871,7 @@ export const zh = {
             providers: {
                 paypal: "PayPal",
                 oxapay: "加密货币",
+                stripe: "Stripe",
             },
             form: {
                 selectTier: "选择充值档位",
@@ -895,6 +896,8 @@ export const zh = {
                 submit: "前往支付",
                 payWithPaypal: "使用 PayPal 支付",
                 paypalSecure: "安全的 PayPal 支付",
+                payWithStripe: "使用 Stripe 支付",
+                stripeSecure: "Stripe 提供的安全支付",
                 submitting: "处理中...",
             },
             processing: "正在处理订单...",

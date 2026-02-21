@@ -1,6 +1,6 @@
 # 支付接口 API 文档
 
-支付订单管理系统，支持多个支付提供商（PayPal、Payin、Paydify），提供订单创建、查询和 Webhook 回调处理功能。
+支付订单管理系统，支持多个支付提供商（PayPal、Payin、OxaPay、Stripe），提供订单创建、查询和 Webhook 回调处理功能。
 
 **基础地址:** `http://localhost:8080`
 
@@ -11,7 +11,8 @@
 **支持的支付提供商:**
 - `paypal` - PayPal 全球支付平台
 - `payin` - 加密货币支付
-- `paydify` - 支付服务提供商
+- `oxapay` - OxaPay 支付服务提供商
+- `stripe` - Stripe Checkout（官方托管支付页）
 
 **汇率:** 100 积分 = 1 USD
 
@@ -47,7 +48,7 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | credits | int | 是 | 购买积分数（100 积分 = 1 USD） |
-| provider | string | 是 | 支付提供商：paypal、payin、paydify |
+| provider | string | 是 | 支付提供商：paypal、payin、oxapay、stripe |
 | return_url | string | 是 | 支付成功后返回的 URL |
 | cancel_url | string | 是 | 支付取消后返回的 URL |
 | timestamp | int64 | 是 | 请求时间戳（Unix 秒），用于防重放攻击 |
@@ -87,6 +88,22 @@ curl -X POST http://localhost:8080/payment/orders/create \
     "metadata": {
       "network": "TRC20"
     }
+  }'
+```
+
+**Stripe 订单：**
+
+```bash
+curl -X POST http://localhost:8080/payment/orders/create \
+  -H "Content-Type: application/json" \
+  -H "Accept-Language: zh-CN" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "credits": 1000,
+    "provider": "stripe",
+    "return_url": "https://yourdomain.com/payment/success",
+    "cancel_url": "https://yourdomain.com/payment/cancel",
+    "timestamp": 1738000000
   }'
 ```
 

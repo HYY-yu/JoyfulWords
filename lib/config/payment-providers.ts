@@ -22,7 +22,7 @@ function parseEnabledProviders(): string[] {
 
   if (!envValue || envValue.trim() === '') {
     // 默认启用所有渠道
-    return ['paypal', 'oxapay']
+    return ['paypal', 'oxapay', 'stripe']
   }
 
   return envValue
@@ -42,6 +42,10 @@ export const PAYMENT_PROVIDERS_CONFIG: PaymentProvidersConfig = {
   oxapay: {
     enabled: true,
     priority: 2,
+  },
+  stripe: {
+    enabled: true,
+    priority: 3,
   },
 }
 

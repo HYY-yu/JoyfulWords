@@ -35,6 +35,13 @@ export const PAYMENT_PROVIDER_CONFIG: ProviderUrlPattern[] = [
     orderIdField: '', // Oxapay 没有任何参数
     description: 'Oxapay 加密货币支付',
   },
+  {
+    provider: 'stripe',
+    requiredParams: ['session_id'],
+    optionalParams: ['order_no'],
+    orderIdField: 'session_id',
+    description: 'Stripe Checkout 回调',
+  },
   // {
   //   provider: 'paydify',
   //   requiredParams: ['checkout_id'],
