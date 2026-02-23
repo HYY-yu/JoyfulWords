@@ -14,6 +14,7 @@ import { AIRewriteDialog } from "./ui/ai/ai-rewrite-dialog";
 import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
+import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 
 
 interface TiptapEditorProps {
@@ -21,6 +22,7 @@ interface TiptapEditorProps {
   onChange?: (content: string, html: string) => void;
   placeholder?: string;
   editable?: boolean;
+  saveStatus?: AutoSaveState;
 }
 
 export function TiptapEditor({
@@ -28,6 +30,7 @@ export function TiptapEditor({
   onChange,
   placeholder = "开始撰写您的内容...",
   editable = true,
+  saveStatus,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -323,6 +326,7 @@ export function TiptapEditor({
         onInsertImage={insertImage}
         isUploadingImage={isUploadingImage}
         onAIRewrite={handleAIRewrite}
+        saveStatus={saveStatus}
       />
       <EditorContent editor={editor} />
       {editor && <ImageMenu editor={editor} />}

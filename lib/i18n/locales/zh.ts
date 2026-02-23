@@ -602,6 +602,12 @@ export const zh = {
             selectTextFirst: "请先选中文本",
             selectTextFirstDesc: "请在编辑器中选中要改写的文本",
         },
+        autoSave: {
+            saved: "已保存",
+            saving: "保存中...",
+            unsaved: "未保存",
+            error: "保存失败",
+        },
     },
     aiRewrite: {
         toast: {

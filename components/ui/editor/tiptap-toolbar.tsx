@@ -23,44 +23,46 @@ import { useCallback } from "react";
 import { ToolbarButton } from "./tiptap-toolbar-button";
 import { HighlightButtons } from "./highlight-buttons";
 import { TextAlignButtons } from "./text-align-buttons";
+import { SaveStatusIndicator } from "./save-status-indicator";
+import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 
 interface TiptapToolbarProps {
   editor: Editor | null;
   onInsertImage?: () => void;
   isUploadingImage?: boolean;
   onAIRewrite?: () => void;
+  saveStatus?: AutoSaveState;
 }
 
-export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus }: TiptapToolbarProps) {
   const setImage = useCallback(() => {
-    console.log("setImage 函数被调用");
-
     if (!editor) {
-      console.error("编辑器对象为空");
-      return;
+      console.warn('[TiptapToolbar] Editor not ready')
+      return
     }
 
     // 如果有图片上传回调，优先使用
     if (onInsertImage) {
-      console.log("调用 onInsertImage 回调");
-      onInsertImage();
-      return;
+      console.debug('[TiptapToolbar] Using image upload callback')
+      onInsertImage()
+      return
     }
 
     // 否则回退到手动输入URL
-    console.log("使用手动输入 URL 方式");
-    const url = window.prompt('Image URL');
+    console.debug('[TiptapToolbar] Using manual URL input')
+    const url = window.prompt('Image URL')
     if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
+      editor.chain().focus().setImage({ src: url }).run()
     }
-  }, [editor, onInsertImage]);
+  }, [editor, onInsertImage])
 
   if (!editor) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap gap-1 p-2 border-b">
+    <div className="flex items-center justify-between gap-2 p-2 border-b">
+      <div className="flex flex-wrap gap-1">
       {/* Undo/Redo */}
       <ToolbarButton
         tooltip="Undo"
@@ -261,6 +263,10 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       >
         <SparklesIcon className="h-4 w-4 animate-heartbeat" />
       </ToolbarButton>
+      </div>
+
+      {/* 自动保存状态指示灯 - 固定在工具栏最右侧 */}
+      {saveStatus && <div className="mr-4"><SaveStatusIndicator saveStatus={saveStatus} /></div>}
     </div>
   );
 }

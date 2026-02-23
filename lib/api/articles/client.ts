@@ -124,16 +124,25 @@ export const articlesClient = {
    *
    * @param id - 文章 ID
    * @param data - 更新数据
+   * @param options - 可选参数（支持 signal 取消请求）
    * @returns Promise<MessageResponse | ErrorResponse>
    *
    * @example
    * const result = await articlesClient.updateArticleContent(123, {
    *   content: '更新后的文章内容...'
    * })
+   *
+   * @example
+   * // 带取消功能的请求
+   * const controller = new AbortController()
+   * const result = await articlesClient.updateArticleContent(123, {
+   *   content: '更新后的文章内容...'
+   * }, { signal: controller.signal })
    */
   async updateArticleContent(
     id: number,
-    data: UpdateArticleContentRequest
+    data: UpdateArticleContentRequest,
+    options?: { signal?: AbortSignal }
   ): Promise<MessageResponse | ErrorResponse> {
     const token = localStorage.getItem('access_token')
 
@@ -143,6 +152,7 @@ export const articlesClient = {
         Authorization: token ? `Bearer ${token}` : '',
       },
       body: JSON.stringify(data),
+      signal: options?.signal, // 支持 AbortController 取消请求
     })
   },
 

@@ -602,6 +602,12 @@ export const en = {
             selectTextFirst: "Please select text first",
             selectTextFirstDesc: "Please select the text you want to rewrite in the editor",
         },
+        autoSave: {
+            saved: "Saved",
+            saving: "Saving...",
+            unsaved: "Unsaved",
+            error: "Save failed",
+        },
     },
     aiRewrite: {
         toast: {

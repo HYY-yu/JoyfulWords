@@ -20,6 +20,7 @@ import {
 import type { Article, ArticleDraft } from "./article-types"
 import { useEditorState } from "@/lib/editor-state"
 import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/lib/tiptap-utils"
+import { useAutoSave } from "@/lib/hooks/use-auto-save"
 
 interface ArticleWritingProps {
   articleId?: string | null
@@ -50,6 +51,21 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
 
   // ✅ 使用统一状态管理（替换 articleContent, articleHTML, articleMarkdown）
   const editorState = useEditorState()
+
+  // ✅ 自动保存 Hook（仅编辑模式）
+  const autoSave = useAutoSave({
+    articleId: currentArticle?.id ?? null,
+    isEditMode,
+    delay: 3000,
+    onSaved: () => {
+      // 保存成功后标记为已保存
+      editorState.markSaved()
+    },
+    onError: (error) => {
+      console.error('[AutoSave] Save failed:', error)
+      // 静默重试已在 Hook 内部处理，这里只记录日志
+    },
+  })
 
   // Generate user-specific localStorage key
   const getDraftKey = useCallback(() => {
@@ -212,16 +228,11 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       text: _content
     })
 
-    // TODO: 实时保存到后端 API（EditMode）
-    // API: PUT /api/articles/:id/draft
-    //
-    // 建议实现：
-    // 1. 使用防抖（2-3秒）避免频繁请求
-    // 2. 仅保存内容，不触发验证
-    // 3. 返回 draftId 用于后续更新
-    // 4. 失败时静默重试3次
-    // 5. 显示"自动保存中..."状态指示
-  }, [editorState])
+    // ✅ 触发自动保存（仅编辑模式）
+    if (isEditMode && currentArticle?.id) {
+      autoSave.triggerSave(html)
+    }
+  }, [editorState, isEditMode, currentArticle, autoSave])
 
   const handleExport = useCallback((format: "markdown" | "html") => {
     const { content } = editorState
@@ -313,6 +324,14 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     })
   }, [toast, t])
 
+  // 组件卸载时清理待处理的自动保存
+  useEffect(() => {
+    return () => {
+      autoSave.cancelPendingSave()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // 只在组件卸载时清理，不依赖 autoSave 对象
+
   return (
     <div className="flex flex-col h-full gap-6">
       {/* Editor Section */}
@@ -335,6 +354,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
           <TiptapEditor
             content={editorState.content.html}
             onChange={handleEditorChange}
+            saveStatus={autoSave.saveState}
             placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}
           />

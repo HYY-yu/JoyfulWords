@@ -68,7 +68,7 @@ function injectTraceHeaders(): HeadersInit {
 /**
  * Make API request with error handling
  * @param endpoint - API endpoint path
- * @param options - Request options
+ * @param options - Request options (supports signal for aborting requests)
  * @param skipAuthRefresh - If true, skip 401 auto-refresh (used by token refresh to avoid infinite loop)
  */
 export async function apiRequest<T>(
@@ -86,9 +86,11 @@ export async function apiRequest<T>(
   }
 
   try {
+    // 支持 AbortController signal
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: options.signal, // 传递 signal 以支持请求取消
     })
 
     const data = await response.json()
