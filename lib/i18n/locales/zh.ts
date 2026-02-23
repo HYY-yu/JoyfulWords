@@ -248,7 +248,7 @@ export const zh = {
                 unitHours: "小时",
                 unitDays: "天",
                 confirmDeleteTitle: "确认删除",
-                confirmDeleteDesc: "确定要删除这个定时任务吗？此操作无法撤销。",
+                confirmDeleteDesc: "确定要删除吗？此操作无法撤销。",
             },
             pagination: {
                 perPage: "每页",

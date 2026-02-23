@@ -248,7 +248,7 @@ export const en = {
                 unitHours: "Hours",
                 unitDays: "Days",
                 confirmDeleteTitle: "Confirm Delete",
-                confirmDeleteDesc: "Are you sure you want to delete this scheduled task? This action cannot be undone.",
+                confirmDeleteDesc: "Are you sure you want to delete this? This action cannot be undone.",
             },
             pagination: {
                 perPage: "Per page",
