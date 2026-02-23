@@ -151,6 +151,8 @@
 
 .ProseMirror .image-container[data-align="center"] {
   text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .ProseMirror .image-container[data-align="right"] {

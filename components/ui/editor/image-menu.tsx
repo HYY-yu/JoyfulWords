@@ -18,7 +18,7 @@ interface ImageMenuProps {
 export function ImageMenu({ editor }: ImageMenuProps) {
   const [show, setShow] = useState(false);
   const [width, setWidth] = useState<string>("");
-  const [align, setAlign] = useState<"left" | "center" | "right">("left");
+  const [align, setAlign] = useState<"left" | "center" | "right">("center");
 
   // Check if an image is selected
   useEffect(() => {
@@ -36,7 +36,7 @@ export function ImageMenu({ editor }: ImageMenuProps) {
         const imageNode = (selection as any).node || node;
         setShow(true);
         setWidth(imageNode.attrs.width || "");
-        setAlign(imageNode.attrs.align || "left");
+        setAlign(imageNode.attrs.align || "center");
       } else {
         setShow(false);
       }

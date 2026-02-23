@@ -50,8 +50,8 @@ export const CustomImage = Image.extend({
         },
       },
       align: {
-        default: 'left',
-        parseHTML: element => element.getAttribute('data-align') || 'left',
+        default: 'center',
+        parseHTML: element => element.getAttribute('data-align') || 'center',
         renderHTML: attributes => {
           return { 'data-align': attributes.align }
         },
@@ -63,7 +63,7 @@ export const CustomImage = Image.extend({
     return ({ node, editor, getPos }) => {
       const container = document.createElement('div')
       container.className = 'image-container'
-      container.setAttribute('data-align', node.attrs.align || 'left')
+      container.setAttribute('data-align', node.attrs.align || 'center')
 
       const img = document.createElement('img')
       img.src = node.attrs.src
@@ -115,7 +115,7 @@ export const CustomImage = Image.extend({
             img.style.height = ''
           }
 
-          container.setAttribute('data-align', updatedNode.attrs.align || 'left')
+          container.setAttribute('data-align', updatedNode.attrs.align || 'center')
 
           return true
         },
@@ -124,7 +124,7 @@ export const CustomImage = Image.extend({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['div', { class: 'image-container', 'data-align': HTMLAttributes.align || 'left' },
+    return ['div', { class: 'image-container', 'data-align': HTMLAttributes.align || 'center' },
       ['img', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)]
     ]
   },
