@@ -586,7 +586,7 @@ export function ArticleAIHelpDialog({
           </Button>
           <Button
             onClick={handleGenerate}
-            disabled={isGenerating}
+            disabled={isGenerating || isUploading}
             className="gap-2"
           >
             {isGenerating ? (
