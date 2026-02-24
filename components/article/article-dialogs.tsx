@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useState } from "react"
+import { Fragment, useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/base/button"
 import { Badge } from "@/components/ui/base/badge"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
+import { Input } from "@/components/ui/base/input"
 import {
   ExternalLink,
   Trash2,
@@ -18,12 +19,19 @@ import {
   Languages,
   UploadCloud,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CheckIcon,
+  LoaderIcon
 } from "lucide-react"
 import { Article, ArticleImage, ReferenceLink, parseTags } from "./article-types"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
+/**
+ * @deprecated 内容预览对话框已弃用
+ * 表格中直接显示内容预览，不再使用弹窗
+ * 保留此组件供未来可能的功能使用
+ */
 interface ContentPreviewDialogProps {
   article: Article | null
   open: boolean
@@ -37,7 +45,7 @@ export function ContentPreviewDialog({ article, open, onOpenChange }: ContentPre
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="sm:max-w-4xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">{article.title}</DialogTitle>
         </DialogHeader>
@@ -55,7 +63,7 @@ export function ContentPreviewDialog({ article, open, onOpenChange }: ContentPre
             )}
 
             <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+              <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
                 {article.content}
               </div>
             </div>
@@ -94,7 +102,7 @@ export function ImageGalleryDialog({ article, open, onOpenChange }: ImageGallery
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">{article.title}</DialogTitle>
         </DialogHeader>
@@ -197,7 +205,7 @@ export function MaterialsLinksDialog({ article, open, onOpenChange }: MaterialsL
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh]">
+      <DialogContent className="sm:max-w-2xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {t("contentWriting.articleDialogs.materialsLinks.title")}
@@ -286,6 +294,101 @@ export function DeleteConfirmDialog({ article, open, onOpenChange, onConfirm }: 
           <Button variant="destructive" onClick={onConfirm}>
             <Trash2 className="h-4 w-4 mr-2" />
             {t("contentWriting.articleDialogs.deleteConfirm.confirmBtn")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface EditTitleDialogProps {
+  article: Article | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSave: (articleId: number, newTitle: string) => Promise<void>
+}
+
+export function EditTitleDialog({ article, open, onOpenChange, onSave }: EditTitleDialogProps) {
+  const { t } = useTranslation()
+  const [title, setTitle] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+
+  // 当弹窗打开或文章变化时，重置标题
+  useEffect(() => {
+    if (article) {
+      setTitle(article.title)
+    }
+  }, [article, open])
+
+  const handleSave = async () => {
+    if (!article || !title.trim()) return
+
+    setIsSaving(true)
+    try {
+      await onSave(article.id, title.trim())
+      onOpenChange(false)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSave()
+    } else if (e.key === 'Escape') {
+      onOpenChange(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t("contentWriting.articleDialogs.editTitle.title")}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <label htmlFor="title-input" className="text-sm font-medium">
+              {t("contentWriting.articleDialogs.editTitle.label")}
+            </label>
+            <Input
+              id="title-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t("contentWriting.articleDialogs.editTitle.placeholder")}
+              autoFocus
+              disabled={isSaving}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("contentWriting.articleDialogs.editTitle.hint")}
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={!title.trim() || isSaving}
+          >
+            {isSaving ? (
+              <>
+                <LoaderIcon className="w-4 h-4 mr-2 animate-spin" />
+                {t("common.saving")}
+              </>
+            ) : (
+              <>
+                <CheckIcon className="w-4 h-4 mr-2" />
+                {t("common.save")}
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

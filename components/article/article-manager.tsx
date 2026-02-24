@@ -33,7 +33,8 @@ import {
 import type { Article } from "@/lib/api/articles/types"
 import { getStatusVariant, formatShortDate } from "./article-types"
 import {
-  ContentPreviewDialog,
+  // ContentPreviewDialog, // @deprecated 已弃用
+  EditTitleDialog,
   DeleteConfirmDialog,
   ImageGalleryDialog,
   MaterialsLinksDialog,
@@ -72,15 +73,13 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
 
   // Dialog states
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
-  const [contentPreviewOpen, setContentPreviewOpen] = useState(false)
+  // @deprecated ContentPreviewDialog 已弃用，保留状态供未来可能的使用
+  // const [contentPreviewOpen, setContentPreviewOpen] = useState(false)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false)
   const [materialsLinksOpen, setMaterialsLinksOpen] = useState(false)
-
-  // Title editing states
-  const [editingArticleId, setEditingArticleId] = useState<number | null>(null)
-  const [editingTitle, setEditingTitle] = useState("")
+  const [editTitleOpen, setEditTitleOpen] = useState(false)
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
@@ -142,34 +141,28 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     handleRefresh()
   }
 
-  // Title editing handlers
-  const startEditingTitle = (article: Article) => {
-    setEditingArticleId(article.id)
-    setEditingTitle(article.title)
+  // Title editing handler - 使用弹窗
+  const handleEditTitle = (article: Article) => {
+    setSelectedArticle(article)
+    setEditTitleOpen(true)
   }
 
-  const cancelEditingTitle = () => {
-    setEditingArticleId(null)
-    setEditingTitle("")
-  }
-
-  const saveTitle = async (articleId: number) => {
-    if (!editingTitle.trim()) {
-      return
-    }
-
+  const saveTitle = async (articleId: number, newTitle: string) => {
     const result = await articlesClient.updateArticleMetadata(articleId, {
-      title: editingTitle.trim()
+      title: newTitle
     })
 
     if ('message' in result) {
-      setEditingArticleId(null)
+      toast({
+        description: t("contentWriting.manager.titleUpdated"),
+      })
       handleRefresh()
     } else {
       toast({
         variant: "destructive",
         description: result.error
       })
+      throw new Error(result.error)
     }
   }
 
@@ -305,83 +298,34 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                   key={article.id}
                   className="border-b border-border last:border-b-0 hover:bg-muted/30"
                 >
-                  {/* Title - 可内联编辑 */}
+                  {/* Title - 点击打开编辑弹窗 */}
                   <td className="py-3 px-4 text-sm">
-                    {editingArticleId === article.id ? (
-                      <div className="flex items-center gap-1">
-                        <Input
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              saveTitle(article.id)
-                            } else if (e.key === 'Escape') {
-                              cancelEditingTitle()
-                            }
-                          }}
-                          className="h-8 text-sm"
-                          autoFocus
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => saveTitle(article.id)}
-                        >
-                          <CheckIcon className="w-4 h-4 text-green-600" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={cancelEditingTitle}
-                        >
-                          <XIcon className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        className="h-auto p-0 justify-start text-left hover:bg-transparent w-full"
-                        onClick={() => startEditingTitle(article)}
-                      >
-                        <div>
-                          <div className="flex items-center gap-1 mb-1">
-                            <EditIcon className="w-3 h-3 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">
-                              {t("contentWriting.manager.clickForEdit")}
-                            </span>
-                          </div>
-                          <div className="font-medium truncate" title={article.title}>
-                            {article.title}
-                          </div>
+                    <Button
+                      variant="ghost"
+                      className="h-auto p-0 justify-start text-left hover:bg-transparent w-full"
+                      onClick={() => handleEditTitle(article)}
+                    >
+                      <div>
+                        <div className="flex items-center gap-1 mb-1">
+                          <EditIcon className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
+                            {t("contentWriting.manager.clickForEdit")}
+                          </span>
                         </div>
-                      </Button>
-                    )}
+                        <div className="font-medium truncate" title={article.title}>
+                          {article.title}
+                        </div>
+                      </div>
+                    </Button>
                   </td>
 
                   {/* Content Preview */}
                   <td className="py-3 px-4 text-sm">
-                    <Button
-                      variant="ghost"
-                      className="h-auto p-0 justify-start text-left hover:bg-transparent"
-                      onClick={() => {
-                        setSelectedArticle(article)
-                        setContentPreviewOpen(true)
-                      }}
-                    >
-                      <div className="max-w-md">
-                        <div className="flex items-center gap-1 mb-1">
-                          <Eye className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {t("contentWriting.manager.clickForDetail")}
-                          </span>
-                        </div>
-                        <div className="text-sm text-foreground line-clamp-2">
-                          {article.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'}
-                        </div>
+                    <div className="max-w-md">
+                      <div className="text-sm text-foreground line-clamp-2">
+                        {article.content.replace(/<[^>]*>/g, '').substring(0, 100) + '...'}
                       </div>
-                    </Button>
+                    </div>
                   </td>
 
                   {/* Status - 可点击编辑 */}
@@ -622,10 +566,17 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
       {/* Dialogs */}
       {selectedArticle && (
         <>
-          <ContentPreviewDialog
+          {/* @deprecated ContentPreviewDialog 已弃用，保留代码供参考 */}
+          {/* <ContentPreviewDialog
             article={selectedArticle}
             open={contentPreviewOpen}
             onOpenChange={setContentPreviewOpen}
+          /> */}
+          <EditTitleDialog
+            article={selectedArticle}
+            open={editTitleOpen}
+            onOpenChange={setEditTitleOpen}
+            onSave={saveTitle}
           />
           <ImageGalleryDialog
             article={selectedArticle}
