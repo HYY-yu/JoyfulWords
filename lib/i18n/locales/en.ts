@@ -630,11 +630,83 @@ export const en = {
         },
     },
     aiRewrite: {
+        title: "AI Smart Rewrite",
+        description: "Select a rewrite method, AI will optimize your content",
+        selectedText: "Selected Text",
+        rewrittenText: "Rewritten Content",
+        rewrittenTextPlaceholder: "Generated results will be displayed here...",
+        rewriteType: "Rewrite Type",
+        generating: "Generating...",
+        generate: "Generate",
+        confirmApply: "Apply",
+        cancel: "Cancel",
+        types: {
+            material: "Material Expansion",
+            style: "Style Adjustment",
+            struct: "Structure Optimization"
+        },
+        material: {
+            selectMaterials: "Select Materials",
+            selectPlaceholder: "Please select materials...",
+            noMaterials: "No materials available",
+            loadingMaterials: "Loading materials...",
+            selectedCount: "{count} material(s) selected",
+            typeLabels: {
+                info: "Info",
+                news: "News",
+                image: "Image"
+            }
+        },
+        style: {
+            selectStyle: "Select Style",
+            customRequirement: "Custom Requirement",
+            customPlaceholder: "Enter custom style requirements...",
+            styles: {
+                Professional: "Professional",
+                Concise: "Concise",
+                Friendly: "Friendly",
+                Colloquial: "Colloquial",
+                Assertive: "Assertive",
+                Restrained: "Restrained",
+                Custom: "Custom"
+            },
+            descriptions: {
+                Professional: "Use professional terminology and formal expression",
+                Concise: "Simplify content and highlight key points",
+                Friendly: "Warm and natural tone",
+                Colloquial: "Casual, conversational style",
+                Assertive: "Confident and powerful expression",
+                Restrained: "Subtle and understated expression",
+                Custom: "Enter custom style requirements"
+            }
+        },
+        struct: {
+            selectStructure: "Structure Optimization",
+            structures: {
+                "De-Redundancy": "Remove Redundancy",
+                "Information-Layering": "Information Layering",
+                "Point-Form": "Bullet Points",
+                "Short-Sentencing": "Short Sentences",
+                "Data-Highlighting": "Data Highlighting"
+            },
+            descriptions: {
+                "De-Redundancy": "Eliminate repetitive and wordy expressions",
+                "Information-Layering": "Reorganize information by importance",
+                "Point-Form": "Convert paragraph to bulleted list",
+                "Short-Sentencing": "Break long sentences into shorter ones",
+                "Data-Highlighting": "Emphasize key data and important information"
+            }
+        },
         toast: {
-            customStyleRequired: "Please enter custom style",
-            customStyleRequiredDesc: "When selecting custom style, you need to fill in the style requirements",
-            retryError: "Please try again later",
-            contentApplied: "Content applied to editor",
+            customStyleRequired: "Custom Style Required",
+            customStyleRequiredDesc: "Please enter custom style requirements",
+            retryError: "Rewrite failed, please try again",
+            contentApplied: "Content applied",
+            materialRequired: "Materials Required",
+            materialRequiredDesc: "Please select at least one material",
+            fetchMaterialsFailed: "Failed to fetch materials",
+            generateSuccess: "Generation successful",
+            generateFailed: "Generation failed",
         },
     },
     cookieBanner: {

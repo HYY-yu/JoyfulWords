@@ -23,6 +23,7 @@ interface TiptapEditorProps {
   placeholder?: string;
   editable?: boolean;
   saveStatus?: AutoSaveState;
+  articleId?: number;
 }
 
 export function TiptapEditor({
@@ -31,6 +32,7 @@ export function TiptapEditor({
   placeholder = "开始撰写您的内容...",
   editable = true,
   saveStatus,
+  articleId,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -334,6 +336,7 @@ export function TiptapEditor({
       <AIRewriteDialog
         open={isAIDialogOpen}
         onOpenChange={setIsAIDialogOpen}
+        articleId={articleId || 0}
         selectedText={selectedTextForAI}
         articleContent={editor?.getHTML() || ''}
         onRewrite={applyAIRewrite}

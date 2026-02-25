@@ -630,11 +630,83 @@ export const zh = {
         },
     },
     aiRewrite: {
+        title: "AI 智能改写",
+        description: "选择改写方式，AI 将帮您优化内容",
+        selectedText: "选中的文本",
+        rewrittenText: "改写后的内容",
+        rewrittenTextPlaceholder: "生成结果将在此显示...",
+        rewriteType: "改写功能",
+        generating: "生成中...",
+        generate: "生成",
+        confirmApply: "确认应用",
+        cancel: "取消",
+        types: {
+            material: "素材扩充",
+            style: "风格调整",
+            struct: "结构优化"
+        },
+        material: {
+            selectMaterials: "选择素材",
+            selectPlaceholder: "请选择素材...",
+            noMaterials: "暂无素材",
+            loadingMaterials: "加载素材中...",
+            selectedCount: "已选择 {count} 个素材",
+            typeLabels: {
+                info: "资料",
+                news: "新闻",
+                image: "图片"
+            }
+        },
+        style: {
+            selectStyle: "改写风格",
+            customRequirement: "自定义要求",
+            customPlaceholder: "请输入自定义风格要求...",
+            styles: {
+                Professional: "更专业",
+                Concise: "更简短",
+                Friendly: "更友好",
+                Colloquial: "更口语化",
+                Assertive: "更强势",
+                Restrained: "更克制",
+                Custom: "自定义"
+            },
+            descriptions: {
+                Professional: "使用专业术语和严谨表达",
+                Concise: "精简内容，突出重点",
+                Friendly: "亲切自然的语气",
+                Colloquial: "接近日常说话的方式",
+                Assertive: "自信有力的表达",
+                Restrained: "含蓄内敛的表达",
+                Custom: "输入自定义风格要求"
+            }
+        },
+        struct: {
+            selectStructure: "结构优化",
+            structures: {
+                "De-Redundancy": "去冗余表达",
+                "Information-Layering": "信息分层",
+                "Point-Form": "要点化",
+                "Short-Sentencing": "短句化",
+                "Data-Highlighting": "关键数据凸显"
+            },
+            descriptions: {
+                "De-Redundancy": "删除冗余重复的表达",
+                "Information-Layering": "按重要性层次组织信息",
+                "Point-Form": "转换为要点列表形式",
+                "Short-Sentencing": "拆分为简短易读的句子",
+                "Data-Highlighting": "突出关键数据和事实"
+            }
+        },
         toast: {
-            customStyleRequired: "请输入自定义风格",
-            customStyleRequiredDesc: "选择自定义风格时，需要填写风格要求",
-            retryError: "请稍后重试",
-            contentApplied: "已将内容应用到编辑器",
+            customStyleRequired: "需要自定义风格",
+            customStyleRequiredDesc: "请输入自定义风格要求",
+            retryError: "改写失败，请重试",
+            contentApplied: "内容已应用",
+            materialRequired: "需要选择素材",
+            materialRequiredDesc: "请至少选择一个素材",
+            fetchMaterialsFailed: "获取素材列表失败",
+            generateSuccess: "生成成功",
+            generateFailed: "生成失败",
         },
     },
     cookieBanner: {

@@ -106,6 +106,71 @@ export interface UpdateArticleStatusRequest {
   status: ArticleStatus  // 目标状态
 }
 
+/**
+ * AI 编辑文章请求
+ */
+export interface ArticleEditRequest {
+  article_id: number  // 文章 ID
+  article: string  // 完整文章内容
+  cut_text: string  // 用户选择的段落
+  type: ArticleEditType  // 编辑类型
+  data: ArticleEditData  // 编辑数据（根据 type 不同）
+}
+
+/**
+ * AI 编辑类型枚举
+ */
+export type ArticleEditType = 'material' | 'style' | 'struct'
+
+/**
+ * AI 编辑数据联合类型
+ */
+export type ArticleEditData = MaterialEditData | StyleEditData | StructEditData
+
+/**
+ * 素材扩充数据
+ */
+export interface MaterialEditData {
+  material_ids: number[]  // 素材 ID 列表
+}
+
+/**
+ * 风格调整数据
+ */
+export interface StyleEditData {
+  style_type: StyleType  // 风格类型
+  custom_text?: string  // 自定义风格要求（style_type='Custom' 时必填）
+}
+
+/**
+ * 结构优化数据
+ */
+export interface StructEditData {
+  struct_type: StructType  // 结构类型
+}
+
+/**
+ * 风格类型枚举
+ */
+export type StyleType =
+  | 'Professional'
+  | 'Concise'
+  | 'Friendly'
+  | 'Colloquial'
+  | 'Assertive'
+  | 'Restrained'
+  | 'Custom'
+
+/**
+ * 结构类型枚举
+ */
+export type StructType =
+  | 'De-Redundancy'  // 去冗余表达
+  | 'Information-Layering'  // 信息分层
+  | 'Point-Form'  // 要点化
+  | 'Short-Sentencing'  // 短句化
+  | 'Data-Highlighting'  // 关键数据凸显
+
 // ==================== Response Types ====================
 
 /**
@@ -129,6 +194,13 @@ export interface CreateArticleResponse {
  */
 export interface MessageResponse {
   message: string
+}
+
+/**
+ * AI 编辑文章响应
+ */
+export interface ArticleEditResponse {
+  response_text: string  // 改写后的段落内容
 }
 
 /**

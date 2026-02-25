@@ -6,8 +6,10 @@ import type {
   UpdateArticleContentRequest,
   UpdateArticleMetadataRequest,
   UpdateArticleStatusRequest,
+  ArticleEditRequest,
   ArticleListResponse,
   CreateArticleResponse,
+  ArticleEditResponse,
   MessageResponse,
   ErrorResponse,
 } from './types'
@@ -242,6 +244,49 @@ export const articlesClient = {
 
     return apiRequest<MessageResponse>(`/article/${id}/status`, {
       method: 'PUT',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * 8. AI 编辑文章
+   * POST /article/edit
+   *
+   * 使用 AI 对文章的选中段落进行编辑和改写
+   *
+   * @param data - 编辑请求参数
+   * @returns Promise<ArticleEditResponse | ErrorResponse>
+   *
+   * @example
+   * // 风格调整
+   * const result = await articlesClient.editArticle({
+   *   article_id: '123',
+   *   article: '完整文章内容...',
+   *   cut_text: '选中的段落',
+   *   type: 'style',
+   *   data: { style_type: 'Professional' }
+   * })
+   *
+   * @example
+   * // 素材扩充
+   * const result = await articlesClient.editArticle({
+   *   article_id: '123',
+   *   article: '完整文章内容...',
+   *   cut_text: '选中的段落',
+   *   type: 'material',
+   *   data: { material_ids: [1, 2, 3] }
+   * })
+   */
+  async editArticle(
+    data: ArticleEditRequest
+  ): Promise<ArticleEditResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<ArticleEditResponse>('/article/edit', {
+      method: 'POST',
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
       },

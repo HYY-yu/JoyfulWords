@@ -357,6 +357,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             saveStatus={autoSave.saveState}
             placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}
+            articleId={currentArticle?.id}
           />
         </div>
       </div>

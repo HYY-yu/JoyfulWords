@@ -23,127 +23,113 @@ import {
 } from "../base/select";
 import { Textarea } from "../base/textarea";
 import { Input } from "../base/input";
+import { Label } from "../base/label";
+import { RadioGroup, RadioGroupItem } from "../base/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
-import { API_BASE_URL } from "@/lib/config";
+import { articlesClient } from "@/lib/api/articles/client";
+import { materialsClient } from "@/lib/api/materials/client";
+import type {
+  ArticleEditType,
+  StyleType,
+  StructType,
+} from "@/lib/api/articles/types";
+import type { Material } from "@/lib/api/materials/types";
 
 interface AIRewriteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  articleId: number;
   selectedText: string;
   articleContent: string;
   onRewrite: (rewrittenText: string) => void;
 }
 
-type RewriteAction = 'expand' | 'condense' | 'rephrase' | 'polish';
-type StyleType = 'Professional' | 'Concise' | 'Friendly' | 'Colloquial' | 'Assertive' | 'Restrained' | 'Custom';
-
-interface RewriteOption {
-  value: RewriteAction;
-  label: string;
-  description: string;
-}
-
-interface StyleOption {
-  value: StyleType;
-  label: string;
-  description: string;
-}
-
 export function AIRewriteDialog({
   open,
   onOpenChange,
+  articleId,
   selectedText,
   articleContent,
   onRewrite,
 }: AIRewriteDialogProps) {
   const [isRewriting, setIsRewriting] = useState(false);
-  const [textContent, setTextContent] = useState("");
   const [rewrittenText, setRewrittenText] = useState("");
-  const [selectedAction, setSelectedAction] = useState<RewriteAction>('expand');
+  const [rewriteType, setRewriteType] = useState<ArticleEditType>('style');
+
+  // 素材扩充状态
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
+
+  // 风格调整状态
   const [selectedStyle, setSelectedStyle] = useState<StyleType>('Professional');
   const [customText, setCustomText] = useState("");
+
+  // 结构优化状态
+  const [selectedStructType, setSelectedStructType] = useState<StructType>('De-Redundancy');
+
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  // 当对话框打开或 selectedText 改变时，更新 textContent 并清空改写结果
+  // 弹窗打开时加载素材列表
   useEffect(() => {
-    if (open && selectedText) {
-      setTextContent(selectedText);
+    if (open) {
       setRewrittenText("");
       setCustomText("");
+      loadMaterials();
     }
-  }, [open, selectedText]);
+  }, [open]);
 
-  // 改写功能选项配置
-  const rewriteOptions: RewriteOption[] = [
-    {
-      value: 'expand',
-      label: '扩写',
-      description: '让内容更详细丰富',
-    },
-    {
-      value: 'condense',
-      label: '缩写',
-      description: '让内容更简洁精炼',
-    },
-    {
-      value: 'rephrase',
-      label: '改写',
-      description: '换种说法表达相同意思',
-    },
-    {
-      value: 'polish',
-      label: '润色',
-      description: '提升文采让表达更优雅',
-    },
-  ];
+  const loadMaterials = async () => {
+    setIsLoadingMaterials(true);
+    try {
+      const result = await materialsClient.getMaterials({
+        page: 1,
+        page_size: 100,
+      });
 
-  // 风格选项配置
-  const styleOptions: StyleOption[] = [
-    {
-      value: 'Professional',
-      label: '更专业',
-      description: '使用专业术语和严谨表达',
-    },
-    {
-      value: 'Concise',
-      label: '更简短',
-      description: '精简内容，突出重点',
-    },
-    {
-      value: 'Friendly',
-      label: '更友好',
-      description: '亲切自然的语气',
-    },
-    {
-      value: 'Colloquial',
-      label: '更口语化',
-      description: '接近日常说话的方式',
-    },
-    {
-      value: 'Assertive',
-      label: '更强势',
-      description: '自信有力的表达',
-    },
-    {
-      value: 'Restrained',
-      label: '更克制',
-      description: '含蓄内敛的表达',
-    },
-    {
-      value: 'Custom',
-      label: '自定义',
-      description: '输入自定义风格要求',
-    },
-  ];
+      if ("error" in result) {
+        console.error('[AI Rewrite] Failed to load materials:', result.error);
+        setMaterials([]);
+        return;
+      }
 
-  // 调用后端 AI 编辑 API
+      setMaterials(result.list);
+    } catch (error) {
+      console.error('[AI Rewrite] Materials load error:', error);
+      setMaterials([]);
+    } finally {
+      setIsLoadingMaterials(false);
+    }
+  };
+
+  // 验证表单
+  const isGenerateDisabled = () => {
+    if (rewriteType === 'material') {
+      return selectedMaterialIds.length === 0;
+    }
+    if (rewriteType === 'style' && selectedStyle === 'Custom') {
+      return !customText.trim();
+    }
+    return false;
+  };
+
+  // 调用 AI 编辑 API
   const handleGenerate = async () => {
-    if (!textContent.trim() || isRewriting) return;
+    if (!selectedText.trim() || isRewriting) return;
 
-    // 自定义风格时需要输入自定义文本
-    if (selectedStyle === 'Custom' && !customText.trim()) {
+    // 验证逻辑
+    if (rewriteType === 'material' && selectedMaterialIds.length === 0) {
+      toast({
+        variant: "destructive",
+        title: t("aiRewrite.toast.materialRequired"),
+        description: t("aiRewrite.toast.materialRequiredDesc"),
+      });
+      return;
+    }
+
+    if (rewriteType === 'style' && selectedStyle === 'Custom' && !customText.trim()) {
       toast({
         variant: "destructive",
         title: t("aiRewrite.toast.customStyleRequired"),
@@ -155,47 +141,47 @@ export function AIRewriteDialog({
     setIsRewriting(true);
 
     try {
-      const accessToken = localStorage.getItem('access_token');
+      // 构建请求体
+      const requestBody = {
+        article_id: Number(articleId),
+        article: articleContent,
+        cut_text: selectedText,
+        type: rewriteType,
+        data: {} as any,
+      };
 
-      const response = await fetch(`${API_BASE_URL}/article/edit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-        },
-        body: JSON.stringify({
-          article: articleContent,
-          cut_text: textContent,
-          type: 'style',
-          data: {
-            style_type: selectedStyle,
-            custom_text: selectedStyle === 'Custom' ? customText : '',
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'AI 编辑失败');
+      // 根据 type 设置 data
+      if (rewriteType === 'material') {
+        requestBody.data = { material_ids: selectedMaterialIds };
+      } else if (rewriteType === 'style') {
+        requestBody.data = {
+          style_type: selectedStyle,
+          custom_text: selectedStyle === 'Custom' ? customText : '',
+        };
+      } else if (rewriteType === 'struct') {
+        requestBody.data = { struct_type: selectedStructType };
       }
 
-      const result = await response.json();
+      const result = await articlesClient.editArticle(requestBody);
+
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
 
       if (result.response_text) {
         setRewrittenText(result.response_text);
 
         toast({
-          title: "生成成功",
-          description: `已使用「${styleOptions.find(opt => opt.value === selectedStyle)?.label}」风格改写`,
+          title: t("aiRewrite.toast.generateSuccess"),
         });
       } else {
         throw new Error('Invalid response');
       }
     } catch (error) {
-      console.error('AI rewrite error:', error);
+      console.error('[AI Rewrite] Error:', error);
       toast({
         variant: "destructive",
-        title: "生成失败",
+        title: t("aiRewrite.toast.generateFailed"),
         description: error instanceof Error ? error.message : t("aiRewrite.toast.retryError"),
       });
     } finally {
@@ -205,29 +191,36 @@ export function AIRewriteDialog({
 
   // 确认并应用到编辑器
   const handleConfirm = () => {
-    // 优先应用改写后的内容，如果没有则应用原始内容
-    const contentToApply = rewrittenText.trim() || textContent.trim();
+    const contentToApply = rewrittenText.trim() || selectedText.trim();
 
     if (contentToApply) {
       onRewrite(contentToApply);
       onOpenChange(false);
       toast({
-        title: "应用成功",
-        description: t("aiRewrite.toast.contentApplied"),
+        title: t("aiRewrite.toast.contentApplied"),
       });
     }
   };
 
+  // 结构优化选项
+  const structOptions = [
+    { value: 'De-Redundancy' as const, label: t("aiRewrite.struct.structures.De-Redundancy"), description: t("aiRewrite.struct.descriptions.De-Redundancy") },
+    { value: 'Information-Layering' as const, label: t("aiRewrite.struct.structures.Information-Layering"), description: t("aiRewrite.struct.descriptions.Information-Layering") },
+    { value: 'Point-Form' as const, label: t("aiRewrite.struct.structures.Point-Form"), description: t("aiRewrite.struct.descriptions.Point-Form") },
+    { value: 'Short-Sentencing' as const, label: t("aiRewrite.struct.structures.Short-Sentencing"), description: t("aiRewrite.struct.descriptions.Short-Sentencing") },
+    { value: 'Data-Highlighting' as const, label: t("aiRewrite.struct.structures.Data-Highlighting"), description: t("aiRewrite.struct.descriptions.Data-Highlighting") },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px]">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <SparklesIcon className="h-5 w-5 text-primary" />
-            AI 智能改写
+            {t("aiRewrite.title")}
           </DialogTitle>
           <DialogDescription>
-            选择改写方式，AI 将帮您优化内容
+            {t("aiRewrite.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -236,134 +229,217 @@ export function AIRewriteDialog({
           <div className="grid grid-cols-2 gap-4">
             {/* 原始文本 */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-2 block">
-                选中的文本
-              </label>
-              <Textarea
-                value={textContent}
-                disabled
-                placeholder="选中后的内容"
-                className="h-[200px] min-h-[200px] resize-none"
-                style={{ fieldSizing: 'fixed' }}
-              />
+              <Label className="mb-2">{t("aiRewrite.selectedText")}</Label>
+              <div className="min-h-[150px] p-3 border rounded-md bg-muted/30 text-sm whitespace-pre-wrap">
+                {selectedText}
+              </div>
             </div>
 
             {/* 改写后的文本 */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium mb-2 block">
-                改写后的内容
-              </label>
+              <Label className="mb-2">{t("aiRewrite.rewrittenText")}</Label>
               <Textarea
                 value={rewrittenText}
                 onChange={(e) => setRewrittenText(e.target.value)}
-                placeholder="生成结果将在此显示..."
-                className="h-[200px] min-h-[200px] resize-none"
-                style={{ fieldSizing: 'fixed' }}
+                placeholder={t("aiRewrite.rewrittenTextPlaceholder")}
+                className="min-h-[150px] resize-none"
               />
             </div>
           </div>
 
-          {/* 下拉框和按钮区域 - 在 textarea 下方 */}
-          <div className="flex items-end gap-3">
-            {/* 改写功能选择 */}
-            <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">
-                改写功能
-              </label>
-              <Select value={selectedAction} onValueChange={(value) => setSelectedAction(value as RewriteAction)}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {rewriteOptions.find(opt => opt.value === selectedAction)?.label}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {rewriteOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">{option.label}</span>
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 风格选择 */}
-            <div className="flex-1">
-              <label className="text-sm font-medium mb-2 block">
-                改写风格
-              </label>
-              <Select value={selectedStyle} onValueChange={(value) => setSelectedStyle(value as StyleType)}>
-                <SelectTrigger>
-                  <SelectValue>
-                    {styleOptions.find(opt => opt.value === selectedStyle)?.label}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {styleOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex flex-col items-start">
-                        <span className="font-medium">{option.label}</span>
-                        <span className="text-xs text-muted-foreground">{option.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 自定义风格输入 - 仅在选择 Custom 时显示 */}
-            {selectedStyle === 'Custom' && (
-              <div className="flex-1">
-                <label className="text-sm font-medium mb-2 block">
-                  自定义要求
-                </label>
-                <Input
-                  value={customText}
-                  onChange={(e) => setCustomText(e.target.value)}
-                  placeholder="请输入自定义风格要求..."
-                  maxLength={500}
-                />
+          {/* 改写功能选择（三级菜单） */}
+          <div className="space-y-3">
+            {/* 一级菜单：改写类型 */}
+            <div>
+              <Label className="mb-2 block">{t("aiRewrite.rewriteType")}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRewriteType('material')}
+                  className={`p-3 text-left rounded-lg border-2 transition-colors ${
+                    rewriteType === 'material'
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <div className="font-medium text-sm">{t("aiRewrite.types.material")}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRewriteType('style')}
+                  className={`p-3 text-left rounded-lg border-2 transition-colors ${
+                    rewriteType === 'style'
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <div className="font-medium text-sm">{t("aiRewrite.types.style")}</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRewriteType('struct')}
+                  className={`p-3 text-left rounded-lg border-2 transition-colors ${
+                    rewriteType === 'struct'
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <div className="font-medium text-sm">{t("aiRewrite.types.struct")}</div>
+                </button>
               </div>
-            )}
+            </div>
 
-            {/* 生成按钮 */}
-            <Button
-              onClick={handleGenerate}
-              disabled={isRewriting || !textContent.trim() || (selectedStyle === 'Custom' && !customText.trim())}
-              className="px-8"
-              variant="secondary"
-            >
-              {isRewriting ? (
-                <>
-                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-                  生成中...
-                </>
-              ) : (
-                <>
-                  <SparklesIcon className="h-4 w-4 mr-2" />
-                  生成
-                </>
-              )}
-            </Button>
+            {/* 二级菜单：根据类型动态渲染 */}
+            {isLoadingMaterials && rewriteType === 'material' ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">{t("aiRewrite.material.loadingMaterials")}</span>
+              </div>
+            ) : (
+              <>
+                {/* 素材扩充配置 */}
+                {rewriteType === 'material' && (
+                  <div className="space-y-2">
+                    <Label>{t("aiRewrite.material.selectMaterials")}</Label>
+                    {materials.length === 0 ? (
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        {t("aiRewrite.material.noMaterials")}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto p-2 border rounded-md">
+                        {materials.map((material) => (
+                          <label
+                            key={material.id}
+                            className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                              selectedMaterialIds.includes(material.id)
+                                ? "bg-primary/10 border border-primary/20"
+                                : "hover:bg-muted/50"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedMaterialIds.includes(material.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMaterialIds([...selectedMaterialIds, material.id]);
+                                } else {
+                                  setSelectedMaterialIds(selectedMaterialIds.filter(id => id !== material.id));
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">{material.title}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {t(`aiRewrite.material.typeLabels.${material.material_type}`)}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {selectedMaterialIds.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {t("aiRewrite.material.selectedCount", { count: selectedMaterialIds.length })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 风格调整配置 */}
+                {rewriteType === 'style' && (
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="mb-2 block">{t("aiRewrite.style.selectStyle")}</Label>
+                      <Select value={selectedStyle} onValueChange={(value) => setSelectedStyle(value as StyleType)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.keys(t("aiRewrite.style.styles")) as StyleType[]).map((style) => (
+                            <SelectItem key={style} value={style}>
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">{t(`aiRewrite.style.styles.${style}`)}</span>
+                                <span className="text-xs text-muted-foreground">{t(`aiRewrite.style.descriptions.${style}`)}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {selectedStyle === 'Custom' && (
+                      <div>
+                        <Label className="mb-2 block">{t("aiRewrite.style.customRequirement")}</Label>
+                        <Input
+                          value={customText}
+                          onChange={(e) => setCustomText(e.target.value)}
+                          placeholder={t("aiRewrite.style.customPlaceholder")}
+                          maxLength={500}
+                        />
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {customText.length}/500
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 结构优化配置 */}
+                {rewriteType === 'struct' && (
+                  <div className="space-y-2">
+                    <Label>{t("aiRewrite.struct.selectStructure")}</Label>
+                    <RadioGroup value={selectedStructType} onValueChange={(value) => setSelectedStructType(value as StructType)}>
+                      {structOptions.map((option) => (
+                        <div key={option.value} className="flex items-start space-x-2 p-2 rounded hover:bg-muted/50">
+                          <RadioGroupItem value={option.value} id={option.value} />
+                          <Label htmlFor={option.value} className="cursor-pointer flex-1">
+                            <div className="font-medium text-sm">{option.label}</div>
+                            <div className="text-xs text-muted-foreground">{option.description}</div>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          {/* 确认按钮 */}
-          <div className="flex justify-end gap-2 pt-2 border-t">
+          {/* 操作按钮 */}
+          <div className="flex justify-between items-center pt-2 border-t">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              取消
+              {t("aiRewrite.cancel")}
             </Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={!textContent.trim() && !rewrittenText.trim()}
-            >
-              <CheckIcon className="h-4 w-4 mr-2" />
-              确认应用
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleGenerate}
+                disabled={isRewriting || !selectedText.trim() || isGenerateDisabled()}
+                variant="secondary"
+              >
+                {isRewriting ? (
+                  <>
+                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                    {t("aiRewrite.generating")}
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="h-4 w-4 mr-2" />
+                    {t("aiRewrite.generate")}
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={handleConfirm}
+                disabled={!rewrittenText.trim()}
+              >
+                <CheckIcon className="h-4 w-4 mr-2" />
+                {t("aiRewrite.confirmApply")}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
