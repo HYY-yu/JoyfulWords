@@ -343,3 +343,121 @@
   animation: heartbeat 1.4s ease-in-out infinite;
 }
 
+/* ========================================
+   Image Generator Style Mode Animations
+   ======================================== */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    top: 0%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.shimmer-effect {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.gradient-animate {
+  background-size: 200% 200%;
+  animation: gradient-shift 5s ease infinite;
+}
+
+/* Style card hover effects */
+.style-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.style-card-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+
+/* Upload zone animations */
+.upload-zone {
+  transition: all 0.3s ease;
+}
+
+.upload-zone:hover {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.upload-zone.dragging {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.1);
+  transform: scale(1.02);
+}
+
+/* Rendering progress animation */
+@keyframes progress {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.progress-bar {
+  animation: progress 3s ease-out forwards;
+}
+
+/* Success animation */
+@keyframes success-bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.success-icon {
+  animation: success-bounce 0.5s ease-out;
+}
+
