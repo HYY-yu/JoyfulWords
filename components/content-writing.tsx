@@ -58,11 +58,18 @@ export function ContentWriting() {
       setEditTrigger(prev => prev + 1)
     }
 
-    // Listen for custom event
+    // Listen for navigate to article manager event
+    const handleNavigateToManager = () => {
+      setActiveTab("article-manager")
+    }
+
+    // Listen for custom events
     window.addEventListener('article-edit-navigate', handleEditNavigation)
+    window.addEventListener('navigate-to-article-manager', handleNavigateToManager)
 
     return () => {
       window.removeEventListener('article-edit-navigate', handleEditNavigation)
+      window.removeEventListener('navigate-to-article-manager', handleNavigateToManager)
     }
   }, [])
 

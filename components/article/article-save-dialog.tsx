@@ -21,12 +21,14 @@ interface ArticleSaveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   content?: string  // 新增：文章内容
+  onSaveSuccess?: () => void  // 保存成功后的回调
 }
 
 export function ArticleSaveDialog({
   open,
   onOpenChange,
   content = "",
+  onSaveSuccess,
 }: ArticleSaveDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -76,6 +78,9 @@ export function ArticleSaveDialog({
       setCategory("")
       setTags("")
       onOpenChange(false)
+
+      // 通知父组件保存成功
+      onSaveSuccess?.()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t("contentWriting.saveDialog.saveFailed")
       toast({
@@ -99,7 +104,10 @@ export function ArticleSaveDialog({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="title">{t("contentWriting.saveDialog.titleLabel")}</Label>
+            <Label htmlFor="title">
+              {t("contentWriting.saveDialog.titleLabel")}
+              <span className="text-destructive ml-1">*</span>
+            </Label>
             <Input
               id="title"
               placeholder={t("contentWriting.saveDialog.titlePlaceholder")}

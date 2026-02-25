@@ -32,9 +32,10 @@ interface TiptapToolbarProps {
   isUploadingImage?: boolean;
   onAIRewrite?: () => void;
   saveStatus?: AutoSaveState;
+  mode?: "create" | "edit";
 }
 
-export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus, mode = "create" }: TiptapToolbarProps) {
   const setImage = useCallback(() => {
     if (!editor) {
       console.warn('[TiptapToolbar] Editor not ready')

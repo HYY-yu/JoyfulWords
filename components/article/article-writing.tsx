@@ -316,6 +316,29 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     })
   }, [editorState, getDraftKey, toast, t])
 
+  // 保存成功后的处理：清空编辑器并跳转到文章管理
+  const handleSaveSuccess = useCallback(() => {
+    // ✅ 使用统一状态管理重置编辑器
+    editorState.reset()
+
+    // 清除 localStorage
+    localStorage.removeItem(getDraftKey())
+
+    // 清理当前文章，返回创建模式
+    setCurrentArticle(null)
+    setIsEditMode(false)
+
+    toast({
+      description: t("contentWriting.saveDialog.saveAndNavigateSuccess"),
+    })
+
+    // 跳转到文章管理页面
+    setTimeout(() => {
+      // 触发自定义事件通知 content-writing 组件切换 tab
+      window.dispatchEvent(new CustomEvent('navigate-to-article-manager'))
+    }, 500)
+  }, [editorState, getDraftKey, toast, t])
+
   // Handle article metadata updated from editor header
   const handleArticleUpdated = useCallback((updatedArticle: Article) => {
     setCurrentArticle(updatedArticle)
@@ -358,6 +381,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}
             articleId={currentArticle?.id}
+            mode={isEditMode ? "edit" : "create"}
           />
         </div>
       </div>
@@ -367,6 +391,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         open={saveDialogOpen}
         onOpenChange={setSaveDialogOpen}
         content={editorState.content.html}
+        onSaveSuccess={handleSaveSuccess}
       />
 
       {/* Clean Confirm Dialog */}

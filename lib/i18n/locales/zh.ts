@@ -324,6 +324,7 @@ export const zh = {
             saving: "保存中...",
             saveFailed: "保存失败，请重试",
             success: "文章已保存",
+            saveAndNavigateSuccess: "文章已保存，正在跳转到文章管理...",
         },
         editorHeader: {
             newArticle: "新文章",
@@ -621,6 +622,8 @@ export const zh = {
             imageInserted: "图片已插入到编辑器",
             selectTextFirst: "请先选中文本",
             selectTextFirstDesc: "请在编辑器中选中要改写的文本",
+            saveBeforeAIRewrite: "请先保存文章",
+            saveBeforeAIRewriteDesc: "请先保存文章，才能进入智能改写",
         },
         autoSave: {
             saved: "已保存",

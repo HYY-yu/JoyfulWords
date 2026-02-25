@@ -324,6 +324,7 @@ export const en = {
             saving: "Saving...",
             saveFailed: "Save failed, please try again",
             success: "Article saved",
+            saveAndNavigateSuccess: "Article saved, navigating to article management...",
         },
         editorHeader: {
             newArticle: "New Article",
@@ -621,6 +622,8 @@ export const en = {
             imageInserted: "Image inserted into editor",
             selectTextFirst: "Please select text first",
             selectTextFirstDesc: "Please select the text you want to rewrite in the editor",
+            saveBeforeAIRewrite: "Please save article first",
+            saveBeforeAIRewriteDesc: "Please save the article before using AI rewrite",
         },
         autoSave: {
             saved: "Saved",

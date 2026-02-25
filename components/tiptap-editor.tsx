@@ -24,6 +24,7 @@ interface TiptapEditorProps {
   editable?: boolean;
   saveStatus?: AutoSaveState;
   articleId?: number;
+  mode?: "create" | "edit";
 }
 
 export function TiptapEditor({
@@ -33,6 +34,7 @@ export function TiptapEditor({
   editable = true,
   saveStatus,
   articleId,
+  mode = "create",
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -290,6 +292,16 @@ export function TiptapEditor({
 
   // 处理 AI 改写
   const handleAIRewrite = useCallback(() => {
+    // 检查是否为创建模式，如果是则禁止打开 AI 改写对话框
+    if (mode === "create") {
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.toast.saveBeforeAIRewrite"),
+        description: t("tiptapEditor.toast.saveBeforeAIRewriteDesc"),
+      });
+      return;
+    }
+
     if (!editor) return;
 
     const { state } = editor;
@@ -307,7 +319,7 @@ export function TiptapEditor({
 
     setSelectedTextForAI(text);
     setIsAIDialogOpen(true);
-  }, [editor, toast]);
+  }, [editor, toast, mode, t]);
 
   // 应用 AI 改写结果
   const applyAIRewrite = useCallback((rewrittenText: string) => {
@@ -329,6 +341,7 @@ export function TiptapEditor({
         isUploadingImage={isUploadingImage}
         onAIRewrite={handleAIRewrite}
         saveStatus={saveStatus}
+        mode={mode}
       />
       <EditorContent editor={editor} />
       {editor && <ImageMenu editor={editor} />}
