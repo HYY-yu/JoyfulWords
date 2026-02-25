@@ -3,11 +3,10 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
-import Link from "@tiptap/extension-link";
 import { Markdown } from "@tiptap/markdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/editor/tiptap-toolbar";
-import { CustomImage, CustomHighlight, CustomTextAlign } from "@/lib/tiptap-extensions";
+import { CustomImage, CustomHighlight, CustomTextAlign, CustomLink } from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/editor/image-menu";
 import { LinkMenu } from "./ui/editor/link-menu";
 import { AIRewriteDialog } from "./ui/ai/ai-rewrite-dialog";
@@ -62,8 +61,10 @@ export function TiptapEditor({
       link: false,  // 禁用 StarterKit 中的 link（如果存在）
       underline: false,  // 禁用 StarterKit 中的 underline（如果存在）
     }),
-    Link.configure({
+    CustomLink.configure({
       openOnClick: false,
+      autolink: true,
+      linkOnPaste: true,
       HTMLAttributes: {
         class: "text-blue-600 underline cursor-pointer",
       },

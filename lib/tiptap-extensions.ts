@@ -2,6 +2,7 @@ import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
+import Link from "@tiptap/extension-link";
 import { mergeAttributes } from "@tiptap/react";
 
 // Create an Underline extension that supports markdown serialization
@@ -141,3 +142,61 @@ export const CustomTextAlign = TextAlign.configure({
   alignments: ['left', 'center', 'right', 'justify'],
   defaultAlignment: 'left',
 });
+
+// 自定义链接扩展，支持自动退出链接
+export const CustomLink = Link.extend({
+  name: 'link',
+
+  addKeyboardShortcuts() {
+    return {
+      // 空格键：退出链接状态并插入空格
+      ' ': ({ editor }) => {
+        if (editor.isActive('link')) {
+          // 直接调用命令来清空 storedMarks 并插入内容
+          return insertContentWithoutMarks(editor, ' ');
+        }
+        return false;
+      },
+
+      // 英文标点符号
+      ',': ({ editor }) => exitLinkAndInsert(editor, ','),
+      '.': ({ editor }) => exitLinkAndInsert(editor, '.'),
+      '?': ({ editor }) => exitLinkAndInsert(editor, '?'),
+      '!': ({ editor }) => exitLinkAndInsert(editor, '!'),
+      ';': ({ editor }) => exitLinkAndInsert(editor, ';'),
+      ':': ({ editor }) => exitLinkAndInsert(editor, ':'),
+
+      // 中文标点符号
+      '、': ({ editor }) => exitLinkAndInsert(editor, '、'),
+      '，': ({ editor }) => exitLinkAndInsert(editor, '，'),
+      '。': ({ editor }) => exitLinkAndInsert(editor, '。'),
+      '？': ({ editor }) => exitLinkAndInsert(editor, '？'),
+      '！': ({ editor }) => exitLinkAndInsert(editor, '！'),
+    };
+  },
+});
+
+// 辅助函数：退出链接并插入字符
+function exitLinkAndInsert(editor: any, char: string) {
+  if (editor.isActive('link')) {
+    return insertContentWithoutMarks(editor, char);
+  }
+  return false;
+}
+
+// 自定义命令：清空 storedMarks 并插入内容，阻止 mark 延伸
+function insertContentWithoutMarks(editor: any, content: string) {
+  const { state, view } = editor;
+  const { tr } = state;
+
+  // 清空 storedMarks，阻止 mark 延伸到新内容
+  tr.setStoredMarks([]);
+
+  // 插入文本
+  tr.insertText(content, state.selection.from);
+
+  // 派发 transaction
+  view.dispatch(tr);
+
+  return true;
+}
