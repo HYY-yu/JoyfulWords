@@ -15,6 +15,7 @@ import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
+import { markdownToHTML } from "@/lib/tiptap-utils";
 
 
 interface TiptapEditorProps {
@@ -322,14 +323,18 @@ export function TiptapEditor({
   }, [editor, toast, mode, t]);
 
   // 应用 AI 改写结果
-  const applyAIRewrite = useCallback((rewrittenText: string) => {
+  const applyAIRewrite = useCallback(async (rewrittenText: string) => {
     if (!editor) return;
 
     const { from, to } = editor.state.selection;
+
+    // 将 Markdown 转换为 HTML，以便 TipTap 能正确解析格式
+    const html = await markdownToHTML(rewrittenText);
+
     editor.chain()
       .focus()
       .deleteRange({ from, to })
-      .insertContent(rewrittenText)
+      .insertContent(html)
       .run();
   }, [editor]);
 
