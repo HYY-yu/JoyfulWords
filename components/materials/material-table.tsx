@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/base/dialog"
+import { ScrollableTableContainer } from "@/components/ui/table/scrollable-table-container"
 import type { Material, MaterialType } from "@/lib/api/materials/types"
 
 interface MaterialTableProps {
@@ -80,51 +81,52 @@ export function MaterialTable({
   }
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Filter Bar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {t("contentWriting.materials.filterName")}
-            </span>
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t("contentWriting.materials.filterNamePlaceholder")}
-                className="pl-8 h-9"
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-              />
+    <>
+      <ScrollableTableContainer
+        heightOffset={280}
+        filterBar={
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="flex items-center gap-2 flex-1 max-w-xs">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {t("contentWriting.materials.filterName")}
+                </span>
+                <div className="relative flex-1">
+                  <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t("contentWriting.materials.filterNamePlaceholder")}
+                    className="pl-8 h-9"
+                    value={nameFilter}
+                    onChange={(e) => setNameFilter(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {t("contentWriting.materials.filterType")}
+                </span>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("contentWriting.materials.types.all")}</SelectItem>
+                    <SelectItem value="info">{t("contentWriting.materials.types.info")}</SelectItem>
+                    <SelectItem value="news">{t("contentWriting.materials.types.news")}</SelectItem>
+                    <SelectItem value="image">{t("contentWriting.materials.types.image")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <Button onClick={onUpload} className="gap-2" disabled={loading}>
+              <UploadIcon className="w-4 h-4" />
+              {t("contentWriting.materials.uploadBtn")}
+            </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {t("contentWriting.materials.filterType")}
-            </span>
-            <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("contentWriting.materials.types.all")}</SelectItem>
-                <SelectItem value="info">{t("contentWriting.materials.types.info")}</SelectItem>
-                <SelectItem value="news">{t("contentWriting.materials.types.news")}</SelectItem>
-                <SelectItem value="image">{t("contentWriting.materials.types.image")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <Button onClick={onUpload} className="gap-2" disabled={loading}>
-          <UploadIcon className="w-4 h-4" />
-          {t("contentWriting.materials.uploadBtn")}
-        </Button>
-      </div>
-
-      {/* Materials Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted/50 border-b border-border">
+        }
+        table={
+          <table className="w-full">
+            <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
             <tr>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.materials.table.name")}
@@ -244,66 +246,67 @@ export function MaterialTable({
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* 分页 */}
-      {pagination.total > 0 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {t("contentWriting.materials.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
-          </div>
-          <div className="flex items-center gap-4">
-            {/* 页大小选择 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.perPage")}</span>
-              <Select
-                value={String(pagination.pageSize)}
-                onValueChange={(value) => {
-                  onPageSizeChange(Number(value))
-                  onPageChange(1)
-                }}
-              >
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.items")}</span>
-            </div>
-
-            {/* 分页按钮 */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1 || loading}
-              >
-                <ChevronLeftIcon className="w-4 h-4" />
-              </Button>
-
-              <div className="text-sm text-foreground min-w-[80px] text-center">
-                {pagination.page} {t("contentWriting.materials.pagination.pageOf")} {Math.ceil(pagination.total / pagination.pageSize)}
+      }
+        pagination={
+          pagination.total > 0 ? (
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {t("contentWriting.materials.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
               </div>
+              <div className="flex items-center gap-4">
+                {/* 页大小选择 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.perPage")}</span>
+                  <Select
+                    value={String(pagination.pageSize)}
+                    onValueChange={(value) => {
+                      onPageSizeChange(Number(value))
+                      onPageChange(1)
+                    }}
+                  >
+                    <SelectTrigger className="w-[70px] h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.items")}</span>
+                </div>
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize) || loading}
-              >
-                <ChevronRightIcon className="w-4 h-4" />
-              </Button>
+                {/* 分页按钮 */}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onPageChange(pagination.page - 1)}
+                    disabled={pagination.page <= 1 || loading}
+                  >
+                    <ChevronLeftIcon className="w-4 h-4" />
+                  </Button>
+
+                  <div className="text-sm text-foreground min-w-[80px] text-center">
+                    {pagination.page} {t("contentWriting.materials.pagination.pageOf")} {Math.ceil(pagination.total / pagination.pageSize)}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onPageChange(pagination.page + 1)}
+                    disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize) || loading}
+                  >
+                    <ChevronRightIcon className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          ) : null
+        }
+      />
 
       {/* 图片预览 Dialog */}
       <Dialog open={imagePreview !== null} onOpenChange={(open) => !open && setImagePreview(null)}>
@@ -371,6 +374,6 @@ export function MaterialTable({
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

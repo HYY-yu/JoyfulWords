@@ -168,31 +168,31 @@ export function CompetitorTracking() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Search Bar */}
-      <CompetitorSearchBar
-        activePlatform={activePlatform}
-        setActivePlatform={(platform) => {
-          setActivePlatform(platform)
-          // 切换平台时，自动设置正确的 URL 类型
-          setUrlType(getDefaultUrlType(platform))
-          setProfileUrl("")
-        }}
-        profileUrl={profileUrl}
-        setProfileUrl={setProfileUrl}
-        urlType={urlType}
-        setUrlType={setUrlType}
-        searching={searching}
-        onFetch={handleSearchClick}
-        onSchedule={() => setShowScheduleDialog(true)}
-        t={t}
-      />
+    <div className="flex flex-col h-full gap-6">
+      {/* 固定区域 - SearchBar + Tabs */}
+      <div className="shrink-0 space-y-6">
+        {/* Search Bar */}
+        <CompetitorSearchBar
+          activePlatform={activePlatform}
+          setActivePlatform={(platform) => {
+            setActivePlatform(platform)
+            // 切换平台时，自动设置正确的 URL 类型
+            setUrlType(getDefaultUrlType(platform))
+            setProfileUrl("")
+          }}
+          profileUrl={profileUrl}
+          setProfileUrl={setProfileUrl}
+          urlType={urlType}
+          setUrlType={setUrlType}
+          searching={searching}
+          onFetch={handleSearchClick}
+          onSchedule={() => setShowScheduleDialog(true)}
+          t={t}
+        />
 
-      {/* Divider */}
-      <div className="border-t border-dashed border-border/60" />
+        {/* Divider */}
+        <div className="border-t border-dashed border-border/60" />
 
-      {/* Data Tables */}
-      <div className="space-y-4">
         {/* Table Tabs */}
         <div className="flex gap-2 border-b border-border/50">
           <button
@@ -235,7 +235,10 @@ export function CompetitorTracking() {
             {t("contentWriting.competitors.tabs.logs")}
           </button>
         </div>
+      </div>
 
+      {/* 表格区域 - 占据剩余空间 */}
+      <div className="flex-1 min-h-0">
         {/* Conditional Table Rendering */}
         {activeDataTab === "tasks" && (
           <CompetitorTasksTable

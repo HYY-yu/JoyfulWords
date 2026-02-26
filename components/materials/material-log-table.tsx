@@ -1,6 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { Button } from "@/components/ui/base/button"
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
+import { ScrollableTableContainer } from "@/components/ui/table/scrollable-table-container"
 import type { MaterialLog, MaterialType } from "@/lib/api/materials/types"
 import { STATUS_COLOR_CONFIG } from "@/lib/api/materials/enums"
 
@@ -33,48 +34,48 @@ export function MaterialLogTable({
   }
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
-      {/* Filter Bar */}
-      <div className="flex items-center gap-4 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {t("contentWriting.materials.logs.filterType")}
-          </span>
-          <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("contentWriting.materials.logs.types.all")}</SelectItem>
-              <SelectItem value="info">{t("contentWriting.materials.logs.types.info")}</SelectItem>
-              <SelectItem value="news">{t("contentWriting.materials.logs.types.news")}</SelectItem>
-              <SelectItem value="image">{t("contentWriting.materials.logs.types.image")}</SelectItem>
-            </SelectContent>
-          </Select>
+    <ScrollableTableContainer
+      heightOffset={280}
+      filterBar={
+        <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {t("contentWriting.materials.logs.filterType")}
+            </span>
+            <Select value={logTypeFilter} onValueChange={setLogTypeFilter}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("contentWriting.materials.logs.types.all")}</SelectItem>
+                <SelectItem value="info">{t("contentWriting.materials.logs.types.info")}</SelectItem>
+                <SelectItem value="news">{t("contentWriting.materials.logs.types.news")}</SelectItem>
+                <SelectItem value="image">{t("contentWriting.materials.logs.types.image")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {t("contentWriting.materials.logs.filterStatus")}
+            </span>
+            <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("contentWriting.materials.logs.status.all")}</SelectItem>
+                <SelectItem value="doing">{t("contentWriting.materials.logs.status.doing")}</SelectItem>
+                <SelectItem value="success">{t("contentWriting.materials.logs.status.success")}</SelectItem>
+                <SelectItem value="failed">{t("contentWriting.materials.logs.status.failed")}</SelectItem>
+                <SelectItem value="nodata">{t("contentWriting.materials.logs.status.nodata")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground whitespace-nowrap">
-            {t("contentWriting.materials.logs.filterStatus")}
-          </span>
-          <Select value={logStatusFilter} onValueChange={setLogStatusFilter}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("contentWriting.materials.logs.status.all")}</SelectItem>
-              <SelectItem value="doing">{t("contentWriting.materials.logs.status.doing")}</SelectItem>
-              <SelectItem value="success">{t("contentWriting.materials.logs.status.success")}</SelectItem>
-              <SelectItem value="failed">{t("contentWriting.materials.logs.status.failed")}</SelectItem>
-              <SelectItem value="nodata">{t("contentWriting.materials.logs.status.nodata")}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* MaterialsLog Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      }
+      table={
         <table className="w-full">
-          <thead className="bg-muted/50 border-b border-border">
+          <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
             <tr>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.materials.logs.table.id")}
@@ -135,66 +136,66 @@ export function MaterialLogTable({
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* 分页 */}
-      {pagination.total > 0 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {t("contentWriting.materials.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
-          </div>
-          <div className="flex items-center gap-4">
-            {/* 页大小选择 */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.perPage")}</span>
-              <Select
-                value={String(pagination.pageSize)}
-                onValueChange={(value) => {
-                  onPageSizeChange(Number(value))
-                  onPageChange(1)
-                }}
-              >
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.items")}</span>
+      }
+      pagination={
+        pagination.total > 0 ? (
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {t("contentWriting.materials.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
             </div>
-
-            {/* 分页按钮 */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-              >
-                <ChevronLeftIcon className="w-4 h-4" />
-              </Button>
-
-              <div className="text-sm text-foreground min-w-[80px] text-center">
-                {pagination.page} {t("contentWriting.materials.pagination.pageOf")} {Math.ceil(pagination.total / pagination.pageSize)}
+            <div className="flex items-center gap-4">
+              {/* 页大小选择 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.perPage")}</span>
+                <Select
+                  value={String(pagination.pageSize)}
+                  onValueChange={(value) => {
+                    onPageSizeChange(Number(value))
+                    onPageChange(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[70px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="text-sm text-muted-foreground">{t("contentWriting.materials.pagination.items")}</span>
               </div>
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize)}
-              >
-                <ChevronRightIcon className="w-4 h-4" />
-              </Button>
+              {/* 分页按钮 */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                >
+                  <ChevronLeftIcon className="w-4 h-4" />
+                </Button>
+
+                <div className="text-sm text-foreground min-w-[80px] text-center">
+                  {pagination.page} {t("contentWriting.materials.pagination.pageOf")} {Math.ceil(pagination.total / pagination.pageSize)}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange(pagination.page + 1)}
+                  disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize)}
+                >
+                  <ChevronRightIcon className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        ) : null
+      }
+    />
   )
 }

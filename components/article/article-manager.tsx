@@ -30,6 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/base/tooltip"
+import { ScrollableTableContainer } from "@/components/ui/table/scrollable-table-container"
 import type { Article } from "@/lib/api/articles/types"
 import { getStatusVariant, formatShortDate } from "./article-types"
 import {
@@ -167,85 +168,91 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   }
 
   return (
-    <div className="space-y-6">
-      {/* Filter Bar + Action Buttons */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          {/* Title Filter */}
-          <div className="flex items-center gap-2 flex-1 max-w-xs">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {t("contentWriting.manager.filterTitle")}
-            </span>
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t("contentWriting.manager.searchTitlePlaceholder")}
-                className="pl-8 h-9"
-                value={titleFilter}
-                onChange={(e) => setTitleFilter(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchArticles()}
-              />
+    <div className="flex flex-col h-full gap-6">
+      {/* 固定区域 - Filter Bar + Action Buttons */}
+      <div className="shrink-0">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Title Filter */}
+            <div className="flex items-center gap-2 flex-1 max-w-xs">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {t("contentWriting.manager.filterTitle")}
+              </span>
+              <div className="relative flex-1">
+                <SearchIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={t("contentWriting.manager.searchTitlePlaceholder")}
+                  className="pl-8 h-9"
+                  value={titleFilter}
+                  onChange={(e) => setTitleFilter(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchArticles()}
+                />
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                {t("contentWriting.manager.filterStatus")}
+              </span>
+              <Select
+                value={statusFilter}
+                onValueChange={(value: any) => setStatusFilter(value)}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("contentWriting.manager.status.all")}</SelectItem>
+                  <SelectItem value="init">{t("contentWriting.manager.status.init")}</SelectItem>
+                  <SelectItem value="draft">{t("contentWriting.manager.status.draft")}</SelectItem>
+                  <SelectItem value="published">{t("contentWriting.manager.status.published")}</SelectItem>
+                  <SelectItem value="archived">{t("contentWriting.manager.status.archived")}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Status Filter */}
+          {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              {t("contentWriting.manager.filterStatus")}
-            </span>
-            <Select
-              value={statusFilter}
-              onValueChange={(value: any) => setStatusFilter(value)}
+            {/* Refresh Button (for AI generation status) */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleRefresh}
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={loading}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <span>{t("common.refresh")}</span>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* AI Help Button */}
+            <Button
+              onClick={() => setAiHelpDialogOpen(true)}
+              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("contentWriting.manager.status.all")}</SelectItem>
-                <SelectItem value="init">{t("contentWriting.manager.status.init")}</SelectItem>
-                <SelectItem value="draft">{t("contentWriting.manager.status.draft")}</SelectItem>
-                <SelectItem value="published">{t("contentWriting.manager.status.published")}</SelectItem>
-                <SelectItem value="archived">{t("contentWriting.manager.status.archived")}</SelectItem>
-              </SelectContent>
-            </Select>
+              <SparklesIcon className="w-4 h-4" />
+              {t("common.aiHelp")}
+            </Button>
           </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
-          {/* Refresh Button (for AI generation status) */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <span>{t("common.refresh")}</span>
-            </TooltipContent>
-          </Tooltip>
-
-          {/* AI Help Button */}
-          <Button
-            onClick={() => setAiHelpDialogOpen(true)}
-            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <SparklesIcon className="w-4 h-4" />
-            {t("common.aiHelp")}
-          </Button>
         </div>
       </div>
 
-      {/* Articles Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted/50 border-b border-border">
+      {/* 表格区域 - 占据剩余空间 */}
+      <div className="flex-1 min-h-0">
+        <ScrollableTableContainer
+          heightOffset={280}
+          filterBar={<div />}
+          table={
+            <table className="w-full">
+              <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
             <tr>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.manager.table.title")}
@@ -505,63 +512,65 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
             )}
           </tbody>
         </table>
-      </div>
+      }
+          pagination={
+            pagination.total > 0 ? (
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {t("contentWriting.manager.totalCount", { total: pagination.total, page: pagination.page })}
+                </div>
+                <div className="flex items-center gap-4">
+                  {/* Page size selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{t("contentWriting.manager.perPage")}</span>
+                    <Select
+                      value={String(pagination.pageSize)}
+                      onValueChange={(value) => handlePageSizeChange(Number(value))}
+                    >
+                      <SelectTrigger className="w-[70px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground">{t("contentWriting.manager.items")}</span>
+                  </div>
 
-      {/* Pagination UI */}
-      {pagination.total > 0 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {t("contentWriting.manager.totalCount", { total: pagination.total, page: pagination.page })}
-          </div>
-          <div className="flex items-center gap-4">
-            {/* Page size selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{t("contentWriting.manager.perPage")}</span>
-              <Select
-                value={String(pagination.pageSize)}
-                onValueChange={(value) => handlePageSizeChange(Number(value))}
-              >
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-              <span className="text-sm text-muted-foreground">{t("contentWriting.manager.items")}</span>
-            </div>
+                  {/* Pagination buttons */}
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handlePageChange(pagination.page - 1)}
+                      disabled={pagination.page <= 1 || loading}
+                    >
+                      <ChevronLeftIcon className="w-4 h-4" />
+                    </Button>
 
-            {/* Pagination buttons */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1 || loading}
-              >
-                <ChevronLeftIcon className="w-4 h-4" />
-              </Button>
+                    <div className="text-sm text-foreground min-w-[80px] text-center">
+                      {pagination.page} / {Math.ceil(pagination.total / pagination.pageSize)}
+                    </div>
 
-              <div className="text-sm text-foreground min-w-[80px] text-center">
-                {pagination.page} / {Math.ceil(pagination.total / pagination.pageSize)}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handlePageChange(pagination.page + 1)}
+                      disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize) || loading}
+                    >
+                      <ChevronRightIcon className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
-
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize) || loading}
-              >
-                <ChevronRightIcon className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+            ) : null
+          }
+        />
+      </div>
 
       {/* Dialogs */}
       {selectedArticle && (

@@ -340,7 +340,7 @@ export function TiptapEditor({
   }, [editor]);
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-background">
+    <div className="border rounded-lg bg-background flex flex-col h-full overflow-hidden w-full">
       <TiptapToolbar
         editor={editor}
         onInsertImage={insertImage}
@@ -349,7 +349,7 @@ export function TiptapEditor({
         saveStatus={saveStatus}
         mode={mode}
       />
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}
       <AIRewriteDialog

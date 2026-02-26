@@ -3,6 +3,7 @@
 import { ChevronLeftIcon, ChevronRightIcon, TrashIcon } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
+import { ScrollableTableContainer } from "@/components/ui/table/scrollable-table-container"
 import { formatApiTime } from "@/lib/api/competitors/utils"
 import { TASK_STATUS_COLOR_CONFIG } from "@/lib/api/competitors/enums"
 import type { ScheduledTask } from "@/lib/api/competitors/types"
@@ -33,10 +34,12 @@ export function CompetitorTasksTable({
   const totalPages = Math.ceil(pagination.total / pagination.pageSize)
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-300">
-      <div className="border border-border rounded-lg overflow-hidden">
+    <ScrollableTableContainer
+      heightOffset={280}
+      filterBar={<div />}
+      table={
         <table className="w-full">
-          <thead className="bg-muted/50 border-b border-border">
+          <thead className="bg-muted/50 border-b border-border sticky top-0 z-10">
             <tr>
               <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">
                 {t("contentWriting.competitors.table.platform")}
@@ -124,67 +127,67 @@ export function CompetitorTasksTable({
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination */}
-      {pagination.total > 0 && (
-        <div className="flex items-center justify-between">
-          {/* Total info */}
-          <div className="text-sm text-muted-foreground">
-            {t("contentWriting.competitors.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
-          </div>
-
-          <div className="flex items-center gap-4">
-            {/* Page size selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{t("contentWriting.competitors.pagination.perPage")}</span>
-              <Select
-                value={String(pagination.pageSize)}
-                onValueChange={(value) => {
-                  onPageSizeChange(Number(value))
-                  onPageChange(1)
-                }}
-              >
-                <SelectTrigger className="w-[70px] h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
+      }
+      pagination={
+        pagination.total > 0 ? (
+          <div className="flex items-center justify-between">
+            {/* Total info */}
+            <div className="text-sm text-muted-foreground">
+              {t("contentWriting.competitors.pagination.totalInfo").replace("{total}", String(pagination.total)).replace("{page}", String(pagination.page))}
             </div>
 
-            {/* Pagination buttons */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onPageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1 || loading}
-              >
-                <ChevronLeftIcon className="w-4 h-4" />
-              </Button>
-
-              <div className="text-sm text-foreground min-w-[80px] text-center">
-                {pagination.page} / {totalPages}
+            <div className="flex items-center gap-4">
+              {/* Page size selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">{t("contentWriting.competitors.pagination.perPage")}</span>
+                <Select
+                  value={String(pagination.pageSize)}
+                  onValueChange={(value) => {
+                    onPageSizeChange(Number(value))
+                    onPageChange(1)
+                  }}
+                >
+                  <SelectTrigger className="w-[70px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onPageChange(pagination.page + 1)}
-                disabled={pagination.page >= totalPages || loading}
-              >
-                <ChevronRightIcon className="w-4 h-4" />
-              </Button>
+              {/* Pagination buttons */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1 || loading}
+                >
+                  <ChevronLeftIcon className="w-4 h-4" />
+                </Button>
+
+                <div className="text-sm text-foreground min-w-[80px] text-center">
+                  {pagination.page} / {totalPages}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => onPageChange(pagination.page + 1)}
+                  disabled={pagination.page >= totalPages || loading}
+                >
+                  <ChevronRightIcon className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        ) : null
+      }
+    />
   )
 }

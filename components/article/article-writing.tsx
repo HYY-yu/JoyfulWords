@@ -373,7 +373,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         </div>
 
         {/* Tiptap Editor */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-hidden p-6 flex flex-col">
           <TiptapEditor
             content={editorState.content.html}
             onChange={handleEditorChange}

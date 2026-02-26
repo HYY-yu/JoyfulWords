@@ -94,7 +94,7 @@ export function ContentWriting() {
   const activeTabConfig = tabs.find((tab) => tab.id === activeTab)!
 
   return (
-    <main className="flex-1 overflow-auto flex flex-col">
+    <main className="flex-1 flex flex-col overflow-hidden">
       {/* Header with Title */}
       <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
         <div className="px-8 py-6">
@@ -139,7 +139,7 @@ export function ContentWriting() {
       </header>
 
       {/* Tab Content Area */}
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-8 overflow-hidden flex flex-col">
         {activeTab === "material-search" ? (
           <MaterialSearch />
         ) : activeTab === "competitor-tracking" ? (
