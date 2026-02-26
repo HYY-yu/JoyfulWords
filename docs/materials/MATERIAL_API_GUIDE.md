@@ -264,7 +264,7 @@ interface MaterialDialogsProps {
 ```typescript
 "use client"
 
-import { MaterialSearch } from "@/components/material-search"
+import { MaterialSearch } from "@/components/materials/material-search"
 
 export default function Page() {
   return <MaterialSearch />

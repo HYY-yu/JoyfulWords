@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs } from "lucide-react"
-import { MaterialSearch } from "./material-search"
-import { CompetitorTracking } from "./competitor-tracking"
+import { MaterialSearch } from "./materials/material-search"
+import { CompetitorTracking } from "./competitors/competitor-tracking"
 import { ArticleWriting } from "./article/article-writing"
 import { ArticleManager } from "./article/article-manager"
 import { useTranslation } from "@/lib/i18n/i18n-context"
