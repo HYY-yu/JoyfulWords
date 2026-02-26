@@ -356,7 +356,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   }, []) // 只在组件卸载时清理，不依赖 autoSave 对象
 
   return (
-    <div className="flex flex-col h-full gap-6">
+    <div className="flex flex-col flex-1 h-full min-h-0 overflow-hidden gap-6">
       {/* Editor Section */}
       <div className="flex flex-col flex-1 bg-card rounded-lg border border-border overflow-hidden">
         {/* Editor Header */}
@@ -373,7 +373,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
         </div>
 
         {/* Tiptap Editor */}
-        <div className="flex-1 overflow-hidden p-6 flex flex-col">
+        <div className="flex-1 overflow-hidden p-6 flex flex-col min-h-0">
           <TiptapEditor
             content={editorState.content.html}
             onChange={handleEditorChange}

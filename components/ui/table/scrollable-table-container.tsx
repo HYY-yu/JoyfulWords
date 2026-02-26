@@ -16,18 +16,17 @@ export function ScrollableTableContainer({
   heightOffset = 280,
 }: ScrollableTableContainerProps) {
   return (
-    <div
-      className="flex flex-col overflow-hidden animate-in fade-in duration-300"
-      style={{ maxHeight: `calc(100vh - ${heightOffset}px)` }}
-    >
+    <div className="flex flex-col overflow-hidden animate-in fade-in duration-300 h-full">
       {/* Filter Bar - 固定顶部 */}
       <div className="shrink-0 pb-4">
         {filterBar}
       </div>
 
       {/* Table - 可滚动区域 */}
-      <div className="flex-1 overflow-y-auto border border-border rounded-lg min-h-0">
-        {table}
+      <div className="flex-1 min-h-0">
+        <div className="border border-border rounded-lg overflow-y-auto max-h-full">
+          {table}
+        </div>
       </div>
 
       {/* Pagination - 固定底部 */}

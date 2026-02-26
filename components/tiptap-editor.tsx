@@ -349,7 +349,7 @@ export function TiptapEditor({
         saveStatus={saveStatus}
         mode={mode}
       />
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto" />
+      <EditorContent editor={editor} className="flex-1 overflow-y-auto min-h-0" />
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}
       <AIRewriteDialog
