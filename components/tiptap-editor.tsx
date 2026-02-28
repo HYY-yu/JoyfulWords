@@ -6,7 +6,7 @@ import Underline from "@tiptap/extension-underline";
 import { Markdown } from "@tiptap/markdown";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/editor/tiptap-toolbar";
-import { CustomImage, CustomHighlight, CustomTextAlign, CustomLink } from "@/lib/tiptap-extensions";
+import { CustomImage, CustomHighlight, CustomTextAlign, CustomLink, AIPendingBlock } from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/editor/image-menu";
 import { LinkMenu } from "./ui/editor/link-menu";
 import { AIRewriteDialog } from "./ui/ai/ai-rewrite-dialog";
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 import { markdownToHTML } from "@/lib/tiptap-utils";
+import type { AIEditState } from "@/lib/hooks/use-ai-edit-state";
 
 
 interface TiptapEditorProps {
@@ -25,6 +26,14 @@ interface TiptapEditorProps {
   saveStatus?: AutoSaveState;
   articleId?: number;
   mode?: "create" | "edit";
+  // 异步 AI 编辑等待状态（从父组件注入）
+  aiEditWaitingState?: AIEditState | null;
+  // 轮询成功后，由父组件传入结果文本（预填充在 dialog 中）
+  aiEditResult?: string | null;
+  // 结果已被用户消费后，父组件调用此回调清除
+  onAIEditResultConsumed?: () => void;
+  // 当前用户 ID（传给 dialog 用于保存 localStorage 的 key）
+  userId?: number | string;
 }
 
 export function TiptapEditor({
@@ -35,6 +44,10 @@ export function TiptapEditor({
   saveStatus,
   articleId,
   mode = "create",
+  aiEditWaitingState,
+  aiEditResult,
+  onAIEditResultConsumed,
+  userId,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -49,8 +62,22 @@ export function TiptapEditor({
   // 添加toast提示
   const { toast } = useToast();
 
+  const isWaiting = aiEditWaitingState?.status === 'waiting';
+
+  // 当 aiEditResult 到来时，自动打开 dialog 显示结果
+  useEffect(() => {
+    if (aiEditResult) {
+      setIsAIDialogOpen(true);
+      // 使用 waitingState 中的 cut_text 作为"被选中文本"显示在左侧
+      if (aiEditWaitingState?.cut_text) {
+        setSelectedTextForAI(aiEditWaitingState.cut_text);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiEditResult]);
+
   // 确定初始内容： HTML
-  const initialContent =  content;
+  const initialContent = content;
 
   // 使用 useMemo 来稳定扩展配置，避免重新创建
   const extensions = useMemo(() => [
@@ -79,7 +106,8 @@ export function TiptapEditor({
     }),
     CustomHighlight,  // Text highlighting with colors
     CustomTextAlign,  // Text alignment (left, center, right, justify)
-    Markdown,  // Markdown extension for export functionality
+    Markdown,         // Markdown extension for export functionality
+    AIPendingBlock,   // AI 异步编辑等待占位节点
   ], []);
 
   const editor = useEditor({
@@ -128,6 +156,104 @@ export function TiptapEditor({
       }
     }
   }, [content, editor, normalizeHTML]);
+
+  // 当进入等待状态时，将 cut_text 区域替换为 AIPendingBlock 节点
+  // 使用 cut_text 实时匹配，避免 from/to 因用户编辑而漂移
+  useEffect(() => {
+    if (!editor || !aiEditWaitingState || aiEditWaitingState.status !== 'waiting') return;
+    const { cut_text } = aiEditWaitingState;
+    if (!cut_text) return;
+
+    // 在当前 doc 中查找 cut_text 的位置
+    const { doc } = editor.state;
+    let foundFrom = -1;
+    let foundTo = -1;
+
+    doc.descendants((node, pos) => {
+      if (foundFrom !== -1) return false; // 已找到，停止遍历
+      if (node.isText && node.text) {
+        const idx = node.text.indexOf(cut_text);
+        if (idx !== -1) {
+          foundFrom = pos + idx;
+          foundTo = foundFrom + cut_text.length;
+          return false;
+        }
+      }
+    });
+
+    if (foundFrom !== -1) {
+      editor.chain()
+        .focus()
+        .deleteRange({ from: foundFrom, to: foundTo })
+        .insertContentAt(foundFrom, {
+          type: 'aiPendingBlock',
+          attrs: { text: cut_text },
+        })
+        .run();
+    }
+  // 仅当状态转为 waiting 时触发一次
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, aiEditWaitingState?.status]);
+
+  // 应用 AI 改写结果：找到 AIPendingBlock 节点，用改写文本替换
+  // 通过 cut_text 匹配 AIPendingBlock 的 attrs.text
+  const applyAIRewrite = useCallback(async (rewrittenText: string) => {
+    if (!editor) return;
+
+    const html = await markdownToHTML(rewrittenText);
+
+    // 在 doc 中找 AIPendingBlock 节点
+    let pendingPos = -1;
+    let pendingEnd = -1;
+    let pendingText = '';
+
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === 'aiPendingBlock') {
+        pendingPos = pos;
+        pendingEnd = pos + node.nodeSize;
+        pendingText = node.attrs.text;
+        return false;
+      }
+    });
+
+    if (pendingPos !== -1) {
+      // 删除 AIPendingBlock，插入改写内容
+      editor.chain()
+        .focus()
+        .deleteRange({ from: pendingPos, to: pendingEnd })
+        .insertContentAt(pendingPos, html)
+        .run();
+    } else {
+      // 找不到 AIPendingBlock，降级：通过 cut_text 实时匹配文本位置插入
+      const cutText = aiEditWaitingState?.cut_text || pendingText;
+      if (cutText) {
+        const { doc } = editor.state;
+        let foundFrom = -1;
+        let foundTo = -1;
+        doc.descendants((node, pos) => {
+          if (foundFrom !== -1) return false;
+          if (node.isText && node.text) {
+            const idx = node.text.indexOf(cutText);
+            if (idx !== -1) {
+              foundFrom = pos + idx;
+              foundTo = foundFrom + cutText.length;
+              return false;
+            }
+          }
+        });
+        if (foundFrom !== -1) {
+          editor.chain()
+            .focus()
+            .deleteRange({ from: foundFrom, to: foundTo })
+            .insertContentAt(foundFrom, html)
+            .run();
+        }
+      }
+    }
+
+    // 通知父组件结果已消费，清除 aiEditResult
+    onAIEditResultConsumed?.();
+  }, [editor, aiEditWaitingState, onAIEditResultConsumed]);
 
   // Expose editor methods
   useEffect(() => {
@@ -292,8 +418,11 @@ export function TiptapEditor({
     input.click();
   }, [editor, handleImageUpload, isUploadingImage, toast, t]);
 
-  // 处理 AI 改写
+  // 处理 AI 改写 - 等待中时忽略点击
   const handleAIRewrite = useCallback(() => {
+    // 等待中：禁止再次请求
+    if (isWaiting) return;
+
     // 检查是否为创建模式，如果是则禁止打开 AI 改写对话框
     if (mode === "create") {
       toast({
@@ -321,23 +450,7 @@ export function TiptapEditor({
 
     setSelectedTextForAI(text);
     setIsAIDialogOpen(true);
-  }, [editor, toast, mode, t]);
-
-  // 应用 AI 改写结果
-  const applyAIRewrite = useCallback(async (rewrittenText: string) => {
-    if (!editor) return;
-
-    const { from, to } = editor.state.selection;
-
-    // 将 Markdown 转换为 HTML，以便 TipTap 能正确解析格式
-    const html = await markdownToHTML(rewrittenText);
-
-    editor.chain()
-      .focus()
-      .deleteRange({ from, to })
-      .insertContent(html)
-      .run();
-  }, [editor]);
+  }, [editor, toast, mode, t, isWaiting]);
 
   return (
     <div className="border rounded-lg bg-background flex flex-col h-full overflow-hidden w-full">
@@ -348,6 +461,7 @@ export function TiptapEditor({
         onAIRewrite={handleAIRewrite}
         saveStatus={saveStatus}
         mode={mode}
+        isAIEditWaiting={isWaiting}
       />
       <EditorContent editor={editor} className="flex-1 overflow-y-auto min-h-0" />
       {editor && <ImageMenu editor={editor} />}
@@ -359,6 +473,9 @@ export function TiptapEditor({
         selectedText={selectedTextForAI}
         articleContent={editor?.getHTML() || ''}
         onRewrite={applyAIRewrite}
+        waitingState={aiEditWaitingState}
+        initialRewrittenText={aiEditResult || undefined}
+        userId={userId}
       />
     </div>
   );

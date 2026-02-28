@@ -197,10 +197,19 @@ export interface MessageResponse {
 }
 
 /**
- * AI 编辑文章响应
+ * AI 编辑文章响应（异步版，返回 exec_id）
  */
 export interface ArticleEditResponse {
-  response_text: string  // 改写后的段落内容
+  exec_id: string  // 异步任务 ID，用于轮询状态
+}
+
+/**
+ * AI 编辑状态轮询响应
+ */
+export interface EditStatusResponse {
+  status: 'pending' | 'success' | 'failed'
+  response_text?: string  // status='success' 时包含改写内容
+  error?: string           // status='failed' 时包含错误信息
 }
 
 /**

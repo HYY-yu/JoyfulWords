@@ -21,6 +21,12 @@ import type { Article, ArticleDraft } from "./article-types"
 import { useEditorState } from "@/lib/editor-state"
 import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/lib/tiptap-utils"
 import { useAutoSave } from "@/lib/hooks/use-auto-save"
+import {
+  loadAIEditState,
+  clearAIEditState,
+  type AIEditState,
+} from "@/lib/hooks/use-ai-edit-state"
+import { useAIEditStatusPoller } from "@/lib/hooks/use-ai-edit-status-poller"
 
 interface ArticleWritingProps {
   articleId?: string | null
@@ -66,6 +72,76 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       // 静默重试已在 Hook 内部处理，这里只记录日志
     },
   })
+
+  // ====== AI 异步编辑状态 ======
+  const [aiEditState, setAIEditState] = useState<AIEditState | null>(null)
+  const [aiEditResult, setAIEditResult] = useState<string | null>(null)
+
+  // 从 localStorage 初始化 AI 编辑状态（页面刷新后恢复轮询）
+  useEffect(() => {
+    if (!user) return
+    const saved = loadAIEditState(user.id)
+    if (saved) {
+      setAIEditState(saved)
+      console.log('[ArticleWriting] Restored AI edit state from localStorage:', saved)
+    }
+  }, [user])
+
+  // 轮询成功回调
+  const handleAIEditSuccess = useCallback((responseText: string) => {
+    console.log('[ArticleWriting] AI edit succeeded')
+    setAIEditResult(responseText)
+    // 清除 localStorage 内的等待状态，但保留 aiEditState 供 dialog 显示 cut_text
+    if (user) clearAIEditState(user.id)
+    setAIEditState(prev => prev ? { ...prev, status: 'idle' } : null)
+
+    toast({
+      title: t("aiRewrite.toast.generateSuccess") || "AI 改写完成",
+      description: t("aiRewrite.toast.resultReady") || "点击编辑器中的 AI 改写按钮查看结果",
+    })
+  }, [user, toast, t])
+
+  // 轮询失败回调
+  const handleAIEditError = useCallback((message: string) => {
+    console.error('[ArticleWriting] AI edit failed:', message)
+    if (user) clearAIEditState(user.id)
+    setAIEditState(null)
+    setAIEditResult(null)
+
+    toast({
+      variant: "destructive",
+      title: t("aiRewrite.toast.generateFailed") || "AI 改写失败",
+      description: message,
+    })
+  }, [user, toast, t])
+
+  // 轮询超时回调
+  const handleAIEditExpired = useCallback(() => {
+    console.warn('[ArticleWriting] AI edit polling timed out')
+    if (user) clearAIEditState(user.id)
+    setAIEditState(null)
+    setAIEditResult(null)
+
+    toast({
+      variant: "destructive",
+      title: t("aiRewrite.toast.timeout") || "AI 改写超时",
+      description: t("aiRewrite.toast.timeoutDesc") || "AI 改写任务超时，请重试",
+    })
+  }, [user, toast, t])
+
+  // 启动/停止轮询
+  useAIEditStatusPoller({
+    state: aiEditState,
+    onSuccess: handleAIEditSuccess,
+    onError: handleAIEditError,
+    onExpired: handleAIEditExpired,
+  })
+
+  // 当用户从 dialog 应用改写结果后，清除结果
+  const handleAIEditResultConsumed = useCallback(() => {
+    setAIEditResult(null)
+    setAIEditState(null)
+  }, [])
 
   // Generate user-specific localStorage key
   const getDraftKey = useCallback(() => {
@@ -382,6 +458,10 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             editable={true}
             articleId={currentArticle?.id}
             mode={isEditMode ? "edit" : "create"}
+            aiEditWaitingState={aiEditState}
+            aiEditResult={aiEditResult}
+            onAIEditResultConsumed={handleAIEditResultConsumed}
+            userId={user?.id}
           />
         </div>
       </div>

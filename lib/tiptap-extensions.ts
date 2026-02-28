@@ -4,6 +4,8 @@ import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
 import { mergeAttributes } from "@tiptap/react";
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Node } from '@tiptap/core';
 
 // Create an Underline extension that supports markdown serialization
 export const UnderlineWithMarkdown = Underline.extend({
@@ -200,3 +202,135 @@ function insertContentWithoutMarks(editor: any, content: string) {
 
   return true;
 }
+
+// ============================================================
+// AIPendingBlock - AI 异步编辑等待中的占位节点
+// ============================================================
+// 特性：
+// - atom: true  → 用户无法进入节点内部，也无法逐字删除
+// - contenteditable=false → 文本不可编辑
+// - 蓝色背景，展示旋转 loading 图标
+// - 存储 cut_text 属性供后续通过文本匹配定位和替换
+//
+export const AIPendingBlock = Node.create({
+  name: 'aiPendingBlock',
+
+  group: 'inline',
+  inline: true,
+  atom: true,
+  draggable: false,
+  selectable: false, // 不允许被选中后用 Backspace 删除
+
+  addAttributes() {
+    return {
+      text: {
+        default: '',
+      },
+    }
+  },
+
+  renderHTML({ node }) {
+    return [
+      'div',
+      {
+        class: 'ai-pending-block',
+        'data-ai-pending': 'true',
+        'data-text': node.attrs.text,
+        contenteditable: 'false',
+      },
+      [
+        'span',
+        { class: 'ai-pending-spinner', 'aria-hidden': 'true' },
+      ],
+      [
+        'span',
+        { class: 'ai-pending-text' },
+        node.attrs.text,
+      ],
+    ]
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[data-ai-pending="true"]',
+        getAttrs: (element) => ({
+          text: (element as HTMLElement).getAttribute('data-text') || '',
+        }),
+      },
+    ]
+  },
+
+  addNodeView() {
+    return ({ node }) => {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'ai-pending-block'
+      wrapper.setAttribute('data-ai-pending', 'true')
+      wrapper.setAttribute('data-text', node.attrs.text)
+      wrapper.setAttribute('contenteditable', 'false')
+
+      // Loading spinner
+      const spinner = document.createElement('span')
+      spinner.className = 'ai-pending-spinner'
+      spinner.setAttribute('aria-hidden', 'true')
+
+      // Text content
+      const textSpan = document.createElement('span')
+      textSpan.className = 'ai-pending-text'
+      textSpan.textContent = node.attrs.text
+
+      wrapper.appendChild(spinner)
+      wrapper.appendChild(textSpan)
+
+      return {
+        dom: wrapper,
+        contentDOM: null,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== 'aiPendingBlock') return false
+          textSpan.textContent = updatedNode.attrs.text
+          wrapper.setAttribute('data-text', updatedNode.attrs.text)
+          return true
+        },
+      }
+    }
+  },
+
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        key: new PluginKey('blockDeleteAiNode'),
+        /**
+         * filterTransaction 是最高优先级的拦截器
+         * 在文档状态真正改变前进行拦截
+         */
+        filterTransaction: (tr, state) => {
+          // 如果交易没有改变文档内容（比如只是改变了选区），直接放行
+          if (!tr.docChanged) return true
+
+          let isTouchingLockedNode = false
+
+          // 遍历交易中的每一个步骤 (Step)，检查它影响的旧文档范围
+          tr.steps.forEach(step => {
+            const map = step.getMap()
+            map.forEach((oldStart, oldEnd) => {
+              // 关键：在 oldState（旧状态）中查找这个范围是否包含我们的锁定节点
+              state.doc.nodesBetween(oldStart, oldEnd, node => {
+                if (node.type.name === this.name) {
+                  isTouchingLockedNode = true
+                }
+              })
+            })
+          })
+
+          // 如果该交易（删除、输入、粘贴）波及到了锁定节点，返回 false 彻底终止该交易
+          if (isTouchingLockedNode) {
+            console.debug('[AiWritingNode] 拦截：尝试修改或删除锁定区域')
+            return false
+          }
+
+          return true
+        },
+      }),
+    ]
+  },
+})

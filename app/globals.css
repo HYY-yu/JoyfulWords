@@ -461,3 +461,59 @@
   animation: success-bounce 0.5s ease-out;
 }
 
+/* ========================================
+   AI Pending Block - 异步编辑等待占位块
+   ======================================== */
+
+.ai-pending-block {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background-color: rgba(59, 130, 246, 0.12);  /* blue-500/12 */
+  border: 1.5px solid rgba(59, 130, 246, 0.4);
+  border-radius: 6px;
+  cursor: not-allowed;
+  user-select: none;
+  pointer-events: none;
+}
+
+.ai-pending-text {
+  color: rgba(37, 99, 235, 0.85); /* blue-700 */
+  font-size: 0.9375em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Spinner */
+.ai-pending-spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-top-color: rgba(59, 130, 246, 0.9);
+  border-radius: 50%;
+  animation: ai-pending-spin 0.8s linear infinite;
+}
+
+@keyframes ai-pending-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dark mode */
+.dark .ai-pending-block {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.dark .ai-pending-text {
+  color: rgba(147, 197, 253, 0.9); /* blue-300 */
+}
+
+.dark .ai-pending-spinner {
+  border-color: rgba(96, 165, 250, 0.3);
+  border-top-color: rgba(96, 165, 250, 0.9);
+}

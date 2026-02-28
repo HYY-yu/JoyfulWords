@@ -10,6 +10,7 @@ import type {
   ArticleListResponse,
   CreateArticleResponse,
   ArticleEditResponse,
+  EditStatusResponse,
   MessageResponse,
   ErrorResponse,
 } from './types'
@@ -291,6 +292,27 @@ export const articlesClient = {
         Authorization: token ? `Bearer ${token}` : '',
       },
       body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * 9. 查询 AI 编辑状态
+   * GET /article/edit/status/:exec_id
+   *
+   * 轮询异步 AI 编辑任务的完成状态
+   *
+   * @param execId - 异步任务 ID
+   * @returns Promise<EditStatusResponse | ErrorResponse>
+   */
+  async getEditStatus(
+    execId: string
+  ): Promise<EditStatusResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<EditStatusResponse>(`/article/edit/status/${execId}`, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
   },
 }

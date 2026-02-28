@@ -13,6 +13,7 @@ import {
   SparklesIcon,
   Loader2Icon,
   CheckIcon,
+  ClockIcon,
 } from "lucide-react";
 import {
   Select,
@@ -35,6 +36,8 @@ import type {
   StructType,
 } from "@/lib/api/articles/types";
 import type { Material } from "@/lib/api/materials/types";
+import type { AIEditState } from "@/lib/hooks/use-ai-edit-state";
+import { saveAIEditState } from "@/lib/hooks/use-ai-edit-state";
 
 interface AIRewriteDialogProps {
   open: boolean;
@@ -43,6 +46,12 @@ interface AIRewriteDialogProps {
   selectedText: string;
   articleContent: string;
   onRewrite: (rewrittenText: string) => void;
+  // 异步等待状态（由父组件从 localStorage 读取注入）
+  waitingState?: AIEditState | null;
+  // 当轮询成功后父组件传入结果文本，自动填充"改写后的内容"
+  initialRewrittenText?: string;
+  // 当前用户 ID，用于 localStorage key
+  userId?: number | string;
 }
 
 export function AIRewriteDialog({
@@ -52,8 +61,11 @@ export function AIRewriteDialog({
   selectedText,
   articleContent,
   onRewrite,
+  waitingState,
+  initialRewrittenText,
+  userId,
 }: AIRewriteDialogProps) {
-  const [isRewriting, setIsRewriting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [rewrittenText, setRewrittenText] = useState("");
   const [rewriteType, setRewriteType] = useState<ArticleEditType>('style');
 
@@ -72,14 +84,22 @@ export function AIRewriteDialog({
   const { toast } = useToast();
   const { t } = useTranslation();
 
-  // 弹窗打开时加载素材列表
+  const isWaiting = waitingState?.status === 'waiting';
+
+  // 弹窗打开时：重置表单、加载素材、填充 initialRewrittenText
   useEffect(() => {
     if (open) {
-      setRewrittenText("");
       setCustomText("");
       loadMaterials();
+      // 自动填充轮询结果（result arrives 时父组件重新打开此 dialog）
+      if (initialRewrittenText) {
+        setRewrittenText(initialRewrittenText);
+      } else {
+        setRewrittenText("");
+      }
     }
-  }, [open]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialRewrittenText]);
 
   const loadMaterials = async () => {
     setIsLoadingMaterials(true);
@@ -105,7 +125,9 @@ export function AIRewriteDialog({
   };
 
   // 验证表单
-  const isGenerateDisabled = () => {
+  const isGenerateDisabled = (): boolean => {
+    if (isWaiting) return true;  // 等待中禁止再次提交
+    if (isSubmitting) return true;
     if (rewriteType === 'material') {
       return selectedMaterialIds.length === 0;
     }
@@ -115,9 +137,9 @@ export function AIRewriteDialog({
     return false;
   };
 
-  // 调用 AI 编辑 API
+  // 异步提交：调用 edit API 拿到 exec_id，存储到 localStorage 后关闭对话框
   const handleGenerate = async () => {
-    if (!selectedText.trim() || isRewriting) return;
+    if (!selectedText.trim() || isSubmitting || isWaiting) return;
 
     // 验证逻辑
     if (rewriteType === 'material' && selectedMaterialIds.length === 0) {
@@ -138,7 +160,7 @@ export function AIRewriteDialog({
       return;
     }
 
-    setIsRewriting(true);
+    setIsSubmitting(true);
 
     try {
       // 构建请求体
@@ -168,15 +190,26 @@ export function AIRewriteDialog({
         throw new Error(result.error);
       }
 
-      if (result.response_text) {
-        setRewrittenText(result.response_text);
+      // 异步任务提交成功：保存状态到 localStorage
+      const newState: AIEditState = {
+        status: 'waiting',
+        exec_id: result.exec_id,
+        article_id: Number(articleId),
+        cut_text: selectedText,
+        started_at: Date.now(),
+      };
 
-        toast({
-          title: t("aiRewrite.toast.generateSuccess"),
-        });
-      } else {
-        throw new Error('Invalid response');
+      if (userId !== undefined) {
+        saveAIEditState(userId, newState);
       }
+
+      toast({
+        title: t("aiRewrite.toast.submitted") || "AI 改写任务已提交",
+        description: t("aiRewrite.toast.submittedDesc") || "改写完成后会自动弹出通知",
+      });
+
+      // 关闭对话框，由父组件的轮询机制处理后续
+      onOpenChange(false);
     } catch (error) {
       console.error('[AI Rewrite] Error:', error);
       toast({
@@ -185,7 +218,7 @@ export function AIRewriteDialog({
         description: error instanceof Error ? error.message : t("aiRewrite.toast.retryError"),
       });
     } finally {
-      setIsRewriting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -225,30 +258,53 @@ export function AIRewriteDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* 等待中提示横条 */}
+          {isWaiting && (
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+              <Loader2Icon className="h-4 w-4 animate-spin text-blue-500 shrink-0" />
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {t("aiRewrite.waitingHint") || "AI 正在改写中，请稍候…改写完成后将自动弹出结果"}
+              </p>
+            </div>
+          )}
+
           {/* 两个 Textarea 编辑区域 */}
           <div className="grid grid-cols-2 gap-4">
             {/* 原始文本 */}
             <div className="flex flex-col">
               <Label className="mb-2">{t("aiRewrite.selectedText")}</Label>
               <div className="min-h-[150px] p-3 border rounded-md bg-muted/30 text-sm whitespace-pre-wrap">
-                {selectedText}
+                {/* 优先显示 waitingState 的 cut_text，否则用当前 selectedText */}
+                {isWaiting ? waitingState!.cut_text : selectedText}
               </div>
             </div>
 
             {/* 改写后的文本 */}
             <div className="flex flex-col">
-              <Label className="mb-2">{t("aiRewrite.rewrittenText")}</Label>
+              <Label className="mb-2">
+                {t("aiRewrite.rewrittenText")}
+                {initialRewrittenText && (
+                  <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-normal">
+                    ✓ {t("aiRewrite.resultReady") || "AI 改写完成"}
+                  </span>
+                )}
+              </Label>
               <Textarea
                 value={rewrittenText}
                 onChange={(e) => setRewrittenText(e.target.value)}
-                placeholder={t("aiRewrite.rewrittenTextPlaceholder")}
+                placeholder={
+                  isWaiting
+                    ? (t("aiRewrite.waitingPlaceholder") || "AI 改写完成后将自动显示…")
+                    : t("aiRewrite.rewrittenTextPlaceholder")
+                }
                 className="min-h-[150px] resize-none"
+                disabled={isWaiting}
               />
             </div>
           </div>
 
-          {/* 改写功能选择（三级菜单） */}
-          <div className="space-y-3">
+          {/* 改写功能选择（三级菜单）*/}
+          <div className={`space-y-3 ${isWaiting ? 'opacity-50 pointer-events-none' : ''}`}>
             {/* 一级菜单：改写类型 */}
             <div>
               <Label className="mb-2 block">{t("aiRewrite.rewriteType")}</Label>
@@ -417,13 +473,18 @@ export function AIRewriteDialog({
             <div className="flex gap-2">
               <Button
                 onClick={handleGenerate}
-                disabled={isRewriting || !selectedText.trim() || isGenerateDisabled()}
+                disabled={isGenerateDisabled() || !selectedText.trim()}
                 variant="secondary"
               >
-                {isRewriting ? (
+                {isSubmitting ? (
                   <>
                     <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-                    {t("aiRewrite.generating")}
+                    {t("aiRewrite.submitting") || "提交中…"}
+                  </>
+                ) : isWaiting ? (
+                  <>
+                    <ClockIcon className="h-4 w-4 mr-2" />
+                    {t("aiRewrite.waiting") || "改写中…"}
                   </>
                 ) : (
                   <>

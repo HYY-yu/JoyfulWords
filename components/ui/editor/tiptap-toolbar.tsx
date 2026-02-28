@@ -33,9 +33,10 @@ interface TiptapToolbarProps {
   onAIRewrite?: () => void;
   saveStatus?: AutoSaveState;
   mode?: "create" | "edit";
+  isAIEditWaiting?: boolean;  // 异步 AI 编辑等待中
 }
 
-export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus, mode = "create" }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus, mode = "create", isAIEditWaiting = false }: TiptapToolbarProps) {
   const setImage = useCallback(() => {
     if (!editor) {
       console.warn('[TiptapToolbar] Editor not ready')
@@ -258,11 +259,16 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* AI Rewrite */}
       <ToolbarButton
-        tooltip="AI 智能改写"
-        onClick={onAIRewrite}
+        tooltip={isAIEditWaiting ? ("AI 改写中…") : "AI 智能改写"}
+        onClick={isAIEditWaiting ? undefined : onAIRewrite}
+        disabled={isAIEditWaiting}
         className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20"
       >
-        <SparklesIcon className="h-4 w-4 animate-heartbeat" />
+        {isAIEditWaiting ? (
+          <Loader2Icon className="h-4 w-4 animate-spin text-blue-500" />
+        ) : (
+          <SparklesIcon className="h-4 w-4 animate-heartbeat" />
+        )}
       </ToolbarButton>
       </div>
 
