@@ -37,7 +37,7 @@ import type {
 } from "@/lib/api/articles/types";
 import type { Material } from "@/lib/api/materials/types";
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state";
-import { saveAIEditState } from "@/lib/hooks/use-ai-edit-state";
+import { addAIEditTask } from "@/lib/hooks/use-ai-edit-state";
 
 interface AIRewriteDialogProps {
   open: boolean;
@@ -46,6 +46,10 @@ interface AIRewriteDialogProps {
   selectedText: string;
   articleContent: string;
   onRewrite: (rewrittenText: string) => void;
+  // 取消时恢复原始文本
+  onCancel?: () => void;
+  // 新任务提交成功后的回调
+  onTaskSubmitted?: (task: AIEditState) => void;
   // 异步等待状态（由父组件从 localStorage 读取注入）
   waitingState?: AIEditState | null;
   // 当轮询成功后父组件传入结果文本，自动填充"改写后的内容"
@@ -61,6 +65,8 @@ export function AIRewriteDialog({
   selectedText,
   articleContent,
   onRewrite,
+  onCancel,
+  onTaskSubmitted,
   waitingState,
   initialRewrittenText,
   userId,
@@ -88,13 +94,21 @@ export function AIRewriteDialog({
 
   // 弹窗打开时：重置表单、加载素材、填充 initialRewrittenText
   useEffect(() => {
+    console.log('[AI Rewrite Dialog] useEffect triggered', {
+      open,
+      initialRewrittenText,
+      waitingState
+    })
+
     if (open) {
       setCustomText("");
       loadMaterials();
       // 自动填充轮询结果（result arrives 时父组件重新打开此 dialog）
       if (initialRewrittenText) {
+        console.log('[AI Rewrite Dialog] Setting rewrittenText from initialRewrittenText:', initialRewrittenText)
         setRewrittenText(initialRewrittenText);
       } else {
+        console.log('[AI Rewrite Dialog] No initialRewrittenText, clearing rewrittenText')
         setRewrittenText("");
       }
     }
@@ -200,16 +214,29 @@ export function AIRewriteDialog({
       };
 
       if (userId !== undefined) {
-        saveAIEditState(userId, newState);
+        addAIEditTask(userId, newState);
       }
+
+      // 通知父组件添加任务到 aiEditTasks（为了轮询）
+      onTaskSubmitted?.(newState);
 
       toast({
         title: t("aiRewrite.toast.submitted") || "AI 改写任务已提交",
         description: t("aiRewrite.toast.submittedDesc") || "改写完成后会自动弹出通知",
       });
 
-      // 关闭对话框，由父组件的轮询机制处理后续
+      // 关闭对话框
       onOpenChange(false);
+
+      // 触发自定义事件，通知 TiptapEditor 立即插入 AIPendingBlock
+      // 这样不依赖父组件的状态更新，避免 React 异步状态问题
+      setTimeout(() => {
+        const event = new CustomEvent('ai-edit-task-submitted', {
+          detail: { execId: result.exec_id, cutText: selectedText },
+          bubbles: true,
+        });
+        window.dispatchEvent(event);
+      }, 100);
     } catch (error) {
       console.error('[AI Rewrite] Error:', error);
       toast({
@@ -466,9 +493,18 @@ export function AIRewriteDialog({
           <div className="flex justify-between items-center pt-2 border-t">
             <Button
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                // 如果有 waitingState，说明是查看已完成的结果，点击 Cancel 恢复原始文本
+                if (waitingState && waitingState.status === 'idle') {
+                  onCancel?.()
+                }
+                // 否则只是普通的取消，关闭对话框
+                onOpenChange(false)
+              }}
             >
-              {t("aiRewrite.cancel")}
+              {waitingState && waitingState.status === 'idle'
+                ? (t("aiRewrite.restoreOriginal") || "恢复原文")
+                : t("aiRewrite.cancel")}
             </Button>
             <div className="flex gap-2">
               <Button

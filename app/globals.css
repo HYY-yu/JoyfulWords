@@ -474,9 +474,14 @@
   background-color: rgba(59, 130, 246, 0.12);  /* blue-500/12 */
   border: 1.5px solid rgba(59, 130, 246, 0.4);
   border-radius: 6px;
-  cursor: not-allowed;
+  cursor: pointer;  /* ✅ 可点击 */
   user-select: none;
-  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.ai-pending-block:hover {
+  background-color: rgba(59, 130, 246, 0.18);  /* ✅ hover 效果 */
+  border-color: rgba(59, 130, 246, 0.6);
 }
 
 .ai-pending-text {

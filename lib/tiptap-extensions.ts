@@ -210,7 +210,8 @@ function insertContentWithoutMarks(editor: any, content: string) {
 // - atom: true  → 用户无法进入节点内部，也无法逐字删除
 // - contenteditable=false → 文本不可编辑
 // - 蓝色背景，展示旋转 loading 图标
-// - 存储 cut_text 属性供后续通过文本匹配定位和替换
+// - 存储cut_text和exec_id属性供后续通过文本匹配定位和替换
+// - 可点击，点击后调用 window.handleAIPendingBlockClick(exec_id)
 //
 export const AIPendingBlock = Node.create({
   name: 'aiPendingBlock',
@@ -219,12 +220,15 @@ export const AIPendingBlock = Node.create({
   inline: true,
   atom: true,
   draggable: false,
-  selectable: false, // 不允许被选中后用 Backspace 删除
+  selectable: true, // 允许选中以便点击
 
   addAttributes() {
     return {
       text: {
         default: '',
+      },
+      exec_id: {
+        default: null,
       },
     }
   },
@@ -236,6 +240,7 @@ export const AIPendingBlock = Node.create({
         class: 'ai-pending-block',
         'data-ai-pending': 'true',
         'data-text': node.attrs.text,
+        'data-exec-id': node.attrs.exec_id || '',
         contenteditable: 'false',
       },
       [
@@ -256,6 +261,7 @@ export const AIPendingBlock = Node.create({
         tag: 'div[data-ai-pending="true"]',
         getAttrs: (element) => ({
           text: (element as HTMLElement).getAttribute('data-text') || '',
+          exec_id: (element as HTMLElement).getAttribute('data-exec-id') || null,
         }),
       },
     ]
@@ -267,7 +273,8 @@ export const AIPendingBlock = Node.create({
       wrapper.className = 'ai-pending-block'
       wrapper.setAttribute('data-ai-pending', 'true')
       wrapper.setAttribute('data-text', node.attrs.text)
-      wrapper.setAttribute('contenteditable', 'false')
+      wrapper.setAttribute('data-exec-id', node.attrs.exec_id || '')
+      wrapper.style.cursor = 'pointer' // 显示可点击
 
       // Loading spinner
       const spinner = document.createElement('span')
@@ -282,6 +289,31 @@ export const AIPendingBlock = Node.create({
       wrapper.appendChild(spinner)
       wrapper.appendChild(textSpan)
 
+      // 点击事件：通过全局函数调用
+      wrapper.addEventListener('click', (e) => {
+        console.log('[AIPendingBlock] Native click event fired', {
+          execId: node.attrs.exec_id,
+          event: e,
+          windowHandler: typeof (window as any).handleAIPendingBlockClick
+        })
+
+        e.preventDefault()
+        e.stopPropagation()
+
+        const execId = node.attrs.exec_id
+        if (execId) {
+          console.log('[AIPendingBlock] Calling global handler, exec_id:', execId)
+          // 调用全局函数
+          if (typeof (window as any).handleAIPendingBlockClick === 'function') {
+            (window as any).handleAIPendingBlockClick(execId)
+          } else {
+            console.error('[AIPendingBlock] handleAIPendingBlockClick not found on window')
+          }
+        } else {
+          console.error('[AIPendingBlock] No exec_id on node')
+        }
+      })
+
       return {
         dom: wrapper,
         contentDOM: null,
@@ -289,48 +321,11 @@ export const AIPendingBlock = Node.create({
           if (updatedNode.type.name !== 'aiPendingBlock') return false
           textSpan.textContent = updatedNode.attrs.text
           wrapper.setAttribute('data-text', updatedNode.attrs.text)
+          wrapper.setAttribute('data-exec-id', updatedNode.attrs.exec_id || '')
           return true
         },
       }
     }
   },
 
-  addProseMirrorPlugins() {
-    return [
-      new Plugin({
-        key: new PluginKey('blockDeleteAiNode'),
-        /**
-         * filterTransaction 是最高优先级的拦截器
-         * 在文档状态真正改变前进行拦截
-         */
-        filterTransaction: (tr, state) => {
-          // 如果交易没有改变文档内容（比如只是改变了选区），直接放行
-          if (!tr.docChanged) return true
-
-          let isTouchingLockedNode = false
-
-          // 遍历交易中的每一个步骤 (Step)，检查它影响的旧文档范围
-          tr.steps.forEach(step => {
-            const map = step.getMap()
-            map.forEach((oldStart, oldEnd) => {
-              // 关键：在 oldState（旧状态）中查找这个范围是否包含我们的锁定节点
-              state.doc.nodesBetween(oldStart, oldEnd, node => {
-                if (node.type.name === this.name) {
-                  isTouchingLockedNode = true
-                }
-              })
-            })
-          })
-
-          // 如果该交易（删除、输入、粘贴）波及到了锁定节点，返回 false 彻底终止该交易
-          if (isTouchingLockedNode) {
-            console.debug('[AiWritingNode] 拦截：尝试修改或删除锁定区域')
-            return false
-          }
-
-          return true
-        },
-      }),
-    ]
-  },
 })

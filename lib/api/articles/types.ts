@@ -208,7 +208,7 @@ export interface ArticleEditResponse {
  */
 export interface EditStatusResponse {
   status: 'pending' | 'success' | 'failed'
-  response_text?: string  // status='success' 时包含改写内容
+  data?: string            // status='success' 时包含改写内容（后端返回的字段名是 data）
   error?: string           // status='failed' 时包含错误信息
 }
 

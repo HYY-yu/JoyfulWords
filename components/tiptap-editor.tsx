@@ -26,14 +26,20 @@ interface TiptapEditorProps {
   saveStatus?: AutoSaveState;
   articleId?: number;
   mode?: "create" | "edit";
-  // 异步 AI 编辑等待状态（从父组件注入）
-  aiEditWaitingState?: AIEditState | null;
-  // 轮询成功后，由父组件传入结果文本（预填充在 dialog 中）
-  aiEditResult?: string | null;
+  // 异步 AI 编辑任务列表（从父组件注入）
+  aiEditTasks?: Map<string, AIEditState>;
+  // 当前打开的 dialog 对应的 exec_id
+  activeExecId?: string | null;
+  // 点击 AIPendingBlock 时的回调
+  onAIPendingBlockClick?: (execId: string) => void;
+  // 新任务提交成功后的回调
+  onTaskSubmitted?: (task: AIEditState) => void;
   // 结果已被用户消费后，父组件调用此回调清除
-  onAIEditResultConsumed?: () => void;
+  onAIEditResultConsumed?: (execId: string) => void;
   // 当前用户 ID（传给 dialog 用于保存 localStorage 的 key）
   userId?: number | string;
+  // Dialog 打开状态变化回调
+  onAIDialogOpenChange?: (open: boolean) => void;
 }
 
 export function TiptapEditor({
@@ -44,16 +50,19 @@ export function TiptapEditor({
   saveStatus,
   articleId,
   mode = "create",
-  aiEditWaitingState,
-  aiEditResult,
+  aiEditTasks = new Map(),
+  activeExecId,
+  onAIPendingBlockClick,
+  onTaskSubmitted,
   onAIEditResultConsumed,
   userId,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  // 添加 AI 改写对话框状态
+  // AI 改写对话框状态
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
+  const [dialogExecId, setDialogExecId] = useState<string | null>(null); // null = 新请求，有值 = 查看已有任务
   const [selectedTextForAI, setSelectedTextForAI] = useState("");
 
   // 添加国际化支持
@@ -62,19 +71,36 @@ export function TiptapEditor({
   // 添加toast提示
   const { toast } = useToast();
 
-  const isWaiting = aiEditWaitingState?.status === 'waiting';
+  // 获取当前活动的任务
+  const activeTask = dialogExecId ? aiEditTasks.get(dialogExecId) : null;
+  const aiEditResult = activeTask?.result_text || null;
 
-  // 当 aiEditResult 到来时，自动打开 dialog 显示结果
+  // 调试日志
   useEffect(() => {
-    if (aiEditResult) {
+    console.log('[TiptapEditor] State update:', {
+      dialogExecId,
+      activeTask,
+      aiEditResult,
+      allTaskIds: Array.from(aiEditTasks.keys())
+    })
+  }, [dialogExecId, activeTask, aiEditResult, aiEditTasks])
+
+  // 记录已处理的 exec_id，避免重复插入 AIPendingBlock
+  const processedExecIdRef = useRef<Set<string>>(new Set());
+
+  // 监听 activeExecId 变化（从 AIPendingBlock 点击）
+  useEffect(() => {
+    if (activeExecId && !isAIDialogOpen) {
+      // 只在 dialog 未打开时响应 activeExecId 变化
+      // 避免覆盖用户点击工具栏按钮发起的新请求
+      setDialogExecId(activeExecId);
       setIsAIDialogOpen(true);
-      // 使用 waitingState 中的 cut_text 作为"被选中文本"显示在左侧
-      if (aiEditWaitingState?.cut_text) {
-        setSelectedTextForAI(aiEditWaitingState.cut_text);
+      const task = aiEditTasks.get(activeExecId);
+      if (task) {
+        setSelectedTextForAI(task.cut_text);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiEditResult]);
+  }, [activeExecId, aiEditTasks, isAIDialogOpen]);
 
   // 确定初始内容： HTML
   const initialContent = content;
@@ -157,79 +183,232 @@ export function TiptapEditor({
     }
   }, [content, editor, normalizeHTML]);
 
-  // 当进入等待状态时，将 cut_text 区域替换为 AIPendingBlock 节点
-  // 使用 cut_text 实时匹配，避免 from/to 因用户编辑而漂移
+  // 当有新的 waiting 任务时，插入 AIPendingBlock
   useEffect(() => {
-    if (!editor || !aiEditWaitingState || aiEditWaitingState.status !== 'waiting') return;
-    const { cut_text } = aiEditWaitingState;
-    if (!cut_text) return;
+    if (!editor) return;
 
-    // 在当前 doc 中查找 cut_text 的位置
-    const { doc } = editor.state;
-    let foundFrom = -1;
-    let foundTo = -1;
+    // 遍历所有 waiting 任务，为每个插入 AIPendingBlock
+    aiEditTasks.forEach((task) => {
+      if (task.status !== 'waiting') return;
 
-    doc.descendants((node, pos) => {
-      if (foundFrom !== -1) return false; // 已找到，停止遍历
-      if (node.isText && node.text) {
-        const idx = node.text.indexOf(cut_text);
-        if (idx !== -1) {
-          foundFrom = pos + idx;
-          foundTo = foundFrom + cut_text.length;
-          return false;
+      const { cut_text, exec_id } = task;
+      if (!cut_text || !exec_id) return;
+
+      // 避免重复插入
+      if (processedExecIdRef.current.has(exec_id)) {
+        return;
+      }
+
+      // 在当前 doc 中查找 cut_text 的位置
+      const { doc } = editor.state;
+      let foundFrom = -1;
+      let foundTo = -1;
+
+      doc.descendants((node, pos) => {
+        if (foundFrom !== -1) return false;
+        if (node.isText && node.text) {
+          const idx = node.text.indexOf(cut_text);
+          if (idx !== -1) {
+            foundFrom = pos + idx;
+            foundTo = foundFrom + cut_text.length;
+            return false;
+          }
         }
+      });
+
+      if (foundFrom !== -1) {
+        editor.chain()
+          .focus()
+          .deleteRange({ from: foundFrom, to: foundTo })
+          .insertContentAt(foundFrom, {
+            type: 'aiPendingBlock',
+            attrs: { text: cut_text, exec_id },
+          })
+          .run();
+
+        // 标记已处理
+        processedExecIdRef.current.add(exec_id);
+        console.info('[TiptapEditor] AIPendingBlock inserted for exec_id:', exec_id);
+      } else {
+        console.warn('[TiptapEditor] Could not find cut_text in editor:', cut_text);
       }
     });
 
-    if (foundFrom !== -1) {
-      editor.chain()
-        .focus()
-        .deleteRange({ from: foundFrom, to: foundTo })
-        .insertContentAt(foundFrom, {
-          type: 'aiPendingBlock',
-          attrs: { text: cut_text },
-        })
-        .run();
-    }
-  // 仅当状态转为 waiting 时触发一次
+    // 清理已删除的任务
+    const currentExecIds = new Set(aiEditTasks.keys());
+    const toRemove: string[] = [];
+    processedExecIdRef.current.forEach((execId) => {
+      if (!currentExecIds.has(execId) || aiEditTasks.get(execId)?.status !== 'waiting') {
+        toRemove.push(execId);
+      }
+    });
+    toRemove.forEach(execId => processedExecIdRef.current.delete(execId));
+  // 依赖整个 aiEditTasks 对象
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editor, aiEditWaitingState?.status]);
+  }, [editor, aiEditTasks]);
 
   // 应用 AI 改写结果：找到 AIPendingBlock 节点，用改写文本替换
-  // 通过 cut_text 匹配 AIPendingBlock 的 attrs.text
+  // 使用 dialogExecId 定位要替换的节点
   const applyAIRewrite = useCallback(async (rewrittenText: string) => {
-    if (!editor) return;
+    if (!editor || !dialogExecId) return;
 
-    const html = await markdownToHTML(rewrittenText);
+    try {
+      const html = await markdownToHTML(rewrittenText);
 
-    // 在 doc 中找 AIPendingBlock 节点
+      // 通过 exec_id 精确定位 AIPendingBlock
+      let pendingPos = -1;
+      let pendingEnd = -1;
+
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name === 'aiPendingBlock' && node.attrs.exec_id === dialogExecId) {
+          pendingPos = pos;
+          pendingEnd = pos + node.nodeSize;
+          return false;
+        }
+      });
+
+      if (pendingPos !== -1) {
+        editor.chain()
+          .focus()
+          .deleteRange({ from: pendingPos, to: pendingEnd })
+          .insertContentAt(pendingPos, html)
+          .run();
+
+        console.info('[TiptapEditor] AIPendingBlock replaced for exec_id:', dialogExecId);
+
+        // 清除已处理记录
+        processedExecIdRef.current.delete(dialogExecId);
+
+        // 通知父组件结果已消费
+        onAIEditResultConsumed?.(dialogExecId);
+
+        // 关闭 dialog
+        setIsAIDialogOpen(false);
+        setDialogExecId(null);
+        return;
+      }
+
+      // 找不到 AIPendingBlock，报错
+      console.error('[TiptapEditor] Failed to apply AI rewrite: cannot locate AIPendingBlock for exec_id:', dialogExecId);
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.toast.applyFailed") || "应用失败",
+        description: t("tiptapEditor.toast.cannotLocateContent") || "无法定位要替换的等待块",
+      });
+
+      // 仍然通知父组件清除状态
+      onAIEditResultConsumed?.(dialogExecId);
+
+      // 关闭 dialog
+      setIsAIDialogOpen(false);
+      setDialogExecId(null);
+    } catch (error) {
+      console.error('[TiptapEditor] Error applying AI rewrite:', error);
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.toast.applyFailed") || "应用失败",
+        description: error instanceof Error ? error.message : t("tiptapEditor.toast.unknownError"),
+      });
+
+      // 通知父组件清除状态
+      onAIEditResultConsumed?.(dialogExecId);
+
+      // 关闭 dialog
+      setIsAIDialogOpen(false);
+      setDialogExecId(null);
+    }
+  }, [editor, dialogExecId, onAIEditResultConsumed, toast, t]);
+
+  // 恢复原始文本：删除 AIPendingBlock，恢复原始的 cut_text
+  const handleRestoreOriginal = useCallback(() => {
+    if (!editor || !dialogExecId) return;
+
+    const task = aiEditTasks.get(dialogExecId);
+    if (!task) {
+      console.error('[TiptapEditor] Task not found for exec_id:', dialogExecId);
+      return;
+    }
+
+    const originalText = task.cut_text;
+    if (!originalText) {
+      console.error('[TiptapEditor] No cut_text in task');
+      return;
+    }
+
+    // 通过 exec_id 精确定位 AIPendingBlock
     let pendingPos = -1;
     let pendingEnd = -1;
-    let pendingText = '';
 
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === 'aiPendingBlock') {
+      if (node.type.name === 'aiPendingBlock' && node.attrs.exec_id === dialogExecId) {
         pendingPos = pos;
         pendingEnd = pos + node.nodeSize;
-        pendingText = node.attrs.text;
         return false;
       }
     });
 
     if (pendingPos !== -1) {
-      // 删除 AIPendingBlock，插入改写内容
+      // 删除 AIPendingBlock，插入原始文本
       editor.chain()
         .focus()
         .deleteRange({ from: pendingPos, to: pendingEnd })
-        .insertContentAt(pendingPos, html)
+        .insertContentAt(pendingPos, originalText)
         .run();
+
+      console.info('[TiptapEditor] Original text restored for exec_id:', dialogExecId);
+
+      // 清除已处理记录
+      processedExecIdRef.current.delete(dialogExecId);
+
+      // 通知父组件清除状态
+      onAIEditResultConsumed?.(dialogExecId);
+
+      // 关闭 dialog
+      setIsAIDialogOpen(false);
+      setDialogExecId(null);
     } else {
-      // 找不到 AIPendingBlock，降级：通过 cut_text 实时匹配文本位置插入
-      const cutText = aiEditWaitingState?.cut_text || pendingText;
-      if (cutText) {
+      console.error('[TiptapEditor] Failed to restore: cannot locate AIPendingBlock for exec_id:', dialogExecId);
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.toast.restoreFailed") || "恢复失败",
+        description: t("tiptapEditor.toast.cannotLocatePendingBlock") || "无法定位要恢复的等待块",
+      });
+
+      // 仍然通知父组件清除状态
+      onAIEditResultConsumed?.(dialogExecId);
+
+      // 关闭 dialog
+      setIsAIDialogOpen(false);
+      setDialogExecId(null);
+    }
+  }, [editor, dialogExecId, aiEditTasks, onAIEditResultConsumed, toast, t]);
+
+  // Expose editor methods and set up global click handler
+  useEffect(() => {
+    if (editor) {
+      // Make editor available globally for external access
+      (window as any).tiptapEditor = editor;
+
+      // 设置全局点击处理函数
+      (window as any).handleAIPendingBlockClick = (execId: string) => {
+        console.log('[TiptapEditor] Global handler called with exec_id:', execId);
+        console.log('[TiptapEditor] onAIPendingBlockClick callback:', typeof onAIPendingBlockClick);
+        onAIPendingBlockClick?.(execId);
+      };
+
+      // 监听 AI 编辑任务提交事件，立即插入 AIPendingBlock
+      const handleTaskSubmitted = (e: CustomEvent) => {
+        const { execId, cutText } = e.detail;
+        console.log('[TiptapEditor] AI edit task submitted event:', { execId, cutText });
+
+        // 立即插入 AIPendingBlock
+        if (!cutText) return;
+
+        // 在当前 doc 中查找 cut_text 的位置
         const { doc } = editor.state;
         let foundFrom = -1;
         let foundTo = -1;
+
         doc.descendants((node, pos) => {
           if (foundFrom !== -1) return false;
           if (node.isText && node.text) {
@@ -241,27 +420,38 @@ export function TiptapEditor({
             }
           }
         });
+
         if (foundFrom !== -1) {
           editor.chain()
             .focus()
             .deleteRange({ from: foundFrom, to: foundTo })
-            .insertContentAt(foundFrom, html)
+            .insertContentAt(foundFrom, {
+              type: 'aiPendingBlock',
+              attrs: { text: cutText, exec_id: execId },
+            })
             .run();
+
+          // 标记已处理
+          processedExecIdRef.current.add(execId);
+          console.info('[TiptapEditor] AIPendingBlock inserted immediately for exec_id:', execId);
+        } else {
+          console.warn('[TiptapEditor] Could not find cut_text in editor:', cutText);
         }
-      }
-    }
+      };
 
-    // 通知父组件结果已消费，清除 aiEditResult
-    onAIEditResultConsumed?.();
-  }, [editor, aiEditWaitingState, onAIEditResultConsumed]);
+      window.addEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
 
-  // Expose editor methods
-  useEffect(() => {
-    if (editor) {
-      // Make editor available globally for external access
-      (window as any).tiptapEditor = editor;
+      console.log('[TiptapEditor] Global click handler registered');
+      console.log('[TiptapEditor] window.handleAIPendingBlockClick:', typeof (window as any).handleAIPendingBlockClick);
+
+      // 清理函数
+      return () => {
+        console.log('[TiptapEditor] Cleaning up global handler');
+        delete (window as any).handleAIPendingBlockClick;
+        window.removeEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
+      };
     }
-  }, [editor]);
+  }, [editor, onAIPendingBlockClick]);
 
   // Handle image upload using presigned URL
   const handleImageUpload = useCallback(async (file: File): Promise<string> => {
@@ -420,9 +610,6 @@ export function TiptapEditor({
 
   // 处理 AI 改写 - 等待中时忽略点击
   const handleAIRewrite = useCallback(() => {
-    // 等待中：禁止再次请求
-    if (isWaiting) return;
-
     // 检查是否为创建模式，如果是则禁止打开 AI 改写对话框
     if (mode === "create") {
       toast({
@@ -449,8 +636,9 @@ export function TiptapEditor({
     }
 
     setSelectedTextForAI(text);
+    setDialogExecId(null); // null 表示新的 AI 编辑请求
     setIsAIDialogOpen(true);
-  }, [editor, toast, mode, t, isWaiting]);
+  }, [editor, toast, mode, t]);
 
   return (
     <div className="border rounded-lg bg-background flex flex-col h-full overflow-hidden w-full">
@@ -461,19 +649,29 @@ export function TiptapEditor({
         onAIRewrite={handleAIRewrite}
         saveStatus={saveStatus}
         mode={mode}
-        isAIEditWaiting={isWaiting}
+        isAIEditWaiting={false} // 不再使用，保留兼容性
       />
       <EditorContent editor={editor} className="flex-1 overflow-y-auto min-h-0" />
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}
       <AIRewriteDialog
         open={isAIDialogOpen}
-        onOpenChange={setIsAIDialogOpen}
+        onOpenChange={(open) => {
+          setIsAIDialogOpen(open);
+          if (!open) {
+            setDialogExecId(null);
+            setSelectedTextForAI('');
+            // 通知父组件清除 activeExecId，避免无限弹出
+            onAIPendingBlockClick?.('');  // 空字符串表示清除
+          }
+        }}
         articleId={articleId || 0}
         selectedText={selectedTextForAI}
         articleContent={editor?.getHTML() || ''}
         onRewrite={applyAIRewrite}
-        waitingState={aiEditWaitingState}
+        onCancel={handleRestoreOriginal}
+        onTaskSubmitted={onTaskSubmitted}
+        waitingState={activeTask}
         initialRewrittenText={aiEditResult || undefined}
         userId={userId}
       />

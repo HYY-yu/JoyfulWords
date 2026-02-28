@@ -22,11 +22,14 @@ import { useEditorState } from "@/lib/editor-state"
 import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/lib/tiptap-utils"
 import { useAutoSave } from "@/lib/hooks/use-auto-save"
 import {
-  loadAIEditState,
-  clearAIEditState,
+  loadAIEditTasks,
+  addAIEditTask,
+  removeAIEditTask,
+  clearAIEditTasks,
+  isAIEditExpired,
   type AIEditState,
 } from "@/lib/hooks/use-ai-edit-state"
-import { useAIEditStatusPoller } from "@/lib/hooks/use-ai-edit-status-poller"
+import { useMultipleAIEditPollers } from "@/lib/hooks/use-multiple-ai-edit-pollers"
 
 interface ArticleWritingProps {
   articleId?: string | null
@@ -54,6 +57,7 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
   const [isEditMode, setIsEditMode] = useState(false)
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [cleanConfirmOpen, setCleanConfirmOpen] = useState(false)
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState(false)
 
   // ✅ 使用统一状态管理（替换 articleContent, articleHTML, articleMarkdown）
   const editorState = useEditorState()
@@ -73,75 +77,195 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
     },
   })
 
-  // ====== AI 异步编辑状态 ======
-  const [aiEditState, setAIEditState] = useState<AIEditState | null>(null)
-  const [aiEditResult, setAIEditResult] = useState<string | null>(null)
+  // ====== AI 异步编辑状态（支持多个并行任务）=====
+  // key: exec_id, value: 任务状态
+  const [aiEditTasks, setAiEditTasks] = useState<Map<string, AIEditState>>(new Map())
+  const [activeExecId, setActiveExecId] = useState<string | null>(null) // 当前打开的 dialog 对应的 exec_id
 
   // 从 localStorage 初始化 AI 编辑状态（页面刷新后恢复轮询）
   useEffect(() => {
     if (!user) return
-    const saved = loadAIEditState(user.id)
-    if (saved) {
-      setAIEditState(saved)
-      console.log('[ArticleWriting] Restored AI edit state from localStorage:', saved)
+    const tasks = loadAIEditTasks(user.id)
+    if (tasks.size > 0) {
+      setAiEditTasks(tasks)
+      console.log('[ArticleWriting] Restored AI edit tasks from localStorage:', tasks.size)
     }
   }, [user])
 
   // 轮询成功回调
-  const handleAIEditSuccess = useCallback((responseText: string) => {
-    console.log('[ArticleWriting] AI edit succeeded')
-    setAIEditResult(responseText)
-    // 清除 localStorage 内的等待状态，但保留 aiEditState 供 dialog 显示 cut_text
-    if (user) clearAIEditState(user.id)
-    setAIEditState(prev => prev ? { ...prev, status: 'idle' } : null)
+  const handleAIEditSuccess = useCallback((execId: string, responseText: string) => {
+    console.log('[ArticleWriting] AI edit succeeded for exec_id:', execId)
+    console.log('[ArticleWriting] Response text length:', responseText?.length)
+    console.log('[ArticleWriting] Response text preview:', responseText?.substring(0, 100))
 
+    setAiEditTasks(prev => {
+      const newTasks = new Map(prev)
+      const task = newTasks.get(execId)
+      if (task) {
+        // 更新任务状态为 idle，保存结果文本
+        const updatedTask = {
+          ...task,
+          status: 'idle' as const,
+          result_text: responseText,
+        }
+        console.log('[ArticleWriting] Updated task:', updatedTask)
+        newTasks.set(execId, updatedTask)
+      }
+      return newTasks
+    })
+
+    // 检查是否还有其他 waiting 任务
+    if (user) {
+      const allTasks = Array.from(aiEditTasks.values())
+      const hasOtherWaiting = allTasks.some(t => t.status === 'waiting' && t.exec_id !== execId)
+
+      if (!hasOtherWaiting) {
+        // 没有其他 waiting 任务，清除所有
+        clearAIEditTasks(user.id)
+      } else {
+        // 还有其他 waiting 任务，只删除当前任务
+        removeAIEditTask(user.id, execId)
+      }
+    }
+
+    // 通知用户点击 AIPendingBlock 查看结果
     toast({
       title: t("aiRewrite.toast.generateSuccess") || "AI 改写完成",
-      description: t("aiRewrite.toast.resultReady") || "点击编辑器中的 AI 改写按钮查看结果",
+      description: t("aiRewrite.toast.resultReady") || "点击编辑器中的蓝色等待块查看结果",
     })
   }, [user, toast, t])
 
   // 轮询失败回调
-  const handleAIEditError = useCallback((message: string) => {
-    console.error('[ArticleWriting] AI edit failed:', message)
-    if (user) clearAIEditState(user.id)
-    setAIEditState(null)
-    setAIEditResult(null)
+  const handleAIEditError = useCallback((execId: string, message: string) => {
+    console.error('[ArticleWriting] AI edit failed for exec_id:', execId, message)
+
+    setAiEditTasks(prev => {
+      const newTasks = new Map(prev)
+      newTasks.delete(execId)
+      return newTasks
+    })
+
+    // 检查是否还有其他 waiting 任务
+    if (user) {
+      const allTasks = Array.from(aiEditTasks.values())
+      const hasOtherWaiting = allTasks.some(t => t.status === 'waiting' && t.exec_id !== execId)
+
+      if (!hasOtherWaiting) {
+        clearAIEditTasks(user.id)
+      } else {
+        removeAIEditTask(user.id, execId)
+      }
+    }
 
     toast({
       variant: "destructive",
       title: t("aiRewrite.toast.generateFailed") || "AI 改写失败",
       description: message,
     })
-  }, [user, toast, t])
+  }, [user, toast, t, aiEditTasks])
 
   // 轮询超时回调
-  const handleAIEditExpired = useCallback(() => {
-    console.warn('[ArticleWriting] AI edit polling timed out')
-    if (user) clearAIEditState(user.id)
-    setAIEditState(null)
-    setAIEditResult(null)
+  const handleAIEditExpired = useCallback((execId: string) => {
+    console.warn('[ArticleWriting] AI edit polling timed out for exec_id:', execId)
+
+    setAiEditTasks(prev => {
+      const newTasks = new Map(prev)
+      newTasks.delete(execId)
+      return newTasks
+    })
+
+    if (user) {
+      const allTasks = Array.from(aiEditTasks.values())
+      const hasOtherWaiting = allTasks.some(t => t.status === 'waiting' && t.exec_id !== execId)
+
+      if (!hasOtherWaiting) {
+        clearAIEditTasks(user.id)
+      } else {
+        removeAIEditTask(user.id, execId)
+      }
+    }
 
     toast({
       variant: "destructive",
       title: t("aiRewrite.toast.timeout") || "AI 改写超时",
       description: t("aiRewrite.toast.timeoutDesc") || "AI 改写任务超时，请重试",
     })
-  }, [user, toast, t])
+  }, [user, toast, t, aiEditTasks])
 
-  // 启动/停止轮询
-  useAIEditStatusPoller({
-    state: aiEditState,
+  // 为每个任务启动轮询
+  useMultipleAIEditPollers({
+    tasks: aiEditTasks,
     onSuccess: handleAIEditSuccess,
     onError: handleAIEditError,
     onExpired: handleAIEditExpired,
   })
 
-  // 当用户从 dialog 应用改写结果后，清除结果
-  const handleAIEditResultConsumed = useCallback(() => {
-    setAIEditResult(null)
-    setAIEditState(null)
+  // 当用户点击 AIPendingBlock 时，打开对应的 dialog
+  const handleAIPendingBlockClick = useCallback((execId: string) => {
+    console.log('[ArticleWriting] handleAIPendingBlockClick called with exec_id:', execId)
+    console.log('[ArticleWriting] Current aiEditTasks:', Array.from(aiEditTasks.keys()))
+
+    // 空字符串表示清除 activeExecId（dialog 关闭时调用）
+    if (execId === '') {
+      console.log('[ArticleWriting] Clearing activeExecId')
+      setActiveExecId(null)
+      setIsAIDialogOpen(false)
+      return
+    }
+
+    const task = aiEditTasks.get(execId)
+    if (task) {
+      // 检查任务是否过期
+      if (isAIEditExpired(task)) {
+        toast({
+          variant: "destructive",
+          title: t("aiRewrite.toast.taskExpired") || "AI 改写任务已过期",
+        })
+        // 清理过期任务
+        if (user) {
+          removeAIEditTask(user.id, execId)
+          setAiEditTasks(prev => {
+            const newTasks = new Map(prev)
+            newTasks.delete(execId)
+            return newTasks
+          })
+        }
+        return
+      }
+
+      console.log('[ArticleWriting] Task found, opening dialog. Status:', task.status, 'result_text:', task.result_text)
+      setActiveExecId(execId)
+      setIsAIDialogOpen(true)
+    } else {
+      console.error('[ArticleWriting] Task not found for exec_id:', execId)
+    }
+  }, [aiEditTasks, user, toast, t])
+
+  // 当用户从 dialog 应用改写结果后
+  const handleAIEditResultConsumed = useCallback((execId: string) => {
+    setAiEditTasks(prev => {
+      const newTasks = new Map(prev)
+      newTasks.delete(execId)
+      return newTasks
+    })
+    setActiveExecId(null)
   }, [])
+
+  // 当新任务提交成功后，添加到 aiEditTasks
+  const handleTaskSubmitted = useCallback((task: AIEditState) => {
+    console.log('[ArticleWriting] New task submitted:', task)
+    setAiEditTasks(prev => {
+      const newTasks = new Map(prev)
+      newTasks.set(task.exec_id, task)
+      return newTasks
+    })
+  }, [])
+
+  // 获取当前打开的任务
+  const getActiveTask = useCallback((): AIEditState | null => {
+    if (!activeExecId) return null
+    return aiEditTasks.get(activeExecId) || null
+  }, [activeExecId, aiEditTasks])
 
   // Generate user-specific localStorage key
   const getDraftKey = useCallback(() => {
@@ -458,8 +582,10 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             editable={true}
             articleId={currentArticle?.id}
             mode={isEditMode ? "edit" : "create"}
-            aiEditWaitingState={aiEditState}
-            aiEditResult={aiEditResult}
+            aiEditTasks={aiEditTasks}
+            activeExecId={activeExecId}
+            onAIPendingBlockClick={handleAIPendingBlockClick}
+            onTaskSubmitted={handleTaskSubmitted}
             onAIEditResultConsumed={handleAIEditResultConsumed}
             userId={user?.id}
           />

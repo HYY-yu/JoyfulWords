@@ -219,6 +219,62 @@ curl -X POST http://localhost:8080/article/edit \
 
 ---
 
+## 2.5. 查询 AI 编辑状态
+
+### 接口信息
+
+- **URL:** `/article/edit/status/:exec_id`
+- **方法:** `GET`
+- **认证:** 需要 Bearer Token
+
+### 请求参数
+
+| 参数名   | 类型   | 必填 | 说明         |
+|------|------|----|-----------|
+| exec_id | string | 是  | 异步任务 ID |
+
+### 响应
+
+**成功 (200 OK)**
+
+```json
+{
+  "status": "pending"
+}
+```
+
+或
+
+```json
+{
+  "status": "success",
+  "data": "改写后的段落内容..."
+}
+```
+
+或
+
+```json
+{
+  "status": "failed",
+  "error": "错误信息"
+}
+```
+
+| 字段     | 类型     | 说明                             |
+|--------|------|--------------------------------|
+| status | string | 任务状态：pending（进行中）、success（成功）、failed（失败） |
+| data   | string | status='success' 时包含改写后的内容         |
+| error  | string | status='failed' 时包含错误信息             |
+
+**注意:**
+
+- 前端应使用指数退避策略轮询此接口
+- 建议初始间隔 3 秒，最大间隔 30 秒
+- 超过 5 分钟未完成应视为超时
+
+---
+
 ## 3. 获取文章列表
 
 查看用户的文章列表，包括关联的素材和竞品文章信息。
