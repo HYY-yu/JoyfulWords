@@ -23,6 +23,7 @@ import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/l
 import { useAutoSave } from "@/lib/hooks/use-auto-save"
 import {
   loadAIEditTasks,
+  saveAIEditTasks,
   addAIEditTask,
   removeAIEditTask,
   clearAIEditTasks,
@@ -114,17 +115,18 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       return newTasks
     })
 
-    // 检查是否还有其他 waiting 任务
+    // 更新 localStorage 中的任务状态（保留 idle 任务供刷新后恢复）
     if (user) {
-      const allTasks = Array.from(aiEditTasks.values())
-      const hasOtherWaiting = allTasks.some(t => t.status === 'waiting' && t.exec_id !== execId)
-
-      if (!hasOtherWaiting) {
-        // 没有其他 waiting 任务，清除所有
-        clearAIEditTasks(user.id)
-      } else {
-        // 还有其他 waiting 任务，只删除当前任务
-        removeAIEditTask(user.id, execId)
+      const tasks = loadAIEditTasks(user.id)
+      const task = tasks.get(execId)
+      if (task) {
+        const updatedTask = {
+          ...task,
+          status: 'idle' as const,
+          result_text: responseText,
+        }
+        tasks.set(execId, updatedTask)
+        saveAIEditTasks(user.id, tasks)
       }
     }
 
@@ -249,7 +251,12 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
       return newTasks
     })
     setActiveExecId(null)
-  }, [])
+
+    // 同时从 localStorage 删除任务
+    if (user) {
+      removeAIEditTask(user.id, execId)
+    }
+  }, [user])
 
   // 当新任务提交成功后，添加到 aiEditTasks
   const handleTaskSubmitted = useCallback((task: AIEditState) => {
