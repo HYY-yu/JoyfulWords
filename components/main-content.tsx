@@ -16,21 +16,33 @@ interface MainContentProps {
 export function MainContent({ activeTab }: MainContentProps) {
   const { t } = useTranslation()
 
+  // 兼容旧 tab ID，迁移到新格式
+  const normalizedTab = (() => {
+    const migrationMap: Record<string, string> = {
+      "content-writing": "joyfulwords-content-writing",
+      "image-generation": "joyfulwords-image-generation",
+      "knowledge-cards": "joyfulwords-knowledge-cards",
+      "seo-geo": "joyfulwords-seo-geo",
+      "video-editing": "joyfulwords-video-editing",
+    }
+    return migrationMap[activeTab] || activeTab
+  })()
+
   // ============ 功能开关逻辑 ============
   // 已上线功能的早期返回
-  if (activeTab === "image-generation" && isFeatureEnabled("image-generation")) {
+  if (normalizedTab === "joyfulwords-image-generation" && isFeatureEnabled("image-generation")) {
     return <ImageGeneration />
   }
 
-  if (activeTab === "content-writing") {
+  if (normalizedTab === "joyfulwords-content-writing") {
     return <ContentWriting />
   }
 
-  if (activeTab === "knowledge-cards" && isFeatureEnabled("knowledge-cards")) {
+  if (normalizedTab === "joyfulwords-knowledge-cards" && isFeatureEnabled("knowledge-cards")) {
     return <KnowledgeCards />
   }
 
-  if (activeTab === "seo-geo" && isFeatureEnabled("seo-geo")) {
+  if (normalizedTab === "joyfulwords-seo-geo" && isFeatureEnabled("seo-geo")) {
     return <SeoGeo />
   }
 
@@ -61,34 +73,34 @@ export function MainContent({ activeTab }: MainContentProps) {
   }
 
   const tabConfig = {
-    "image-generation": {
+    "joyfulwords-image-generation": {
       title: t("sidebar.imageGeneration"),
       description: t("imageGeneration.subtitle"),
       icon: ImageIcon,
     },
-    "content-writing": {
+    "joyfulwords-content-writing": {
       title: t("sidebar.contentWriting"),
       description: t("contentWriting.subtitle"),
       icon: FileTextIcon,
     },
-    "knowledge-cards": {
+    "joyfulwords-knowledge-cards": {
       title: t("sidebar.knowledgeCards"),
       description: t("knowledgeCards.subtitle"),
       icon: CreditCardIcon,
     },
-    "seo-geo": {
+    "joyfulwords-seo-geo": {
       title: t("sidebar.seoGeo"),
       description: t("seoGeo.subtitle"),
       icon: SearchIcon,
     },
-    "video-editing": {
+    "joyfulwords-video-editing": {
       title: t("sidebar.videoEditing"),
       description: t("common.comingSoon"),
       icon: VideoIcon,
     },
   }
 
-  const config = tabConfig[activeTab as keyof typeof tabConfig]
+  const config = tabConfig[normalizedTab as keyof typeof tabConfig]
 
   // 如果找不到配置，显示默认错误页面
   if (!config) {

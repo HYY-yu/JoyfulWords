@@ -48,15 +48,16 @@ export const en = {
     sidebar: {
         title: "Creator Toolbox",
         subtitle: "Content Creator Tools",
+        joyfulWords: "JoyfulWords",
+        contentWriting: "Content Writing",
         imageGeneration: "Image Gen",
-        contentWriting: "JoyfulWords",
         knowledgeCards: "Knowledge Cards",
         seoGeo: "SEO/GEO",
         videoEditing: "Video Editing",
         billing: "Billing & Credit",
     },
     contentWriting: {
-        title: "JoyfulWords",
+        title: "Content Writing",
         subtitle: "Content creation and management tools",
         tabs: {
             materialSearch: "Materials",

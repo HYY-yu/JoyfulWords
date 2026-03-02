@@ -48,15 +48,16 @@ export const zh = {
     sidebar: {
         title: "创作者工具箱",
         subtitle: "Content Creator Tools",
+        joyfulWords: "JoyfulWords",
+        contentWriting: "Content Writing",
         imageGeneration: "图片生成",
-        contentWriting: "悦文悦己",
         knowledgeCards: "知识卡片",
         seoGeo: "SEO/GEO",
         videoEditing: "基础视频剪辑",
         billing: "计费管理",
     },
     contentWriting: {
-        title: "悦文悦己",
+        title: "Content Writing",
         subtitle: "内容创作与管理工具",
         tabs: {
             materialSearch: "素材搜索",

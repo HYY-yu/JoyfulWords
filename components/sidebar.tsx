@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet, UserCircleIcon, LogOutIcon } from "lucide-react"
+import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet, UserCircleIcon, LogOutIcon, Feather } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -27,33 +27,37 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { user, signOut } = useAuth()
   const [profileOpen, setProfileOpen] = useState(false)
 
-  const menuItems = [
-    {
-      id: "image-generation",
-      label: t("sidebar.imageGeneration"),
-      icon: ImageIcon,
-    },
-    {
-      id: "content-writing",
-      label: t("sidebar.contentWriting"),
-      icon: FileTextIcon,
-    },
-    {
-      id: "knowledge-cards",
-      label: t("sidebar.knowledgeCards"),
-      icon: CreditCardIcon,
-    },
-    {
-      id: "seo-geo",
-      label: t("sidebar.seoGeo"),
-      icon: SearchIcon,
-    },
-    {
-      id: "video-editing",
-      label: t("sidebar.videoEditing"),
-      icon: VideoIcon,
-    },
-  ]
+  // JoyfulWords 分组
+  const joyfulWordsGroup = {
+    title: t("sidebar.joyfulWords"),
+    items: [
+      {
+        id: "joyfulwords-content-writing",
+        label: t("sidebar.contentWriting"),
+        icon: FileTextIcon,
+      },
+      {
+        id: "joyfulwords-image-generation",
+        label: t("sidebar.imageGeneration"),
+        icon: ImageIcon,
+      },
+      {
+        id: "joyfulwords-knowledge-cards",
+        label: t("sidebar.knowledgeCards"),
+        icon: CreditCardIcon,
+      },
+      {
+        id: "joyfulwords-seo-geo",
+        label: t("sidebar.seoGeo"),
+        icon: SearchIcon,
+      },
+      {
+        id: "joyfulwords-video-editing",
+        label: t("sidebar.videoEditing"),
+        icon: VideoIcon,
+      },
+    ]
+  }
 
   // Billing 菜单项（独立于功能菜单）
   const billingMenuItem = {
@@ -72,8 +76,17 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-y-auto">
-        <div className="space-y-1">
-          {menuItems.map((item) => {
+        {/* JoyfulWords 父菜单项 */}
+        <div className="mb-2">
+          <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-sidebar-accent/30 text-sidebar-foreground">
+            <Feather className="w-5 h-5 text-sidebar-foreground/70" />
+            <span className="text-sm font-semibold">{joyfulWordsGroup.title}</span>
+          </div>
+        </div>
+
+        {/* 子菜单项 */}
+        <div className="space-y-1 ml-4">
+          {joyfulWordsGroup.items.map((item) => {
             const Icon = item.icon
             const isActive = activeTab === item.id
 
@@ -82,14 +95,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                  "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors",
                   "text-sm font-medium",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
                 )}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
                 <span>{item.label}</span>
               </button>
             )
