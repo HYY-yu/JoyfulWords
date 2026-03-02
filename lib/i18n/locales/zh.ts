@@ -49,7 +49,7 @@ export const zh = {
         title: "创作者工具箱",
         subtitle: "Content Creator Tools",
         joyfulWords: "JoyfulWords",
-        contentWriting: "Content Writing",
+        contentWriting: "内容书写",
         imageGeneration: "图片生成",
         knowledgeCards: "知识卡片",
         seoGeo: "SEO/GEO",
@@ -57,7 +57,7 @@ export const zh = {
         billing: "计费管理",
     },
     contentWriting: {
-        title: "Content Writing",
+        title: "内容书写",
         subtitle: "内容创作与管理工具",
         tabs: {
             materialSearch: "素材搜索",

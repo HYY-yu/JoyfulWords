@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs } from "lucide-react"
+import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs,FileTextIcon } from "lucide-react"
 import { MaterialSearch } from "./materials/material-search"
 import { CompetitorTracking } from "./competitors/competitor-tracking"
 import { ArticleWriting } from "./article/article-writing"
@@ -100,7 +100,7 @@ export function ContentWriting() {
         <div className="px-8 py-6">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
-              <PenToolIcon className="w-6 h-6 text-primary" />
+              <FileTextIcon className="w-6 h-6 text-primary" />
             </div>
             <div>
               <h2 className="text-2xl font-semibold text-foreground">{t("contentWriting.title")}</h2>

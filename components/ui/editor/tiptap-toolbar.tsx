@@ -244,7 +244,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip={isUploadingImage ? "正在上传图片..." : "Image"}
+        tooltip={isUploadingImage ? "Uploading..." : "Image"}
         onClick={setImage}
         disabled={isUploadingImage}
       >
@@ -259,7 +259,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* AI Rewrite */}
       <ToolbarButton
-        tooltip={isAIEditWaiting ? ("AI 改写中…") : "AI 智能改写"}
+        tooltip={isAIEditWaiting ? ("AI Writing...") : "AI"}
         onClick={isAIEditWaiting ? undefined : onAIRewrite}
         disabled={isAIEditWaiting}
         className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20"
