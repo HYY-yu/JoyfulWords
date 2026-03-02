@@ -16,10 +16,10 @@ export function ContentWriting() {
   const [currentArticleId, setCurrentArticleId] = useState<string | null>(null)
 
   const tabs = [
-    { id: "material-search", label: t("contentWriting.tabs.materialSearch"), icon: SearchIcon },
-    { id: "competitor-tracking", label: t("contentWriting.tabs.competitorTracking"), icon: TrendingUpIcon },
     { id: "article-writing", label: t("contentWriting.tabs.articleWriting"), icon: PenToolIcon },
     { id: "article-manager", label: t("contentWriting.tabs.articleManager"), icon: NotebookTabs },
+    { id: "material-search", label: t("contentWriting.tabs.materialSearch"), icon: SearchIcon },
+    { id: "competitor-tracking", label: t("contentWriting.tabs.competitorTracking"), icon: TrendingUpIcon },
   ]
 
   // 从 localStorage 读取上次的子 tab，如果没有则默认为 "article-writing"
