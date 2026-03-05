@@ -254,7 +254,7 @@ export function ArticleEditorHeader({
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {wordCount} 字
+              {wordCount} 
             </p>
           </div>
         </div>

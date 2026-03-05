@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useCallback } from "react";
+import { useTranslation } from "@/lib/i18n/i18n-context";
 import { ToolbarButton } from "./tiptap-toolbar-button";
 import { HighlightButtons } from "./highlight-buttons";
 import { TextAlignButtons } from "./text-align-buttons";
@@ -37,6 +38,8 @@ interface TiptapToolbarProps {
 }
 
 export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus, mode = "create", isAIEditWaiting = false }: TiptapToolbarProps) {
+  const { t } = useTranslation()
+
   const setImage = useCallback(() => {
     if (!editor) {
       console.warn('[TiptapToolbar] Editor not ready')
@@ -67,7 +70,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       <div className="flex flex-wrap gap-1">
       {/* Undo/Redo */}
       <ToolbarButton
-        tooltip="Undo"
+        tooltip={t("tiptapEditor.toolbar.undo")}
         shortcut="⌘Z"
         disabled={!editor.can().undo()}
         onClick={() => editor.chain().focus().undo().run()}
@@ -76,7 +79,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Redo"
+        tooltip={t("tiptapEditor.toolbar.redo")}
         shortcut="⌘Y"
         disabled={!editor.can().redo()}
         onClick={() => editor.chain().focus().redo().run()}
@@ -88,7 +91,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* Text Formatting */}
       <ToolbarButton
-        tooltip="Bold"
+        tooltip={t("tiptapEditor.toolbar.bold")}
         shortcut="⌘B"
         isActive={editor.isActive('bold')}
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -97,7 +100,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Italic"
+        tooltip={t("tiptapEditor.toolbar.italic")}
         shortcut="⌘I"
         isActive={editor.isActive('italic')}
         onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -106,7 +109,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Underline"
+        tooltip={t("tiptapEditor.toolbar.underline")}
         shortcut="⌘U"
         isActive={editor.isActive('underline')}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -115,7 +118,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Strikethrough"
+        tooltip={t("tiptapEditor.toolbar.strikethrough")}
         shortcut="⌘S"
         isActive={editor.isActive('strike')}
         onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -124,7 +127,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Code"
+        tooltip={t("tiptapEditor.toolbar.code")}
         isActive={editor.isActive('code')}
         onClick={() => editor.chain().focus().toggleCode().run()}
       >
@@ -168,17 +171,17 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
           }
         }}
       >
-        <option value="p">正文</option>
-        <option value="h1">标题 1</option>
-        <option value="h2">标题 2</option>
-        <option value="h3">标题 3</option>
+        <option value="p">{t("tiptapEditor.toolbar.heading.paragraph")}</option>
+        <option value="h1">{t("tiptapEditor.toolbar.heading.heading1")}</option>
+        <option value="h2">{t("tiptapEditor.toolbar.heading.heading2")}</option>
+        <option value="h3">{t("tiptapEditor.toolbar.heading.heading3")}</option>
       </select>
 
       <div className="w-px h-8 bg-border mx-1" />
 
       {/* Lists */}
       <ToolbarButton
-        tooltip="Bullet List"
+        tooltip={t("tiptapEditor.toolbar.bulletList")}
         shortcut="⌘⇧8"
         isActive={editor.isActive('bulletList')}
         disabled={!editor.can().chain().focus().toggleBulletList().run()}
@@ -188,7 +191,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip="Ordered List"
+        tooltip={t("tiptapEditor.toolbar.orderedList")}
         shortcut="⌘⇧7"
         isActive={editor.isActive('orderedList')}
         disabled={!editor.can().chain().focus().toggleOrderedList().run()}
@@ -201,7 +204,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* Quote */}
       <ToolbarButton
-        tooltip="Quote"
+        tooltip={t("tiptapEditor.toolbar.quote")}
         isActive={editor.isActive('blockquote')}
         disabled={!editor.can().chain().focus().toggleBlockquote().run()}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
@@ -211,7 +214,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* Code Block */}
       <ToolbarButton
-        tooltip="Code Block"
+        tooltip={t("tiptapEditor.toolbar.codeBlock")}
         isActive={editor.isActive('codeBlock')}
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
       >
@@ -220,7 +223,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* Horizontal Rule */}
       <ToolbarButton
-        tooltip="Horizontal Rule"
+        tooltip={t("tiptapEditor.toolbar.horizontalRule")}
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
       >
         <SeparatorHorizontalIcon className="h-4 w-4" />
@@ -230,11 +233,11 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* Link */}
       <ToolbarButton
-        tooltip="Link"
+        tooltip={t("tiptapEditor.toolbar.link")}
         shortcut="⌘K"
         onClick={() => {
           if (!editor) return;
-          const url = window.prompt('输入链接 URL:');
+          const url = window.prompt(t("tiptapEditor.toolbar.linkUrlPrompt"));
           if (url) {
             editor.chain().focus().setLink({ href: url }).run();
           }
@@ -244,7 +247,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
 
       <ToolbarButton
-        tooltip={isUploadingImage ? "Uploading..." : "Image"}
+        tooltip={isUploadingImage ? t("tiptapEditor.toolbar.uploading") : t("tiptapEditor.toolbar.image")}
         onClick={setImage}
         disabled={isUploadingImage}
       >
@@ -259,7 +262,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* AI Rewrite */}
       <ToolbarButton
-        tooltip={isAIEditWaiting ? ("AI Writing...") : "AI"}
+        tooltip={isAIEditWaiting ? t("tiptapEditor.toolbar.aiWriting") : t("tiptapEditor.toolbar.ai")}
         onClick={isAIEditWaiting ? undefined : onAIRewrite}
         disabled={isAIEditWaiting}
         className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20"
