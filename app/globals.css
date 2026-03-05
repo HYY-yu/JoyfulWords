@@ -522,3 +522,26 @@
   border-color: rgba(96, 165, 250, 0.3);
   border-top-color: rgba(96, 165, 250, 0.9);
 }
+
+/* ========================================
+   Landing Page Animations
+   ======================================== */
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: landing-fade-up 0.55s ease both;
+}
+
+.animate-delay-1 { animation-delay: 0.08s; }
+.animate-delay-2 { animation-delay: 0.16s; }
+.animate-delay-3 { animation-delay: 0.26s; }
+.animate-delay-4 { animation-delay: 0.38s; }

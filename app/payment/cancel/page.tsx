@@ -10,7 +10,7 @@ export default function PaymentCancelPage() {
   const router = useRouter()
 
   const handleBackToBilling = () => {
-    router.push('/?tab=billing')
+    router.push('/dashboard?tab=billing')
   }
 
   return (

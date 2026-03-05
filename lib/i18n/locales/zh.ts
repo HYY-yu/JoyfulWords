@@ -954,6 +954,64 @@ export const zh = {
         },
         lastUpdated: "最后更新"
     },
+    landing: {
+        nav: {
+            features: "功能",
+            myArticles: "我的文章",
+            startCreating: "开始创作 →",
+        },
+        badge: "AI 驱动的内容创作平台",
+        heading: "写出更好的内容，",
+        headingAccent: "更快",
+        description: "JoyfulWords 将 AI 写作、图片生成、SEO 优化集于一体，让每一篇内容都值得被看见。",
+        cta: "立即开始创作",
+        viewArticles: "查看我的文章",
+        stats: {
+            speed: "10×",
+            speedLabel: "写作提速",
+            tools: "6 合 1",
+            toolsLabel: "工具集成",
+            seo: "实时",
+            seoLabel: "SEO 分析",
+        },
+        featuresLabel: "全套工具",
+        featuresHeading: "写作所需，",
+        featuresHeadingAccent: "全部内置",
+        features: {
+            aiWriting: {
+                title: "AI 智能写作",
+                desc: "输入主题，AI 秒级生成结构完整的文章草稿，支持续写、改写、风格切换。",
+            },
+            imageGen: {
+                title: "一键配图",
+                desc: "内置 AI 图片生成与素材搜索，写作中随手配图，无需切换工具。",
+            },
+            seoGeo: {
+                title: "SEO / GEO 优化",
+                desc: "实时关键词密度、标题评分、结构建议，让文章在搜索引擎与 AI 问答中都被看见。",
+            },
+            knowledgeCards: {
+                title: "知识卡片",
+                desc: "复杂概念一键转化为可视化卡片，提升读者留存与内容分享率。",
+            },
+            materialSearch: {
+                title: "素材搜索",
+                desc: "在编辑器内直接搜索、引用外部素材，自动标注来源。",
+            },
+            competitors: {
+                title: "竞品参考",
+                desc: "写作时随时查看同类竞品文章，分析结构与关键词布局。",
+            },
+        },
+        ctaHeading: "开始你的第一篇文章",
+        ctaSubtitle: "开始你的内容创作之旅。",
+        ctaCta: "立即开始创作 →",
+        footer: {
+            version: "内容创作与管理工具 · v1.0.0",
+            privacyPolicy: "隐私政策",
+            termsOfUse: "服务条款",
+        },
+    },
     billing: {
         balance: {
             title: "积分余额",

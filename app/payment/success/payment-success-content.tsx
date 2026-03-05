@@ -223,7 +223,7 @@ export function PaymentSuccessContent() {
   }, [orderNo])
 
   const handleBackToBilling = () => {
-    router.push('/?tab=billing')
+    router.push('/dashboard?tab=billing')
   }
 
   return (

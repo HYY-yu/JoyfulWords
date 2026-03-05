@@ -32,7 +32,7 @@ export function LoginForm() {
         title: t("auth.loginSuccess"),
         description: t("auth.redirecting"),
       })
-      router.push("/")
+      router.push("/dashboard")
     } catch (error: any) {
       // Toast is already shown in the auth context
     } finally {

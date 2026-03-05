@@ -954,6 +954,64 @@ export const en = {
         },
         lastUpdated: "Last Updated"
     },
+    landing: {
+        nav: {
+            features: "Features",
+            myArticles: "My Articles",
+            startCreating: "Start Creating →",
+        },
+        badge: "AI-Powered Content Platform",
+        heading: "Write Better Content,",
+        headingAccent: "Faster",
+        description: "JoyfulWords combines AI writing, image generation, and SEO optimization in one place, making every piece of content worth seeing.",
+        cta: "Start Creating",
+        viewArticles: "View My Articles",
+        stats: {
+            speed: "10×",
+            speedLabel: "Writing Speed",
+            tools: "6 in 1",
+            toolsLabel: "Integrated Tools",
+            seo: "Real-time",
+            seoLabel: "SEO Analysis",
+        },
+        featuresLabel: "FULL TOOLKIT",
+        featuresHeading: "Everything You Need,",
+        featuresHeadingAccent: "Built In",
+        features: {
+            aiWriting: {
+                title: "AI Smart Writing",
+                desc: "Enter a topic, AI generates a complete article draft in seconds. Supports continuation, rewriting, and style switching.",
+            },
+            imageGen: {
+                title: "One-Click Images",
+                desc: "Built-in AI image generation and material search. Add images while writing, no need to switch tools.",
+            },
+            seoGeo: {
+                title: "SEO / GEO Optimization",
+                desc: "Real-time keyword density, title scoring, and structure suggestions. Get seen in search engines and AI answers.",
+            },
+            knowledgeCards: {
+                title: "Knowledge Cards",
+                desc: "Transform complex concepts into visual cards with one click, boosting reader retention and content sharing.",
+            },
+            materialSearch: {
+                title: "Material Search",
+                desc: "Search and reference external materials directly in the editor, with automatic source attribution.",
+            },
+            competitors: {
+                title: "Competitor Analysis",
+                desc: "View competitor articles anytime while writing. Analyze structure and keyword placement.",
+            },
+        },
+        ctaHeading: "Start Your First Article",
+        ctaSubtitle: "Begin your content creation journey.",
+        ctaCta: "Start Creating →",
+        footer: {
+            version: "Content Creation Tool · v1.0.0",
+            privacyPolicy: "Privacy Policy",
+            termsOfUse: "Terms of Use",
+        },
+    },
     billing: {
         balance: {
             title: "Credit Balance",

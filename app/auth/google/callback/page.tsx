@@ -81,7 +81,7 @@ export default function GoogleCallbackPage() {
         setStatus('success')
 
         // Redirect to home page or stored redirect
-        const redirect = sessionStorage.getItem('oauth_redirect') || '/'
+        const redirect = sessionStorage.getItem('oauth_redirect') || '/dashboard'
         setTimeout(() => {
           router.push(redirect)
         }, 500)

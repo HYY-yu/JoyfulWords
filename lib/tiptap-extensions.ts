@@ -3,9 +3,8 @@ import Image from "@tiptap/extension-image";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
-import { mergeAttributes } from "@tiptap/react";
+import { mergeAttributes, Node } from "@tiptap/react";
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { Node } from '@tiptap/core';
 
 // Create an Underline extension that supports markdown serialization
 export const UnderlineWithMarkdown = Underline.extend({
