@@ -521,11 +521,6 @@ export const en = {
         },
     },
     auth: {
-        brand: {
-            title: "JoyfulWords",
-            subtitle: "Empowering Content Creators",
-            features: "AI Article Writing, Image Generation, SEO/GEO Optimization",
-        },
         login: "Login",
         signup: "Sign Up",
         email: "Email",
@@ -1002,7 +997,7 @@ export const en = {
             seoLabel: "SEO Analysis",
         },
         featuresLabel: "FULL TOOLKIT",
-        featuresHeading: "Everything You Need,",
+        featuresHeading: "Everything You Need, ",
         featuresHeadingAccent: "Built In",
         features: {
             aiWriting: {

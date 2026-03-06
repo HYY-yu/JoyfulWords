@@ -2,13 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const REFRESH_TOKEN_KEY = 'refresh_token'
 
-// Routes that don't require authentication (prefix match)
-const publicRoutes = [
+// Auth routes: redirect authenticated users to dashboard
+const authRoutes = [
   '/auth/login',
   '/auth/signup',
   '/auth/forgot-password',
   '/auth/google/callback',  // Google OAuth 回调页面
   '/auth/verify-email',     // 邮箱验证页面
+]
+
+// Public pages: accessible to everyone (authenticated or not)
+const publicPages = [
   '/cookie-policy',         // Cookie 政策页面
   '/terms-of-use',          // 使用条款页面
   '/privacy-policy',        // 隐私政策页面
@@ -23,10 +27,12 @@ export async function middleware(request: NextRequest) {
   // Get refresh token from cookies
   const refreshToken = request.cookies.get(REFRESH_TOKEN_KEY)?.value
   const isAuthenticated = !!refreshToken
-  const isPublic = publicRoutes.some(route => pathname.startsWith(route)) || exactPublicRoutes.includes(pathname)
+  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+  const isPublicPage = publicPages.some(route => pathname.startsWith(route))
+  const isPublic = isAuthRoute || isPublicPage || exactPublicRoutes.includes(pathname)
 
-  // Redirect authenticated users away from auth pages to dashboard
-  if (isAuthenticated && publicRoutes.some(route => pathname.startsWith(route))) {
+  // Redirect authenticated users away from auth pages (but NOT public pages)
+  if (isAuthenticated && isAuthRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
