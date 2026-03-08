@@ -6,6 +6,9 @@ import { useState, useEffect } from "react"
 import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { imageGenerationClient } from "@/lib/api/image-generation/client"
+import { useImageGenerationPolling, loadTaskFromStorage, clearTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
 import type {
   Layer,
   ToolType,
@@ -23,6 +26,7 @@ import { PropertiesPanel } from "./properties-panel"
 import { StyleMode } from "./style-mode"
 import { InversionMode } from "./inversion-mode"
 import { JsonPreviewDialog } from "./json-preview-dialog"
+import { GenerationLoadingOverlay } from "./generation-loading-overlay"
 
 const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
 
@@ -40,6 +44,118 @@ export function ImageGeneration() {
     return "creation"
   })
   const [showJsonPreview, setShowJsonPreview] = useState(false)
+
+  // 图片生成相关状态
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatingMessage, setGeneratingMessage] = useState("")
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+  const [showGeneratedImage, setShowGeneratedImage] = useState(true)
+
+  // 轮询 Hook
+  const { startPolling, stopPolling, isPolling } = useImageGenerationPolling({
+    onSuccess: (result) => {
+      // INFO: 任务完成 - 轮询成功
+      console.info('[ImageGeneration] Task completed successfully:', {
+        taskId: result.task_id,
+        imageUrl: result.image_url,
+      })
+
+      // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
+      let imageUrl: string
+      try {
+        if (typeof result.image_url === 'string' && result.image_url.startsWith('[')) {
+          // JSON 数组字符串，解析并取第一个元素
+          const urls = JSON.parse(result.image_url) as string[]
+          imageUrl = urls[0]
+          console.debug('[ImageGeneration] Parsed image_url from JSON array:', imageUrl)
+        } else if (Array.isArray(result.image_url)) {
+          // 已经是数组，取第一个元素
+          imageUrl = result.image_url[0]
+          console.debug('[ImageGeneration] Extracted first URL from array:', imageUrl)
+        } else {
+          // 直接是字符串
+          imageUrl = result.image_url
+        }
+      } catch (error) {
+        // ERROR: 解析失败，回退到原始值
+        console.error('[ImageGeneration] Failed to parse image_url:', error)
+        imageUrl = String(result.image_url)
+      }
+
+      setIsGenerating(false)
+      setGeneratingMessage("")
+      setCurrentTaskId(null)
+      setGeneratedImageUrl(imageUrl)
+      setShowGeneratedImage(true)
+
+      toast({
+        title: t("imageGeneration.toast.generationSuccess"),
+        description: t("imageGeneration.generating.description"),
+      })
+    },
+    onError: (error) => {
+      // ERROR: 任务失败 - 显示错误提示
+      console.error('[ImageGeneration] Task failed:', {
+        error: error.message,
+      })
+
+      setIsGenerating(false)
+      setGeneratingMessage("")
+      setCurrentTaskId(null)
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.generationFailed"),
+        description: error.message,
+      })
+    },
+    onTimeout: () => {
+      // ERROR: 任务超时 - 显示超时提示
+      console.error('[ImageGeneration] Task timeout')
+
+      setIsGenerating(false)
+      setGeneratingMessage("")
+      setCurrentTaskId(null)
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.timeout"),
+      })
+    },
+    onProgress: (result) => {
+      // DEBUG: 任务进度 - 更新进度消息
+      if (result.status === 'processing') {
+        setGeneratingMessage(
+          t("imageGeneration.generating.processing", {
+            eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
+          })
+        )
+      }
+    },
+  })
+
+  // 组件 mount 时检查 localStorage，恢复未完成的任务
+  useEffect(() => {
+    const savedTask = loadTaskFromStorage(DEFAULT_POLLING_CONFIG)
+
+    if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
+      // INFO: 恢复轮询 - 发现未完成的任务
+      console.info('[ImageGeneration] Resuming polling from localStorage:', {
+        taskId: savedTask.task_id,
+        status: savedTask.status,
+        hasPrompt: !!savedTask.prompt,
+        hasConfig: !!savedTask.config,
+      })
+
+      setIsGenerating(true)
+      setGeneratingMessage(t("imageGeneration.generating.resuming"))
+      setCurrentTaskId(savedTask.task_id)
+
+      // 启动轮询（不带 storage 参数，因为已经从 localStorage 加载了）
+      startPolling(savedTask.task_id)
+    }
+  }, []) // 只在 mount 时执行一次
 
   // 元数据参数
   const [metaSettings, setMetaSettings] = useState<MetaSettings>({
@@ -102,6 +218,7 @@ export function ImageGeneration() {
         height: 100,
         label: t("imageGeneration.canvas.layerLabel", { number: layers.length + 1 }),
         description: "",
+        reference_image: undefined,
         zIndex: layers.length,
       }
 
@@ -126,7 +243,7 @@ export function ImageGeneration() {
       setSelectedLayer(layer)
       setLayerProps({
         description: layer.description,
-        reference_image: undefined,
+        reference_image: layer.reference_image,
         z_index: layer.zIndex,
       })
     }
@@ -138,7 +255,7 @@ export function ImageGeneration() {
       setLayers(
         layers.map((l) =>
           l.id === selectedLayer.id
-            ? { ...l, description: props.description, zIndex: props.z_index }
+            ? { ...l, description: props.description, reference_image: props.reference_image, zIndex: props.z_index }
             : l
         )
       )
@@ -184,7 +301,7 @@ export function ImageGeneration() {
     const creatorLayers = layers.map((layer) => ({
       id: layer.id,
       description: layer.description,
-      reference_image: layerProps.reference_image,
+      reference_image: layer.reference_image,  // 使用图层自己的 reference_image
       spatial_layout: {
         box_2d: [layer.x, layer.y, layer.width, layer.height] as [number, number, number, number],
         z_index: layer.zIndex,
@@ -223,15 +340,155 @@ export function ImageGeneration() {
     return creatorConfig
   }
 
-  const handleGenerateImageFromPrompt = (prompt: string) => {
-    console.log("使用专业提示词生成图片:", prompt)
-    // TODO: 调用后端 API 生成图片
+  const handleGenerateImageFromPrompt = async (prompt: string) => {
+    // TRACE: 生成入口 - 使用专业提示词生成图片
+    console.debug('[ImageGeneration] Generating image from prompt:', {
+      promptLength: prompt.length,
+    })
+
+    try {
+      // 设置生成状态
+      setIsGenerating(true)
+      setGeneratingMessage(t("imageGeneration.generating.initiating"))
+
+      // 调用 API 创建生成任务
+      const result = await imageGenerationClient.createGenerationTask({
+        gen_mode: 'creator', // 创作模式
+        prompt,
+      })
+
+      if ('error' in result) {
+        // ERROR: 任务创建失败
+        console.error('[ImageGeneration] Failed to create task:', result.error)
+        setIsGenerating(false)
+        setGeneratingMessage("")
+
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.taskCreateFailed"),
+          description: result.error,
+        })
+        return
+      }
+
+      // INFO: 任务创建成功
+      console.info('[ImageGeneration] Task created successfully:', {
+        taskId: result.task_id,
+        estimatedEta: result.estimated_eta,
+      })
+
+      toast({
+        title: t("imageGeneration.toast.taskCreated"),
+        description: t("imageGeneration.generating.started"),
+      })
+
+      // 保存任务状态并开始轮询
+      setCurrentTaskId(result.task_id)
+      await startPolling(result.task_id, {
+        status: result.status,
+        prompt,
+        estimated_eta: result.estimated_eta,
+      })
+    } catch (error) {
+      // ERROR: 网络错误或意外错误
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[ImageGeneration] Unexpected error during generation:', {
+        error: errorMessage,
+      })
+
+      setIsGenerating(false)
+      setGeneratingMessage("")
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.generationFailed"),
+        description: errorMessage,
+      })
+    }
   }
 
-  const handleGenerateImage = () => {
+  const handleGenerateImage = async () => {
     const creatorConfig = buildCreatorConfig()
-    console.log("生成图片:", creatorConfig)
-    // TODO: 调用后端 API 生成图片
+
+    // TRACE: 生成入口 - 使用 CreatorConfig 生成图片（页面按钮）
+    console.info('[ImageGeneration] Generating image from config:', {
+      layerCount: creatorConfig.layers.length,
+      width: creatorConfig.meta.width,
+      height: creatorConfig.meta.high,
+    })
+
+    try {
+      // 设置生成状态
+      setIsGenerating(true)
+      setGeneratingMessage(t("imageGeneration.generating.initiating"))
+
+      // INFO: 直接使用 config 创建生成任务（API 支持直接传 config）
+      console.debug('[ImageGeneration] Creating task with config...')
+      const result = await imageGenerationClient.createGenerationTask({
+        gen_mode: 'creator', // 创作模式
+        config: creatorConfig,
+      })
+
+      if ('error' in result) {
+        // ERROR: 任务创建失败
+        console.error('[ImageGeneration] Failed to create task:', result.error)
+        setIsGenerating(false)
+        setGeneratingMessage("")
+
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.taskCreateFailed"),
+          description: result.error as string,
+        })
+        return
+      }
+
+      // INFO: 任务创建成功
+      console.info('[ImageGeneration] Task created successfully:', {
+        taskId: result.task_id,
+        estimatedEta: result.estimated_eta,
+      })
+
+      toast({
+        title: t("imageGeneration.toast.taskCreated"),
+        description: t("imageGeneration.generating.started"),
+      })
+
+      // 保存任务状态并开始轮询
+      setCurrentTaskId(result.task_id)
+      await startPolling(result.task_id, {
+        status: result.status,
+        config: creatorConfig,
+        estimated_eta: result.estimated_eta,
+      })
+    } catch (error) {
+      // ERROR: 网络错误或意外错误
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[ImageGeneration] Unexpected error during generation:', {
+        error: errorMessage,
+      })
+
+      setIsGenerating(false)
+      setGeneratingMessage("")
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.generationFailed"),
+        description: errorMessage,
+      })
+    }
+  }
+
+  const handleToggleImageVisibility = () => {
+    setShowGeneratedImage(prev => !prev)
+  }
+
+  const handleSaveImageToMaterials = () => {
+    // TODO: 后期实现保存到素材功能
+    toast({
+      title: t("imageGeneration.toast.comingSoon"),
+      description: t("imageGeneration.toast.saveToMaterialsComingSoon"),
+    })
   }
 
   return (
@@ -261,7 +518,12 @@ export function ImageGeneration() {
         <InversionMode />
       ) : (
         /* Main Content - Three Columns */
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden relative">
+          {/* Loading 蒙版 - 仅在生成时显示 */}
+          {isGenerating && (
+            <GenerationLoadingOverlay message={generatingMessage} />
+          )}
+
           {/* Left Column - Toolbar */}
           <Toolbar selectedTool={selectedTool} onToolSelect={handleToolClick} />
 
@@ -271,6 +533,8 @@ export function ImageGeneration() {
             selectedTool={selectedTool}
             selectedLayer={selectedLayer}
             metaSettings={metaSettings}
+            generatedImageUrl={generatedImageUrl}
+            showGeneratedImage={showGeneratedImage}
             onCanvasClick={handleCanvasClick}
             onLayerClick={handleLayerClick}
             onLayerPositionChange={handleLayerPositionChange}
@@ -278,6 +542,8 @@ export function ImageGeneration() {
             onDeleteLayer={handleDeleteLayer}
             onGenerateJson={handleGenerateJson}
             onGenerateImage={handleGenerateImage}
+            onToggleImageVisibility={handleToggleImageVisibility}
+            onSaveImageToMaterials={handleSaveImageToMaterials}
           />
 
           {/* Right Column - Properties Panel */}

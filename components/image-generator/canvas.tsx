@@ -13,6 +13,8 @@ interface CanvasProps {
   selectedTool: ToolType
   selectedLayer: Layer | null
   metaSettings: MetaSettings
+  generatedImageUrl: string | null
+  showGeneratedImage: boolean
   onCanvasClick: (e: React.MouseEvent<HTMLDivElement>) => void
   onLayerClick: (e: React.MouseEvent, layer: Layer) => void
   onLayerPositionChange: (layerId: string, x: number, y: number) => void
@@ -20,6 +22,8 @@ interface CanvasProps {
   onDeleteLayer: (layerId: string) => void
   onGenerateJson: () => void
   onGenerateImage: () => void
+  onToggleImageVisibility: () => void
+  onSaveImageToMaterials: () => void
 }
 
 export function Canvas({
@@ -27,6 +31,8 @@ export function Canvas({
   selectedTool,
   selectedLayer,
   metaSettings,
+  generatedImageUrl,
+  showGeneratedImage,
   onCanvasClick,
   onLayerClick,
   onLayerPositionChange,
@@ -34,6 +40,8 @@ export function Canvas({
   onDeleteLayer,
   onGenerateJson,
   onGenerateImage,
+  onToggleImageVisibility,
+  onSaveImageToMaterials,
 }: CanvasProps) {
   const { t } = useTranslation()
   const [isDragging, setIsDragging] = useState(false)
@@ -44,6 +52,8 @@ export function Canvas({
     x: 0, y: 0, width: 0, height: 0, mouseX: 0, mouseY: 0
   })
   const dragLayerRef = useRef<Layer | null>(null)
+  const [showImageMenu, setShowImageMenu] = useState(false)
+  const imageMenuRef = useRef<HTMLDivElement>(null)
 
   const getToolHint = () => {
     if (selectedTool === "select") return t("imageGeneration.canvas.toolHints.select")
@@ -165,6 +175,22 @@ export function Canvas({
     }
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp])
 
+  // 点击外部关闭图片菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (imageMenuRef.current && !imageMenuRef.current.contains(event.target as Node)) {
+        setShowImageMenu(false)
+      }
+    }
+
+    if (showImageMenu) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside)
+      }
+    }
+  }, [showImageMenu])
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Action Bar */}
@@ -188,6 +214,8 @@ export function Canvas({
             size="sm"
             className="gap-2 bg-primary hover:bg-primary/90"
             onClick={onGenerateImage}
+            disabled={layers.length === 0}
+            title={layers.length === 0 ? t("imageGeneration.canvas.addLayerFirst") : undefined}
           >
             <Sparkles className="w-4 h-4" />
             {t("imageGeneration.canvas.generateImage")}
@@ -211,6 +239,67 @@ export function Canvas({
             backgroundSize: "20px 20px",
           }}
         >
+          {/* 生成的图片覆盖层 */}
+          {generatedImageUrl && showGeneratedImage && (
+            <div className="absolute inset-0 z-40" onClick={(e) => e.stopPropagation()}>
+              <img
+                src={generatedImageUrl}
+                alt="Generated"
+                className="w-full h-full object-contain cursor-pointer"
+                onClick={() => setShowImageMenu(!showImageMenu)}
+              />
+              {/* 图片菜单 */}
+              {showImageMenu && (
+                <div
+                  ref={imageMenuRef}
+                  className="absolute top-4 right-4 bg-background border border-border rounded-lg shadow-lg p-2 min-w-48 z-50"
+                >
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        setShowImageMenu(false)
+                        onToggleImageVisibility()
+                      }}
+                    >
+                      {t("imageGeneration.canvas.viewOriginal")}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-muted-foreground"
+                      disabled
+                      onClick={() => {
+                        setShowImageMenu(false)
+                        onSaveImageToMaterials()
+                      }}
+                    >
+                      {t("imageGeneration.canvas.saveToMaterials")}
+                      <span className="ml-2 text-xs">({t("imageGeneration.canvas.laterImplementation")})</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 显示图片按钮（当图片隐藏时显示） */}
+          {generatedImageUrl && !showGeneratedImage && (
+            <div className="absolute top-4 right-4 z-30">
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onToggleImageVisibility()
+                }}
+              >
+                {t("imageGeneration.canvas.showGeneratedImage")}
+              </Button>
+            </div>
+          )}
+
           {/* Layers */}
           {layers.map((layer) => (
             <div

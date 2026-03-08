@@ -455,6 +455,10 @@ export const en = {
                 delete: "Click layer to delete, can delete multiple layers",
             },
             generateImage: "Generate Image",
+            viewOriginal: "View Original",
+            saveToMaterials: "Save to Materials",
+            laterImplementation: "Coming Soon",
+            showGeneratedImage: "Show Generated Image",
             emptyState: {
                 title: "Canvas Empty",
                 description: "Start creating by selecting the rectangle tool from the left",
@@ -598,6 +602,24 @@ export const en = {
                 convertSuccess: "Prompt converted successfully",
                 copySuccess: "Copied to clipboard",
             },
+        },
+        generating: {
+            title: "Generating Image",
+            description: "AI is generating your image, please wait...",
+            hint: "You can switch to other tabs or menus, the generation will continue in the background",
+            initiating: "Submitting generation task...",
+            resuming: "Resuming generation task...",
+            started: "Generation task created",
+            processing: "Generating image, estimated {{eta}} seconds remaining...",
+        },
+        toast: {
+            taskCreated: "Generation task created",
+            taskCreateFailed: "Failed to create generation task",
+            generationSuccess: "Image generated successfully",
+            generationFailed: "Image generation failed",
+            timeout: "Image generation timeout, please try again later",
+            saveToMaterialsComingSoon: "Save to materials feature will be implemented later",
+            comingSoon: "Coming Soon",
         },
         styleMode: {
             // 上传区域

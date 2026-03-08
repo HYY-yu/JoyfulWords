@@ -30,6 +30,7 @@ Authorization: Bearer <token>
 
 ```json
 {
+  "gen_mode": "creator",
   "config": {
     "version": "1.0",
     "meta": {
@@ -70,6 +71,14 @@ Authorization: Bearer <token>
 }
 ```
 
+**请求参数说明：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `gen_mode` | string | 是 | 生成模式：`creator`（创作模式）或 `style`（风格模式） |
+| `config` | object | 否 | Creator 配置对象 |
+| `model_name` | string | 否 | 指定使用的模型名（如 qwen-image-2.0-pro） |
+
 **响应（200 OK）：**
 
 ```json
@@ -105,6 +114,7 @@ Authorization: Bearer <token>
 
 ```json
 {
+  "gen_mode": "creator",
   "config": { /* Creator 配置（可选）*/ },
   "prompt": "A beautiful landscape with mountains",
   "model_name": "mock-model-v1",
@@ -112,6 +122,17 @@ Authorization: Bearer <token>
   "reference_images": ["https://example.com/ref1.jpg"]
 }
 ```
+
+**请求参数说明：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `gen_mode` | string | 是 | 生成模式：`creator`（创作模式）或 `style`（风格模式） |
+| `config` | object | 否 | Creator 配置对象 |
+| `prompt` | string | 否 | 直接使用的提示词 |
+| `model_name` | string | 否 | 指定使用的模型名（如 qwen-image-2.0-pro） |
+| `material_ids` | array | 否 | 关联的素材 ID 列表 |
+| `reference_images` | array | 否 | 额外的参考图片 URL 列表 |
 
 **注意：** `config` 和 `prompt` 至少需要提供一个。
 
@@ -265,6 +286,7 @@ async function pollTaskResult(taskId) {
 curl -X POST http://localhost:8080/image-generation/convert-prompt \
   -H "Content-Type: application/json" \
   -d '{
+    "gen_mode": "creator",
     "config": {
       "version": "1.0",
       "meta": {"width": 1024, "high": 1024, "seed": -1},
@@ -303,6 +325,7 @@ curl -X POST http://localhost:8080/image-generation/generate \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
+    "gen_mode": "creator",
     "prompt": "A beautiful landscape with mountains at sunset"
   }'
 ```

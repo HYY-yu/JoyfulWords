@@ -78,6 +78,7 @@ export type Layer = {
   height: number
   label: string // UI display label only
   description: string
+  reference_image?: string
   zIndex: number
 }
 
