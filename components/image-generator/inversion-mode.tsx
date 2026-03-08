@@ -16,9 +16,7 @@ type LayerImage = {
 type SplitStatus = "idle" | "uploading" | "splitting" | "completed" | "error"
 
 export function InversionMode() {
-  const { t, locale } = useTranslation()
-  const localeRef = useRef(locale)
-  localeRef.current = locale
+  const { t } = useTranslation()
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [splitStatus, setSplitStatus] = useState<SplitStatus>("idle")
@@ -65,39 +63,38 @@ export function InversionMode() {
 
     // 模拟 API 拆分过程
     setTimeout(() => {
-      const currentLocale = localeRef.current
-      // 生成模拟的拆分层
+      // 生成模拟的拆分层，使用翻译键
       const mockLayers: LayerImage[] = [
         {
           id: "layer-1",
-          name: "主体层",
-          nameEn: "Main Subject",
+          name: t("imageGeneration.inversionMode.layers.mainSubject.name"),
+          nameEn: t("imageGeneration.inversionMode.layers.mainSubject.name"),
           imageUrl: uploadedImage,
-          description: currentLocale === "zh" ? "图像的主要主体" : "Main subject of the image",
+          description: t("imageGeneration.inversionMode.layers.mainSubject.description"),
           index: 0
         },
         {
           id: "layer-2",
-          name: "背景层",
-          nameEn: "Background",
+          name: t("imageGeneration.inversionMode.layers.background.name"),
+          nameEn: t("imageGeneration.inversionMode.layers.background.name"),
           imageUrl: uploadedImage,
-          description: currentLocale === "zh" ? "图像的背景部分" : "Background portion",
+          description: t("imageGeneration.inversionMode.layers.background.description"),
           index: 1
         },
         {
           id: "layer-3",
-          name: "细节层",
-          nameEn: "Details",
+          name: t("imageGeneration.inversionMode.layers.details.name"),
+          nameEn: t("imageGeneration.inversionMode.layers.details.name"),
           imageUrl: uploadedImage,
-          description: currentLocale === "zh" ? "图像的细节纹理" : "Fine details and textures",
+          description: t("imageGeneration.inversionMode.layers.details.description"),
           index: 2
         },
         {
           id: "layer-4",
-          name: "光影层",
-          nameEn: "Lighting",
+          name: t("imageGeneration.inversionMode.layers.lighting.name"),
+          nameEn: t("imageGeneration.inversionMode.layers.lighting.name"),
           imageUrl: uploadedImage,
-          description: currentLocale === "zh" ? "光照和阴影效果" : "Light and shadow effects",
+          description: t("imageGeneration.inversionMode.layers.lighting.description"),
           index: 3
         }
       ]
@@ -106,7 +103,7 @@ export function InversionMode() {
       setSplitStatus("completed")
       setIsProcessing(false)
     }, 3000)
-  }, [uploadedImage])
+  }, [uploadedImage, t])
 
   const handleToggleLayer = (layerId: string) => {
     setSelectedLayers(prev => {
@@ -159,10 +156,10 @@ export function InversionMode() {
       <div className="w-96 border-r border-border/50 bg-muted/30 flex flex-col">
         <div className="p-4 border-b border-border/50">
           <h3 className="text-sm font-semibold text-foreground mb-1">
-            {locale === "zh" ? "图片上传" : "Image Upload"}
+            {t("imageGeneration.inversionMode.upload.title")}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {locale === "zh" ? "上传需要拆分的图片" : "Upload image to split"}
+            {t("imageGeneration.inversionMode.upload.description")}
           </p>
         </div>
 
@@ -211,10 +208,10 @@ export function InversionMode() {
                   <Upload className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground text-center px-4">
-                  {locale === "zh" ? "拖拽图片到此处" : "Drop image here"}
+                  {t("imageGeneration.inversionMode.upload.dropHere")}
                 </p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  {locale === "zh" ? "或点击选择文件" : "or click to select"}
+                  {t("imageGeneration.inversionMode.upload.orClick")}
                 </p>
               </>
             )}
@@ -241,7 +238,7 @@ export function InversionMode() {
               `}
             >
               <Split className="w-5 h-5" />
-              {locale === "zh" ? "拆分图片" : "Split Image"}
+              {t("imageGeneration.inversionMode.splitImage")}
             </button>
           )}
 
@@ -255,10 +252,10 @@ export function InversionMode() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-primary">
-                    {locale === "zh" ? "AI 正在拆分图片..." : "AI splitting image..."}
+                    {t("imageGeneration.inversionMode.splitting")}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {locale === "zh" ? "这可能需要几秒钟" : "This may take a few seconds"}
+                    {t("imageGeneration.styleMode.thisMayTake")}
                   </p>
                 </div>
               </div>
@@ -274,13 +271,10 @@ export function InversionMode() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-green-700 dark:text-green-400">
-                    {locale === "zh" ? "拆分完成！" : "Split completed!"}
+                    {t("imageGeneration.inversionMode.splitCompleted")}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {locale === "zh"
-                      ? `成功拆分为 ${layerImages.length} 个图层`
-                      : `Successfully split into ${layerImages.length} layers`
-                    }
+                    {t("imageGeneration.inversionMode.successfullySplit", { count: layerImages.length })}
                   </p>
                 </div>
               </div>
@@ -297,7 +291,7 @@ export function InversionMode() {
                 transition-colors ${isProcessing ? "cursor-not-allowed opacity-60" : ""}
               `}
             >
-              {locale === "zh" ? "重新上传" : "Reupload"}
+              {t("imageGeneration.inversionMode.reupload")}
             </button>
           )}
         </div>
@@ -307,10 +301,7 @@ export function InversionMode() {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5">
             <Layers className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground">
-              {locale === "zh"
-                ? "上传图片后点击「拆分图片」按钮，AI 将自动将图片分解为多个图层。"
-                : "After uploading, click 'Split Image' and AI will automatically decompose the image into multiple layers."
-              }
+              {t("imageGeneration.inversionMode.hint")}
             </p>
           </div>
         </div>
@@ -324,11 +315,11 @@ export function InversionMode() {
             <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium text-foreground">
-                {locale === "zh" ? "拆分结果" : "Split Results"}
+                {t("imageGeneration.inversionMode.splitResults")}
               </span>
               {layerImages.length > 0 && (
                 <span className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
-                  {layerImages.length} {locale === "zh" ? "个图层" : "layers"}
+                  {t("imageGeneration.inversionMode.layersCount", { count: layerImages.length })}
                 </span>
               )}
             </div>
@@ -341,8 +332,8 @@ export function InversionMode() {
                   className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted transition-colors"
                 >
                   {selectedLayers.size === layerImages.length
-                    ? (locale === "zh" ? "取消全选" : "Deselect All")
-                    : (locale === "zh" ? "全选" : "Select All")
+                    ? t("imageGeneration.inversionMode.deselectAll")
+                    : t("imageGeneration.inversionMode.selectAll")
                   }
                 </button>
                 {selectedLayers.size > 0 && (
@@ -351,7 +342,7 @@ export function InversionMode() {
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    {locale === "zh" ? "下载选中" : "Download Selected"}
+                    {t("imageGeneration.inversionMode.downloadSelected")}
                     {selectedLayers.size > 0 && (
                       <span className="ml-1 px-1.5 py-0.5 bg-primary-foreground/20 rounded-full">
                         {selectedLayers.size}
@@ -373,13 +364,10 @@ export function InversionMode() {
                 <Layers className="w-16 h-16 text-muted-foreground/40" />
               </div>
               <p className="text-lg font-medium text-muted-foreground mb-2">
-                {locale === "zh" ? "等待拆分" : "Waiting for split"}
+                {t("imageGeneration.inversionMode.waiting")}
               </p>
               <p className="text-sm text-muted-foreground/60 text-center max-w-md">
-                {locale === "zh"
-                  ? "上传图片并点击拆分按钮后，这里将显示拆分后的图层"
-                  : "Layers will appear here after uploading and splitting an image"
-                }
+                {t("imageGeneration.inversionMode.waitingHint")}
               </p>
             </div>
           ) : (
@@ -427,7 +415,7 @@ export function InversionMode() {
                               #{layer.index + 1}
                             </span>
                             <h4 className="text-sm font-semibold text-foreground truncate">
-                              {locale === "zh" ? layer.name : layer.nameEn}
+                              {layer.name}
                             </h4>
                           </div>
                           <p className="text-xs text-muted-foreground line-clamp-2">
@@ -456,7 +444,7 @@ export function InversionMode() {
                     {isSelected && (
                       <div className="absolute top-3 left-3">
                         <div className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                          {locale === "zh" ? "已选择" : "Selected"}
+                          {t("imageGeneration.styleMode.selected")}
                         </div>
                       </div>
                     )}
@@ -485,7 +473,7 @@ export function InversionMode() {
           <div className="p-4 border-t border-border/50 bg-background/50">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
-                {locale === "zh" ? "已选择" : "Selected"}:{" "}
+                {t("imageGeneration.styleMode.selected")}:{" "}
                 <span className="font-semibold text-foreground">{selectedLayers.size}</span> / {layerImages.length}
               </span>
               {selectedLayers.size > 0 && (
@@ -494,7 +482,7 @@ export function InversionMode() {
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-all hover:scale-105 active:scale-95"
                 >
                   <Download className="w-4 h-4" />
-                  {locale === "zh" ? "下载选中图层" : "Download Selected"}
+                  {t("imageGeneration.inversionMode.downloadSelected")}
                 </button>
               )}
             </div>

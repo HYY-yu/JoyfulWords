@@ -436,6 +436,282 @@ export const zh = {
         placeholder: "描述你想要生成的图片...",
         uploadRef: "上传参考图",
         examples: "案例参考",
+        toolbar: {
+            select: "选择",
+            rectangle: "矩形",
+            delete: "删除",
+        },
+        modeTabs: {
+            creation: "创作模式",
+            style: "风格模式",
+            inversion: "反向模式",
+        },
+        canvas: {
+            previewJson: "预览 JSON",
+            addLayerFirst: "请先添加至少一个图层",
+            toolHints: {
+                select: "点击选择图层，拖动移动位置",
+                rectangle: "点击画布添加矩形",
+                delete: "点击图层即可删除，可连续删除",
+            },
+            generateImage: "生成图片",
+            emptyState: {
+                title: "画布空白",
+                description: "从左侧选择矩形工具开始创作",
+            },
+            layerLabel: "图层 {number}",
+        },
+        properties: {
+            description: "描述",
+            descriptionPlaceholder: "输入图层描述...",
+            descriptionRequired: "描述为必填项，用于生成图片内容",
+            // 节标题
+            metadata: "元数据",
+            selectedLayer: "选中图层属性",
+            globalStyle: "全局样式",
+            composition: "构图设置",
+
+            // 元数据
+            width: "宽度",
+            height: "高度",
+            seed: "随机种子",
+            seedHint: "设置为 -1 表示随机种子",
+
+            // 图层属性
+            descriptionLabel: "描述",
+            descriptionPlaceholder2: "请输入图层描述...",
+            descriptionRequired2: "必填项",
+            referenceImage: "参考图片",
+            referenceImageOptional: "(可选)",
+            zIndex: "层级",
+            infoBox: "提示: 选中画布中的矩形图层可编辑其属性",
+
+            // 全局样式
+            medium: "艺术媒介",
+            selectMedium: "选择艺术媒介",
+            style: "艺术风格",
+            selectStyle: "选择艺术风格",
+            colorAccent: "色调",
+            selectColorAccent: "选择色调",
+
+            // 艺术媒介选项
+            mediums: {
+                photography: "摄影",
+                digitalIllustration: "数字插画",
+                oilPainting: "油画",
+                watercolor: "水彩",
+                render3d: "3D 渲染",
+                sketch: "素描",
+                cyberpunk: "赛博朋克",
+                glass: "玻璃",
+            },
+
+            // 艺术风格选项
+            styles: {
+                renaissance: "文艺复兴",
+                impressionism: "印象派",
+                surrealism: "超现实主义",
+                minimalism: "极简主义",
+                baroque: "巴洛克",
+                ukiyoe: "浮世绘",
+                vaporwave: "蒸汽波",
+                ghibli: "吉卜力",
+            },
+
+            // 色调选项
+            colorAccents: {
+                monochrome: "单色",
+                pastel: "粉彩",
+                earthTones: "大地色",
+                neon: "霓虹",
+                cinematic: "电影青橙",
+                morandi: "莫兰迪",
+            },
+
+            // 构图设置
+            camera: "相机",
+            angle: "拍摄角度",
+            selectAngle: "选择拍摄角度",
+            angles: {
+                eyeLevel: "水平视角",
+                lowAngle: "低角度",
+                highAngle: "高角度",
+                topDown: "俯视",
+                dutchAngle: "荷兰角",
+            },
+            focalLength: "焦距",
+            selectFocalLength: "选择焦距",
+            focalLengths: {
+                "14mm": "14mm (超广角)",
+                "35mm": "35mm (广角)",
+                "50mm": "50mm (标准)",
+                "85mm": "85mm (人像)",
+                "200mm": "200mm (长焦)",
+            },
+            depthOfField: "景深",
+            selectDepthOfField: "选择景深",
+            depths: {
+                shallow: "浅景深",
+                deep: "深景深",
+                macro: "微距",
+            },
+
+            // 灯光设置
+            lighting: "灯光",
+            type: "灯光类型",
+            selectType: "选择灯光类型",
+            types: {
+                natural: "自然光",
+                studio: "摄影棚",
+                volumetric: "体积光",
+                cinematic: "电影光",
+                neon: "霓虹灯",
+                rim: "轮廓光",
+            },
+            source: "光源位置",
+            selectSource: "选择光源位置",
+            sources: {
+                front: "正面",
+                side: "侧面",
+                topDown: "顶部",
+                bottomUp: "底部",
+                backlight: "背光",
+            },
+            intensity: "光照强度",
+        },
+        validation: {
+            missingDescription: "图层描述不能为空",
+            missingDescriptionDesc: "有 {{count}} 个图层缺少描述，请先填写描述后再预览 JSON",
+        },
+        jsonPreviewDialog: {
+            title: "配置预览",
+            description: "查看 JSON 配置并获取 AI 优化的提示词",
+            jsonLabel: "Creator JSON",
+            promptLabel: "专业提示词",
+            convertButton: "转换提示词",
+            convertingButton: "转换中...",
+            copyButton: "复制",
+            copiedButton: "已复制",
+            generateImageButton: "生成图片",
+            toast: {
+                convertFailed: "提示词转换失败",
+                convertSuccess: "提示词转换成功",
+                copySuccess: "已复制到剪贴板",
+            },
+        },
+        styleMode: {
+            // 上传区域
+            upload: {
+                title: "图片上传",
+                description: "拖拽或点击上传图片",
+                dropHere: "拖拽图片到此处",
+                orClick: "或点击选择文件",
+            },
+
+            // 预览区域
+            preview: {
+                original: "原图预览",
+                live: "实时预览",
+                reupload: "重新上传",
+                waitingForUpload: "等待上传",
+                uploadHint: "上传图片并选择风格开始创作",
+            },
+
+            // 操作按钮
+            generate: "生成图片",
+            rendering: "AI 渲染中...",
+            aiRendering: "AI 正在渲染",
+            download: "下载图片",
+            selected: "已选择",
+
+            // 预设风格
+            presets: {
+                cyberNeon: {
+                    name: "赛博霓虹",
+                    description: "高饱和度霓虹色彩，未来科技感",
+                },
+                frostedGlass: {
+                    name: "磨砂玻璃",
+                    description: "半透明质感，柔和光晕",
+                },
+                minimalLine: {
+                    name: "极简白描",
+                    description: "黑白线条，简洁雅致",
+                },
+                warmOil: {
+                    name: "温暖油画",
+                    description: "厚重笔触，温暖色调",
+                },
+                anime: {
+                    name: "二次元",
+                    description: "日式动画风格，明亮色彩",
+                },
+                watercolor: {
+                    name: "水彩晕染",
+                    description: "流动色彩，自然融合",
+                },
+            },
+
+            // 高级选项
+            advancedOptions: "高级选项",
+            styleStrength: "风格强度",
+            subtle: "轻微",
+            strong: "强烈",
+
+            // 底部提示
+            hint: "选择风格后点击「生成图片」按钮，AI 将自动为您的图片应用选定的风格效果。",
+            thisMayTake: "这可能需要几秒钟",
+        },
+        inversionMode: {
+            // 上传区域
+            upload: {
+                title: "图片上传",
+                description: "上传需要拆分的图片",
+                dropHere: "拖拽图片到此处",
+                orClick: "或点击选择文件",
+            },
+
+            // 操作按钮
+            splitImage: "拆分图片",
+            splitting: "AI 正在拆分图片...",
+            reupload: "重新上传",
+
+            // 状态消息
+            splitCompleted: "拆分完成！",
+            successfullySplit: "成功拆分为 {count} 个图层",
+
+            // 图层名称
+            layers: {
+                mainSubject: {
+                    name: "主体层",
+                    description: "图像的主要主体",
+                },
+                background: {
+                    name: "背景层",
+                    description: "图像的背景部分",
+                },
+                details: {
+                    name: "细节层",
+                    description: "图像的细节纹理",
+                },
+                lighting: {
+                    name: "光影层",
+                    description: "光照和阴影效果",
+                },
+            },
+
+            // 结果区域
+            splitResults: "拆分结果",
+            layersCount: "{count} 个图层",
+            selectAll: "全选",
+            deselectAll: "取消全选",
+            downloadSelected: "下载选中",
+            waiting: "等待拆分",
+            waitingHint: "上传图片并点击拆分按钮后，这里将显示拆分后的图层",
+
+            // 底部提示
+            hint: "上传图片后点击「拆分图片」按钮，AI 将自动将图片分解为多个图层。",
+        },
     },
     knowledgeCards: {
         title: "知识卡片",

@@ -4,19 +4,22 @@ import type { ToolType } from "./types"
 import { MousePointer2, Square, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface ToolbarProps {
   selectedTool: ToolType
   onToolSelect: (tool: ToolType) => void
 }
 
-const toolButtons = [
-  { id: "select" as const, icon: MousePointer2, label: "选择" },
-  { id: "rectangle" as const, icon: Square, label: "矩形" },
-  { id: "delete" as const, icon: Trash2, label: "删除" },
-]
-
 export function Toolbar({ selectedTool, onToolSelect }: ToolbarProps) {
+  const { t } = useTranslation()
+
+  const toolButtons = [
+    { id: "select" as const, icon: MousePointer2, label: t("imageGeneration.toolbar.select") },
+    { id: "rectangle" as const, icon: Square, label: t("imageGeneration.toolbar.rectangle") },
+    { id: "delete" as const, icon: Trash2, label: t("imageGeneration.toolbar.delete") },
+  ]
+
   return (
     <div className="w-16 border-r border-border bg-muted/30 flex flex-col items-center py-4 gap-2">
       {toolButtons.map((tool) => (

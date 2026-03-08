@@ -6,6 +6,7 @@ import type { MetaSettings } from "./types"
 import { Code, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface CanvasProps {
   layers: Layer[]
@@ -34,6 +35,7 @@ export function Canvas({
   onGenerateJson,
   onGenerateImage,
 }: CanvasProps) {
+  const { t } = useTranslation()
   const [isDragging, setIsDragging] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -44,9 +46,9 @@ export function Canvas({
   const dragLayerRef = useRef<Layer | null>(null)
 
   const getToolHint = () => {
-    if (selectedTool === "select") return "点击选择图层，拖动移动位置"
-    if (selectedTool === "rectangle") return "点击画布添加矩形"
-    if (selectedTool === "delete") return "点击图层即可删除，可连续删除"
+    if (selectedTool === "select") return t("imageGeneration.canvas.toolHints.select")
+    if (selectedTool === "rectangle") return t("imageGeneration.canvas.toolHints.rectangle")
+    if (selectedTool === "delete") return t("imageGeneration.canvas.toolHints.delete")
     return ""
   }
 
@@ -176,9 +178,11 @@ export function Canvas({
             size="sm"
             className="gap-2"
             onClick={onGenerateJson}
+            disabled={layers.length === 0}
+            title={layers.length === 0 ? t("imageGeneration.canvas.addLayerFirst") : undefined}
           >
             <Code className="w-4 h-4" />
-            预览 JSON
+            {t("imageGeneration.canvas.previewJson")}
           </Button>
           <Button
             size="sm"
@@ -186,7 +190,7 @@ export function Canvas({
             onClick={onGenerateImage}
           >
             <Sparkles className="w-4 h-4" />
-            生成图片
+            {t("imageGeneration.canvas.generateImage")}
           </Button>
         </div>
       </div>
@@ -290,9 +294,9 @@ export function Canvas({
                 <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
                   <Sparkles className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground font-medium">画布空白</p>
+                <p className="text-muted-foreground font-medium">{t("imageGeneration.canvas.emptyState.title")}</p>
                 <p className="text-sm text-muted-foreground/60 mt-1">
-                  从左侧选择矩形工具开始创作
+                  {t("imageGeneration.canvas.emptyState.description")}
                 </p>
               </div>
             </div>

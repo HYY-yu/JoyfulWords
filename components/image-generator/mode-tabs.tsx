@@ -2,17 +2,20 @@
 
 import type { TabValue } from "./types"
 import { Sparkles, Palette, RefreshCw } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
 
-const tabs = [
-  { value: "creation" as const, label: "创作模式", icon: Sparkles },
-  { value: "style" as const, label: "风格模式", icon: Palette },
-  { value: "inversion" as const, label: "反向模式", icon: RefreshCw },
-]
-
 export function ModeTabs({ activeTab, onTabChange }: { activeTab: TabValue; onTabChange: (tab: TabValue) => void }) {
+  const { t } = useTranslation()
+
+  const tabs = [
+    { value: "creation" as const, label: t("imageGeneration.modeTabs.creation"), icon: Sparkles },
+    { value: "style" as const, label: t("imageGeneration.modeTabs.style"), icon: Palette },
+    { value: "inversion" as const, label: t("imageGeneration.modeTabs.inversion"), icon: RefreshCw },
+  ]
+
   // 当 activeTab 改变时，保存到 localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {

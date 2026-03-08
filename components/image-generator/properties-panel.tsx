@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
 import { Slider } from "@/components/ui/base/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 interface PropertiesPanelProps {
   selectedLayer: Layer | null
@@ -30,6 +31,8 @@ export function PropertiesPanel({
   onCompositionSettingsChange,
   onLayerPropsChange,
 }: PropertiesPanelProps) {
+  const { t } = useTranslation()
+
   const handleLayerPropChange = (key: keyof LayerProps, value: string | number) => {
     onLayerPropsChange({ ...layerProps, [key]: value })
   }
@@ -41,14 +44,14 @@ export function PropertiesPanel({
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border">
             <ImageIcon className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-foreground">元数据</h3>
+            <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.metadata")}</h3>
           </div>
 
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="width" className="text-sm text-muted-foreground">
-                  宽度
+                  {t("imageGeneration.properties.width")}
                 </Label>
                 <Input
                   id="width"
@@ -64,7 +67,7 @@ export function PropertiesPanel({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="high" className="text-sm text-muted-foreground">
-                  高度
+                  {t("imageGeneration.properties.height")}
                 </Label>
                 <Input
                   id="high"
@@ -82,7 +85,7 @@ export function PropertiesPanel({
 
             <div className="space-y-2">
               <Label htmlFor="seed" className="text-sm text-muted-foreground">
-                随机种子
+                {t("imageGeneration.properties.seed")}
               </Label>
               <Input
                 id="seed"
@@ -95,7 +98,7 @@ export function PropertiesPanel({
                 placeholder="-1"
               />
               <p className="text-xs text-muted-foreground/60">
-                设置为 -1 表示随机种子
+                {t("imageGeneration.properties.seedHint")}
               </p>
             </div>
           </div>
@@ -106,26 +109,30 @@ export function PropertiesPanel({
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-border">
               <Layers className="w-4 h-4 text-primary" />
-              <h3 className="font-semibold text-foreground">选中图层属性</h3>
+              <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.selectedLayer")}</h3>
             </div>
 
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label htmlFor="layer-desc" className="text-sm text-muted-foreground">
-                  描述
+                  {t("imageGeneration.properties.description")}
+                  <span className="text-destructive ml-1">*</span>
                 </Label>
                 <textarea
                   id="layer-desc"
                   value={layerProps.description}
                   onChange={(e) => handleLayerPropChange("description", e.target.value)}
                   className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px] resize-none"
-                  placeholder="输入图层描述..."
+                  placeholder={t("imageGeneration.properties.descriptionPlaceholder2")}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {t("imageGeneration.properties.descriptionRequired2")}
+                </p>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="layer-ref-image" className="text-sm text-muted-foreground">
-                  参考图片 (可选)
+                  {t("imageGeneration.properties.referenceImage")} {t("imageGeneration.properties.referenceImageOptional")}
                 </Label>
                 <Input
                   id="layer-ref-image"
@@ -139,7 +146,7 @@ export function PropertiesPanel({
 
               <div className="space-y-2">
                 <Label htmlFor="layer-zindex" className="text-sm text-muted-foreground">
-                  层级: {layerProps.z_index}
+                  {t("imageGeneration.properties.zIndex")}: {layerProps.z_index}
                 </Label>
                 <Slider
                   id="layer-zindex"
@@ -159,13 +166,13 @@ export function PropertiesPanel({
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border">
             <Palette className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-foreground">全局样式</h3>
+            <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.globalStyle")}</h3>
           </div>
 
           <div className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="medium" className="text-sm text-muted-foreground">
-                艺术媒介
+                {t("imageGeneration.properties.medium")}
               </Label>
               <Select
                 value={globalStyleSettings.medium}
@@ -177,24 +184,24 @@ export function PropertiesPanel({
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择艺术媒介" />
+                  <SelectValue placeholder={t("imageGeneration.properties.selectMedium")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Photography">摄影</SelectItem>
-                  <SelectItem value="Digital Illustration">数字插画</SelectItem>
-                  <SelectItem value="Oil Painting">油画</SelectItem>
-                  <SelectItem value="Watercolor">水彩</SelectItem>
-                  <SelectItem value="3D Render">3D 渲染</SelectItem>
-                  <SelectItem value="Sketch">素描</SelectItem>
-                  <SelectItem value="Cyberpunk">赛博朋克</SelectItem>
-                  <SelectItem value="Glass">玻璃</SelectItem>
+                  <SelectItem value="Photography">{t("imageGeneration.properties.mediums.photography")}</SelectItem>
+                  <SelectItem value="Digital Illustration">{t("imageGeneration.properties.mediums.digitalIllustration")}</SelectItem>
+                  <SelectItem value="Oil Painting">{t("imageGeneration.properties.mediums.oilPainting")}</SelectItem>
+                  <SelectItem value="Watercolor">{t("imageGeneration.properties.mediums.watercolor")}</SelectItem>
+                  <SelectItem value="3D Render">{t("imageGeneration.properties.mediums.render3d")}</SelectItem>
+                  <SelectItem value="Sketch">{t("imageGeneration.properties.mediums.sketch")}</SelectItem>
+                  <SelectItem value="Cyberpunk">{t("imageGeneration.properties.mediums.cyberpunk")}</SelectItem>
+                  <SelectItem value="Glass">{t("imageGeneration.properties.mediums.glass")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="style" className="text-sm text-muted-foreground">
-                艺术风格
+                {t("imageGeneration.properties.style")}
               </Label>
               <Select
                 value={globalStyleSettings.style}
@@ -206,24 +213,24 @@ export function PropertiesPanel({
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择艺术风格" />
+                  <SelectValue placeholder={t("imageGeneration.properties.selectStyle")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Renaissance">文艺复兴</SelectItem>
-                  <SelectItem value="Impressionism">印象派</SelectItem>
-                  <SelectItem value="Surrealism">超现实主义</SelectItem>
-                  <SelectItem value="Minimalism">极简主义</SelectItem>
-                  <SelectItem value="Baroque">巴洛克</SelectItem>
-                  <SelectItem value="Ukiyo-e">浮世绘</SelectItem>
-                  <SelectItem value="Vaporwave">蒸汽波</SelectItem>
-                  <SelectItem value="Ghibli">吉卜力</SelectItem>
+                  <SelectItem value="Renaissance">{t("imageGeneration.properties.styles.renaissance")}</SelectItem>
+                  <SelectItem value="Impressionism">{t("imageGeneration.properties.styles.impressionism")}</SelectItem>
+                  <SelectItem value="Surrealism">{t("imageGeneration.properties.styles.surrealism")}</SelectItem>
+                  <SelectItem value="Minimalism">{t("imageGeneration.properties.styles.minimalism")}</SelectItem>
+                  <SelectItem value="Baroque">{t("imageGeneration.properties.styles.baroque")}</SelectItem>
+                  <SelectItem value="Ukiyo-e">{t("imageGeneration.properties.styles.ukiyoe")}</SelectItem>
+                  <SelectItem value="Vaporwave">{t("imageGeneration.properties.styles.vaporwave")}</SelectItem>
+                  <SelectItem value="Ghibli">{t("imageGeneration.properties.styles.ghibli")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="color_accent" className="text-sm text-muted-foreground">
-                色调
+                {t("imageGeneration.properties.colorAccent")}
               </Label>
               <Select
                 value={globalStyleSettings.color_accent}
@@ -235,15 +242,15 @@ export function PropertiesPanel({
                 }
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="选择色调" />
+                  <SelectValue placeholder={t("imageGeneration.properties.selectColorAccent")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Monochrome">单色</SelectItem>
-                  <SelectItem value="Pastel">粉彩</SelectItem>
-                  <SelectItem value="Earth Tones">大地色</SelectItem>
-                  <SelectItem value="Neon">霓虹</SelectItem>
-                  <SelectItem value="Cinematic Teal & Orange">电影青橙</SelectItem>
-                  <SelectItem value="Morandi">莫兰迪</SelectItem>
+                  <SelectItem value="Monochrome">{t("imageGeneration.properties.colorAccents.monochrome")}</SelectItem>
+                  <SelectItem value="Pastel">{t("imageGeneration.properties.colorAccents.pastel")}</SelectItem>
+                  <SelectItem value="Earth Tones">{t("imageGeneration.properties.colorAccents.earthTones")}</SelectItem>
+                  <SelectItem value="Neon">{t("imageGeneration.properties.colorAccents.neon")}</SelectItem>
+                  <SelectItem value="Cinematic Teal & Orange">{t("imageGeneration.properties.colorAccents.cinematic")}</SelectItem>
+                  <SelectItem value="Morandi">{t("imageGeneration.properties.colorAccents.morandi")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -254,17 +261,17 @@ export function PropertiesPanel({
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border">
             <Camera className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-foreground">构图设置</h3>
+            <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.composition")}</h3>
           </div>
 
           <div className="space-y-3">
             {/* 相机设置 */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground/80">相机</Label>
+              <Label className="text-xs font-medium text-foreground/80">{t("imageGeneration.properties.camera")}</Label>
 
               <div className="space-y-2">
                 <Label htmlFor="camera-angle" className="text-sm text-muted-foreground">
-                  拍摄角度
+                  {t("imageGeneration.properties.angle")}
                 </Label>
                 <Select
                   value={compositionSettings.camera.angle}
@@ -279,21 +286,21 @@ export function PropertiesPanel({
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择拍摄角度" />
+                    <SelectValue placeholder={t("imageGeneration.properties.selectAngle")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Eye Level">水平视角</SelectItem>
-                    <SelectItem value="Low Angle">低角度</SelectItem>
-                    <SelectItem value="High Angle">高角度</SelectItem>
-                    <SelectItem value="Top Down">俯视</SelectItem>
-                    <SelectItem value="Dutch Angle">荷兰角</SelectItem>
+                    <SelectItem value="Eye Level">{t("imageGeneration.properties.angles.eyeLevel")}</SelectItem>
+                    <SelectItem value="Low Angle">{t("imageGeneration.properties.angles.lowAngle")}</SelectItem>
+                    <SelectItem value="High Angle">{t("imageGeneration.properties.angles.highAngle")}</SelectItem>
+                    <SelectItem value="Top Down">{t("imageGeneration.properties.angles.topDown")}</SelectItem>
+                    <SelectItem value="Dutch Angle">{t("imageGeneration.properties.angles.dutchAngle")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="focal-length" className="text-sm text-muted-foreground">
-                  焦距
+                  {t("imageGeneration.properties.focalLength")}
                 </Label>
                 <Select
                   value={compositionSettings.camera.focal_length}
@@ -308,21 +315,21 @@ export function PropertiesPanel({
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择焦距" />
+                    <SelectValue placeholder={t("imageGeneration.properties.selectFocalLength")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="14mm">14mm (超广角)</SelectItem>
-                    <SelectItem value="35mm">35mm (广角)</SelectItem>
-                    <SelectItem value="50mm">50mm (标准)</SelectItem>
-                    <SelectItem value="85mm">85mm (人像)</SelectItem>
-                    <SelectItem value="200mm">200mm (长焦)</SelectItem>
+                    <SelectItem value="14mm">{t("imageGeneration.properties.focalLengths.14mm")}</SelectItem>
+                    <SelectItem value="35mm">{t("imageGeneration.properties.focalLengths.35mm")}</SelectItem>
+                    <SelectItem value="50mm">{t("imageGeneration.properties.focalLengths.50mm")}</SelectItem>
+                    <SelectItem value="85mm">{t("imageGeneration.properties.focalLengths.85mm")}</SelectItem>
+                    <SelectItem value="200mm">{t("imageGeneration.properties.focalLengths.200mm")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="depth-of-field" className="text-sm text-muted-foreground">
-                  景深
+                  {t("imageGeneration.properties.depthOfField")}
                 </Label>
                 <Select
                   value={compositionSettings.camera.depth_of_field}
@@ -337,12 +344,12 @@ export function PropertiesPanel({
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择景深" />
+                    <SelectValue placeholder={t("imageGeneration.properties.selectDepthOfField")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Shallow">浅景深</SelectItem>
-                    <SelectItem value="Deep">深景深</SelectItem>
-                    <SelectItem value="Macro">微距</SelectItem>
+                    <SelectItem value="Shallow">{t("imageGeneration.properties.depths.shallow")}</SelectItem>
+                    <SelectItem value="Deep">{t("imageGeneration.properties.depths.deep")}</SelectItem>
+                    <SelectItem value="Macro">{t("imageGeneration.properties.depths.macro")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -350,11 +357,11 @@ export function PropertiesPanel({
 
             {/* 灯光设置 */}
             <div className="space-y-2">
-              <Label className="text-xs font-medium text-foreground/80">灯光</Label>
+              <Label className="text-xs font-medium text-foreground/80">{t("imageGeneration.properties.lighting")}</Label>
 
               <div className="space-y-2">
                 <Label htmlFor="lighting-type" className="text-sm text-muted-foreground">
-                  灯光类型
+                  {t("imageGeneration.properties.type")}
                 </Label>
                 <Select
                   value={compositionSettings.lighting.type}
@@ -369,22 +376,22 @@ export function PropertiesPanel({
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择灯光类型" />
+                    <SelectValue placeholder={t("imageGeneration.properties.selectType")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Natural Light">自然光</SelectItem>
-                    <SelectItem value="Studio Light">摄影棚</SelectItem>
-                    <SelectItem value="Volumetric Lighting">体积光</SelectItem>
-                    <SelectItem value="Cinematic Lighting">电影光</SelectItem>
-                    <SelectItem value="Neon Light">霓虹灯</SelectItem>
-                    <SelectItem value="Rim Lighting">轮廓光</SelectItem>
+                    <SelectItem value="Natural Light">{t("imageGeneration.properties.types.natural")}</SelectItem>
+                    <SelectItem value="Studio Light">{t("imageGeneration.properties.types.studio")}</SelectItem>
+                    <SelectItem value="Volumetric Lighting">{t("imageGeneration.properties.types.volumetric")}</SelectItem>
+                    <SelectItem value="Cinematic Lighting">{t("imageGeneration.properties.types.cinematic")}</SelectItem>
+                    <SelectItem value="Neon Light">{t("imageGeneration.properties.types.neon")}</SelectItem>
+                    <SelectItem value="Rim Lighting">{t("imageGeneration.properties.types.rim")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="light-source" className="text-sm text-muted-foreground">
-                  光源位置
+                  {t("imageGeneration.properties.source")}
                 </Label>
                 <Select
                   value={compositionSettings.lighting.source}
@@ -399,21 +406,21 @@ export function PropertiesPanel({
                   }
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="选择光源位置" />
+                    <SelectValue placeholder={t("imageGeneration.properties.selectSource")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Front">正面</SelectItem>
-                    <SelectItem value="Side">侧面</SelectItem>
-                    <SelectItem value="Top-down">顶部</SelectItem>
-                    <SelectItem value="Bottom-up">底部</SelectItem>
-                    <SelectItem value="Backlight">背光</SelectItem>
+                    <SelectItem value="Front">{t("imageGeneration.properties.sources.front")}</SelectItem>
+                    <SelectItem value="Side">{t("imageGeneration.properties.sources.side")}</SelectItem>
+                    <SelectItem value="Top-down">{t("imageGeneration.properties.sources.topDown")}</SelectItem>
+                    <SelectItem value="Bottom-up">{t("imageGeneration.properties.sources.bottomUp")}</SelectItem>
+                    <SelectItem value="Backlight">{t("imageGeneration.properties.sources.backlight")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="lighting-intensity" className="text-sm text-muted-foreground">
-                  光照强度: {compositionSettings.lighting.intensity.toFixed(1)}
+                  {t("imageGeneration.properties.intensity")}: {compositionSettings.lighting.intensity.toFixed(1)}
                 </Label>
                 <Slider
                   id="lighting-intensity"
@@ -440,7 +447,7 @@ export function PropertiesPanel({
         {/* Info Box */}
         <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
           <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">提示:</span> 选中画布中的矩形图层可编辑其属性
+            {t("imageGeneration.properties.infoBox")}
           </p>
         </div>
       </div>

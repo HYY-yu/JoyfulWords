@@ -436,6 +436,282 @@ export const en = {
         placeholder: "Describe the image you want to generate...",
         uploadRef: "Upload reference image",
         examples: "Examples",
+        toolbar: {
+            select: "Select",
+            rectangle: "Rectangle",
+            delete: "Delete",
+        },
+        modeTabs: {
+            creation: "Creation Mode",
+            style: "Style Mode",
+            inversion: "Inversion Mode",
+        },
+        canvas: {
+            previewJson: "Preview JSON",
+            addLayerFirst: "Please add at least one layer first",
+            toolHints: {
+                select: "Click to select layer, drag to move position",
+                rectangle: "Click on canvas to add rectangle",
+                delete: "Click layer to delete, can delete multiple layers",
+            },
+            generateImage: "Generate Image",
+            emptyState: {
+                title: "Canvas Empty",
+                description: "Start creating by selecting the rectangle tool from the left",
+            },
+            layerLabel: "Layer {number}",
+        },
+        properties: {
+            description: "Description",
+            descriptionPlaceholder: "Enter layer description...",
+            descriptionRequired: "Description is required for generating image content",
+            // 节标题
+            metadata: "Metadata",
+            selectedLayer: "Selected Layer Properties",
+            globalStyle: "Global Style",
+            composition: "Composition Settings",
+
+            // 元数据
+            width: "Width",
+            height: "Height",
+            seed: "Random Seed",
+            seedHint: "Set to -1 for random seed",
+
+            // 图层属性
+            descriptionLabel: "Description",
+            descriptionPlaceholder2: "Please enter layer description...",
+            descriptionRequired2: "Required",
+            referenceImage: "Reference Image",
+            referenceImageOptional: "(Optional)",
+            zIndex: "Z-Index",
+            infoBox: "Hint: Select a rectangle layer on the canvas to edit its properties",
+
+            // 全局样式
+            medium: "Art Medium",
+            selectMedium: "Select art medium",
+            style: "Art Style",
+            selectStyle: "Select art style",
+            colorAccent: "Color Accent",
+            selectColorAccent: "Select color accent",
+
+            // 艺术媒介选项
+            mediums: {
+                photography: "Photography",
+                digitalIllustration: "Digital Illustration",
+                oilPainting: "Oil Painting",
+                watercolor: "Watercolor",
+                render3d: "3D Render",
+                sketch: "Sketch",
+                cyberpunk: "Cyberpunk",
+                glass: "Glass",
+            },
+
+            // 艺术风格选项
+            styles: {
+                renaissance: "Renaissance",
+                impressionism: "Impressionism",
+                surrealism: "Surrealism",
+                minimalism: "Minimalism",
+                baroque: "Baroque",
+                ukiyoe: "Ukiyo-e",
+                vaporwave: "Vaporwave",
+                ghibli: "Ghibli",
+            },
+
+            // 色调选项
+            colorAccents: {
+                monochrome: "Monochrome",
+                pastel: "Pastel",
+                earthTones: "Earth Tones",
+                neon: "Neon",
+                cinematic: "Cematic Teal & Orange",
+                morandi: "Morandi",
+            },
+
+            // 构图设置
+            camera: "Camera",
+            angle: "Camera Angle",
+            selectAngle: "Select camera angle",
+            angles: {
+                eyeLevel: "Eye Level",
+                lowAngle: "Low Angle",
+                highAngle: "High Angle",
+                topDown: "Top-Down",
+                dutchAngle: "Dutch Angle",
+            },
+            focalLength: "Focal Length",
+            selectFocalLength: "Select focal length",
+            focalLengths: {
+                "14mm": "14mm (Ultra Wide)",
+                "35mm": "35mm (Wide Angle)",
+                "50mm": "50mm (Standard)",
+                "85mm": "85mm (Portrait)",
+                "200mm": "200mm (Telephoto)",
+            },
+            depthOfField: "Depth of Field",
+            selectDepthOfField: "Select depth of field",
+            depths: {
+                shallow: "Shallow",
+                deep: "Deep",
+                macro: "Macro",
+            },
+
+            // 灯光设置
+            lighting: "Lighting",
+            type: "Light Type",
+            selectType: "Select light type",
+            types: {
+                natural: "Natural Light",
+                studio: "Studio",
+                volumetric: "Volumetric",
+                cinematic: "Cinematic",
+                neon: "Neon",
+                rim: "Rim",
+            },
+            source: "Light Source Position",
+            selectSource: "Select light source position",
+            sources: {
+                front: "Front",
+                side: "Side",
+                topDown: "Top",
+                bottomUp: "Bottom",
+                backlight: "Backlight",
+            },
+            intensity: "Light Intensity",
+        },
+        validation: {
+            missingDescription: "Layer description cannot be empty",
+            missingDescriptionDesc: "{{count}} layer(s) missing description, please fill in descriptions before previewing JSON",
+        },
+        jsonPreviewDialog: {
+            title: "Configuration Preview",
+            description: "View JSON configuration and get AI-optimized prompts",
+            jsonLabel: "Creator JSON",
+            promptLabel: "Professional Prompt",
+            convertButton: "Convert Prompt",
+            convertingButton: "Converting...",
+            copyButton: "Copy",
+            copiedButton: "Copied",
+            generateImageButton: "Generate Image",
+            toast: {
+                convertFailed: "Failed to convert prompt",
+                convertSuccess: "Prompt converted successfully",
+                copySuccess: "Copied to clipboard",
+            },
+        },
+        styleMode: {
+            // 上传区域
+            upload: {
+                title: "Image Upload",
+                description: "Drag & drop or click to upload",
+                dropHere: "Drag image here",
+                orClick: "Or click to select file",
+            },
+
+            // 预览区域
+            preview: {
+                original: "Original Preview",
+                live: "Live Preview",
+                reupload: "Re-upload",
+                waitingForUpload: "Waiting for upload",
+                uploadHint: "Upload an image and select a style to start creating",
+            },
+
+            // 操作按钮
+            generate: "Generate Image",
+            rendering: "AI Rendering...",
+            aiRendering: "AI is rendering",
+            download: "Download Image",
+            selected: "Selected",
+
+            // 预设风格
+            presets: {
+                cyberNeon: {
+                    name: "Cyber Neon",
+                    description: "High saturation neon colors, futuristic tech feel",
+                },
+                frostedGlass: {
+                    name: "Frosted Glass",
+                    description: "Semi-transparent texture, soft halo",
+                },
+                minimalLine: {
+                    name: "Minimal Line",
+                    description: "Black and white lines, simple and elegant",
+                },
+                warmOil: {
+                    name: "Warm Oil",
+                    description: "Heavy brushstrokes, warm tones",
+                },
+                anime: {
+                    name: "Anime",
+                    description: "Japanese animation style, bright colors",
+                },
+                watercolor: {
+                    name: "Watercolor",
+                    description: "Flowing colors, natural fusion",
+                },
+            },
+
+            // 高级选项
+            advancedOptions: "Advanced Options",
+            styleStrength: "Style Strength",
+            subtle: "Subtle",
+            strong: "Strong",
+
+            // 底部提示
+            hint: "After selecting a style, click the 'Generate Image' button and AI will automatically apply the selected style effect to your image.",
+            thisMayTake: "This may take a few seconds",
+        },
+        inversionMode: {
+            // 上传区域
+            upload: {
+                title: "Image Upload",
+                description: "Upload image to split",
+                dropHere: "Drag image here",
+                orClick: "Or click to select file",
+            },
+
+            // 操作按钮
+            splitImage: "Split Image",
+            splitting: "AI is splitting image...",
+            reupload: "Re-upload",
+
+            // 状态消息
+            splitCompleted: "Split completed!",
+            successfullySplit: "Successfully split into {count} layers",
+
+            // 图层名称
+            layers: {
+                mainSubject: {
+                    name: "Main Subject Layer",
+                    description: "The main subject of the image",
+                },
+                background: {
+                    name: "Background Layer",
+                    description: "The background part of the image",
+                },
+                details: {
+                    name: "Details Layer",
+                    description: "Details and textures of the image",
+                },
+                lighting: {
+                    name: "Lighting Layer",
+                    description: "Lighting and shadow effects",
+                },
+            },
+
+            // 结果区域
+            splitResults: "Split Results",
+            layersCount: "{count} layers",
+            selectAll: "Select All",
+            deselectAll: "Deselect All",
+            downloadSelected: "Download Selected",
+            waiting: "Waiting to split",
+            waitingHint: "After uploading an image and clicking the split button, the split layers will be displayed here",
+
+            // 底部提示
+            hint: "After uploading an image, click the 'Split Image' button and AI will automatically decompose the image into multiple layers.",
+        },
     },
     knowledgeCards: {
         title: "Knowledge Cards",

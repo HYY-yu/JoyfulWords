@@ -13,52 +13,53 @@ type StylePreset = {
   gradient: string
 }
 
-const STYLE_PRESETS: StylePreset[] = [
+// Helper function to get style presets with i18n support
+const getStylePresets = (t: (key: string, params?: Record<string, any>) => string): StylePreset[] => [
   {
     id: "cyber-neon",
-    name: "赛博霓虹",
-    nameEn: "Cyber Neon",
-    description: "高饱和度霓虹色彩，未来科技感",
+    name: t("imageGeneration.styleMode.presets.cyberNeon.name"),
+    nameEn: t("imageGeneration.styleMode.presets.cyberNeon.name"),
+    description: t("imageGeneration.styleMode.presets.cyberNeon.description"),
     preview: "linear-gradient(135deg, #ff006e 0%, #8338ec 50%, #3a86ff 100%)",
     gradient: "from-pink-500 via-purple-500 to-blue-500"
   },
   {
     id: "frosted-glass",
-    name: "磨砂玻璃",
-    nameEn: "Frosted Glass",
-    description: "半透明质感，柔和光晕",
+    name: t("imageGeneration.styleMode.presets.frostedGlass.name"),
+    nameEn: t("imageGeneration.styleMode.presets.frostedGlass.name"),
+    description: t("imageGeneration.styleMode.presets.frostedGlass.description"),
     preview: "linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 50%, #818cf8 100%)",
     gradient: "from-indigo-100 via-indigo-200 to-indigo-300"
   },
   {
     id: "minimal-line",
-    name: "极简白描",
-    nameEn: "Minimal Line",
-    description: "黑白线条，简洁雅致",
+    name: t("imageGeneration.styleMode.presets.minimalLine.name"),
+    nameEn: t("imageGeneration.styleMode.presets.minimalLine.name"),
+    description: t("imageGeneration.styleMode.presets.minimalLine.description"),
     preview: "linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 50%, #808080 100%)",
     gradient: "from-gray-900 via-gray-600 to-gray-500"
   },
   {
     id: "warm-oil",
-    name: "温暖油画",
-    nameEn: "Warm Oil",
-    description: "厚重笔触，温暖色调",
+    name: t("imageGeneration.styleMode.presets.warmOil.name"),
+    nameEn: t("imageGeneration.styleMode.presets.warmOil.name"),
+    description: t("imageGeneration.styleMode.presets.warmOil.description"),
     preview: "linear-gradient(135deg, #f4a261 0%, #e76f51 50%, #264653 100%)",
     gradient: "from-orange-400 via-red-400 to-cyan-700"
   },
   {
     id: "anime",
-    name: "二次元",
-    nameEn: "Anime",
-    description: "日式动画风格，明亮色彩",
+    name: t("imageGeneration.styleMode.presets.anime.name"),
+    nameEn: t("imageGeneration.styleMode.presets.anime.name"),
+    description: t("imageGeneration.styleMode.presets.anime.description"),
     preview: "linear-gradient(135deg, #ff9ff3 0%, #feca57 50%, #48dbfb 100%)",
     gradient: "from-pink-300 via-yellow-300 to-cyan-400"
   },
   {
     id: "watercolor",
-    name: "水彩晕染",
-    nameEn: "Watercolor",
-    description: "流动色彩，自然融合",
+    name: t("imageGeneration.styleMode.presets.watercolor.name"),
+    nameEn: t("imageGeneration.styleMode.presets.watercolor.name"),
+    description: t("imageGeneration.styleMode.presets.watercolor.description"),
     preview: "linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #d299c2 100%)",
     gradient: "from-teal-200 via-pink-200 to-purple-300"
   }
@@ -73,6 +74,8 @@ export function StyleMode() {
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("idle")
   const [renderedImage, setRenderedImage] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+
+  const STYLE_PRESETS = getStylePresets(t)
 
   const handleFileUpload = useCallback((file: File) => {
     const reader = new FileReader()
@@ -139,10 +142,10 @@ export function StyleMode() {
       <div className="w-80 border-r border-border/50 bg-muted/30 flex flex-col">
         <div className="p-4 border-b border-border/50">
           <h3 className="text-sm font-semibold text-foreground mb-1">
-            {locale === "zh" ? "图片上传" : "Image Upload"}
+            {t("imageGeneration.styleMode.upload.title")}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {locale === "zh" ? "拖拽或点击上传图片" : "Drag or click to upload"}
+            {t("imageGeneration.styleMode.upload.description")}
           </p>
         </div>
 
@@ -189,10 +192,10 @@ export function StyleMode() {
                   <Upload className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground text-center px-4">
-                  {locale === "zh" ? "拖拽图片到此处" : "Drop image here"}
+                  {t("imageGeneration.styleMode.upload.dropHere")}
                 </p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  {locale === "zh" ? "或点击选择文件" : "or click to select"}
+                  {t("imageGeneration.styleMode.upload.orClick")}
                 </p>
               </>
             )}
@@ -208,13 +211,13 @@ export function StyleMode() {
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">
-                  {locale === "zh" ? "原图预览" : "Original"}
+                  {t("imageGeneration.styleMode.preview.original")}
                 </span>
                 <button
                   onClick={handleReset}
                   className="text-xs text-destructive hover:text-destructive/80 transition-colors"
                 >
-                  {locale === "zh" ? "重新上传" : "Reupload"}
+                  {t("imageGeneration.styleMode.preview.reupload")}
                 </button>
               </div>
             </div>
@@ -229,7 +232,7 @@ export function StyleMode() {
           <div className="flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-medium text-foreground">
-              {locale === "zh" ? "实时预览" : "Live Preview"}
+              {t("imageGeneration.styleMode.preview.live")}
             </span>
           </div>
 
@@ -241,13 +244,13 @@ export function StyleMode() {
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all duration-200 hover:scale-105 active:scale-95"
               >
                 <Sparkles className="w-4 h-4" />
-                {locale === "zh" ? "生成图片" : "Generate"}
+                {t("imageGeneration.styleMode.generate")}
               </button>
             )}
             {renderStatus === "generating" && (
               <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium">
                 <Zap className="w-4 h-4 animate-pulse" />
-                {locale === "zh" ? "AI 渲染中..." : "Rendering..."}
+                {t("imageGeneration.styleMode.rendering")}
               </div>
             )}
             {renderStatus === "completed" && renderedImage && (
@@ -256,7 +259,7 @@ export function StyleMode() {
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-all duration-200 hover:scale-105 active:scale-95"
               >
                 <Download className="w-4 h-4" />
-                {locale === "zh" ? "下载图片" : "Download"}
+                {t("imageGeneration.styleMode.download")}
               </button>
             )}
           </div>
@@ -272,10 +275,10 @@ export function StyleMode() {
                   <ImageIcon className="w-12 h-12 text-muted-foreground/50" />
                 </div>
                 <p className="text-lg font-medium text-muted-foreground mb-2">
-                  {locale === "zh" ? "等待上传" : "Waiting for upload"}
+                  {t("imageGeneration.styleMode.preview.waitingForUpload")}
                 </p>
                 <p className="text-sm text-muted-foreground/60">
-                  {locale === "zh" ? "上传图片并选择风格开始创作" : "Upload an image and select a style to begin"}
+                  {t("imageGeneration.styleMode.preview.uploadHint")}
                 </p>
               </div>
             )}
@@ -305,10 +308,10 @@ export function StyleMode() {
                     <div className="absolute inset-0 w-24 h-24 rounded-full border-4 border-transparent border-t-primary animate-spin" />
                   </div>
                   <p className="mt-6 text-lg font-medium text-primary">
-                    {locale === "zh" ? "AI 正在渲染" : "AI Rendering"}
+                    {t("imageGeneration.styleMode.aiRendering")}
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    {locale === "zh" ? "这可能需要几秒钟" : "This may take a few seconds"}
+                    {t("imageGeneration.styleMode.thisMayTake")}
                   </p>
                 </div>
               </div>
@@ -338,10 +341,10 @@ export function StyleMode() {
       <div className="w-96 border-l border-border/50 bg-muted/30 flex flex-col">
         <div className="p-4 border-b border-border/50">
           <h3 className="text-sm font-semibold text-foreground mb-1">
-            {locale === "zh" ? "风格选择" : "Style Selection"}
+            {t("imageGeneration.styleMode.upload.title")}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {locale === "zh" ? "选择预设风格或自定义" : "Choose a preset style or customize"}
+            {t("imageGeneration.styleMode.upload.description")}
           </p>
         </div>
 
@@ -377,7 +380,7 @@ export function StyleMode() {
                   <div className="flex items-start justify-between mb-1">
                     <div>
                       <h4 className="text-sm font-semibold text-foreground">
-                        {locale === "zh" ? preset.name : preset.nameEn}
+                        {preset.name}
                       </h4>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {preset.description}
@@ -395,7 +398,7 @@ export function StyleMode() {
                 {selectedStyle === preset.id && (
                   <div className="absolute top-2 left-2">
                     <div className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                      {locale === "zh" ? "已选择" : "Selected"}
+                      {t("imageGeneration.styleMode.selected")}
                     </div>
                   </div>
                 )}
@@ -406,12 +409,12 @@ export function StyleMode() {
           {/* 自定义选项 */}
           <div className="mt-6 p-4 rounded-xl border border-border/50 bg-background/50">
             <h4 className="text-sm font-semibold text-foreground mb-3">
-              {locale === "zh" ? "高级选项" : "Advanced Options"}
+              {t("imageGeneration.styleMode.advancedOptions")}
             </h4>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">
-                  {locale === "zh" ? "风格强度" : "Style Strength"}
+                  {t("imageGeneration.styleMode.styleStrength")}
                 </label>
                 <input
                   type="range"
@@ -421,8 +424,8 @@ export function StyleMode() {
                   className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>{locale === "zh" ? "轻微" : "Subtle"}</span>
-                  <span>{locale === "zh" ? "强烈" : "Strong"}</span>
+                  <span>{t("imageGeneration.styleMode.subtle")}</span>
+                  <span>{t("imageGeneration.styleMode.strong")}</span>
                 </div>
               </div>
             </div>
@@ -434,10 +437,7 @@ export function StyleMode() {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5">
             <Sparkles className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
             <p className="text-xs text-muted-foreground">
-              {locale === "zh"
-                ? "选择风格后点击「生成图片」按钮，AI 将自动为您的图片应用选定的风格效果。"
-                : "After selecting a style, click 'Generate' and AI will apply the style effect to your image."
-              }
+              {t("imageGeneration.styleMode.hint")}
             </p>
           </div>
         </div>

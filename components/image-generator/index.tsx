@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
 import type {
   Layer,
   ToolType,
@@ -21,11 +22,13 @@ import { Canvas } from "./canvas"
 import { PropertiesPanel } from "./properties-panel"
 import { StyleMode } from "./style-mode"
 import { InversionMode } from "./inversion-mode"
+import { JsonPreviewDialog } from "./json-preview-dialog"
 
 const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
 
 export function ImageGeneration() {
   const { t } = useTranslation()
+  const { toast } = useToast()
 
   const [selectedTool, setSelectedTool] = useState<ToolType>("select")
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
@@ -36,6 +39,7 @@ export function ImageGeneration() {
     }
     return "creation"
   })
+  const [showJsonPreview, setShowJsonPreview] = useState(false)
 
   // 元数据参数
   const [metaSettings, setMetaSettings] = useState<MetaSettings>({
@@ -96,7 +100,7 @@ export function ImageGeneration() {
         y: y - 50,
         width: 100,
         height: 100,
-        label: `图层 ${layers.length + 1}`,
+        label: t("imageGeneration.canvas.layerLabel", { number: layers.length + 1 }),
         description: "",
         zIndex: layers.length,
       }
@@ -158,13 +162,31 @@ export function ImageGeneration() {
   }
 
   const handleGenerateJson = () => {
+    // 验证所有图层是否都有描述
+    const layersWithoutDescription = layers.filter(layer => !layer.description || layer.description.trim() === "")
+
+    if (layersWithoutDescription.length > 0) {
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.validation.missingDescription"),
+        description: t("imageGeneration.validation.missingDescriptionDesc", {
+          count: layersWithoutDescription.length,
+        }),
+      })
+      return
+    }
+
+    setShowJsonPreview(true)
+  }
+
+  const buildCreatorConfig = (): CreatorConfig => {
     // 将 layers 转换为 CreatorLayer 格式
     const creatorLayers = layers.map((layer) => ({
       id: layer.id,
       description: layer.description,
       reference_image: layerProps.reference_image,
       spatial_layout: {
-        box_2d: [layer.x, layer.y, layer.width, layer.height] as const,
+        box_2d: [layer.x, layer.y, layer.width, layer.height] as [number, number, number, number],
         z_index: layer.zIndex,
       },
     }))
@@ -201,8 +223,13 @@ export function ImageGeneration() {
     return creatorConfig
   }
 
+  const handleGenerateImageFromPrompt = (prompt: string) => {
+    console.log("使用专业提示词生成图片:", prompt)
+    // TODO: 调用后端 API 生成图片
+  }
+
   const handleGenerateImage = () => {
-    const creatorConfig = handleGenerateJson()
+    const creatorConfig = buildCreatorConfig()
     console.log("生成图片:", creatorConfig)
     // TODO: 调用后端 API 生成图片
   }
@@ -267,6 +294,14 @@ export function ImageGeneration() {
           />
         </div>
       )}
+
+      {/* JSON 预览弹框 */}
+      <JsonPreviewDialog
+        open={showJsonPreview}
+        onOpenChange={setShowJsonPreview}
+        config={buildCreatorConfig()}
+        onGenerateImage={handleGenerateImageFromPrompt}
+      />
     </main>
   )
 }
