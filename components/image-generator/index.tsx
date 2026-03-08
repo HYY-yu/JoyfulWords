@@ -5,7 +5,16 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-import type { Layer, ToolType, EnvironmentSettings, RenderSettings, LayerProps, TabValue } from "./types"
+import type {
+  Layer,
+  ToolType,
+  MetaSettings,
+  GlobalStyleSettings,
+  CompositionSettings,
+  LayerProps,
+  TabValue,
+  CreatorConfig,
+} from "./types"
 import { ModeTabs } from "./mode-tabs"
 import { Toolbar } from "./toolbar"
 import { Canvas } from "./canvas"
@@ -28,30 +37,48 @@ export function ImageGeneration() {
     return "creation"
   })
 
-  // 基础环境参数
-  const [envSettings, setEnvSettings] = useState<EnvironmentSettings>({
+  // 元数据参数
+  const [metaSettings, setMetaSettings] = useState<MetaSettings>({
     width: 1024,
-    height: 1024,
-    style: "realistic",
-    lighting: "natural",
+    high: 1024,
+    seed: -1,
   })
 
-  // 渲染控制参数
-  const [renderSettings, setRenderSettings] = useState<RenderSettings>({
-    steps: 15,
+  // 全局样式参数
+  const [globalStyleSettings, setGlobalStyleSettings] = useState<GlobalStyleSettings>({
+    medium: "Photography",
+    style: "Renaissance",
+    color_accent: "Cinematic Teal & Orange",
+  })
+
+  // 构图参数
+  const [compositionSettings, setCompositionSettings] = useState<CompositionSettings>({
+    camera: {
+      angle: "Eye Level",
+      focal_length: "50mm",
+      depth_of_field: "Deep",
+    },
+    lighting: {
+      type: "Natural Light",
+      source: "Front",
+      intensity: 0.8,
+    },
   })
 
   // 选中图层属性
   const [layerProps, setLayerProps] = useState<LayerProps>({
-    label: "",
     description: "",
-    zIndex: 0,
+    reference_image: undefined,
+    z_index: 0,
   })
 
   const handleToolClick = (tool: ToolType) => {
     setSelectedTool(tool)
-    if (tool === "delete" && selectedLayer) {
-      setLayers(layers.filter((l) => l.id !== selectedLayer.id))
+  }
+
+  const handleDeleteLayer = (layerId: string) => {
+    setLayers(layers.filter((l) => l.id !== layerId))
+    if (selectedLayer?.id === layerId) {
       setSelectedLayer(null)
     }
   }
@@ -77,9 +104,9 @@ export function ImageGeneration() {
       setLayers([...layers, newLayer])
       setSelectedLayer(newLayer)
       setLayerProps({
-        label: newLayer.label,
         description: "",
-        zIndex: newLayer.zIndex,
+        reference_image: undefined,
+        z_index: newLayer.zIndex,
       })
       setSelectedTool("select")
     }
@@ -87,12 +114,16 @@ export function ImageGeneration() {
 
   const handleLayerClick = (e: React.MouseEvent, layer: Layer) => {
     e.stopPropagation()
-    if (selectedTool === "select") {
+    if (selectedTool === "delete") {
+      // 删除模式下点击图层直接删除
+      handleDeleteLayer(layer.id)
+    } else if (selectedTool === "select") {
+      // 选择模式下选中图层
       setSelectedLayer(layer)
       setLayerProps({
-        label: layer.label,
         description: layer.description,
-        zIndex: layer.zIndex,
+        reference_image: undefined,
+        z_index: layer.zIndex,
       })
     }
   }
@@ -103,19 +134,77 @@ export function ImageGeneration() {
       setLayers(
         layers.map((l) =>
           l.id === selectedLayer.id
-            ? { ...l, label: props.label, description: props.description, zIndex: props.zIndex }
+            ? { ...l, description: props.description, zIndex: props.z_index }
             : l
         )
       )
     }
   }
 
+  const handleLayerPositionChange = (layerId: string, x: number, y: number) => {
+    setLayers(
+      layers.map((l) =>
+        l.id === layerId ? { ...l, x, y } : l
+      )
+    )
+  }
+
+  const handleLayerSizeChange = (layerId: string, x: number, y: number, width: number, height: number) => {
+    setLayers(
+      layers.map((l) =>
+        l.id === layerId ? { ...l, x, y, width, height } : l
+      )
+    )
+  }
+
   const handleGenerateJson = () => {
-    console.log("生成 JSON:", { layers, envSettings, renderSettings })
+    // 将 layers 转换为 CreatorLayer 格式
+    const creatorLayers = layers.map((layer) => ({
+      id: layer.id,
+      description: layer.description,
+      reference_image: layerProps.reference_image,
+      spatial_layout: {
+        box_2d: [layer.x, layer.y, layer.width, layer.height] as const,
+        z_index: layer.zIndex,
+      },
+    }))
+
+    // 构建 CreatorConfig 对象
+    const creatorConfig: CreatorConfig = {
+      version: "1.0",
+      meta: {
+        width: metaSettings.width,
+        high: metaSettings.high,
+        seed: metaSettings.seed,
+      },
+      global_style: {
+        medium: globalStyleSettings.medium,
+        style: globalStyleSettings.style,
+        color_accent: globalStyleSettings.color_accent,
+      },
+      composition: {
+        camera: {
+          angle: compositionSettings.camera.angle,
+          focal_length: compositionSettings.camera.focal_length,
+          depth_of_field: compositionSettings.camera.depth_of_field,
+        },
+        lighting: {
+          type: compositionSettings.lighting.type,
+          source: compositionSettings.lighting.source,
+          intensity: compositionSettings.lighting.intensity,
+        },
+      },
+      layers: creatorLayers,
+    }
+
+    console.log("生成的 Creator JSON:", JSON.stringify(creatorConfig, null, 2))
+    return creatorConfig
   }
 
   const handleGenerateImage = () => {
-    console.log("生成图片:", { layers, envSettings, renderSettings })
+    const creatorConfig = handleGenerateJson()
+    console.log("生成图片:", creatorConfig)
+    // TODO: 调用后端 API 生成图片
   }
 
   return (
@@ -154,8 +243,12 @@ export function ImageGeneration() {
             layers={layers}
             selectedTool={selectedTool}
             selectedLayer={selectedLayer}
+            metaSettings={metaSettings}
             onCanvasClick={handleCanvasClick}
             onLayerClick={handleLayerClick}
+            onLayerPositionChange={handleLayerPositionChange}
+            onLayerSizeChange={handleLayerSizeChange}
+            onDeleteLayer={handleDeleteLayer}
             onGenerateJson={handleGenerateJson}
             onGenerateImage={handleGenerateImage}
           />
@@ -163,11 +256,13 @@ export function ImageGeneration() {
           {/* Right Column - Properties Panel */}
           <PropertiesPanel
             selectedLayer={selectedLayer}
-            envSettings={envSettings}
-            renderSettings={renderSettings}
+            metaSettings={metaSettings}
+            globalStyleSettings={globalStyleSettings}
+            compositionSettings={compositionSettings}
             layerProps={layerProps}
-            onEnvSettingsChange={setEnvSettings}
-            onRenderSettingsChange={setRenderSettings}
+            onMetaSettingsChange={setMetaSettings}
+            onGlobalStyleSettingsChange={setGlobalStyleSettings}
+            onCompositionSettingsChange={setCompositionSettings}
             onLayerPropsChange={handleLayerPropsChange}
           />
         </div>

@@ -1,0 +1,215 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Image Creator Configuration",
+  "description": "Schema for image generation creator configuration",
+  "type": "object",
+  "required": [
+    "version",
+    "meta",
+    "global_style",
+    "composition",
+    "layers"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Metadata for image generation",
+      "required": ["width", "high", "seed"],
+      "properties": {
+        "width": {
+          "type": "integer",
+          "description": "Image width in pixels",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "high": {
+          "type": "integer",
+          "description": "Image height in pixels",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "seed": {
+          "type": "integer",
+          "description": "Random seed (-1 for random)",
+          "minimum": -1
+        }
+      }
+    },
+    "global_style": {
+      "type": "object",
+      "description": "Global style settings",
+      "required": ["medium", "style", "color_accent"],
+      "properties": {
+        "medium": {
+          "type": "string",
+          "description": "Artistic medium",
+          "enum": [
+            "Photography",
+            "Digital Illustration",
+            "Oil Painting",
+            "Watercolor",
+            "3D Render",
+            "Sketch",
+            "Cyberpunk",
+            "Glass"
+          ]
+        },
+        "style": {
+          "type": "string",
+          "description": "Art style",
+          "enum": [
+            "Renaissance",
+            "Impressionism",
+            "Surrealism",
+            "Minimalism",
+            "Baroque",
+            "Ukiyo-e",
+            "Vaporwave",
+            "Ghibli"
+          ]
+        },
+        "color_accent": {
+          "type": "string",
+          "description": "Color palette",
+          "enum": [
+            "Monochrome",
+            "Pastel",
+            "Earth Tones",
+            "Neon",
+            "Cinematic Teal & Orange",
+            "Morandi"
+          ]
+        }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "description": "Image composition settings",
+      "required": ["camera", "lighting"],
+      "properties": {
+        "camera": {
+          "type": "object",
+          "description": "Camera settings",
+          "required": ["angle", "focal_length", "depth_of_field"],
+          "properties": {
+            "angle": {
+              "type": "string",
+              "description": "Camera angle",
+              "enum": [
+                "Eye Level",
+                "Low Angle",
+                "High Angle",
+                "Top Down",
+                "Dutch Angle"
+              ]
+            },
+            "focal_length": {
+              "type": "string",
+              "description": "Lens focal length",
+              "enum": [
+                "14mm",
+                "35mm",
+                "50mm",
+                "85mm",
+                "200mm"
+              ]
+            },
+            "depth_of_field": {
+              "type": "string",
+              "description": "Depth of field effect",
+              "enum": [
+                "Shallow",
+                "Deep",
+                "Macro"
+              ]
+            }
+          }
+        },
+        "lighting": {
+          "type": "object",
+          "description": "Lighting settings",
+          "required": ["type", "source", "intensity"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Lighting type",
+              "enum": [
+                "Natural Light",
+                "Studio Light",
+                "Volumetric Lighting",
+                "Cinematic Lighting",
+                "Neon Light",
+                "Rim Lighting"
+              ]
+            },
+            "source": {
+              "type": "string",
+              "description": "Light source position",
+              "enum": [
+                "Front",
+                "Side",
+                "Top-down",
+                "Bottom-up",
+                "Backlight"
+              ]
+            },
+            "intensity": {
+              "type": "number",
+              "description": "Light intensity (0.1 to 1.0)",
+              "minimum": 0.1,
+              "maximum": 1.0
+            }
+          }
+        }
+      }
+    },
+    "layers": {
+      "type": "array",
+      "description": "Image layers",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "spatial_layout"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Layer identifier"
+          },
+          "description": {
+            "type": "string",
+            "description": "Layer description"
+          },
+          "reference_image": {
+            "type": "string",
+            "description": "Reference image URL",
+            "format": "uri"
+          },
+          "spatial_layout": {
+            "type": "object",
+            "description": "Spatial layout information",
+            "required": ["z_index"],
+            "properties": {
+              "box_2d": {
+                "type": "array",
+                "description": "2D bounding box [x, y, width, height]",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "z_index": {
+                "type": "integer",
+                "description": "Z-index for layer ordering"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,8 @@
 "use client"
 
-import type { Layer, ToolType } from "./types"
+import { useState, useRef, useCallback, useEffect } from "react"
+import type { Layer, ToolType, ResizeHandle } from "./types"
+import type { MetaSettings } from "./types"
 import { Code, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"
@@ -9,8 +11,12 @@ interface CanvasProps {
   layers: Layer[]
   selectedTool: ToolType
   selectedLayer: Layer | null
+  metaSettings: MetaSettings
   onCanvasClick: (e: React.MouseEvent<HTMLDivElement>) => void
   onLayerClick: (e: React.MouseEvent, layer: Layer) => void
+  onLayerPositionChange: (layerId: string, x: number, y: number) => void
+  onLayerSizeChange: (layerId: string, x: number, y: number, width: number, height: number) => void
+  onDeleteLayer: (layerId: string) => void
   onGenerateJson: () => void
   onGenerateImage: () => void
 }
@@ -19,17 +25,143 @@ export function Canvas({
   layers,
   selectedTool,
   selectedLayer,
+  metaSettings,
   onCanvasClick,
   onLayerClick,
+  onLayerPositionChange,
+  onLayerSizeChange,
+  onDeleteLayer,
   onGenerateJson,
   onGenerateImage,
 }: CanvasProps) {
+  const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [resizeHandle, setResizeHandle] = useState<ResizeHandle | null>(null)
+  const [initialResize, setInitialResize] = useState({
+    x: 0, y: 0, width: 0, height: 0, mouseX: 0, mouseY: 0
+  })
+  const dragLayerRef = useRef<Layer | null>(null)
+
   const getToolHint = () => {
-    if (selectedTool === "select") return "点击选择图层"
+    if (selectedTool === "select") return "点击选择图层，拖动移动位置"
     if (selectedTool === "rectangle") return "点击画布添加矩形"
-    if (selectedTool === "delete") return "点击图层删除"
+    if (selectedTool === "delete") return "点击图层即可删除，可连续删除"
     return ""
   }
+
+  // 开始拖动
+  const handleMouseDown = useCallback((e: React.MouseEvent, layer: Layer) => {
+    if (selectedTool !== "select") return
+
+    e.stopPropagation()
+    setIsDragging(true)
+    dragLayerRef.current = layer
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    })
+  }, [selectedTool])
+
+  // 开始调整大小
+  const handleResizeStart = useCallback((e: React.MouseEvent, layer: Layer, handle: ResizeHandle) => {
+    if (selectedTool !== "select") return
+
+    e.stopPropagation()
+    e.preventDefault() // 防止触发其他事件
+    setIsResizing(true)
+    setResizeHandle(handle)
+    dragLayerRef.current = layer
+
+    setInitialResize({
+      x: layer.x,
+      y: layer.y,
+      width: layer.width,
+      height: layer.height,
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+    })
+  }, [selectedTool])
+
+  // 处理鼠标移动
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isResizing && dragLayerRef.current && resizeHandle) {
+      // 调整大小逻辑
+      const layer = dragLayerRef.current
+      const deltaX = e.clientX - initialResize.mouseX
+      const deltaY = e.clientY - initialResize.mouseY
+
+      let newX = initialResize.x
+      let newY = initialResize.y
+      let newWidth = initialResize.width
+      let newHeight = initialResize.height
+
+      // 根据手柄位置调整
+      if (resizeHandle.includes("e")) {
+        newWidth = Math.max(20, initialResize.width + deltaX)
+      }
+      if (resizeHandle.includes("w")) {
+        newWidth = Math.max(20, initialResize.width - deltaX)
+        newX = initialResize.x + deltaX
+      }
+      if (resizeHandle.includes("s")) {
+        newHeight = Math.max(20, initialResize.height + deltaY)
+      }
+      if (resizeHandle.includes("n")) {
+        newHeight = Math.max(20, initialResize.height - deltaY)
+        newY = initialResize.y + deltaY
+      }
+
+      // 确保不超出画布边界
+      newX = Math.max(0, newX)
+      newY = Math.max(0, newY)
+      if (newX + newWidth > metaSettings.width) {
+        newWidth = metaSettings.width - newX
+      }
+      if (newY + newHeight > metaSettings.high) {
+        newHeight = metaSettings.high - newY
+      }
+
+      onLayerSizeChange(layer.id, newX, newY, newWidth, newHeight)
+    } else if (isDragging && !isResizing && dragLayerRef.current) {
+      // 拖动移动逻辑
+      const canvas = document.getElementById("canvas-container")
+      if (!canvas) return
+
+      const canvasRect = canvas.getBoundingClientRect()
+      const newX = e.clientX - canvasRect.left - dragOffset.x
+      const newY = e.clientY - canvasRect.top - dragOffset.y
+
+      // 确保不拖出画布边界
+      const layer = dragLayerRef.current
+      const clampedX = Math.max(0, Math.min(newX, metaSettings.width - layer.width))
+      const clampedY = Math.max(0, Math.min(newY, metaSettings.high - layer.height))
+
+      onLayerPositionChange(layer.id, clampedX, clampedY)
+    }
+  }, [isDragging, isResizing, resizeHandle, dragOffset, initialResize, metaSettings, onLayerPositionChange, onLayerSizeChange])
+
+  // 结束拖动
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false)
+    setIsResizing(false)
+    setResizeHandle(null)
+    dragLayerRef.current = null
+  }, [])
+
+  // 注册全局鼠标事件
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      window.addEventListener("mousemove", handleMouseMove)
+      window.addEventListener("mouseup", handleMouseUp)
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove)
+        window.removeEventListener("mouseup", handleMouseUp)
+      }
+    }
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp])
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -62,9 +194,12 @@ export function Canvas({
       {/* Canvas Area */}
       <div className="flex-1 p-6 overflow-auto">
         <div
-          className="relative w-full h-full bg-card border-2 border-dashed border-border rounded-xl overflow-auto"
+          id="canvas-container"
+          className="relative bg-card border-2 border-dashed border-border rounded-xl overflow-auto mx-auto"
           onClick={onCanvasClick}
           style={{
+            width: `${metaSettings.width}px`,
+            height: `${metaSettings.high}px`,
             backgroundImage: `
               linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
               linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
@@ -77,8 +212,13 @@ export function Canvas({
             <div
               key={layer.id}
               className={cn(
-                "absolute border-2 cursor-pointer transition-all duration-200",
-                selectedLayer?.id === layer.id
+                "absolute border-2 transition-shadow",
+                selectedTool === "select" ? "cursor-move" :
+                selectedTool === "delete" ? "cursor-pointer hover:border-destructive hover:shadow-lg hover:shadow-destructive/30" :
+                "cursor-pointer",
+                selectedLayer?.id === layer.id && selectedTool === "delete"
+                  ? "border-destructive shadow-lg shadow-destructive/30"
+                  : selectedLayer?.id === layer.id
                   ? "border-primary shadow-lg shadow-primary/20"
                   : "border-primary/50 hover:border-primary hover:shadow-md"
               )}
@@ -93,19 +233,51 @@ export function Canvas({
                   : "hsl(var(--primary) / 0.05)",
               }}
               onClick={(e) => onLayerClick(e, layer)}
+              onMouseDown={(e) => selectedTool === "select" && handleMouseDown(e, layer)}
             >
               {/* Layer Label */}
               <div className="absolute -top-6 left-0 text-xs font-medium text-primary whitespace-nowrap">
                 {layer.label}
               </div>
 
-              {/* Resize Handles (only for selected) */}
-              {selectedLayer?.id === layer.id && (
+              {/* Resize Handles (only for selected and in select mode) */}
+              {selectedLayer?.id === layer.id && selectedTool === "select" && (
                 <>
-                  <div className="absolute -top-1 -left-1 w-2 h-2 bg-primary rounded-full" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full" />
-                  <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-primary rounded-full" />
-                  <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-primary rounded-full" />
+                  {/* Corner handles */}
+                  <div
+                    className="absolute -top-1 -left-1 w-1.5 h-1.5 bg-primary rounded-sm cursor-nw-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "nw")}
+                  />
+                  <div
+                    className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-primary rounded-sm cursor-ne-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "ne")}
+                  />
+                  <div
+                    className="absolute -bottom-1 -left-1 w-1.5 h-1.5 bg-primary rounded-sm cursor-sw-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "sw")}
+                  />
+                  <div
+                    className="absolute -bottom-1 -right-1 w-1.5 h-1.5 bg-primary rounded-sm cursor-se-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "se")}
+                  />
+
+                  {/* Edge handles */}
+                  <div
+                    className="absolute -top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-sm cursor-n-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "n")}
+                  />
+                  <div
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-sm cursor-s-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "s")}
+                  />
+                  <div
+                    className="absolute top-1/2 -left-1 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-sm cursor-w-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "w")}
+                  />
+                  <div
+                    className="absolute top-1/2 -right-1 -translate-y-1/2 w-1.5 h-1.5 bg-primary rounded-sm cursor-e-resize hover:bg-primary/80"
+                    onMouseDown={(e) => handleResizeStart(e, layer, "e")}
+                  />
                 </>
               )}
             </div>
