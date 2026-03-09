@@ -149,3 +149,56 @@ export const DEFAULT_POLLING_CONFIG: PollingConfig = {
   storageKey: 'joyfulwords-generation-task',
   taskExpiry: 3600000, // 1 hour
 }
+
+// ============ 模型和生成记录相关类型 ============
+
+/**
+ * 获取可用模型列表响应
+ */
+export interface GetModelsResponse {
+  provider: string
+  models: string[]
+}
+
+/**
+ * 图片生成记录
+ */
+export interface GenerationLog {
+  id: number
+  user_id: number
+  gen_mode: 'creator' | 'style' | 'inversion'
+  config: string  // JSON 字符串
+  prompt: string
+  referenced_material_ids: number[]
+  referenced_materials: Array<{
+    id: number
+    title: string
+    material_type: 'info' | 'news' | 'image'
+  }>
+  reference_image_urls: string  // JSON 数组字符串
+  status: 'pending' | 'processing' | 'success' | 'failed'
+  image_urls: string  // JSON 数组字符串
+  model_name: string
+  model_reference_id: string
+  created_at: string
+  completed_at?: string
+}
+
+/**
+ * 获取生成记录列表请求
+ */
+export interface GetGenerationLogsRequest {
+  page: number
+  page_size: number
+  status?: 'pending' | 'processing' | 'success' | 'failed'
+  gen_mode?: 'creator' | 'style' | 'inversion'
+  model_name?: string
+}
+
+/**
+ * 获取生成记录列表响应
+ */
+export interface GetGenerationLogsResponse {
+  total: number
+  list: GenerationLog[]
+}

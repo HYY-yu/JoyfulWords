@@ -1,12 +1,13 @@
 "use client"
 
 import type { Layer, MetaSettings, GlobalStyleSettings, CompositionSettings, LayerProps } from "./types"
-import { Image as ImageIcon, Palette, Camera, Lightbulb, Layers } from "lucide-react"
+import { Image as ImageIcon, Palette, Camera, Lightbulb, Layers, Cpu } from "lucide-react"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
 import { Slider } from "@/components/ui/base/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { ModelSelector } from "./model-selector"
 
 interface PropertiesPanelProps {
   selectedLayer: Layer | null
@@ -14,10 +15,16 @@ interface PropertiesPanelProps {
   globalStyleSettings: GlobalStyleSettings
   compositionSettings: CompositionSettings
   layerProps: LayerProps
+  // 新增
+  selectedModel: string
+  availableModels: string[]
+  isLoadingModels: boolean
   onMetaSettingsChange: (settings: MetaSettings) => void
   onGlobalStyleSettingsChange: (settings: GlobalStyleSettings) => void
   onCompositionSettingsChange: (settings: CompositionSettings) => void
   onLayerPropsChange: (props: LayerProps) => void
+  // 新增
+  onModelChange: (model: string) => void
 }
 
 export function PropertiesPanel({
@@ -26,10 +33,14 @@ export function PropertiesPanel({
   globalStyleSettings,
   compositionSettings,
   layerProps,
+  selectedModel,
+  availableModels,
+  isLoadingModels,
   onMetaSettingsChange,
   onGlobalStyleSettingsChange,
   onCompositionSettingsChange,
   onLayerPropsChange,
+  onModelChange,
 }: PropertiesPanelProps) {
   const { t } = useTranslation()
 
@@ -40,6 +51,20 @@ export function PropertiesPanel({
   return (
     <div className="w-80 border-l border-border bg-background overflow-auto">
       <div className="p-6 space-y-6">
+        {/* 新增: 模型选择器 */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-border">
+            <Cpu className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold text-foreground">{t("imageGeneration.model.title")}</h3>
+          </div>
+          <ModelSelector
+            selectedModel={selectedModel}
+            availableModels={availableModels}
+            isLoading={isLoadingModels}
+            onModelChange={onModelChange}
+          />
+        </div>
+
         {/* Section 1: 元数据设置 */}
         <div className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border">
@@ -193,7 +218,6 @@ export function PropertiesPanel({
                   <SelectItem value="Watercolor">{t("imageGeneration.properties.mediums.watercolor")}</SelectItem>
                   <SelectItem value="3D Render">{t("imageGeneration.properties.mediums.render3d")}</SelectItem>
                   <SelectItem value="Sketch">{t("imageGeneration.properties.mediums.sketch")}</SelectItem>
-                  <SelectItem value="Cyberpunk">{t("imageGeneration.properties.mediums.cyberpunk")}</SelectItem>
                   <SelectItem value="Glass">{t("imageGeneration.properties.mediums.glass")}</SelectItem>
                 </SelectContent>
               </Select>
@@ -223,6 +247,7 @@ export function PropertiesPanel({
                   <SelectItem value="Baroque">{t("imageGeneration.properties.styles.baroque")}</SelectItem>
                   <SelectItem value="Ukiyo-e">{t("imageGeneration.properties.styles.ukiyoe")}</SelectItem>
                   <SelectItem value="Vaporwave">{t("imageGeneration.properties.styles.vaporwave")}</SelectItem>
+                  <SelectItem value="Cyberpunk">{t("imageGeneration.properties.styles.cyberpunk")}</SelectItem>
                   <SelectItem value="Ghibli">{t("imageGeneration.properties.styles.ghibli")}</SelectItem>
                 </SelectContent>
               </Select>
@@ -246,11 +271,14 @@ export function PropertiesPanel({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Monochrome">{t("imageGeneration.properties.colorAccents.monochrome")}</SelectItem>
-                  <SelectItem value="Pastel">{t("imageGeneration.properties.colorAccents.pastel")}</SelectItem>
-                  <SelectItem value="Earth Tones">{t("imageGeneration.properties.colorAccents.earthTones")}</SelectItem>
-                  <SelectItem value="Neon">{t("imageGeneration.properties.colorAccents.neon")}</SelectItem>
-                  <SelectItem value="Cinematic Teal & Orange">{t("imageGeneration.properties.colorAccents.cinematic")}</SelectItem>
+                  <SelectItem value="Cool Tones">{t("imageGeneration.properties.colorAccents.coolTones")}</SelectItem>
+                  <SelectItem value="Warm Tones">{t("imageGeneration.properties.colorAccents.warmTones")}</SelectItem>
                   <SelectItem value="Morandi">{t("imageGeneration.properties.colorAccents.morandi")}</SelectItem>
+                  <SelectItem value="Pastel">{t("imageGeneration.properties.colorAccents.pastel")}</SelectItem>
+                  <SelectItem value="Cinematic Teal & Orange">{t("imageGeneration.properties.colorAccents.cinematic")}</SelectItem>
+                  <SelectItem value="Neon">{t("imageGeneration.properties.colorAccents.neon")}</SelectItem>
+                  <SelectItem value="Earth Tones">{t("imageGeneration.properties.colorAccents.earthTones")}</SelectItem>
+                  <SelectItem value="High Contrast">{t("imageGeneration.properties.colorAccents.highContrast")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

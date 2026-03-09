@@ -18,7 +18,47 @@ Authorization: Bearer <token>
 
 ## 端点
 
-### 1. 提示词转换
+### 1. 获取支持的模型列表
+
+获取当前支持的图片生成模型列表。
+
+**端点：** `GET /image-generation/models`
+
+**认证：** 不需要
+
+**响应（200 OK）：**
+
+```json
+{
+  "provider": "wavespeed",
+  "models": [
+    "qwen-image-2.0"
+  ]
+}
+```
+
+**响应字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `provider` | string | Provider 名称 |
+| `models` | array | 支持的模型名称列表 |
+
+**错误响应：**
+
+| 状态码 | MessageID | 说明 |
+|--------|-----------|------|
+| 500 | server_error | 服务器内部错误 |
+
+**示例 cURL：**
+
+```bash
+curl http://localhost:8080/image-generation/models
+```
+
+---
+
+### 2. 提示词转换
 
 将 Creator 配置转换为专业图片生成提示词。
 
@@ -102,7 +142,7 @@ Authorization: Bearer <token>
 
 ---
 
-### 2. 创建图片生成任务
+### 3. 创建图片生成任务
 
 创建异步图片生成任务。
 
@@ -159,7 +199,7 @@ Authorization: Bearer <token>
 
 ---
 
-### 3. 获取任务结果
+### 4. 获取任务结果
 
 轮询获取图片生成任务结果。
 
@@ -219,6 +259,93 @@ Authorization: Bearer <token>
 | 401 | not_authenticated | 未认证 |
 | 404 | task_not_found | 任务不存在或无权访问 |
 | 500 | server_error | 服务器内部错误 |
+
+---
+
+### 5. 查询图片生成日志列表
+
+查询用户的图片生成历史记录，支持分页和过滤。
+
+**端点：** `GET /image-generation/logs`
+
+**认证：** 需要
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `page` | int | 否 | 1 | 页码（从 1 开始） |
+| `page_size` | int | 否 | 20 | 每页数量（1-100） |
+| `status` | string | 否 | - | 状态过滤：pending、processing、success、failed |
+| `gen_mode` | string | 否 | - | 生成模式过滤：creator、style |
+| `model_name` | string | 否 | - | 模型名称模糊匹配 |
+
+**响应（200 OK）：**
+
+```json
+{
+  "total": 45,
+  "list": [
+    {
+      "id": 123,
+      "user_id": 1,
+      "gen_mode": "creator",
+      "config": "{\"version\":\"1.0\",...}",
+      "prompt": "A beautiful landscape",
+      "referenced_material_ids": [1, 2, 3],
+      "referenced_materials": [
+        {
+          "id": 1,
+          "title": "素材标题",
+          "material_type": "news"
+        },
+        {
+          "id": 2,
+          "title": "另一个素材",
+          "material_type": "image"
+        }
+      ],
+      "reference_image_urls": "[]",
+      "status": "success",
+      "image_urls": "[\"https://r2.example.com/image.png\"]",
+      "model_name": "qwen-image-2.0-pro",
+      "model_reference_id": "ref_abc123",
+      "created_at": "2026-03-09T10:00:00Z",
+      "completed_at": "2026-03-09T10:01:30Z"
+    }
+  ]
+}
+```
+
+**响应字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `total` | int64 | 总记录数 |
+| `list` | array | 日志列表 |
+| `list[].referenced_material_ids` | array | 引用的素材 ID 数组 |
+| `list[].referenced_materials` | array | 引用的素材详情（仅包含 ID、Title、MaterialType） |
+
+**注意：**
+- 不返回内部字段 `IsSettle` 和 `Cost`
+- `referenced_material_ids` 从逗号分隔字符串解析为数组
+- `referenced_materials` 包含关联素材的基础信息
+- 时间格式为 RFC3339 (UTC)
+
+**错误响应：**
+
+| 状态码 | MessageID | 说明 |
+|--------|-----------|------|
+| 401 | not_authenticated | 未认证 |
+| 400 | invalid_request | 请求参数错误 |
+| 500 | img_gen_list_logs_failed | 查询失败 |
+
+**示例 cURL：**
+
+```bash
+curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=success" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
 
 ---
 
@@ -334,5 +461,16 @@ curl -X POST http://localhost:8080/image-generation/generate \
 
 ```bash
 curl http://localhost:8080/image-generation/tasks/img_abc123... \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### 查询图片生成日志列表
+
+```bash
+curl "http://localhost:8080/image-generation/logs?page=1&page_size=20" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# 带过滤条件
+curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=success&gen_mode=creator" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```

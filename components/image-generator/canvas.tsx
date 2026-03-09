@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import type { Layer, ToolType, ResizeHandle } from "./types"
 import type { MetaSettings } from "./types"
-import { Code, Sparkles } from "lucide-react"
+import { Code, Sparkles, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -15,6 +15,8 @@ interface CanvasProps {
   metaSettings: MetaSettings
   generatedImageUrl: string | null
   showGeneratedImage: boolean
+  isGenerating: boolean
+  generatingMessage: string
   onCanvasClick: (e: React.MouseEvent<HTMLDivElement>) => void
   onLayerClick: (e: React.MouseEvent, layer: Layer) => void
   onLayerPositionChange: (layerId: string, x: number, y: number) => void
@@ -33,6 +35,8 @@ export function Canvas({
   metaSettings,
   generatedImageUrl,
   showGeneratedImage,
+  isGenerating,
+  generatingMessage,
   onCanvasClick,
   onLayerClick,
   onLayerPositionChange,
@@ -214,11 +218,20 @@ export function Canvas({
             size="sm"
             className="gap-2 bg-primary hover:bg-primary/90"
             onClick={onGenerateImage}
-            disabled={layers.length === 0}
+            disabled={layers.length === 0 || isGenerating}
             title={layers.length === 0 ? t("imageGeneration.canvas.addLayerFirst") : undefined}
           >
-            <Sparkles className="w-4 h-4" />
-            {t("imageGeneration.canvas.generateImage")}
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {generatingMessage || t("imageGeneration.canvas.generating")}
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                {t("imageGeneration.canvas.generateImage")}
+              </>
+            )}
           </Button>
         </div>
       </div>

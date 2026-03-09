@@ -440,12 +440,23 @@ export const zh = {
             select: "选择",
             rectangle: "矩形",
             delete: "删除",
+            reset: "重置画布",
         },
         modeTabs: {
-            creation: "创作模式",
-            style: "风格模式",
-            inversion: "反向模式",
+            creation: "创作",
+            style: "风格",
+            inversion: "反向",
+            history: "生成记录",
         },
+
+        // 新增：模型选择器
+        model: {
+            title: "AI 模型",
+            selectPlaceholder: "选择模型",
+            noModelsAvailable: "暂无可用模型",
+            fetchFailed: "加载模型失败",
+        },
+
         canvas: {
             previewJson: "预览 JSON",
             addLayerFirst: "请先添加至少一个图层",
@@ -455,6 +466,7 @@ export const zh = {
                 delete: "点击图层即可删除，可连续删除",
             },
             generateImage: "生成图片",
+            generating: "生成中...",
             viewOriginal: "查看原图",
             saveToMaterials: "保存到素材库",
             laterImplementation: "待实现",
@@ -480,6 +492,7 @@ export const zh = {
             height: "高度",
             seed: "随机种子",
             seedHint: "设置为 -1 表示随机种子",
+            model: "AI 模型",
 
             // 图层属性
             descriptionLabel: "描述",
@@ -506,7 +519,6 @@ export const zh = {
                 watercolor: "水彩",
                 render3d: "3D 渲染",
                 sketch: "素描",
-                cyberpunk: "赛博朋克",
                 glass: "玻璃",
             },
 
@@ -519,17 +531,21 @@ export const zh = {
                 baroque: "巴洛克",
                 ukiyoe: "浮世绘",
                 vaporwave: "蒸汽波",
+                cyberpunk: "赛博朋克",
                 ghibli: "吉卜力",
             },
 
             // 色调选项
             colorAccents: {
                 monochrome: "单色",
-                pastel: "粉彩",
-                earthTones: "大地色",
-                neon: "霓虹",
-                cinematic: "电影青橙",
+                coolTones: "冷色",
+                warmTones: "暖色",
                 morandi: "莫兰迪",
+                pastel: "粉彩",
+                cinematic: "电影青橙",
+                neon: "霓虹",
+                earthTones: "大地色",
+                highContrast: "高对比度",
             },
 
             // 构图设置
@@ -620,6 +636,13 @@ export const zh = {
             timeout: "图片生成超时，请稍后重试",
             saveToMaterialsComingSoon: "永久保存到素材功能将在后期实现",
             comingSoon: "功能开发中",
+        },
+        reset: {
+            dialogTitle: "重置画布",
+            dialogDescription: "这将会把整个画布重置为初始状态。所有图层和设置将被清除。生成的图片会保留在图片生成记录里。",
+            cancel: "取消",
+            confirm: "重置",
+            success: "画布已成功重置",
         },
         styleMode: {
             // 上传区域
@@ -733,6 +756,60 @@ export const zh = {
 
             // 底部提示
             hint: "上传图片后点击「拆分图片」按钮，AI 将自动将图片分解为多个图层。",
+        },
+
+        // 新增：提示词预览
+        promptPreview: {
+            title: "查看提示词",
+            description: "查看本次生成使用的提示词",
+            copy: "复制提示词",
+            copied: "已复制！",
+            copyFailed: "复制失败",
+        },
+
+        // 新增：生成记录
+        logs: {
+            filterStatus: "状态：",
+            filterMode: "模式：",
+            filterModel: "模型：",
+
+            status: {
+                all: "全部状态",
+                pending: "等待中",
+                processing: "生成中",
+                success: "成功",
+                failed: "失败",
+            },
+
+            mode: {
+                all: "全部模式",
+                creator: "创作",
+                style: "风格",
+                inversion: "反向",
+            },
+
+            model: {
+                all: "全部模型",
+            },
+
+            table: {
+                time: "时间",
+                mode: "模式",
+                model: "模型",
+                status: "状态",
+                images: "图片",
+                actions: "操作",
+                noData: "暂无生成记录",
+            },
+
+            actions: {
+                viewPrompt: "查看提示词",
+                download: "下载",
+            },
+
+            toast: {
+                fetchFailed: "获取生成记录失败",
+            },
         },
     },
     knowledgeCards: {

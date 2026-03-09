@@ -5,6 +5,9 @@ import type {
   CreateGenerationTaskRequest,
   CreateGenerationTaskResponse,
   TaskResultResponse,
+  GetModelsResponse,
+  GetGenerationLogsRequest,
+  GetGenerationLogsResponse,
 } from './types'
 
 /**
@@ -121,5 +124,70 @@ export const imageGenerationClient = {
       },
       signal,  // 传递 signal 以支持请求取消
     })
+  },
+
+  /**
+   * 获取可用的图片生成模型列表
+   * GET /image-generation/models
+   *
+   * @returns Promise<GetModelsResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.getModels()
+   * if ('error' in result) {
+   *   console.error(result.error)
+   * } else {
+   *   console.log(result.provider, result.models)
+   * }
+   */
+  async getModels() {
+    console.debug('[ImageGeneration] Fetching available models...')
+    return apiRequest<GetModelsResponse>('/image-generation/models', {
+      method: 'GET',
+    })
+  },
+
+  /**
+   * 获取图片生成记录列表
+   * GET /image-generation/logs
+   *
+   * @param request - 查询参数
+   * @returns Promise<GetGenerationLogsResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.getGenerationLogs({
+   *   page: 1,
+   *   page_size: 20,
+   *   status: 'success',
+   * })
+   */
+  async getGenerationLogs(request: GetGenerationLogsRequest) {
+    const token = localStorage.getItem('access_token')
+
+    console.debug('[ImageGeneration] Fetching generation logs:', {
+      page: request.page,
+      pageSize: request.page_size,
+      status: request.status,
+      genMode: request.gen_mode,
+    })
+
+    const params = new URLSearchParams({
+      page: String(request.page),
+      page_size: String(request.page_size),
+    })
+
+    if (request.status) params.append('status', request.status)
+    if (request.gen_mode) params.append('gen_mode', request.gen_mode)
+    if (request.model_name) params.append('model_name', request.model_name)
+
+    return apiRequest<GetGenerationLogsResponse>(
+      `/image-generation/logs?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+      }
+    )
   },
 }

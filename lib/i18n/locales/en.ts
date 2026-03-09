@@ -440,12 +440,23 @@ export const en = {
             select: "Select",
             rectangle: "Rectangle",
             delete: "Delete",
+            reset: "Reset Canvas",
         },
         modeTabs: {
-            creation: "Creation Mode",
-            style: "Style Mode",
-            inversion: "Inversion Mode",
+            creation: "Creation",
+            style: "Style",
+            inversion: "Inversion",
+            history: "History",
         },
+
+        // 新增：模型选择器
+        model: {
+            title: "AI Model",
+            selectPlaceholder: "Select a model",
+            noModelsAvailable: "No models available",
+            fetchFailed: "Failed to load models",
+        },
+
         canvas: {
             previewJson: "Preview JSON",
             addLayerFirst: "Please add at least one layer first",
@@ -455,6 +466,7 @@ export const en = {
                 delete: "Click layer to delete, can delete multiple layers",
             },
             generateImage: "Generate Image",
+            generating: "Generating...",
             viewOriginal: "View Original",
             saveToMaterials: "Save to Materials",
             laterImplementation: "Coming Soon",
@@ -480,6 +492,7 @@ export const en = {
             height: "Height",
             seed: "Random Seed",
             seedHint: "Set to -1 for random seed",
+            model: "AI Model",
 
             // 图层属性
             descriptionLabel: "Description",
@@ -506,7 +519,6 @@ export const en = {
                 watercolor: "Watercolor",
                 render3d: "3D Render",
                 sketch: "Sketch",
-                cyberpunk: "Cyberpunk",
                 glass: "Glass",
             },
 
@@ -519,17 +531,21 @@ export const en = {
                 baroque: "Baroque",
                 ukiyoe: "Ukiyo-e",
                 vaporwave: "Vaporwave",
+                cyberpunk: "Cyberpunk",
                 ghibli: "Ghibli",
             },
 
             // 色调选项
             colorAccents: {
                 monochrome: "Monochrome",
-                pastel: "Pastel",
-                earthTones: "Earth Tones",
-                neon: "Neon",
-                cinematic: "Cematic Teal & Orange",
+                coolTones: "Cool Tones",
+                warmTones: "Warm Tones",
                 morandi: "Morandi",
+                pastel: "Pastel",
+                cinematic: "Cinematic Teal & Orange",
+                neon: "Neon",
+                earthTones: "Earth Tones",
+                highContrast: "High Contrast",
             },
 
             // 构图设置
@@ -620,6 +636,13 @@ export const en = {
             timeout: "Image generation timeout, please try again later",
             saveToMaterialsComingSoon: "Save to materials feature will be implemented later",
             comingSoon: "Coming Soon",
+        },
+        reset: {
+            dialogTitle: "Reset Canvas",
+            dialogDescription: "This will reset the entire canvas to its initial state. All layers and settings will be cleared. Generated images will be preserved in your generation history.",
+            cancel: "Cancel",
+            confirm: "Reset",
+            success: "Canvas has been reset successfully",
         },
         styleMode: {
             // 上传区域
@@ -733,6 +756,60 @@ export const en = {
 
             // 底部提示
             hint: "After uploading an image, click the 'Split Image' button and AI will automatically decompose the image into multiple layers.",
+        },
+
+        // 新增：提示词预览
+        promptPreview: {
+            title: "View Prompt",
+            description: "View the prompt used for this generation",
+            copy: "Copy Prompt",
+            copied: "Copied!",
+            copyFailed: "Failed to copy prompt",
+        },
+
+        // 新增：生成记录
+        logs: {
+            filterStatus: "Status:",
+            filterMode: "Mode:",
+            filterModel: "Model:",
+
+            status: {
+                all: "All Status",
+                pending: "Pending",
+                processing: "Processing",
+                success: "Success",
+                failed: "Failed",
+            },
+
+            mode: {
+                all: "All Modes",
+                creator: "Creator",
+                style: "Style",
+                inversion: "Inversion",
+            },
+
+            model: {
+                all: "All Models",
+            },
+
+            table: {
+                time: "Time",
+                mode: "Mode",
+                model: "Model",
+                status: "Status",
+                images: "Images",
+                actions: "Actions",
+                noData: "No generation logs found",
+            },
+
+            actions: {
+                viewPrompt: "View Prompt",
+                download: "Download",
+            },
+
+            toast: {
+                fetchFailed: "Failed to fetch generation logs",
+            },
         },
     },
     knowledgeCards: {

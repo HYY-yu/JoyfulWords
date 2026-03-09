@@ -1,7 +1,7 @@
 "use client"
 
 import type { ToolType } from "./types"
-import { MousePointer2, Square, Trash2 } from "lucide-react"
+import { MousePointer2, Square, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -9,9 +9,10 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 interface ToolbarProps {
   selectedTool: ToolType
   onToolSelect: (tool: ToolType) => void
+  onReset?: () => void
 }
 
-export function Toolbar({ selectedTool, onToolSelect }: ToolbarProps) {
+export function Toolbar({ selectedTool, onToolSelect, onReset }: ToolbarProps) {
   const { t } = useTranslation()
 
   const toolButtons = [
@@ -39,6 +40,16 @@ export function Toolbar({ selectedTool, onToolSelect }: ToolbarProps) {
           <tool.icon className="w-5 h-5" />
         </Button>
       ))}
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-12 w-12 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
+        onClick={onReset}
+        title={t("imageGeneration.toolbar.reset")}
+      >
+        <RotateCcw className="w-5 h-5" />
+      </Button>
     </div>
   )
 }

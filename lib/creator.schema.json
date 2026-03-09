@@ -55,7 +55,6 @@
             "Watercolor",
             "3D Render",
             "Sketch",
-            "Cyberpunk",
             "Glass"
           ]
         },
@@ -70,6 +69,7 @@
             "Baroque",
             "Ukiyo-e",
             "Vaporwave",
+            "Cyberpunk",
             "Ghibli"
           ]
         },
@@ -78,11 +78,14 @@
           "description": "Color palette",
           "enum": [
             "Monochrome",
+            "Cool Tones",
+            "Warm Tones",
+            "Morandi",
             "Pastel",
-            "Earth Tones",
-            "Neon",
             "Cinematic Teal & Orange",
-            "Morandi"
+            "Neon",
+            "Earth Tones",
+            "High Contrast"
           ]
         }
       }

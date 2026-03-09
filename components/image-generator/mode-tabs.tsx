@@ -1,7 +1,7 @@
 "use client"
 
 import type { TabValue } from "./types"
-import { Sparkles, Palette, RefreshCw } from "lucide-react"
+import { Sparkles, Palette, RefreshCw, History as HistoryIcon } from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -14,6 +14,7 @@ export function ModeTabs({ activeTab, onTabChange }: { activeTab: TabValue; onTa
     { value: "creation" as const, label: t("imageGeneration.modeTabs.creation"), icon: Sparkles },
     { value: "style" as const, label: t("imageGeneration.modeTabs.style"), icon: Palette },
     { value: "inversion" as const, label: t("imageGeneration.modeTabs.inversion"), icon: RefreshCw },
+    { value: "history" as const, label: t("imageGeneration.modeTabs.history"), icon: HistoryIcon },
   ]
 
   // 当 activeTab 改变时，保存到 localStorage

@@ -25,8 +25,18 @@ import { Canvas } from "./canvas"
 import { PropertiesPanel } from "./properties-panel"
 import { StyleMode } from "./style-mode"
 import { InversionMode } from "./inversion-mode"
+import { GenerationLogs } from "./generation-logs"
 import { JsonPreviewDialog } from "./json-preview-dialog"
-import { GenerationLoadingOverlay } from "./generation-loading-overlay"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/base/alert-dialog"
 
 const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
 
@@ -37,6 +47,7 @@ export function ImageGeneration() {
   const [selectedTool, setSelectedTool] = useState<ToolType>("select")
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
   const [layers, setLayers] = useState<Layer[]>([])
+  const [showResetDialog, setShowResetDialog] = useState(false)
   const [activeTab, setActiveTab] = useState<TabValue>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(TAB_STORAGE_KEY) as TabValue || "creation"
@@ -51,6 +62,12 @@ export function ImageGeneration() {
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const [showGeneratedImage, setShowGeneratedImage] = useState(true)
+
+  // 新增: 模型相关状态
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [selectedModel, setSelectedModel] = useState<string>("")
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
   // 轮询 Hook
   const { startPolling, stopPolling, isPolling } = useImageGenerationPolling({
@@ -156,6 +173,55 @@ export function ImageGeneration() {
       startPolling(savedTask.task_id)
     }
   }, []) // 只在 mount 时执行一次
+
+  // 组件 mount 时获取可用模型列表
+  useEffect(() => {
+    const fetchModels = async () => {
+      console.debug('[ImageGeneration] Fetching available models...')
+      setIsLoadingModels(true)
+      setModelsLoadError(null)
+
+      try {
+        const result = await imageGenerationClient.getModels()
+
+        if ('error' in result) {
+          console.error('[ImageGeneration] Failed to fetch models:', result.error)
+          setModelsLoadError(result.error)
+          toast({
+            variant: "destructive",
+            title: t("imageGeneration.model.fetchFailed"),
+            description: result.error,
+          })
+          return
+        }
+
+        console.info('[ImageGeneration] Models fetched successfully:', {
+          provider: result.provider,
+          modelCount: result.models.length,
+        })
+
+        setAvailableModels(result.models)
+        // 默认选中第一个模型
+        if (result.models.length > 0) {
+          setSelectedModel(result.models[0])
+          console.debug('[ImageGeneration] Default model selected:', result.models[0])
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error('[ImageGeneration] Unexpected error fetching models:', errorMessage)
+        setModelsLoadError(errorMessage)
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.model.fetchFailed"),
+          description: errorMessage,
+        })
+      } finally {
+        setIsLoadingModels(false)
+      }
+    }
+
+    fetchModels()
+  }, [])  // 只在 mount 时执行一次
 
   // 元数据参数
   const [metaSettings, setMetaSettings] = useState<MetaSettings>({
@@ -355,6 +421,7 @@ export function ImageGeneration() {
       const result = await imageGenerationClient.createGenerationTask({
         gen_mode: 'creator', // 创作模式
         prompt,
+        model_name: selectedModel,  // 新增
       })
 
       if ('error' in result) {
@@ -427,6 +494,7 @@ export function ImageGeneration() {
       const result = await imageGenerationClient.createGenerationTask({
         gen_mode: 'creator', // 创作模式
         config: creatorConfig,
+        model_name: selectedModel,  // 新增
       })
 
       if ('error' in result) {
@@ -491,6 +559,63 @@ export function ImageGeneration() {
     })
   }
 
+  const handleResetClick = () => {
+    setShowResetDialog(true)
+  }
+
+  const handleResetConfirm = () => {
+    // 重置所有状态到初始值
+    setSelectedTool("select")
+    setSelectedLayer(null)
+    setLayers([])
+    setGeneratedImageUrl(null)
+    setShowGeneratedImage(true)
+    setShowResetDialog(false)
+
+    // 重置元数据
+    setMetaSettings({
+      width: 1024,
+      high: 1024,
+      seed: -1,
+    })
+
+    // 重置全局样式
+    setGlobalStyleSettings({
+      medium: "Photography",
+      style: "Renaissance",
+      color_accent: "Cinematic Teal & Orange",
+    })
+
+    // 重置构图参数
+    setCompositionSettings({
+      camera: {
+        angle: "Eye Level",
+        focal_length: "50mm",
+        depth_of_field: "Deep",
+      },
+      lighting: {
+        type: "Natural Light",
+        source: "Front",
+        intensity: 0.8,
+      },
+    })
+
+    // 重置选中图层属性
+    setLayerProps({
+      description: "",
+      reference_image: undefined,
+      z_index: 0,
+    })
+
+    toast({
+      title: t("imageGeneration.reset.success"),
+    })
+  }
+
+  const handleResetCancel = () => {
+    setShowResetDialog(false)
+  }
+
   return (
     <main className="flex-1 overflow-auto flex flex-col bg-background">
       {/* Header */}
@@ -516,16 +641,15 @@ export function ImageGeneration() {
         <StyleMode />
       ) : activeTab === "inversion" ? (
         <InversionMode />
+      ) : activeTab === "history" ? (
+        <div className="flex-1 p-8 overflow-hidden flex flex-col">
+          <GenerationLogs />
+        </div>
       ) : (
         /* Main Content - Three Columns */
         <div className="flex-1 flex overflow-hidden relative">
-          {/* Loading 蒙版 - 仅在生成时显示 */}
-          {isGenerating && (
-            <GenerationLoadingOverlay message={generatingMessage} />
-          )}
-
           {/* Left Column - Toolbar */}
-          <Toolbar selectedTool={selectedTool} onToolSelect={handleToolClick} />
+          <Toolbar selectedTool={selectedTool} onToolSelect={handleToolClick} onReset={handleResetClick} />
 
           {/* Center Column - Canvas */}
           <Canvas
@@ -535,6 +659,8 @@ export function ImageGeneration() {
             metaSettings={metaSettings}
             generatedImageUrl={generatedImageUrl}
             showGeneratedImage={showGeneratedImage}
+            isGenerating={isGenerating}
+            generatingMessage={generatingMessage}
             onCanvasClick={handleCanvasClick}
             onLayerClick={handleLayerClick}
             onLayerPositionChange={handleLayerPositionChange}
@@ -553,10 +679,16 @@ export function ImageGeneration() {
             globalStyleSettings={globalStyleSettings}
             compositionSettings={compositionSettings}
             layerProps={layerProps}
+            // 新增 props
+            selectedModel={selectedModel}
+            availableModels={availableModels}
+            isLoadingModels={isLoadingModels}
             onMetaSettingsChange={setMetaSettings}
             onGlobalStyleSettingsChange={setGlobalStyleSettings}
             onCompositionSettingsChange={setCompositionSettings}
             onLayerPropsChange={handleLayerPropsChange}
+            // 新增回调
+            onModelChange={setSelectedModel}
           />
         </div>
       )}
@@ -568,6 +700,26 @@ export function ImageGeneration() {
         config={buildCreatorConfig()}
         onGenerateImage={handleGenerateImageFromPrompt}
       />
+
+      {/* 重置确认对话框 */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("imageGeneration.reset.dialogTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("imageGeneration.reset.dialogDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleResetCancel}>
+              {t("imageGeneration.reset.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetConfirm} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t("imageGeneration.reset.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

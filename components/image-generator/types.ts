@@ -7,7 +7,6 @@ export type MediumType =
   | "Watercolor"
   | "3D Render"
   | "Sketch"
-  | "Cyberpunk"
   | "Glass"
 
 export type StyleType =
@@ -18,15 +17,19 @@ export type StyleType =
   | "Baroque"
   | "Ukiyo-e"
   | "Vaporwave"
+  | "Cyberpunk"
   | "Ghibli"
 
 export type ColorAccent =
   | "Monochrome"
-  | "Pastel"
-  | "Earth Tones"
-  | "Neon"
-  | "Cinematic Teal & Orange"
+  | "Cool Tones"
+  | "Warm Tones"
   | "Morandi"
+  | "Pastel"
+  | "Cinematic Teal & Orange"
+  | "Neon"
+  | "Earth Tones"
+  | "High Contrast"
 
 export type CameraAngle =
   | "Eye Level"
@@ -64,7 +67,7 @@ export type LightSource =
 
 // ============ Component Types ============
 
-export type TabValue = "creation" | "style" | "inversion"
+export type TabValue = "creation" | "style" | "inversion" | "history"
 
 export type ToolType = "select" | "rectangle" | "delete"
 
