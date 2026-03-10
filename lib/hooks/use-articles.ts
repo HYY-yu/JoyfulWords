@@ -104,7 +104,7 @@ export function useArticles() {
   // 初始加载
   useEffect(() => {
     fetchArticles()
-  }, [pagination.page, pagination.pageSize])
+  }, [pagination.page, pagination.pageSize, fetchArticles])
 
   // ==================== 分页操作 ====================
 

@@ -198,7 +198,7 @@ export function PaymentSuccessContent() {
       // 清除 localStorage 中的订单号
       clearLastOrderNo()
     }
-  }, [])
+  }, [orderNo])
 
   useEffect(() => {
     // 只有当 orderNo 有效时才开始轮询
@@ -220,7 +220,7 @@ export function PaymentSuccessContent() {
         shouldContinuePollingRef.current = false
       }
     }
-  }, [orderNo])
+  }, [orderNo, verifyOrder])
 
   const handleBackToBilling = () => {
     router.push('/dashboard?tab=billing')

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
   DialogContent,
@@ -38,14 +38,8 @@ export function JsonPreviewDialog({
   const { toast } = useToast()
   const { t } = useTranslation()
 
-  // 弹框打开时自动转换提示词
-  useEffect(() => {
-    if (open) {
-      convertPrompt()
-    }
-  }, [open])
-
-  const convertPrompt = async () => {
+  // 转换提示词函数
+  const convertPrompt = useCallback(async () => {
     setIsLoading(true)
     setEnhancedPrompt("")
     setCopied(false)
@@ -71,7 +65,14 @@ export function JsonPreviewDialog({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [config, toast, t])
+
+  // 弹框打开时自动转换提示词
+  useEffect(() => {
+    if (open) {
+      convertPrompt()
+    }
+  }, [open, convertPrompt])
 
   const handleCopy = async () => {
     try {

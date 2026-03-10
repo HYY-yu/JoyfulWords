@@ -92,7 +92,7 @@ export function BillingPage() {
   // 组件初始加载时刷新余额（每次进入页面自动刷新）
   useEffect(() => {
     refreshBalance()
-  }, [])
+  }, [refreshBalance])
 
   // 监听 Tab 切换，自动加载对应数据（每次切换都刷新）
   useEffect(() => {

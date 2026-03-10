@@ -49,7 +49,7 @@ export function CookieBannerProvider() {
       // 注意：不执行 cleanup，因为脚本需要保留在全局
       // 这样即使用户在页面间切换，脚本也不会重复加载
     }
-  }, [])
+  }, [isScriptLoaded])
 
   // 初始化/更新配置 (脚本加载完成或语言切换时)
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
@@ -89,7 +89,7 @@ export function useMaterials() {
   const [imagePreview, setImagePreview] = useState<string>("")
 
   // 搜索轮询
-  let pollingInterval: NodeJS.Timeout | null = null
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // ==================== 数据获取 ====================
 
@@ -160,8 +160,8 @@ export function useMaterials() {
 
   const startSearchPolling = useCallback(() => {
     // 清除之前的轮询
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
     }
 
     // 设置轮询状态
@@ -171,19 +171,19 @@ export function useMaterials() {
     checkSearchStatus()
 
     // 设置轮询
-    pollingInterval = setInterval(async () => {
+    pollingIntervalRef.current = setInterval(async () => {
       const completed = await checkSearchStatus()
 
       if (completed) {
         stopSearchPolling()
       }
     }, 3000) // 每 3 秒轮询一次
-  }, [])
+  }, [checkSearchStatus, stopSearchPolling])
 
   const stopSearchPolling = useCallback(() => {
-    if (pollingInterval) {
-      clearInterval(pollingInterval)
-      pollingInterval = null
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
     }
     setHasActivePolling(false)
     setSearching(false)

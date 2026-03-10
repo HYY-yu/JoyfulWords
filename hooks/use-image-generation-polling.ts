@@ -362,7 +362,8 @@ export function useImageGenerationPolling(
         })
       }
     },
-    [config, onProgress, onSuccess, onError, onTimeout, isPolling, currentTaskId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [config, onProgress, onSuccess, onError, onTimeout, isPolling]
   )
 
   // 组件卸载时自动停止轮询

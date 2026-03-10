@@ -177,6 +177,7 @@ export function ImageGeneration() {
       // 启动轮询（不带 storage 参数，因为已经从 localStorage 加载了）
       startPolling(savedTask.task_id)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // 只在 mount 时执行一次
 
   // 组件 mount 时获取可用模型列表
@@ -226,6 +227,7 @@ export function ImageGeneration() {
     }
 
     fetchModels()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])  // 只在 mount 时执行一次
 
   // 元数据参数

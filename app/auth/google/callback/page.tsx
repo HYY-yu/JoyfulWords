@@ -103,7 +103,7 @@ export default function GoogleCallbackPage() {
     }
 
     handleCallback()
-  }, [router, toast, t])
+  }, [router, toast, t, _setSession, _setUser])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

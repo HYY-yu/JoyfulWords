@@ -161,8 +161,9 @@ export function useMultipleAIEditPollers({
     })
 
     // 组件卸载时清理所有轮询器
+    const currentPollers = pollersRef.current
     return () => {
-      pollersRef.current.forEach((_, execId) => {
+      currentPollers.forEach((_, execId) => {
         stopPoller(execId)
       })
     }
