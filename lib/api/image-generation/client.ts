@@ -8,6 +8,7 @@ import type {
   GetModelsResponse,
   GetGenerationLogsRequest,
   GetGenerationLogsResponse,
+  CopyToMaterialsResponse,
 } from './types'
 
 /**
@@ -184,6 +185,37 @@ export const imageGenerationClient = {
       `/image-generation/logs?${params.toString()}`,
       {
         method: 'GET',
+        headers: {
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+      }
+    )
+  },
+
+  /**
+   * 复制图片生成记录到素材库
+   * POST /image-generation/logs/:id/copy-to-materials
+   *
+   * @param logId - 图片生成记录ID (task_id)
+   * @returns Promise<CopyToMaterialsResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.copyToMaterials(123)
+   * if ('error' in result) {
+   *   console.error(result.error)
+   * } else {
+   *   console.log(`已复制 ${result.count} 张图片到素材库`)
+   * }
+   */
+  async copyToMaterials(logId: number) {
+    const token = localStorage.getItem('access_token')
+
+    console.info('[ImageGeneration] Copying log to materials:', { logId })
+
+    return apiRequest<CopyToMaterialsResponse>(
+      `/image-generation/logs/${logId}/copy-to-materials`,
+      {
+        method: 'POST',
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
         },

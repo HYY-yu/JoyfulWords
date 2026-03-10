@@ -636,6 +636,15 @@ export const zh = {
             timeout: "图片生成超时，请稍后重试",
             saveToMaterialsComingSoon: "永久保存到素材功能将在后期实现",
             comingSoon: "功能开发中",
+            copyToMaterialsSuccess: "已成功复制 {count} 张图片到素材库",
+            copyToMaterialsFailed: "复制到素材失败",
+            error: {
+                logNotFound: "图片生成记录不存在",
+                notCompleted: "图片生成尚未完成，请等待生成完成后再试",
+                noImages: "该记录没有可复制的图片",
+                serverError: "服务器错误，请稍后重试",
+                unauthorized: "请先登录",
+            },
         },
         reset: {
             dialogTitle: "重置画布",
@@ -805,6 +814,8 @@ export const zh = {
             actions: {
                 viewPrompt: "查看提示词",
                 download: "下载",
+                copyToMaterials: "复制到素材",
+                copying: "复制中...",
             },
 
             toast: {

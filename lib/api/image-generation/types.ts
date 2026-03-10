@@ -202,3 +202,12 @@ export interface GetGenerationLogsResponse {
   total: number
   list: GenerationLog[]
 }
+
+/**
+ * 复制图片到素材响应
+ */
+export interface CopyToMaterialsResponse {
+  message: string
+  count: number
+  material_ids: number[]
+}

@@ -2,13 +2,16 @@
 
 import { useState } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
 import { useGenerationLogs } from "@/lib/hooks/use-generation-logs"
+import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { GenerationLogsTable } from "./generation-logs-table"
 import { PromptPreviewDialog } from "../dialogs/prompt-preview-dialog"
 import type { GenerationLog } from "@/lib/api/image-generation/types"
 
 export function GenerationLogs() {
   const { t } = useTranslation()
+  const { toast } = useToast()
 
   const {
     logs,
@@ -50,6 +53,51 @@ export function GenerationLogs() {
     }
   }
 
+  const handleCopyToMaterials = async (logId: number) => {
+    console.info('[GenerationLogs] Copying log to materials:', { logId })
+
+    try {
+      const result = await imageGenerationClient.copyToMaterials(logId)
+
+      if ('error' in result) {
+        console.error('[GenerationLogs] Copy failed:', result.error)
+
+        let errorKey = "serverError"
+        if (result.error.includes("not found")) errorKey = "logNotFound"
+        else if (result.error.includes("not completed")) errorKey = "notCompleted"
+        else if (result.error.includes("no images")) errorKey = "noImages"
+        else if (result.error.includes("unauthorized")) errorKey = "unauthorized"
+
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.copyToMaterialsFailed"),
+          description: t(`imageGeneration.toast.error.${errorKey}`),
+        })
+        return
+      }
+
+      console.info('[GenerationLogs] Copy success:', {
+        count: result.count,
+        materialIds: result.material_ids,
+      })
+
+      toast({
+        title: t("imageGeneration.toast.copyToMaterialsSuccess", {
+          count: result.count,
+        }),
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[GenerationLogs] Unexpected error:', { error: errorMessage })
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.copyToMaterialsFailed"),
+        description: t("imageGeneration.toast.error.serverError"),
+      })
+    }
+  }
+
   return (
     <>
       <div className="flex-1 min-h-0">
@@ -69,6 +117,7 @@ export function GenerationLogs() {
           onPageSizeChange={handlePageSizeChange}
           onViewPrompt={handleViewPrompt}
           onDownloadImage={handleDownloadImage}
+          onCopyToMaterials={handleCopyToMaterials}
           t={t}
         />
       </div>

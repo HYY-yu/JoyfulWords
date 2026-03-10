@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronLeftIcon, ChevronRightIcon, FileJson, Download } from "lucide-react"
+import { useState } from "react"
+import { ChevronLeftIcon, ChevronRightIcon, FileJson, Download, Copy, Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { Button } from "@/components/ui/base/button"
 import { ScrollableTableContainer } from "@/components/ui/table/scrollable-table-container"
@@ -22,6 +23,7 @@ interface GenerationLogsTableProps {
   onPageSizeChange: (pageSize: number) => void
   onViewPrompt: (log: GenerationLog) => void
   onDownloadImage: (imageUrl: string) => void
+  onCopyToMaterials?: (logId: number) => void
   t: (key: string, params?: Record<string, any>) => string
 }
 
@@ -49,8 +51,23 @@ export function GenerationLogsTable({
   onPageSizeChange,
   onViewPrompt,
   onDownloadImage,
+  onCopyToMaterials,
   t,
 }: GenerationLogsTableProps) {
+  const [copyingLogIds, setCopyingLogIds] = useState<Set<number>>(new Set())
+
+  const handleCopyToMaterials = async (logId: number) => {
+    setCopyingLogIds(prev => new Set(prev).add(logId))
+    try {
+      await onCopyToMaterials?.(logId)
+    } finally {
+      setCopyingLogIds(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(logId)
+        return newSet
+      })
+    }
+  }
   // 解析 image_urls JSON 字符串
   const parseImageUrls = (urlsJson: string): string[] => {
     try {
@@ -225,15 +242,31 @@ export function GenerationLogsTable({
                           <FileJson className="w-4 h-4" />
                         </Button>
                         {log.status === "success" && imageUrls.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => onDownloadImage(imageUrls[0])}
-                            title={t("imageGeneration.logs.actions.download")}
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => onDownloadImage(imageUrls[0])}
+                              title={t("imageGeneration.logs.actions.download")}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={copyingLogIds.has(log.id)}
+                              onClick={() => handleCopyToMaterials(log.id)}
+                              title={t("imageGeneration.logs.actions.copyToMaterials")}
+                            >
+                              {copyingLogIds.has(log.id) ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </>
                         )}
                       </div>
                     </td>

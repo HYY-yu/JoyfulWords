@@ -282,15 +282,13 @@ export function Canvas({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full justify-start text-muted-foreground"
-                      disabled
+                      className="w-full justify-start"
                       onClick={() => {
                         setShowImageMenu(false)
                         onSaveImageToMaterials()
                       }}
                     >
                       {t("imageGeneration.canvas.saveToMaterials")}
-                      <span className="ml-2 text-xs">({t("imageGeneration.canvas.laterImplementation")})</span>
                     </Button>
                   </div>
                 </div>

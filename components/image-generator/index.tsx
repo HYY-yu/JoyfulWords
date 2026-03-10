@@ -62,6 +62,7 @@ export function ImageGeneration() {
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
   const [showGeneratedImage, setShowGeneratedImage] = useState(true)
+  const [currentGenerationLogId, setCurrentGenerationLogId] = useState<number | null>(null)
 
   // 新增: 模型相关状态
   const [availableModels, setAvailableModels] = useState<string[]>([])
@@ -105,6 +106,10 @@ export function ImageGeneration() {
       setCurrentTaskId(null)
       setGeneratedImageUrl(imageUrl)
       setShowGeneratedImage(true)
+
+      // 保存生成记录ID
+      setCurrentGenerationLogId(result.task_id)
+      console.info('[ImageGeneration] Saved generation log ID:', result.task_id)
 
       toast({
         title: t("imageGeneration.toast.generationSuccess"),
@@ -551,12 +556,59 @@ export function ImageGeneration() {
     setShowGeneratedImage(prev => !prev)
   }
 
-  const handleSaveImageToMaterials = () => {
-    // TODO: 后期实现保存到素材功能
-    toast({
-      title: t("imageGeneration.toast.comingSoon"),
-      description: t("imageGeneration.toast.saveToMaterialsComingSoon"),
-    })
+  const handleSaveImageToMaterials = async () => {
+    if (!currentGenerationLogId) {
+      console.error('[ImageGeneration] No generation log ID available')
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.copyToMaterialsFailed"),
+        description: t("imageGeneration.toast.error.logNotFound"),
+      })
+      return
+    }
+
+    console.info('[ImageGeneration] Copying to materials:', { logId: currentGenerationLogId })
+
+    try {
+      const result = await imageGenerationClient.copyToMaterials(currentGenerationLogId)
+
+      if ('error' in result) {
+        console.error('[ImageGeneration] Copy to materials failed:', result.error)
+
+        let errorKey = "serverError"
+        if (result.error.includes("not found")) errorKey = "logNotFound"
+        else if (result.error.includes("not completed")) errorKey = "notCompleted"
+        else if (result.error.includes("no images")) errorKey = "noImages"
+        else if (result.error.includes("unauthorized")) errorKey = "unauthorized"
+
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.copyToMaterialsFailed"),
+          description: t(`imageGeneration.toast.error.${errorKey}`),
+        })
+        return
+      }
+
+      console.info('[ImageGeneration] Copy to materials success:', {
+        count: result.count,
+        materialIds: result.material_ids,
+      })
+
+      toast({
+        title: t("imageGeneration.toast.copyToMaterialsSuccess", {
+          count: result.count,
+        }),
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[ImageGeneration] Unexpected error:', { error: errorMessage })
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.copyToMaterialsFailed"),
+        description: t("imageGeneration.toast.error.serverError"),
+      })
+    }
   }
 
   const handleResetClick = () => {

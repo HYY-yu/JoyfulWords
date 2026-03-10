@@ -636,6 +636,15 @@ export const en = {
             timeout: "Image generation timeout, please try again later",
             saveToMaterialsComingSoon: "Save to materials feature will be implemented later",
             comingSoon: "Coming Soon",
+            copyToMaterialsSuccess: "Successfully copied {count} image(s) to materials",
+            copyToMaterialsFailed: "Failed to copy to materials",
+            error: {
+                logNotFound: "Image generation log not found",
+                notCompleted: "Image generation not completed yet, please wait for completion",
+                noImages: "No images available to copy in this log",
+                serverError: "Server error, please try again later",
+                unauthorized: "Please login first",
+            },
         },
         reset: {
             dialogTitle: "Reset Canvas",
@@ -805,6 +814,8 @@ export const en = {
             actions: {
                 viewPrompt: "View Prompt",
                 download: "Download",
+                copyToMaterials: "Copy to Materials",
+                copying: "Copying...",
             },
 
             toast: {
