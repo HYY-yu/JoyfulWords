@@ -7,7 +7,7 @@ import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
-import { useImageGenerationPolling, loadTaskFromStorage, clearTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
 import type {
   Layer,
@@ -108,7 +108,7 @@ export function ImageGeneration() {
       setShowGeneratedImage(true)
 
       // 保存生成记录ID
-      setCurrentGenerationLogId(result.task_id)
+      setCurrentGenerationLogId(Number(result.task_id))
       console.info('[ImageGeneration] Saved generation log ID:', result.task_id)
 
       toast({
@@ -192,11 +192,12 @@ export function ImageGeneration() {
 
         if ('error' in result) {
           console.error('[ImageGeneration] Failed to fetch models:', result.error)
-          setModelsLoadError(result.error)
+          const errorMessage = String(result.error)
+          setModelsLoadError(errorMessage)
           toast({
             variant: "destructive",
             title: t("imageGeneration.model.fetchFailed"),
-            description: result.error,
+            description: errorMessage,
           })
           return
         }
@@ -440,7 +441,7 @@ export function ImageGeneration() {
         toast({
           variant: "destructive",
           title: t("imageGeneration.toast.taskCreateFailed"),
-          description: result.error,
+          description: String(result.error),
         })
         return
       }
@@ -577,11 +578,12 @@ export function ImageGeneration() {
       if ('error' in result) {
         console.error('[ImageGeneration] Copy to materials failed:', result.error)
 
+        const errorMessage = String(result.error)
         let errorKey = "serverError"
-        if (result.error.includes("not found")) errorKey = "logNotFound"
-        else if (result.error.includes("not completed")) errorKey = "notCompleted"
-        else if (result.error.includes("no images")) errorKey = "noImages"
-        else if (result.error.includes("unauthorized")) errorKey = "unauthorized"
+        if (errorMessage.includes("not found")) errorKey = "logNotFound"
+        else if (errorMessage.includes("not completed")) errorKey = "notCompleted"
+        else if (errorMessage.includes("no images")) errorKey = "noImages"
+        else if (errorMessage.includes("unauthorized")) errorKey = "unauthorized"
 
         toast({
           variant: "destructive",
