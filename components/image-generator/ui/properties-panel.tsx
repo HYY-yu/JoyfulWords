@@ -1,6 +1,6 @@
 "use client"
 
-import type { Layer, MetaSettings, GlobalStyleSettings, CompositionSettings, LayerProps } from "./types"
+import type { Layer, MetaSettings, GlobalStyleSettings, CompositionSettings, LayerProps } from "../types"
 import { Image as ImageIcon, Palette, Camera, Lightbulb, Layers, Cpu } from "lucide-react"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"

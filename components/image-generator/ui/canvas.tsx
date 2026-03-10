@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from "react"
-import type { Layer, ToolType, ResizeHandle } from "./types"
-import type { MetaSettings } from "./types"
+import type { Layer, ToolType, ResizeHandle } from "../types"
+import type { MetaSettings } from "../types"
 import { Code, Sparkles, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"

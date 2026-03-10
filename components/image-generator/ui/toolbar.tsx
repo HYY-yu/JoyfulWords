@@ -1,6 +1,6 @@
 "use client"
 
-import type { ToolType } from "./types"
+import type { ToolType } from "../types"
 import { MousePointer2, Square, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { cn } from "@/lib/utils"

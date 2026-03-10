@@ -19,14 +19,14 @@ import type {
   TabValue,
   CreatorConfig,
 } from "./types"
-import { ModeTabs } from "./mode-tabs"
-import { Toolbar } from "./toolbar"
-import { Canvas } from "./canvas"
-import { PropertiesPanel } from "./properties-panel"
-import { StyleMode } from "./style-mode"
-import { InversionMode } from "./inversion-mode"
-import { GenerationLogs } from "./generation-logs"
-import { JsonPreviewDialog } from "./json-preview-dialog"
+import { ModeTabs } from "./ui/mode-tabs"
+import { Toolbar } from "./ui/toolbar"
+import { Canvas } from "./ui/canvas"
+import { PropertiesPanel } from "./ui/properties-panel"
+import { StyleMode } from "./modes/style-mode"
+import { InversionMode } from "./modes/inversion-mode"
+import { GenerationLogs } from "./generation/generation-logs"
+import { JsonPreviewDialog } from "./dialogs/json-preview-dialog"
 import {
   AlertDialog,
   AlertDialogAction,

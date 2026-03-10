@@ -474,3 +474,60 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20" \
 curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=success&gen_mode=creator" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+---
+
+### 6. 复制图片到素材
+
+将指定图片生成记录中的图片复制到素材表。
+
+**端点：** `POST /image-generation/logs/:id/copy-to-materials`
+
+**认证：** 需要
+
+**路径参数：**
+
+- `id`: 图片生成记录 ID
+
+**响应（200 OK）：**
+
+```json
+{
+  "message": "已成功复制到素材",
+  "count": 2,
+  "material_ids": [101, 102]
+}
+```
+
+**响应字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `message` | string | 成功消息 |
+| `count` | int | 创建的素材数量 |
+| `material_ids` | array | 新创建的素材 ID 列表 |
+
+**错误响应：**
+
+| 状态码 | MessageID | 说明 |
+|--------|-----------|------|
+| 401 | not_authenticated | 未认证 |
+| 400 | invalid_request | 请求参数错误 |
+| 404 | img_gen_log_not_found | 记录不存在 |
+| 400 | img_gen_not_completed | 图片生成尚未完成 |
+| 400 | img_gen_no_images | 没有可复制的图片 |
+| 500 | server_error | 服务器内部错误 |
+
+**注意：**
+- 只能复制状态为 `success` 的记录
+- 会为每个生成的图片创建一个素材记录
+- 素材的 `Title` 使用 prompt 的前 50 个字符
+- 素材的 `Content` 字段存储图片 URL
+- `MaterialType` 固定为 `image`
+
+**示例 cURL：**
+
+```bash
+curl -X POST http://localhost:8080/image-generation/logs/123/copy-to-materials \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```

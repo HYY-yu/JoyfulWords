@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useGenerationLogs } from "@/lib/hooks/use-generation-logs"
 import { GenerationLogsTable } from "./generation-logs-table"
-import { PromptPreviewDialog } from "./prompt-preview-dialog"
+import { PromptPreviewDialog } from "../dialogs/prompt-preview-dialog"
 import type { GenerationLog } from "@/lib/api/image-generation/types"
 
 export function GenerationLogs() {

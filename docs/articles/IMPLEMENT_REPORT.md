@@ -154,7 +154,6 @@ const result = await materialsClient.getMaterials({
   page_size: 100,
 })
 
-// TODO: GET /api/competitors - Competitor posts (not implemented)
 ```
 
 ---
