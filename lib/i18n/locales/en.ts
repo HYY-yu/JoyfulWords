@@ -660,8 +660,6 @@ export const en = {
                 description: "Upload a black and white line drawing, AI will migrate the style while preserving the subject",
                 dropHere: "Drag image here",
                 orClick: "Or click to select file",
-                drawButton: "Draw Image",
-                drawButtonTooltip: "Open online drawing board (coming soon)",
             },
 
             // Right sidebar - Style List

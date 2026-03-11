@@ -660,8 +660,6 @@ export const zh = {
                 description: "请上传黑白线稿图，AI 将会把风格迁移，并保留图片主体",
                 dropHere: "拖拽图片到此处",
                 orClick: "或点击选择文件",
-                drawButton: "绘制图片",
-                drawButtonTooltip: "打开在线绘图板（即将推出）",
             },
 
             // 右侧栏 - 风格列表

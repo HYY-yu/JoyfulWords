@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
-import { Upload, Download, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, PenTool } from "lucide-react"
+import { Upload, Download, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
@@ -83,7 +83,7 @@ function StyleCard({
 }
 
 export function StyleMode() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<StyleItem | null>(null)
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("idle")
@@ -240,88 +240,95 @@ export function StyleMode() {
           </p>
         </div>
 
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-4 space-y-4">
           {/* 上传区域 */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => {
-              const input = document.createElement("input")
-              input.type = "file"
-              input.accept = "image/*"
-              input.onchange = (e) => {
-                const file = (e.target as HTMLInputElement).files?.[0]
-                if (file) handleFileUpload(file)
-              }
-              input.click()
-            }}
-            className={`
-              relative aspect-square rounded-2xl border-2 border-dashed transition-all duration-300
-              flex flex-col items-center justify-center cursor-pointer overflow-hidden
-              ${
-                isDragging
-                  ? "border-primary bg-primary/5 scale-[1.02]"
-                  : uploadedImage
-                  ? "border-transparent"
-                  : "border-border/50 hover:border-primary/50 hover:bg-muted/50"
-              }
-            `}
-          >
-            {uploadedImage ? (
-              <img
-                src={uploadedImage}
-                alt="Uploaded"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <>
-                <div className={`
-                  p-4 rounded-full mb-3 transition-all duration-300
-                  ${isDragging ? "bg-primary/20 scale-110" : "bg-muted"}
-                `}>
-                  <Upload className="w-8 h-8 text-muted-foreground" />
+          {!uploadedImage ? (
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => {
+                const input = document.createElement("input")
+                input.type = "file"
+                input.accept = "image/*"
+                input.onchange = (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0]
+                  if (file) handleFileUpload(file)
+                }
+                input.click()
+              }}
+              className={`
+                relative aspect-square rounded-2xl border-2 border-dashed transition-all duration-300
+                flex flex-col items-center justify-center cursor-pointer overflow-hidden
+                ${
+                  isDragging
+                    ? "border-primary bg-primary/5 scale-[1.02]"
+                    : "border-border/50 hover:border-primary/50 hover:bg-muted/50"
+                }
+              `}
+            >
+              <div className={`
+                p-4 rounded-full mb-3 transition-all duration-300
+                ${isDragging ? "bg-primary/20 scale-110" : "bg-muted"}
+              `}>
+                <Upload className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm font-medium text-foreground text-center px-4">
+                {t("imageGeneration.styleMode.baseImage.dropHere")}
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                {t("imageGeneration.styleMode.baseImage.orClick")}
+              </p>
+
+              {/* 拖拽时的高亮效果 */}
+              {isDragging && (
+                <div className="absolute inset-0 bg-primary/10 animate-pulse pointer-events-none" />
+              )}
+            </div>
+          ) : (
+            <>
+              {/* 已上传图片的预览 */}
+              <div
+                onClick={() => {
+                  const input = document.createElement("input")
+                  input.type = "file"
+                  input.accept = "image/*"
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0]
+                    if (file) handleFileUpload(file)
+                  }
+                  input.click()
+                }}
+                className="relative aspect-square rounded-2xl border-2 border-dashed border-border/50 transition-all duration-300 hover:border-primary/50 hover:bg-muted/50 cursor-pointer overflow-hidden"
+              >
+                <img
+                  src={uploadedImage}
+                  alt="Uploaded"
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
+                  <Upload className="w-8 h-8 text-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground text-center px-4">
-                  {t("imageGeneration.styleMode.baseImage.dropHere")}
-                </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  {t("imageGeneration.styleMode.baseImage.orClick")}
-                </p>
-              </>
-            )}
-
-            {/* 拖拽时的高亮效果 */}
-            {isDragging && (
-              <div className="absolute inset-0 bg-primary/10 animate-pulse pointer-events-none" />
-            )}
-          </div>
-
-          {/* 已上传图片的预览 */}
-          {uploadedImage && (
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">
-                  {t("imageGeneration.styleMode.preview.original")}
-                </span>
-                <button
-                  onClick={handleReset}
-                  className="text-xs text-destructive hover:text-destructive/80 transition-colors"
-                >
-                  {t("imageGeneration.styleMode.preview.reupload")}
-                </button>
               </div>
 
-              {/* 绘制图片按钮 - TODO */}
-              <Button
-                variant="outline"
-                className="w-full"
-                disabled
-                title={t("imageGeneration.styleMode.baseImage.drawButtonTooltip")}
+              {/* 重新上传按钮 */}
+              <button
+                onClick={handleReset}
+                className="text-xs text-destructive hover:text-destructive/80 transition-colors w-fit"
               >
-                <PenTool className="w-4 h-4 mr-2" />
-                {t("imageGeneration.styleMode.baseImage.drawButton")}
-              </Button>
+                {t("imageGeneration.styleMode.preview.reupload")}
+              </button>
+            </>
+          )}
+
+          {/* 功能提示 */}
+          {!uploadedImage && (
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+              <p className="text-xs text-muted-foreground text-center">
+                {locale === 'zh'
+                  ? '上传黑白线稿图，AI 将会把风格迁移'
+                  : 'Upload a line drawing, AI will apply style transfer'}
+              </p>
             </div>
           )}
         </div>
@@ -376,11 +383,8 @@ export function StyleMode() {
                 <div className="p-6 rounded-full bg-muted/50 mb-4">
                   <ImageIcon className="w-12 h-12 text-muted-foreground/50" />
                 </div>
-                <p className="text-lg font-medium text-muted-foreground mb-2">
+                <p className="text-lg font-medium text-muted-foreground">
                   {t("imageGeneration.styleMode.preview.waitingForUpload")}
-                </p>
-                <p className="text-sm text-muted-foreground/60">
-                  {t("imageGeneration.styleMode.preview.uploadHint")}
                 </p>
               </div>
             )}
