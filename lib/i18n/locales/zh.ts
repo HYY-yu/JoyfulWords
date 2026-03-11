@@ -654,12 +654,26 @@ export const zh = {
             success: "画布已成功重置",
         },
         styleMode: {
-            // 上传区域
-            upload: {
-                title: "图片上传",
-                description: "拖拽或点击上传图片",
+            // 左侧栏 - 基础图片
+            baseImage: {
+                title: "基础图片",
+                description: "请上传黑白线稿图，AI 将会把风格迁移，并保留图片主体",
                 dropHere: "拖拽图片到此处",
                 orClick: "或点击选择文件",
+                drawButton: "绘制图片",
+                drawButtonTooltip: "打开在线绘图板（即将推出）",
+            },
+
+            // 右侧栏 - 风格列表
+            styleList: {
+                title: "Style List",
+                custom: "自定义",
+                customPlaceholder: "请输入风格描述（如：水彩画风格、油画风格...）",
+                customConfirm: "确认",
+                customCancel: "取消",
+                loading: "加载风格中...",
+                loadError: "加载风格失败",
+                retry: "重试",
             },
 
             // 预览区域
@@ -678,7 +692,7 @@ export const zh = {
             download: "下载图片",
             selected: "已选择",
 
-            // 预设风格
+            // 预设风格（保留以兼容，但不再使用）
             presets: {
                 cyberNeon: {
                     name: "赛博霓虹",

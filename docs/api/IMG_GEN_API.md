@@ -58,7 +58,57 @@ curl http://localhost:8080/image-generation/models
 
 ---
 
-### 2. 提示词转换
+### 2. 获取风格示例列表
+
+获取可用的图片风格示例列表，每个风格包含完整的提示词（prefix + style_prompt + suffix）。
+
+**端点：** `GET /image-generation/style-examples`
+
+**认证：** 不需要
+
+**响应（200 OK）：**
+
+```json
+{
+  "style_list": [
+    {
+      "name": "Frosted Glass",
+      "img_url": "https://cdn.joyword.link/img-example/frostedglass.png",
+      "full_prompt": "Preserve the original line structure and composition exactly.\nDo not change the silhouette, layout, proportions, or geometry of the objects.\nApply the style as the material or artistic medium of the subject itself, not as a filter, overlay, or background effect.\nKeep the background minimal, clean, and distraction-free.\nIf text exists in the image, preserve the text exactly:\nsame wording, same layout, same readability.\nDo not stylize, distort, or modify the text.\nTransform the subject into frosted glass material. Semi-transparent translucent surface. Soft light diffusion and subtle internal refraction. Smooth glass edges and matte translucent finish.\nStrictly keep the original shapes and structure unchanged.\nOnly transform the rendering style, color, and material."
+    },
+    {
+      "name": "Anime Illustration",
+      "img_url": "https://cdn.joyword.link/img-example/anime.png",
+      "full_prompt": "..."
+    }
+  ]
+}
+```
+
+**响应字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `style_list` | array | 风格列表 |
+| `style_list[].name` | string | 风格名称 |
+| `style_list[].img_url` | string | 示例图片 URL |
+| `style_list[].full_prompt` | string | 完整提示词（prefix + style_prompt + suffix） |
+
+**错误响应：**
+
+| 状态码 | MessageID | 说明 |
+|--------|-----------|------|
+| 500 | server_error | 服务器内部错误 |
+
+**示例 cURL：**
+
+```bash
+curl http://localhost:8080/image-generation/style-examples
+```
+
+---
+
+### 3. 提示词转换
 
 将 Creator 配置转换为专业图片生成提示词。
 
@@ -142,7 +192,7 @@ curl http://localhost:8080/image-generation/models
 
 ---
 
-### 3. 创建图片生成任务
+### 4. 创建图片生成任务
 
 创建异步图片生成任务。
 
@@ -199,7 +249,7 @@ curl http://localhost:8080/image-generation/models
 
 ---
 
-### 4. 获取任务结果
+### 5. 获取任务结果
 
 轮询获取图片生成任务结果。
 
@@ -262,7 +312,7 @@ curl http://localhost:8080/image-generation/models
 
 ---
 
-### 5. 查询图片生成日志列表
+### 6. 查询图片生成日志列表
 
 查询用户的图片生成历史记录，支持分页和过滤。
 
@@ -477,7 +527,7 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=suc
 
 ---
 
-### 6. 复制图片到素材
+### 7. 复制图片到素材
 
 将指定图片生成记录中的图片复制到素材表。
 
@@ -521,7 +571,7 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=suc
 **注意：**
 - 只能复制状态为 `success` 的记录
 - 会为每个生成的图片创建一个素材记录
-- 素材的 `Title` 使用 prompt 的前 50 个字符
+- 素材的 `Title` 格式：`from-image-{gen_mode}-{时间戳}`（例如：`from-image-creator-2026-03-10T14:30:00`）
 - 素材的 `Content` 字段存储图片 URL
 - `MaterialType` 固定为 `image`
 

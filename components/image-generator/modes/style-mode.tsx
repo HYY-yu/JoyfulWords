@@ -1,81 +1,140 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { Upload, Download, Sparkles, Image as ImageIcon, Zap, CheckCircle2 } from "lucide-react"
+import { useState, useCallback, useEffect } from "react"
+import { Upload, Download, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, PenTool } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { imageGenerationClient } from "@/lib/api/image-generation/client"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
+import { Textarea } from "@/components/ui/base/textarea"
+import { Button } from "@/components/ui/base/button"
 
-type StylePreset = {
+// 风格项目接口
+interface StyleItem {
   id: string
   name: string
-  nameEn: string
-  description: string
-  preview: string
-  gradient: string
+  img_url: string
+  full_prompt?: string
+  isCustom?: boolean
 }
-
-// Helper function to get style presets with i18n support
-const getStylePresets = (t: (key: string, params?: Record<string, any>) => string): StylePreset[] => [
-  {
-    id: "cyber-neon",
-    name: t("imageGeneration.styleMode.presets.cyberNeon.name"),
-    nameEn: t("imageGeneration.styleMode.presets.cyberNeon.name"),
-    description: t("imageGeneration.styleMode.presets.cyberNeon.description"),
-    preview: "linear-gradient(135deg, #ff006e 0%, #8338ec 50%, #3a86ff 100%)",
-    gradient: "from-pink-500 via-purple-500 to-blue-500"
-  },
-  {
-    id: "frosted-glass",
-    name: t("imageGeneration.styleMode.presets.frostedGlass.name"),
-    nameEn: t("imageGeneration.styleMode.presets.frostedGlass.name"),
-    description: t("imageGeneration.styleMode.presets.frostedGlass.description"),
-    preview: "linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 50%, #818cf8 100%)",
-    gradient: "from-indigo-100 via-indigo-200 to-indigo-300"
-  },
-  {
-    id: "minimal-line",
-    name: t("imageGeneration.styleMode.presets.minimalLine.name"),
-    nameEn: t("imageGeneration.styleMode.presets.minimalLine.name"),
-    description: t("imageGeneration.styleMode.presets.minimalLine.description"),
-    preview: "linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 50%, #808080 100%)",
-    gradient: "from-gray-900 via-gray-600 to-gray-500"
-  },
-  {
-    id: "warm-oil",
-    name: t("imageGeneration.styleMode.presets.warmOil.name"),
-    nameEn: t("imageGeneration.styleMode.presets.warmOil.name"),
-    description: t("imageGeneration.styleMode.presets.warmOil.description"),
-    preview: "linear-gradient(135deg, #f4a261 0%, #e76f51 50%, #264653 100%)",
-    gradient: "from-orange-400 via-red-400 to-cyan-700"
-  },
-  {
-    id: "anime",
-    name: t("imageGeneration.styleMode.presets.anime.name"),
-    nameEn: t("imageGeneration.styleMode.presets.anime.name"),
-    description: t("imageGeneration.styleMode.presets.anime.description"),
-    preview: "linear-gradient(135deg, #ff9ff3 0%, #feca57 50%, #48dbfb 100%)",
-    gradient: "from-pink-300 via-yellow-300 to-cyan-400"
-  },
-  {
-    id: "watercolor",
-    name: t("imageGeneration.styleMode.presets.watercolor.name"),
-    nameEn: t("imageGeneration.styleMode.presets.watercolor.name"),
-    description: t("imageGeneration.styleMode.presets.watercolor.description"),
-    preview: "linear-gradient(135deg, #a8edea 0%, #fed6e3 50%, #d299c2 100%)",
-    gradient: "from-teal-200 via-pink-200 to-purple-300"
-  }
-]
 
 type RenderStatus = "idle" | "generating" | "completed" | "error"
 
+// StyleCard 子组件
+interface StyleCardProps {
+  name: string
+  imgUrl: string
+  isCustom?: boolean
+  isSelected: boolean
+  onClick: () => void
+  t: (key: string, params?: Record<string, any>) => string
+}
+
+function StyleCard({
+  name,
+  imgUrl,
+  isSelected,
+  onClick,
+  t
+}: StyleCardProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={`
+        relative group rounded-xl overflow-hidden cursor-pointer
+        transition-all duration-300
+        ${isSelected
+          ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-[1.02]"
+          : "hover:scale-[1.01] hover:shadow-md"
+        }
+      `}
+    >
+      {/* 风格图片 - hover 时从中心放大 1.1 倍 */}
+      <div className="relative h-32 w-full overflow-hidden bg-muted">
+        {imgUrl ? (
+          <img
+            src={imgUrl}
+            alt={name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 origin-center"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-background" />
+        )}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
+      </div>
+
+      {/* 只保留标题 */}
+      <div className="p-3 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-foreground">{name}</h4>
+          {isSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
+        </div>
+      </div>
+
+      {/* 选中标记 */}
+      {isSelected && (
+        <div className="absolute top-2 left-2">
+          <div className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+            {t("imageGeneration.styleMode.selected")}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function StyleMode() {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-  const [selectedStyle, setSelectedStyle] = useState<string | null>(null)
+  const [selectedStyle, setSelectedStyle] = useState<StyleItem | null>(null)
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("idle")
   const [renderedImage, setRenderedImage] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
-  const STYLE_PRESETS = getStylePresets(t)
+  // 风格列表相关状态
+  const [styles, setStyles] = useState<StyleItem[]>([])
+  const [isLoadingStyles, setIsLoadingStyles] = useState(true)
+  const [stylesLoadError, setStylesLoadError] = useState<string | null>(null)
+
+  // 自定义风格对话框状态
+  const [showCustomDialog, setShowCustomDialog] = useState(false)
+  const [customPrompt, setCustomPrompt] = useState("")
+
+  // 获取风格列表
+  useEffect(() => {
+    const fetchStyles = async () => {
+      console.debug('[StyleMode] Fetching style examples...')
+
+      try {
+        const result = await imageGenerationClient.getStyleExamples()
+
+        if ('error' in result) {
+          console.error('[StyleMode] Failed to fetch style examples:', result.error)
+          setStylesLoadError((result.error as any)?.message || 'Unknown error')
+          return
+        }
+
+        console.info('[StyleMode] Successfully fetched style examples:', {
+          count: result.style_list.length
+        })
+
+        const transformedStyles: StyleItem[] = result.style_list.map((style, index) => ({
+          id: `style-${index}`,
+          name: style.name,
+          img_url: style.img_url,
+          full_prompt: style.full_prompt
+        }))
+
+        setStyles(transformedStyles)
+      } catch (error) {
+        console.error('[StyleMode] Unexpected error:', error)
+        setStylesLoadError('Network error')
+      } finally {
+        setIsLoadingStyles(false)
+      }
+    }
+
+    fetchStyles()
+  }, [])
 
   const handleFileUpload = useCallback((file: File) => {
     const reader = new FileReader()
@@ -106,14 +165,40 @@ export function StyleMode() {
     setIsDragging(false)
   }, [])
 
-  const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId)
+  const handleStyleSelect = (style: StyleItem) => {
+    setSelectedStyle(style)
+  }
+
+  const handleCustomStyleConfirm = () => {
+    if (!customPrompt.trim()) return
+
+    const customStyle: StyleItem = {
+      id: 'custom',
+      name: t("imageGeneration.styleMode.styleList.custom"),
+      img_url: '',
+      full_prompt: customPrompt,
+      isCustom: true
+    }
+
+    setSelectedStyle(customStyle)
+    setShowCustomDialog(false)
+    setCustomPrompt("")
+
+    console.info('[StyleMode] Custom style created:', { promptLength: customPrompt.length })
   }
 
   const handleGenerate = () => {
     if (!uploadedImage || !selectedStyle) return
+
+    console.debug('[StyleMode] Starting generation:', {
+      hasImage: !!uploadedImage,
+      styleName: selectedStyle.name,
+      hasPrompt: !!selectedStyle.full_prompt
+    })
+
     setRenderStatus("generating")
 
+    // TODO: 实际生成逻辑
     // 模拟 AI 渲染过程
     setTimeout(() => {
       setRenderedImage(uploadedImage) // 实际应该是渲染后的图片
@@ -136,16 +221,22 @@ export function StyleMode() {
     setRenderStatus("idle")
   }
 
+  const handleRetryFetchStyles = () => {
+    setIsLoadingStyles(true)
+    setStylesLoadError(null)
+    // useEffect 会自动重新触发（通过依赖项变化）
+  }
+
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* 左侧：上传和预览区 */}
       <div className="w-80 border-r border-border/50 bg-muted/30 flex flex-col">
         <div className="p-4 border-b border-border/50">
           <h3 className="text-sm font-semibold text-foreground mb-1">
-            {t("imageGeneration.styleMode.upload.title")}
+            {t("imageGeneration.styleMode.baseImage.title")}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {t("imageGeneration.styleMode.upload.description")}
+            {t("imageGeneration.styleMode.baseImage.description")}
           </p>
         </div>
 
@@ -192,10 +283,10 @@ export function StyleMode() {
                   <Upload className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground text-center px-4">
-                  {t("imageGeneration.styleMode.upload.dropHere")}
+                  {t("imageGeneration.styleMode.baseImage.dropHere")}
                 </p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  {t("imageGeneration.styleMode.upload.orClick")}
+                  {t("imageGeneration.styleMode.baseImage.orClick")}
                 </p>
               </>
             )}
@@ -220,6 +311,17 @@ export function StyleMode() {
                   {t("imageGeneration.styleMode.preview.reupload")}
                 </button>
               </div>
+
+              {/* 绘制图片按钮 - TODO */}
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled
+                title={t("imageGeneration.styleMode.baseImage.drawButtonTooltip")}
+              >
+                <PenTool className="w-4 h-4 mr-2" />
+                {t("imageGeneration.styleMode.baseImage.drawButton")}
+              </Button>
             </div>
           )}
         </div>
@@ -341,95 +443,68 @@ export function StyleMode() {
       <div className="w-96 border-l border-border/50 bg-muted/30 flex flex-col">
         <div className="p-4 border-b border-border/50">
           <h3 className="text-sm font-semibold text-foreground mb-1">
-            {t("imageGeneration.styleMode.upload.title")}
+            {t("imageGeneration.styleMode.styleList.title")}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {t("imageGeneration.styleMode.upload.description")}
+            {isLoadingStyles
+              ? t("imageGeneration.styleMode.styleList.loading")
+              : `${styles.length} styles available`
+            }
           </p>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-4">
-            {STYLE_PRESETS.map((preset, index) => (
-              <div
-                key={preset.id}
-                onClick={() => handleStyleSelect(preset.id)}
-                className={`
-                  relative group rounded-xl overflow-hidden cursor-pointer transition-all duration-300
-                  ${
-                    selectedStyle === preset.id
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg scale-[1.02]"
-                      : "hover:scale-[1.01] hover:shadow-md"
-                  }
-                `}
-                style={{
-                  animationDelay: `${index * 100}ms`
-                }}
-              >
-                {/* 预览条 */}
-                <div
-                  className="h-20 w-full transition-transform duration-500 group-hover:scale-105"
-                  style={{ background: preset.preview }}
-                >
-                  {/* 覆盖层 */}
-                  <div className="w-full h-full bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
-                </div>
-
-                {/* 信息区 */}
-                <div className="p-3 bg-background/95 backdrop-blur-sm">
-                  <div className="flex items-start justify-between mb-1">
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground">
-                        {preset.name}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {preset.description}
-                      </p>
-                    </div>
-                    {selectedStyle === preset.id && (
-                      <div className="p-1 bg-primary rounded-full">
-                        <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 选中指示器 */}
-                {selectedStyle === preset.id && (
-                  <div className="absolute top-2 left-2">
-                    <div className="px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full">
-                      {t("imageGeneration.styleMode.selected")}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* 自定义选项 */}
-          <div className="mt-6 p-4 rounded-xl border border-border/50 bg-background/50">
-            <h4 className="text-sm font-semibold text-foreground mb-3">
-              {t("imageGeneration.styleMode.advancedOptions")}
-            </h4>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">
-                  {t("imageGeneration.styleMode.styleStrength")}
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  defaultValue="75"
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>{t("imageGeneration.styleMode.subtle")}</span>
-                  <span>{t("imageGeneration.styleMode.strong")}</span>
-                </div>
-              </div>
+          {/* 加载状态 */}
+          {isLoadingStyles && (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
+              <p className="text-sm text-muted-foreground">
+                {t("imageGeneration.styleMode.styleList.loading")}
+              </p>
             </div>
-          </div>
+          )}
+
+          {/* 错误状态 */}
+          {!isLoadingStyles && stylesLoadError && (
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              <p className="text-sm text-destructive mb-3">
+                {t("imageGeneration.styleMode.styleList.loadError")}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetryFetchStyles}
+              >
+                {t("imageGeneration.styleMode.styleList.retry")}
+              </Button>
+            </div>
+          )}
+
+          {/* 风格列表 */}
+          {!isLoadingStyles && !stylesLoadError && (
+            <div className="grid grid-cols-2 gap-3">
+              {styles.map((style) => (
+                <StyleCard
+                  key={style.id}
+                  name={style.name}
+                  imgUrl={style.img_url}
+                  isSelected={selectedStyle?.id === style.id}
+                  onClick={() => handleStyleSelect(style)}
+                  t={t}
+                />
+              ))}
+
+              {/* 自定义风格卡片 */}
+              <StyleCard
+                key="custom"
+                name={t("imageGeneration.styleMode.styleList.custom")}
+                imgUrl=""
+                isSelected={selectedStyle?.isCustom === true}
+                onClick={() => setShowCustomDialog(true)}
+                t={t}
+              />
+            </div>
+          )}
         </div>
 
         {/* 底部提示 */}
@@ -442,6 +517,45 @@ export function StyleMode() {
           </div>
         </div>
       </div>
+
+      {/* 自定义风格对话框 */}
+      <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t("imageGeneration.styleMode.styleList.custom")}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <Textarea
+              placeholder={t("imageGeneration.styleMode.styleList.customPlaceholder")}
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCustomDialog(false)
+                setCustomPrompt("")
+              }}
+            >
+              {t("imageGeneration.styleMode.styleList.customCancel")}
+            </Button>
+            <Button
+              onClick={handleCustomStyleConfirm}
+              disabled={!customPrompt.trim()}
+            >
+              {t("imageGeneration.styleMode.styleList.customConfirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

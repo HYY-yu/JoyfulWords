@@ -211,3 +211,21 @@ export interface CopyToMaterialsResponse {
   count: number
   material_ids: number[]
 }
+
+// ============ 风格示例相关类型 ============
+
+/**
+ * 风格示例
+ */
+export interface StyleExample {
+  name: string
+  img_url: string
+  full_prompt: string
+}
+
+/**
+ * 获取风格示例列表响应
+ */
+export interface GetStyleExamplesResponse {
+  style_list: StyleExample[]
+}

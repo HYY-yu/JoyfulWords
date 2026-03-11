@@ -654,15 +654,29 @@ export const en = {
             success: "Canvas has been reset successfully",
         },
         styleMode: {
-            // 上传区域
-            upload: {
-                title: "Image Upload",
-                description: "Drag & drop or click to upload",
+            // Left sidebar - Base Image
+            baseImage: {
+                title: "Base Image",
+                description: "Upload a black and white line drawing, AI will migrate the style while preserving the subject",
                 dropHere: "Drag image here",
                 orClick: "Or click to select file",
+                drawButton: "Draw Image",
+                drawButtonTooltip: "Open online drawing board (coming soon)",
             },
 
-            // 预览区域
+            // Right sidebar - Style List
+            styleList: {
+                title: "Style List",
+                custom: "Custom",
+                customPlaceholder: "Enter style description (e.g., watercolor style, oil painting style...)",
+                customConfirm: "Confirm",
+                customCancel: "Cancel",
+                loading: "Loading styles...",
+                loadError: "Failed to load styles",
+                retry: "Retry",
+            },
+
+            // Preview area
             preview: {
                 original: "Original Preview",
                 live: "Live Preview",
@@ -671,14 +685,14 @@ export const en = {
                 uploadHint: "Upload an image and select a style to start creating",
             },
 
-            // 操作按钮
+            // Action buttons
             generate: "Generate Image",
             rendering: "AI Rendering...",
             aiRendering: "AI is rendering",
             download: "Download Image",
             selected: "Selected",
 
-            // 预设风格
+            // Preset styles (kept for compatibility, but no longer used)
             presets: {
                 cyberNeon: {
                     name: "Cyber Neon",
@@ -706,13 +720,13 @@ export const en = {
                 },
             },
 
-            // 高级选项
+            // Advanced options
             advancedOptions: "Advanced Options",
             styleStrength: "Style Strength",
             subtle: "Subtle",
             strong: "Strong",
 
-            // 底部提示
+            // Bottom hint
             hint: "After selecting a style, click the 'Generate Image' button and AI will automatically apply the selected style effect to your image.",
             thisMayTake: "This may take a few seconds",
         },

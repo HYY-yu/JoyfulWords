@@ -9,6 +9,7 @@ import type {
   GetGenerationLogsRequest,
   GetGenerationLogsResponse,
   CopyToMaterialsResponse,
+  GetStyleExamplesResponse,
 } from './types'
 
 /**
@@ -221,5 +222,28 @@ export const imageGenerationClient = {
         },
       }
     )
+  },
+
+  /**
+   * 获取风格示例列表
+   * GET /image-generation/style-examples
+   *
+   * 获取可用的风格示例列表
+   *
+   * @returns Promise<GetStyleExamplesResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.getStyleExamples()
+   * if ('error' in result) {
+   *   console.error(result.error)
+   * } else {
+   *   console.log(result.style_list)
+   * }
+   */
+  async getStyleExamples() {
+    console.debug('[ImageGeneration] Fetching style examples...')
+    return apiRequest<GetStyleExamplesResponse>('/image-generation/style-examples', {
+      method: 'GET',
+    })
   },
 }
