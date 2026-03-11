@@ -158,28 +158,6 @@ export function useMaterials() {
 
   // ==================== 搜索功能 ====================
 
-  const startSearchPolling = useCallback(() => {
-    // 清除之前的轮询
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-    }
-
-    // 设置轮询状态
-    setHasActivePolling(true)
-
-    // 立即执行一次
-    checkSearchStatus()
-
-    // 设置轮询
-    pollingIntervalRef.current = setInterval(async () => {
-      const completed = await checkSearchStatus()
-
-      if (completed) {
-        stopSearchPolling()
-      }
-    }, 3000) // 每 3 秒轮询一次
-  }, [checkSearchStatus, stopSearchPolling])
-
   const stopSearchPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
@@ -218,6 +196,28 @@ export function useMaterials() {
 
     return allCompleted
   }, [fetchMaterials, fetchSearchLogs, toast, t])
+
+  const startSearchPolling = useCallback(() => {
+    // 清除之前的轮询
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+    }
+
+    // 设置轮询状态
+    setHasActivePolling(true)
+
+    // 立即执行一次
+    checkSearchStatus()
+
+    // 设置轮询
+    pollingIntervalRef.current = setInterval(async () => {
+      const completed = await checkSearchStatus()
+
+      if (completed) {
+        stopSearchPolling()
+      }
+    }, 3000) // 每 3 秒轮询一次
+  }, [checkSearchStatus, stopSearchPolling])
 
   const handleSearch = useCallback(
     async (searchQuery: string, activeSearchTab: string) => {
