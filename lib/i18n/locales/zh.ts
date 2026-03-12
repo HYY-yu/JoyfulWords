@@ -138,6 +138,7 @@ export const zh = {
             errors: {
                 invalidImageType: "请选择图片文件",
                 imageTooLarge: "图片大小不能超过 5MB",
+                searchTooShort: "您输入的搜索内容太短了，请输入更具体的搜索词，有助于您精准搜索数据",
             },
             logs: {
                 tabs: {

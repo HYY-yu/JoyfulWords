@@ -138,6 +138,7 @@ export const en = {
             errors: {
                 invalidImageType: "Please select an image file",
                 imageTooLarge: "Image size cannot exceed 5MB",
+                searchTooShort: "Your search query is too short. Please enter more specific search terms for better results",
             },
             logs: {
                 tabs: {

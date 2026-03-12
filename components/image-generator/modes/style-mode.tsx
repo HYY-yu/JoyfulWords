@@ -326,7 +326,7 @@ export function StyleMode() {
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
               <p className="text-xs text-muted-foreground text-center">
                 {locale === 'zh'
-                  ? '上传黑白线稿图，AI 将会把风格迁移'
+                  ? '上传黑白线稿图，AI 将会应用对应风格'
                   : 'Upload a line drawing, AI will apply style transfer'}
               </p>
             </div>

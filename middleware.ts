@@ -32,9 +32,9 @@ export async function middleware(request: NextRequest) {
   const isPublic = isAuthRoute || isPublicPage || exactPublicRoutes.includes(pathname)
 
   // Redirect authenticated users away from auth pages (but NOT public pages)
-  if (isAuthenticated && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // if (isAuthenticated && isAuthRoute) {
+  //   return NextResponse.redirect(new URL('/dashboard', request.url))
+  // }
 
   // Redirect unauthenticated users to login for protected routes
   if (!isAuthenticated && !isPublic) {
