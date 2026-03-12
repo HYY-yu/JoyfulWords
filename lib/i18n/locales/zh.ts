@@ -645,6 +645,7 @@ export const zh = {
                 noImages: "该记录没有可复制的图片",
                 serverError: "服务器错误，请稍后重试",
                 unauthorized: "请先登录",
+                invalidFileType: "文件类型无效",
             },
         },
         reset: {
@@ -661,6 +662,21 @@ export const zh = {
                 description: "请上传黑白线稿图，AI 将会把风格迁移，并保留图片主体",
                 dropHere: "拖拽图片到此处",
                 orClick: "或点击选择文件",
+            },
+
+            // 上传状态
+            uploading: "上传中...",
+            uploadingHint: "正在上传图片到服务器",
+
+            // 验证错误
+            validation: {
+                missingInput: "信息不完整",
+                missingInputDesc: "请先上传图片并选择风格",
+                missingImage: "请先上传图片",
+                missingStyle: "请选择风格",
+                missingModel: "未选择模型",
+                missingModelDesc: "请选择一个图片生成模型",
+                uploadFailed: "图片上传失败",
             },
 
             // 右侧栏 - 风格列表
@@ -822,6 +838,7 @@ export const zh = {
                 images: "图片",
                 actions: "操作",
                 noData: "暂无生成记录",
+                clickToPreview: "点击预览",
             },
 
             actions: {
@@ -829,6 +846,11 @@ export const zh = {
                 download: "下载",
                 copyToMaterials: "复制到素材",
                 copying: "复制中...",
+            },
+
+            preview: {
+                title: "图片预览",
+                imageInfo: "图片 {current} / {total}",
             },
 
             toast: {

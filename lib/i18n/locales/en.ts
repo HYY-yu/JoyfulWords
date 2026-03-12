@@ -645,6 +645,7 @@ export const en = {
                 noImages: "No images available to copy in this log",
                 serverError: "Server error, please try again later",
                 unauthorized: "Please login first",
+                invalidFileType: "Invalid file type",
             },
         },
         reset: {
@@ -661,6 +662,21 @@ export const en = {
                 description: "Upload a black and white line drawing, AI will migrate the style while preserving the subject",
                 dropHere: "Drag image here",
                 orClick: "Or click to select file",
+            },
+
+            // Upload status
+            uploading: "Uploading...",
+            uploadingHint: "Uploading image to server",
+
+            // Validation errors
+            validation: {
+                missingInput: "Incomplete Information",
+                missingInputDesc: "Please upload an image and select a style",
+                missingImage: "Please upload an image first",
+                missingStyle: "Please select a style",
+                missingModel: "No Model Selected",
+                missingModelDesc: "Please select an image generation model",
+                uploadFailed: "Image upload failed",
             },
 
             // Right sidebar - Style List
@@ -822,6 +838,7 @@ export const en = {
                 images: "Images",
                 actions: "Actions",
                 noData: "No generation logs found",
+                clickToPreview: "Click to preview",
             },
 
             actions: {
@@ -829,6 +846,11 @@ export const en = {
                 download: "Download",
                 copyToMaterials: "Copy to Materials",
                 copying: "Copying...",
+            },
+
+            preview: {
+                title: "Image Preview",
+                imageInfo: "Image {current} / {total}",
             },
 
             toast: {
