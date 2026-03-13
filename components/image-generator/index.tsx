@@ -2,13 +2,14 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
+import { useMaterials } from "@/lib/hooks/use-materials"
 import type {
   Layer,
   ToolType,
@@ -43,6 +44,26 @@ const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
 export function ImageGeneration() {
   const { t } = useTranslation()
   const { toast } = useToast()
+
+  // 新增：使用素材 hook
+  const { materials, loading: materialsLoading, fetchMaterials } = useMaterials()
+
+  // 新增：过滤图片类型素材
+  const imageMaterials = useMemo(() => {
+    return materials
+      .filter(m => m.material_type === 'image' && m.content)
+      .map(m => ({
+        id: m.id,
+        title: m.title,
+        source_url: m.content  // 图片 URL 存储在 content 字段
+      }))
+  }, [materials])
+
+  // 新增：初始化时加载素材列表
+  useEffect(() => {
+    fetchMaterials()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])  // 只在 mount 时执行一次
 
   const [selectedTool, setSelectedTool] = useState<ToolType>("select")
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
@@ -370,7 +391,7 @@ export function ImageGeneration() {
     setShowJsonPreview(true)
   }
 
-  const buildCreatorConfig = (): CreatorConfig => {
+  const buildCreatorConfig = useCallback((): CreatorConfig => {
     // 将 layers 转换为 CreatorLayer 格式
     const creatorLayers = layers.map((layer) => ({
       id: layer.id,
@@ -412,7 +433,7 @@ export function ImageGeneration() {
 
     console.log("生成的 Creator JSON:", JSON.stringify(creatorConfig, null, 2))
     return creatorConfig
-  }
+  }, [layers, metaSettings, globalStyleSettings, compositionSettings])
 
   const handleGenerateImageFromPrompt = async (prompt: string) => {
     // TRACE: 生成入口 - 使用专业提示词生成图片
@@ -672,6 +693,14 @@ export function ImageGeneration() {
     setShowResetDialog(false)
   }
 
+  // Memoize config to prevent infinite loop in JsonPreviewDialog
+  const memoizedConfig = useMemo(() => buildCreatorConfig(), [
+    layers,
+    metaSettings,
+    globalStyleSettings,
+    compositionSettings,
+  ])
+
   return (
     <main className="flex-1 overflow-auto flex flex-col bg-background">
       {/* Header */}
@@ -739,6 +768,8 @@ export function ImageGeneration() {
             selectedModel={selectedModel}
             availableModels={availableModels}
             isLoadingModels={isLoadingModels}
+            imageMaterials={imageMaterials}
+            isLoadingMaterials={materialsLoading}
             onMetaSettingsChange={setMetaSettings}
             onGlobalStyleSettingsChange={setGlobalStyleSettings}
             onCompositionSettingsChange={setCompositionSettings}
@@ -753,7 +784,7 @@ export function ImageGeneration() {
       <JsonPreviewDialog
         open={showJsonPreview}
         onOpenChange={setShowJsonPreview}
-        config={buildCreatorConfig()}
+        config={memoizedConfig}
         onGenerateImage={handleGenerateImageFromPrompt}
       />
 

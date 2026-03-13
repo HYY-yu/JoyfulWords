@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
 import { Slider } from "@/components/ui/base/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
+import { Button } from "@/components/ui/base/button"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { ModelSelector } from "./model-selector"
+import { MaterialSelectorDialog } from "./material-selector-dialog"
+import { useState, useMemo } from "react"
 
 interface PropertiesPanelProps {
   selectedLayer: Layer | null
@@ -19,6 +22,14 @@ interface PropertiesPanelProps {
   selectedModel: string
   availableModels: string[]
   isLoadingModels: boolean
+  // 新增：素材列表
+  imageMaterials: Array<{
+    id: number
+    title: string
+    source_url: string
+  }>
+  // 新增：加载状态
+  isLoadingMaterials: boolean
   onMetaSettingsChange: (settings: MetaSettings) => void
   onGlobalStyleSettingsChange: (settings: GlobalStyleSettings) => void
   onCompositionSettingsChange: (settings: CompositionSettings) => void
@@ -36,6 +47,8 @@ export function PropertiesPanel({
   selectedModel,
   availableModels,
   isLoadingModels,
+  imageMaterials,
+  isLoadingMaterials,
   onMetaSettingsChange,
   onGlobalStyleSettingsChange,
   onCompositionSettingsChange,
@@ -43,6 +56,16 @@ export function PropertiesPanel({
   onModelChange,
 }: PropertiesPanelProps) {
   const { t } = useTranslation()
+
+  // 新增：对话框状态
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false)
+
+  // 新增：获取当前选中素材的标题
+  const selectedMaterialTitle = useMemo(() => {
+    if (!layerProps.reference_image) return null
+    const material = imageMaterials.find(m => m.source_url === layerProps.reference_image)
+    return material?.title || null
+  }, [layerProps.reference_image, imageMaterials])
 
   const handleLayerPropChange = (key: keyof LayerProps, value: string | number) => {
     onLayerPropsChange({ ...layerProps, [key]: value })
@@ -159,13 +182,52 @@ export function PropertiesPanel({
                 <Label htmlFor="layer-ref-image" className="text-sm text-muted-foreground">
                   {t("imageGeneration.properties.referenceImage")} {t("imageGeneration.properties.referenceImageOptional")}
                 </Label>
-                <Input
-                  id="layer-ref-image"
-                  type="url"
-                  value={layerProps.reference_image || ""}
-                  onChange={(e) => handleLayerPropChange("reference_image", e.target.value)}
-                  className="h-9"
-                  placeholder="https://example.com/image.jpg"
+
+                {/* 选择按钮 */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setShowMaterialSelector(true)}
+                  disabled={isLoadingMaterials}
+                >
+                  {layerProps.reference_image ? (
+                    <span className="truncate">
+                      {t("imageGeneration.properties.imageSelected")}{selectedMaterialTitle || layerProps.reference_image}
+                    </span>
+                  ) : (
+                    t("imageGeneration.properties.selectImageFromMaterials")
+                  )}
+                </Button>
+
+                {/* 预览缩略图 */}
+                {layerProps.reference_image && (
+                  <div className="mt-2 relative aspect-video rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={layerProps.reference_image}
+                      alt="Reference"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleLayerPropChange("reference_image", "")}
+                    >
+                      {t("common.delete")}
+                    </Button>
+                  </div>
+                )}
+
+                {/* 素材选择对话框 */}
+                <MaterialSelectorDialog
+                  open={showMaterialSelector}
+                  onOpenChange={setShowMaterialSelector}
+                  materials={imageMaterials}
+                  isLoading={isLoadingMaterials}
+                  onSelect={(url) => handleLayerPropChange("reference_image", url)}
+                  currentUrl={layerProps.reference_image}
                 />
               </div>
 

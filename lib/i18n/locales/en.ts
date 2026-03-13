@@ -501,6 +501,10 @@ export const en = {
             descriptionRequired2: "Required",
             referenceImage: "Reference Image",
             referenceImageOptional: "(Optional)",
+            selectReferenceImage: "Select Reference Image",
+            selectImageFromMaterials: "Select from materials",
+            noImageMaterials: "No image materials available. Please upload in materials module first.",
+            imageSelected: "Selected: ",
             zIndex: "Z-Index",
             infoBox: "Hint: Select a rectangle layer on the canvas to edit its properties",
 

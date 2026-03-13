@@ -501,6 +501,10 @@ export const zh = {
             descriptionRequired2: "必填项",
             referenceImage: "参考图片",
             referenceImageOptional: "(可选)",
+            selectReferenceImage: "选择参考图片",
+            selectImageFromMaterials: "从素材库选择",
+            noImageMaterials: "暂无图片素材，请先在素材模块上传",
+            imageSelected: "已选择: ",
             zIndex: "层级",
             infoBox: "提示: 选中画布中的矩形图层可编辑其属性",
 
