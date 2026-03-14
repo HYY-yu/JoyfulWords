@@ -67,7 +67,7 @@ export type LightSource =
 
 // ============ Component Types ============
 
-export type TabValue = "creation" | "style" | "inversion" | "history"
+export type TabValue = "creation" | "style" | "inversion" | "history" | "wavespeed"
 
 export type ToolType = "select" | "rectangle" | "delete"
 

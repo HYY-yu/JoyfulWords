@@ -12,6 +12,23 @@ import type {
   GetStyleExamplesResponse,
 } from './types'
 
+// Wavespeed API 类型
+export type WavespeedCreateTaskRequest = {
+  image_url: string
+}
+
+export type WavespeedCreateTaskResponse = {
+  task_id: string
+  status: 'pending' | 'completed' | 'failed'
+}
+
+export type WavespeedTaskStatusResponse = {
+  task_id: string
+  status: 'pending' | 'completed' | 'failed'
+  outputs: string[]
+  error: string
+}
+
 /**
  * Image Generation API Client
  * 提供图片生成相关的 API 调用方法
@@ -244,6 +261,47 @@ export const imageGenerationClient = {
     console.debug('[ImageGeneration] Fetching style examples...')
     return apiRequest<GetStyleExamplesResponse>('/image-generation/style-examples', {
       method: 'GET',
+    })
+  },
+
+  /**
+   * 创建 Wavespeed 任务
+   * POST /api/wavespeed/create-task
+   *
+   * @param request - 创建任务请求对象
+   * @returns Promise<WavespeedCreateTaskResponse | ErrorResponse>
+   */
+  async createWavespeedTask(request: WavespeedCreateTaskRequest) {
+    const token = localStorage.getItem('access_token')
+    
+    console.debug('[ImageGeneration] Creating wavespeed task:', {
+      imageUrl: request.image_url,
+    })
+    return apiRequest<WavespeedCreateTaskResponse>('/api/wavespeed/create-task', {
+      method: 'POST',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(request),
+    })
+  },
+
+  /**
+   * 获取 Wavespeed 任务状态
+   * GET /api/wavespeed/task/:id
+   *
+   * @param taskId - 任务 ID
+   * @returns Promise<WavespeedTaskStatusResponse | ErrorResponse>
+   */
+  async getWavespeedTaskStatus(taskId: string) {
+    const token = localStorage.getItem('access_token')
+    
+    console.debug('[ImageGeneration] Fetching wavespeed task status:', taskId)
+    return apiRequest<WavespeedTaskStatusResponse>(`/api/wavespeed/task/${taskId}`, {
+      method: 'GET',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
   },
 }

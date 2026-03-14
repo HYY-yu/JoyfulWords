@@ -1,7 +1,7 @@
 "use client"
 
 import type { TabValue } from "../types"
-import { Sparkles, Palette, RefreshCw, History as HistoryIcon } from "lucide-react"
+import { Sparkles, Palette, RefreshCw, History as HistoryIcon, Layers } from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
