@@ -383,7 +383,7 @@ export function AIRewriteDialog({
             </div>
 
             {/* 二级菜单：根据类型动态渲染 */}
-            {isLoadingMaterials && rewriteType === 'material' ? (
+            {isLoadingMaterials && materials.length === 0 && rewriteType === 'material' ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground">{t("aiRewrite.material.loadingMaterials")}</span>
@@ -425,6 +425,11 @@ export function AIRewriteDialog({
                               }}
                               className="rounded"
                             />
+                            {material.material_type === 'image' && material.content ? (
+                              <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden border">
+                                <img src={material.content} alt={material.title} className="w-full h-full object-cover" />
+                              </div>
+                            ) : null}
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium truncate">{material.title}</div>
                               <div className="text-xs text-muted-foreground">

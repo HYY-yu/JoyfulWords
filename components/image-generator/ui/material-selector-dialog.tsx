@@ -18,7 +18,7 @@ interface MaterialSelectorDialogProps {
   isLoading: boolean
   hasMore: boolean
   onLoadMore: () => Promise<void>
-  observerTarget: React.RefObject<HTMLDivElement>
+  observerTarget: React.RefObject<HTMLDivElement | null>
   onSelect: (url: string) => void
   currentUrl?: string
 }
@@ -89,6 +89,10 @@ export function MaterialSelectorDialog({
               <p className="text-muted-foreground">
                 {t("imageGeneration.properties.noImageMaterials")}
               </p>
+            </div>
+          ) : materials.length === 0 && isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="p-4">

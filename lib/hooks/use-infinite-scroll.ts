@@ -79,7 +79,7 @@ export interface UseInfiniteScrollReturn<T> {
    * Observer 目标元素的 ref
    * 将此 ref 绑定到列表底部的元素上
    */
-  observerTarget: React.RefObject<HTMLDivElement>
+  observerTarget: React.RefObject<HTMLDivElement | null>
 }
 
 /**
@@ -137,10 +137,10 @@ export function useInfiniteScroll<T>({
   // ==================== 计算属性 ====================
 
   // hasMore 判断逻辑：
-  // 1. 未加载过数据（total === 0 且 items.length === 0）：允许初始加载
+  // 1. 未加载过数据（total === 0 且 items.length === 0）并且是第一页：允许初始加载
   // 2. 已加载过数据（total > 0）：items.length < total
-  // 3. 空数据结果（total === 0 但 items.length > 0）：禁止继续加载
-  const hasMore = (total === 0 && items.length === 0) || (total > 0 && items.length < total)
+  // 3. 空数据结果（total === 0 但 items.length > 0 或 page > 1）：禁止继续加载
+  const hasMore = (total === 0 && items.length === 0 && page === 1) || (total > 0 && items.length < total)
 
   // ==================== 数据获取 ====================
 

@@ -11,6 +11,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { ModelSelector } from "./model-selector"
 import { MaterialSelectorDialog } from "./material-selector-dialog"
 import { useState, useMemo } from "react"
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 
 interface PropertiesPanelProps {
   selectedLayer: Layer | null
@@ -22,18 +23,6 @@ interface PropertiesPanelProps {
   selectedModel: string
   availableModels: string[]
   isLoadingModels: boolean
-  // 新增：素材列表
-  imageMaterials: Array<{
-    id: number
-    title: string
-    source_url: string
-  }>
-  // 新增：加载状态
-  isLoadingMaterials: boolean
-  // 新增：无限滚动相关
-  hasMoreMaterials: boolean
-  onLoadMoreMaterials: () => Promise<void>
-  materialsObserverTarget: React.RefObject<HTMLDivElement>
   onMetaSettingsChange: (settings: MetaSettings) => void
   onGlobalStyleSettingsChange: (settings: GlobalStyleSettings) => void
   onCompositionSettingsChange: (settings: CompositionSettings) => void
@@ -51,11 +40,6 @@ export function PropertiesPanel({
   selectedModel,
   availableModels,
   isLoadingModels,
-  imageMaterials,
-  isLoadingMaterials,
-  hasMoreMaterials,
-  onLoadMoreMaterials,
-  materialsObserverTarget,
   onMetaSettingsChange,
   onGlobalStyleSettingsChange,
   onCompositionSettingsChange,
@@ -66,6 +50,30 @@ export function PropertiesPanel({
 
   // 新增：对话框状态
   const [showMaterialSelector, setShowMaterialSelector] = useState(false)
+
+  // 新增：使用无限滚动素材 Hook，只在对话框打开时启用
+  const {
+    materials,
+    isLoading: materialsLoading,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    type: 'image',
+    enabled: showMaterialSelector,
+    pageSize: 20,
+  })
+
+  // 过滤图片类型素材
+  const imageMaterials = useMemo(() => {
+    return materials
+      .filter(m => m.material_type === 'image' && m.content)
+      .map(m => ({
+        id: m.id,
+        title: m.title,
+        source_url: m.content
+      }))
+  }, [materials])
 
   // 新增：获取当前选中素材的标题
   const selectedMaterialTitle = useMemo(() => {
@@ -196,7 +204,7 @@ export function PropertiesPanel({
                   variant="outline"
                   className="w-full justify-start"
                   onClick={() => setShowMaterialSelector(true)}
-                  disabled={isLoadingMaterials}
+                  disabled={materialsLoading}
                 >
                   {layerProps.reference_image ? (
                     <span className="truncate">
@@ -227,14 +235,14 @@ export function PropertiesPanel({
                   </div>
                 )}
 
-                {/* 素材选择对话框 */}
+                {/* 获取了所有数据后传递给对话框 */}
                 <MaterialSelectorDialog
                   open={showMaterialSelector}
                   onOpenChange={setShowMaterialSelector}
                   materials={imageMaterials}
-                  isLoading={isLoadingMaterials}
+                  isLoading={materialsLoading}
                   hasMore={hasMoreMaterials}
-                  onLoadMore={onLoadMoreMaterials}
+                  onLoadMore={loadMoreMaterials}
                   observerTarget={materialsObserverTarget}
                   onSelect={(url) => handleLayerPropChange("reference_image", url)}
                   currentUrl={layerProps.reference_image}
