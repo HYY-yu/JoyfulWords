@@ -44,6 +44,12 @@ export const en = {
             cancel: "Cancel",
             confirm: "Confirm",
         },
+        infiniteScroll: {
+            loading: "Loading...",
+            noMoreData: "All data loaded",
+            loadFailed: "Load failed, tap to retry",
+            error: "Load error: {error}",
+        },
     },
     sidebar: {
         title: "Creator Toolbox",
@@ -309,6 +315,10 @@ export const en = {
             removeFile: "Remove File",
             uploadedFile: "Uploaded File",
             uploadInProgress: "File upload in progress, please wait...",
+            materialsLoading: "Loading materials...",
+            competitorsLoading: "Loading competitors...",
+            noMoreMaterials: "All materials loaded",
+            noMoreCompetitors: "All competitors loaded",
         },
         saveDialog: {
             title: "Save Article",
@@ -505,6 +515,8 @@ export const en = {
             selectImageFromMaterials: "Select from materials",
             noImageMaterials: "No image materials available. Please upload in materials module first.",
             imageSelected: "Selected: ",
+            materialsLoading: "Loading materials...",
+            noMoreMaterials: "All materials loaded",
             zIndex: "Z-Index",
             infoBox: "Hint: Select a rectangle layer on the canvas to edit its properties",
 
@@ -1107,6 +1119,8 @@ export const en = {
             selectPlaceholder: "Please select materials...",
             noMaterials: "No materials available",
             loadingMaterials: "Loading materials...",
+            loadingMore: "Loading more materials...",
+            noMoreData: "All materials loaded",
             selectedCount: "{count} material(s) selected",
             typeLabels: {
                 info: "Info",

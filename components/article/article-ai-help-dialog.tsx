@@ -14,17 +14,14 @@ import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
-import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { Checkbox } from "@/components/ui/base/checkbox"
 import { Badge } from "@/components/ui/base/badge"
 import { SparklesIcon, FileTextIcon, TrendingUpIcon, XIcon, LoaderIcon, UploadIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { materialsClient } from "@/lib/api/materials/client"
 import { articlesClient } from "@/lib/api/articles/client"
-import { competitorsClient } from "@/lib/api/competitors/client"
-import type { Material } from "@/lib/api/materials/types"
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
+import { useInfiniteCompetitors } from "@/lib/hooks/use-infinite-competitors"
 import type { Article } from "@/lib/api/articles/types"
-import type { CrawlResult } from "@/lib/api/competitors/types"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -56,97 +53,82 @@ export function ArticleAIHelpDialog({
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Use real Materials API
-  const [materials, setMaterials] = useState<Material[]>([])
-  const [materialsLoading, setMaterialsLoading] = useState(false)
+  // 滚动位置状态
+  const [materialsScrollPosition, setMaterialsScrollPosition] = useState(0)
+  const [competitorsScrollPosition, setCompetitorsScrollPosition] = useState(0)
+  const materialsScrollRef = useRef<HTMLDivElement>(null)
+  const competitorsScrollRef = useRef<HTMLDivElement>(null)
 
-  // Use real Competitors API
-  const [competitors, setCompetitors] = useState<CrawlResult[]>([])
-  const [competitorsLoading, setCompetitorsLoading] = useState(false)
+  // 使用无限滚动素材 Hook
+  const {
+    materials,
+    isLoading: materialsLoading,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    reset: resetMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    enabled: open,
+    pageSize: 20,
+    nameFilter: materialSearch || undefined,
+  })
 
-  // Load materials on mount
+  // 使用无限滚动竞品 Hook
+  const {
+    competitors,
+    isLoading: competitorsLoading,
+    hasMore: hasMoreCompetitors,
+    loadMore: loadMoreCompetitors,
+    reset: resetCompetitors,
+    observerTarget: competitorsObserverTarget,
+  } = useInfiniteCompetitors({
+    enabled: open,
+    pageSize: 20,
+  })
+
+  // 对话框关闭时清理状态
   useEffect(() => {
-    const loadMaterials = async () => {
-      setMaterialsLoading(true)
-      try {
-        console.log('[AI Help] Loading materials...')
-        const result = await materialsClient.getMaterials({
-          page: 1,
-          page_size: 100,
-        })
-        if ('list' in result) {
-          console.log('[AI Help] Materials loaded successfully:', result.list.length)
-          setMaterials(result.list)
-        } else if ('error' in result) {
-          console.warn('[AI Help] Materials load failed:', result.error)
-          toast({
-            variant: "destructive",
-            title: t("contentWriting.aiHelp.loadMaterialsFailed"),
-            description: result.error,
-          })
-        }
-      } catch (error) {
-        console.error('[AI Help] Materials load error:', error)
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.aiHelp.loadMaterialsFailed"),
-          description: error instanceof Error ? error.message : undefined,
-        })
-      } finally {
-        setMaterialsLoading(false)
-      }
+    if (!open) {
+      resetMaterials()
+      resetCompetitors()
+      setMaterialsScrollPosition(0)
+      setCompetitorsScrollPosition(0)
     }
+  }, [open, resetMaterials, resetCompetitors])
 
-    if (open) {
-      loadMaterials()
-    }
-  }, [open, toast, t])
-
-  // Load competitors on mount
+  // 保持素材列表滚动位置（只在对话框打开时恢复）
   useEffect(() => {
-    const loadCompetitors = async () => {
-      setCompetitorsLoading(true)
-      try {
-        console.log('[AI Help] Loading competitors...')
-        const result = await competitorsClient.getResults({
-          page: 1,
-          page_size: 100,
-        })
-        if ('posts' in result) {
-          console.log('[AI Help] Competitors loaded successfully:', result.posts.length)
-          setCompetitors(result.posts)
-        } else if ('error' in result) {
-          console.warn('[AI Help] Competitors load failed:', result.error)
-          toast({
-            variant: "destructive",
-            title: t("contentWriting.aiHelp.loadCompetitorsFailed"),
-            description: result.error,
-          })
+    if (open && materialsScrollPosition > 0 && materialsScrollRef.current) {
+      setTimeout(() => {
+        if (materialsScrollRef.current) {
+          materialsScrollRef.current.scrollTop = materialsScrollPosition
         }
-      } catch (error) {
-        console.error('[AI Help] Competitors load error:', error)
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.aiHelp.loadCompetitorsFailed"),
-          description: error instanceof Error ? error.message : undefined,
-        })
-      } finally {
-        setCompetitorsLoading(false)
-      }
+      }, 0)
     }
+  }, [open]) // 只依赖 open，避免数据加载时频繁触发
 
-    if (open) {
-      loadCompetitors()
+  // 保持竞品列表滚动位置（只在对话框打开时恢复）
+  useEffect(() => {
+    if (open && competitorsScrollPosition > 0 && competitorsScrollRef.current) {
+      setTimeout(() => {
+        if (competitorsScrollRef.current) {
+          competitorsScrollRef.current.scrollTop = competitorsScrollPosition
+        }
+      }, 0)
     }
-  }, [open, toast, t])
+  }, [open]) // 只依赖 open，避免数据加载时频繁触发
 
-  const filteredMaterials = materials.filter(m =>
-    m.title?.toLowerCase().includes(materialSearch.toLowerCase()) ?? false
-  )
+  const handleMaterialsScroll = () => {
+    if (materialsScrollRef.current) {
+      setMaterialsScrollPosition(materialsScrollRef.current.scrollTop)
+    }
+  }
 
-  const filteredCompetitors = competitors.filter(c =>
-    c.content?.toLowerCase().includes(competitorSearch.toLowerCase()) ?? false
-  )
+  const handleCompetitorsScroll = () => {
+    if (competitorsScrollRef.current) {
+      setCompetitorsScrollPosition(competitorsScrollRef.current.scrollTop)
+    }
+  }
 
   const handleToggleMaterial = (id: number) => {
     setSelectedMaterials(prev =>
@@ -393,14 +375,18 @@ export function ArticleAIHelpDialog({
                     disabled={!!uploadedFile}
                   />
 
-                  <ScrollArea className="h-[200px] border rounded-md p-2">
+                  <div
+                    ref={competitorsScrollRef}
+                    onScroll={handleCompetitorsScroll}
+                    className="h-[200px] overflow-y-auto border rounded-md p-2"
+                  >
                     {competitorsLoading ? (
                       <div className="flex items-center justify-center h-full">
                         <LoaderIcon className="w-5 h-5 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
                       <div className="space-y-1">
-                        {filteredCompetitors.map((post) => (
+                        {competitors.map((post) => (
                         <div
                           key={post.id}
                           className={`flex items-center space-x-2 p-2 rounded cursor-pointer ${
@@ -423,9 +409,15 @@ export function ArticleAIHelpDialog({
                           </div>
                         </div>
                       ))}
+                      {/* 无限滚动 observer */}
+                      {(hasMoreCompetitors || competitorsLoading) && competitors.length > 0 && (
+                        <div ref={competitorsObserverTarget} className="flex justify-center py-2">
+                          <LoaderIcon className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
                       </div>
                     )}
-                  </ScrollArea>
+                  </div>
                 </div>
 
                 {/* Selected Competitor */}
@@ -527,14 +519,18 @@ export function ArticleAIHelpDialog({
                   onChange={(e) => setMaterialSearch(e.target.value)}
                 />
 
-                <ScrollArea className="h-[200px] border rounded-md p-2">
+                <div
+                  ref={materialsScrollRef}
+                  onScroll={handleMaterialsScroll}
+                  className="h-[200px] overflow-y-auto border rounded-md p-2"
+                >
                   {materialsLoading ? (
                     <div className="flex items-center justify-center h-full">
                       <LoaderIcon className="w-5 h-5 animate-spin text-muted-foreground" />
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      {filteredMaterials.map((material) => (
+                      {materials.map((material) => (
                         <div
                           key={material.id}
                           className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
@@ -547,9 +543,15 @@ export function ArticleAIHelpDialog({
                           </div>
                         </div>
                       ))}
+                      {/* 无限滚动 observer */}
+                      {(hasMoreMaterials || materialsLoading) && materials.length > 0 && (
+                        <div ref={materialsObserverTarget} className="flex justify-center py-2">
+                          <LoaderIcon className="h-4 w-4 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
                   )}
-                </ScrollArea>
+                </div>
               </div>
 
               {/* Selected Materials */}

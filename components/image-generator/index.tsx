@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
-import { useMaterials } from "@/lib/hooks/use-materials"
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import type {
   Layer,
   ToolType,
@@ -45,8 +45,18 @@ export function ImageGeneration() {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  // 新增：使用素材 hook
-  const { materials, loading: materialsLoading, fetchMaterials } = useMaterials()
+  // 新增：使用无限滚动素材 Hook
+  const {
+    materials,
+    isLoading: materialsLoading,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    type: 'image',
+    enabled: true,
+    pageSize: 20,
+  })
 
   // 新增：过滤图片类型素材
   const imageMaterials = useMemo(() => {
@@ -58,12 +68,6 @@ export function ImageGeneration() {
         source_url: m.content  // 图片 URL 存储在 content 字段
       }))
   }, [materials])
-
-  // 新增：初始化时加载素材列表
-  useEffect(() => {
-    fetchMaterials()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // 只在 mount 时执行一次
 
   const [selectedTool, setSelectedTool] = useState<ToolType>("select")
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
@@ -770,6 +774,9 @@ export function ImageGeneration() {
             isLoadingModels={isLoadingModels}
             imageMaterials={imageMaterials}
             isLoadingMaterials={materialsLoading}
+            hasMoreMaterials={hasMoreMaterials}
+            onLoadMoreMaterials={loadMoreMaterials}
+            materialsObserverTarget={materialsObserverTarget}
             onMetaSettingsChange={setMetaSettings}
             onGlobalStyleSettingsChange={setGlobalStyleSettings}
             onCompositionSettingsChange={setCompositionSettings}

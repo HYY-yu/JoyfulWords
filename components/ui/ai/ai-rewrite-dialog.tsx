@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,7 +29,7 @@ import { RadioGroup, RadioGroupItem } from "../base/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { articlesClient } from "@/lib/api/articles/client";
-import { materialsClient } from "@/lib/api/materials/client";
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials";
 import type {
   ArticleEditType,
   StyleType,
@@ -76,9 +76,9 @@ export function AIRewriteDialog({
   const [rewriteType, setRewriteType] = useState<ArticleEditType>('style');
 
   // 素材扩充状态
-  const [materials, setMaterials] = useState<Material[]>([]);
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
-  const [isLoadingMaterials, setIsLoadingMaterials] = useState(false);
+  const [materialsScrollPosition, setMaterialsScrollPosition] = useState(0);
+  const materialsScrollRef = useRef<HTMLDivElement>(null);
 
   // 风格调整状态
   const [selectedStyle, setSelectedStyle] = useState<StyleType>('Professional');
@@ -92,7 +92,20 @@ export function AIRewriteDialog({
 
   const isWaiting = waitingState?.status === 'waiting';
 
-  // 弹窗打开时：重置表单、加载素材、填充 initialRewrittenText
+  // 使用无限滚动素材 Hook
+  const {
+    materials,
+    isLoading: isLoadingMaterials,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    reset: resetMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    enabled: open && rewriteType === 'material',
+    pageSize: 20,
+  });
+
+  // 弹窗打开时：重置表单、填充 initialRewrittenText
   useEffect(() => {
     console.log('[AI Rewrite Dialog] useEffect triggered', {
       open,
@@ -102,7 +115,7 @@ export function AIRewriteDialog({
 
     if (open) {
       setCustomText("");
-      loadMaterials();
+      setMaterialsScrollPosition(0);
       // 自动填充轮询结果（result arrives 时父组件重新打开此 dialog）
       if (initialRewrittenText) {
         console.log('[AI Rewrite Dialog] Setting rewrittenText from initialRewrittenText:', initialRewrittenText)
@@ -111,30 +124,27 @@ export function AIRewriteDialog({
         console.log('[AI Rewrite Dialog] No initialRewrittenText, clearing rewrittenText')
         setRewrittenText("");
       }
+    } else {
+      // 对话框关闭时清理素材状态
+      resetMaterials();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialRewrittenText]);
 
-  const loadMaterials = async () => {
-    setIsLoadingMaterials(true);
-    try {
-      const result = await materialsClient.getMaterials({
-        page: 1,
-        page_size: 100,
-      });
+  // 保持素材列表滚动位置（只在对话框打开时恢复）
+  useEffect(() => {
+    if (open && materialsScrollPosition > 0 && materialsScrollRef.current) {
+      setTimeout(() => {
+        if (materialsScrollRef.current) {
+          materialsScrollRef.current.scrollTop = materialsScrollPosition;
+        }
+      }, 0);
+    }
+  }, [open]); // 只依赖 open，避免数据加载时频繁触发
 
-      if ("error" in result) {
-        console.error('[AI Rewrite] Failed to load materials:', result.error);
-        setMaterials([]);
-        return;
-      }
-
-      setMaterials(result.list);
-    } catch (error) {
-      console.error('[AI Rewrite] Materials load error:', error);
-      setMaterials([]);
-    } finally {
-      setIsLoadingMaterials(false);
+  const handleMaterialsScroll = () => {
+    if (materialsScrollRef.current) {
+      setMaterialsScrollPosition(materialsScrollRef.current.scrollTop);
     }
   };
 
@@ -384,12 +394,16 @@ export function AIRewriteDialog({
                 {rewriteType === 'material' && (
                   <div className="space-y-2">
                     <Label>{t("aiRewrite.material.selectMaterials")}</Label>
-                    {materials.length === 0 ? (
+                    {materials.length === 0 && !isLoadingMaterials ? (
                       <div className="text-center py-4 text-sm text-muted-foreground">
                         {t("aiRewrite.material.noMaterials")}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto p-2 border rounded-md">
+                      <div
+                        ref={materialsScrollRef}
+                        onScroll={handleMaterialsScroll}
+                        className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto p-2 border rounded-md"
+                      >
                         {materials.map((material) => (
                           <label
                             key={material.id}
@@ -419,6 +433,12 @@ export function AIRewriteDialog({
                             </div>
                           </label>
                         ))}
+                        {/* 无限滚动 observer */}
+                        {(hasMoreMaterials || isLoadingMaterials) && materials.length > 0 && (
+                          <div ref={materialsObserverTarget} className="col-span-2 flex justify-center py-2">
+                            <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
                       </div>
                     )}
                     {selectedMaterialIds.length > 0 && (

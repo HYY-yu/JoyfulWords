@@ -30,6 +30,10 @@ interface PropertiesPanelProps {
   }>
   // 新增：加载状态
   isLoadingMaterials: boolean
+  // 新增：无限滚动相关
+  hasMoreMaterials: boolean
+  onLoadMoreMaterials: () => Promise<void>
+  materialsObserverTarget: React.RefObject<HTMLDivElement>
   onMetaSettingsChange: (settings: MetaSettings) => void
   onGlobalStyleSettingsChange: (settings: GlobalStyleSettings) => void
   onCompositionSettingsChange: (settings: CompositionSettings) => void
@@ -49,6 +53,9 @@ export function PropertiesPanel({
   isLoadingModels,
   imageMaterials,
   isLoadingMaterials,
+  hasMoreMaterials,
+  onLoadMoreMaterials,
+  materialsObserverTarget,
   onMetaSettingsChange,
   onGlobalStyleSettingsChange,
   onCompositionSettingsChange,
@@ -226,6 +233,9 @@ export function PropertiesPanel({
                   onOpenChange={setShowMaterialSelector}
                   materials={imageMaterials}
                   isLoading={isLoadingMaterials}
+                  hasMore={hasMoreMaterials}
+                  onLoadMore={onLoadMoreMaterials}
+                  observerTarget={materialsObserverTarget}
                   onSelect={(url) => handleLayerPropChange("reference_image", url)}
                   currentUrl={layerProps.reference_image}
                 />

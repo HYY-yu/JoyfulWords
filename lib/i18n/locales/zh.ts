@@ -44,6 +44,12 @@ export const zh = {
             cancel: "取消",
             confirm: "确认",
         },
+        infiniteScroll: {
+            loading: "加载中...",
+            noMoreData: "已加载全部数据",
+            loadFailed: "加载失败，点击重试",
+            error: "加载出错：{error}",
+        },
     },
     sidebar: {
         title: "创作者工具箱",
@@ -309,6 +315,10 @@ export const zh = {
             removeFile: "移除文件",
             uploadedFile: "已上传文件",
             uploadInProgress: "文件上传中，请稍候...",
+            materialsLoading: "正在加载素材...",
+            competitorsLoading: "正在加载竞品数据...",
+            noMoreMaterials: "已加载全部素材",
+            noMoreCompetitors: "已加载全部竞品",
         },
         saveDialog: {
             title: "保存文章",
@@ -505,6 +515,8 @@ export const zh = {
             selectImageFromMaterials: "从素材库选择",
             noImageMaterials: "暂无图片素材，请先在素材模块上传",
             imageSelected: "已选择: ",
+            materialsLoading: "正在加载素材...",
+            noMoreMaterials: "已加载全部素材",
             zIndex: "层级",
             infoBox: "提示: 选中画布中的矩形图层可编辑其属性",
 
@@ -1107,6 +1119,8 @@ export const zh = {
             selectPlaceholder: "请选择素材...",
             noMaterials: "暂无素材",
             loadingMaterials: "加载素材中...",
+            loadingMore: "加载更多素材中...",
+            noMoreData: "已加载全部素材",
             selectedCount: "已选择 {count} 个素材",
             typeLabels: {
                 info: "资料",
