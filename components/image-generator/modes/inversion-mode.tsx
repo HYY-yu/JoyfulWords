@@ -1,8 +1,21 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
-import { Upload, Split, Download, CheckCircle2, Layers } from "lucide-react"
+import { useState, useCallback, useEffect } from "react"
+import { Upload, Split, Download, CheckCircle2, Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
+import { imageGenerationClient } from "@/lib/api/image-generation/client"
+import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
+import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import { Textarea } from "@/components/ui/base/textarea"
+import { Slider } from "@/components/ui/base/slider"
+import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
+
+// 反向模式专用的轮询配置
+const INVERSION_POLLING_CONFIG = {
+  ...DEFAULT_POLLING_CONFIG,
+  storageKey: 'joyfulwords-inversion-generation-task',
+}
 
 type LayerImage = {
   id: string
@@ -16,25 +29,150 @@ type LayerImage = {
 type SplitStatus = "idle" | "uploading" | "splitting" | "completed" | "error"
 
 export function InversionMode() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const { toast } = useToast()
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [splitStatus, setSplitStatus] = useState<SplitStatus>("idle")
   const [layerImages, setLayerImages] = useState<LayerImage[]>([])
   const [selectedLayers, setSelectedLayers] = useState<Set<string>>(new Set())
   const [isDragging, setIsDragging] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [currentGenerationLogId, setCurrentGenerationLogId] = useState<number | null>(null)
 
-  const handleFileUpload = useCallback((file: File) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      setUploadedImage(e.target?.result as string)
-      setLayerImages([])
-      setSelectedLayers(new Set())
-      setSplitStatus("idle")
+  // 新增状态
+  const [numLayers, setNumLayers] = useState(4)
+  const [prompt, setPrompt] = useState("")
+
+  // 轮询配置
+  const { startPolling, stopPolling, isPolling } = useImageGenerationPolling({
+    config: INVERSION_POLLING_CONFIG,
+    onSuccess: (result) => {
+      console.info('[InversionMode] Split completed successfully')
+
+      // 解析多图 URL
+      let layerUrls: string[]
+      if (typeof result.image_url === 'string' && result.image_url.startsWith('[')) {
+        layerUrls = JSON.parse(result.image_url) as string[]
+      } else {
+        layerUrls = [result.image_url as string]
+      }
+
+      // 转换为 LayerImage 格式
+      const layers: LayerImage[] = layerUrls.map((url, index) => ({
+        id: `layer-${index + 1}`,
+        name: t(`imageGeneration.inversionMode.layers.default`, { index: index + 1 }),
+        nameEn: locale === 'zh' ? `图层 ${index + 1}` : `Layer ${index + 1}`,
+        imageUrl: url,
+        description: t(`imageGeneration.inversionMode.layers.defaultDescription`, { index: index + 1 }),
+        index,
+      }))
+
+      setLayerImages(layers)
+      setSplitStatus("completed")
+      setCurrentGenerationLogId(Number(result.task_id))
+      console.info('[InversionMode] Saved generation log ID:', result.task_id)
+
+      toast({ title: t("imageGeneration.inversionMode.splitCompleted") })
+    },
+    onError: (error) => {
+      console.error('[InversionMode] Split failed:', error.message)
+      setSplitStatus("error")
+      toast({
+        variant: "destructive",
+        title: error.message || t("imageGeneration.toast.generationFailed"),
+      })
+    },
+  })
+
+  // 组件 mount 时检查 localStorage，恢复未完成的任务
+  useEffect(() => {
+    const savedTask = loadTaskFromStorage(INVERSION_POLLING_CONFIG)
+
+    if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
+      // INFO: 恢复轮询 - 发现未完成的任务
+      console.info('[InversionMode] Resuming polling from localStorage:', {
+        taskId: savedTask.task_id,
+        status: savedTask.status,
+      })
+
+      setSplitStatus("splitting")
+      setIsProcessing(true)
+
+      // 启动轮询（不带 storage 参数，因为已经从 localStorage 加载了）
+      startPolling(savedTask.task_id)
     }
-    reader.readAsDataURL(file)
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // 只在 mount 时执行一次
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    setIsUploading(true)
+
+    try {
+      console.debug('[InversionMode] Uploading image to R2:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      })
+
+      // 上传到 R2 获取 URL
+      const imageUrl = await uploadImageToR2(file)
+
+      // INFO: 图片上传成功
+      console.info('[InversionMode] Image uploaded successfully:', { imageUrl })
+
+      setUploadedImageUrl(imageUrl)
+
+      // 保留本地预览
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const result = e.target?.result
+        if (typeof result === 'string') {
+          setUploadedImage(result)
+          setLayerImages([])
+          setSelectedLayers(new Set())
+          setSplitStatus("idle")
+          setCurrentGenerationLogId(null)
+
+          // DEBUG: 上传完成后检查状态
+          console.debug('[InversionMode] Upload complete, current state:', {
+            hasImageUrl: !!imageUrl,
+            imagePreviewLength: result.length,
+          })
+        }
+      }
+      reader.onerror = () => {
+        console.error('[InversionMode] FileReader failed to read the image')
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('[InversionMode] Image upload failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+
+      // 根据错误类型显示不同的提示
+      if (errorMessage === 'invalidFileType') {
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.error.invalidFileType"),
+        })
+      } else if (errorMessage === 'fileTooLarge') {
+        toast({
+          variant: "destructive",
+          title: t("materials.dialog.imageTooLarge"),
+        })
+      } else {
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.inversionMode.validation.missingImage"),
+          description: errorMessage,
+        })
+      }
+    } finally {
+      setIsUploading(false)
+    }
+  }, [t, toast])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -55,55 +193,70 @@ export function InversionMode() {
     setIsDragging(false)
   }, [])
 
-  const handleSplit = useCallback(() => {
-    if (!uploadedImage) return
+  const handleSplit = useCallback(async () => {
+    // 验证输入
+    if (!uploadedImageUrl) {
+      console.warn('[InversionMode] Split validation failed: missing image')
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.inversionMode.validation.missingImage"),
+      })
+      return
+    }
+
+    if (numLayers < 1 || numLayers > 8) {
+      console.warn('[InversionMode] Split validation failed: invalid numLayers')
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.inversionMode.validation.invalidNumLayers"),
+      })
+      return
+    }
+
+    console.info('[InversionMode] Starting split:', {
+      numLayers,
+      hasPrompt: !!prompt,
+    })
 
     setSplitStatus("splitting")
     setIsProcessing(true)
 
-    // 模拟 API 拆分过程
-    setTimeout(() => {
-      // 生成模拟的拆分层，使用翻译键
-      const mockLayers: LayerImage[] = [
-        {
-          id: "layer-1",
-          name: t("imageGeneration.inversionMode.layers.mainSubject.name"),
-          nameEn: t("imageGeneration.inversionMode.layers.mainSubject.name"),
-          imageUrl: uploadedImage,
-          description: t("imageGeneration.inversionMode.layers.mainSubject.description"),
-          index: 0
-        },
-        {
-          id: "layer-2",
-          name: t("imageGeneration.inversionMode.layers.background.name"),
-          nameEn: t("imageGeneration.inversionMode.layers.background.name"),
-          imageUrl: uploadedImage,
-          description: t("imageGeneration.inversionMode.layers.background.description"),
-          index: 1
-        },
-        {
-          id: "layer-3",
-          name: t("imageGeneration.inversionMode.layers.details.name"),
-          nameEn: t("imageGeneration.inversionMode.layers.details.name"),
-          imageUrl: uploadedImage,
-          description: t("imageGeneration.inversionMode.layers.details.description"),
-          index: 2
-        },
-        {
-          id: "layer-4",
-          name: t("imageGeneration.inversionMode.layers.lighting.name"),
-          nameEn: t("imageGeneration.inversionMode.layers.lighting.name"),
-          imageUrl: uploadedImage,
-          description: t("imageGeneration.inversionMode.layers.lighting.description"),
-          index: 3
-        }
-      ]
+    try {
+      // 调用真实 API
+      const result = await imageGenerationClient.createSplitTask({
+        image_url: uploadedImageUrl,
+        num_layers: numLayers,
+        prompt: prompt || undefined,
+      })
 
-      setLayerImages(mockLayers)
-      setSplitStatus("completed")
+      if ('error' in result) {
+        console.error('[InversionMode] Failed to create split task:', result.error)
+        setSplitStatus("error")
+        setIsProcessing(false)
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.generationFailed"),
+        })
+        return
+      }
+
+      // 启动轮询
+      await startPolling(result.task_id, {
+        status: result.status,
+        prompt: prompt,
+      })
+    } catch (error) {
+      console.error('[InversionMode] Unexpected error:', error)
+      setSplitStatus("error")
       setIsProcessing(false)
-    }, 3000)
-  }, [uploadedImage, t])
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.generationFailed"),
+      })
+    }
+  }, [uploadedImageUrl, numLayers, prompt, startPolling, t, toast])
 
   const handleToggleLayer = (layerId: string) => {
     setSelectedLayers(prev => {
@@ -170,7 +323,7 @@ export function InversionMode() {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onClick={() => {
-              if (isProcessing) return
+              if (isProcessing || isUploading) return
               const input = document.createElement("input")
               input.type = "file"
               input.accept = "image/*"
@@ -190,7 +343,7 @@ export function InversionMode() {
                   ? "border-transparent"
                   : "border-border/50 hover:border-primary/50 hover:bg-muted/50"
               }
-              ${isProcessing ? "cursor-not-allowed opacity-60" : ""}
+              ${(isProcessing || isUploading) ? "cursor-not-allowed opacity-60" : ""}
             `}
           >
             {uploadedImage ? (
@@ -222,16 +375,83 @@ export function InversionMode() {
             )}
           </div>
 
+          {/* 上传中状态 */}
+          {isUploading && (
+            <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-primary">
+                    {t("imageGeneration.styleMode.uploading")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {t("imageGeneration.styleMode.uploadingHint")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 表单控件 */}
+          {uploadedImage && splitStatus === "idle" && (
+            <div className="mt-4 space-y-4">
+              {/* 图层数量选择器 */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-foreground">
+                    {t("imageGeneration.inversionMode.numLayers.label")}
+                  </label>
+                  <span className="text-xs text-primary font-semibold">
+                    {numLayers}
+                  </span>
+                </div>
+                <Slider
+                  value={[numLayers]}
+                  onValueChange={(value) => setNumLayers(value[0])}
+                  min={1}
+                  max={8}
+                  step={1}
+                  disabled={isProcessing || isUploading}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("imageGeneration.inversionMode.numLayers.description")}
+                </p>
+              </div>
+
+              {/* 场景描述文本框 */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  {t("imageGeneration.inversionMode.prompt.label")}
+                  <span className="text-muted-foreground ml-1">
+                    ({t("common.optional")})
+                  </span>
+                </label>
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={t("imageGeneration.inversionMode.prompt.placeholder")}
+                  disabled={isProcessing || isUploading}
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("imageGeneration.inversionMode.prompt.description")}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* 操作按钮 */}
           {uploadedImage && splitStatus === "idle" && (
             <button
               onClick={handleSplit}
-              disabled={isProcessing}
+              disabled={isProcessing || isUploading}
               className={`
                 mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl
                 font-medium transition-all duration-200
                 ${
-                  isProcessing
+                  (isProcessing || isUploading)
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
                     : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]"
                 }
@@ -285,10 +505,10 @@ export function InversionMode() {
           {uploadedImage && (
             <button
               onClick={handleReset}
-              disabled={isProcessing}
+              disabled={isProcessing || isUploading}
               className={`
                 mt-auto pt-4 text-sm text-muted-foreground hover:text-destructive
-                transition-colors ${isProcessing ? "cursor-not-allowed opacity-60" : ""}
+                transition-colors ${(isProcessing || isUploading) ? "cursor-not-allowed opacity-60" : ""}
               `}
             >
               {t("imageGeneration.inversionMode.reupload")}

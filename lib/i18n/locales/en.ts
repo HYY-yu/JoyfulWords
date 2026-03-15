@@ -810,6 +810,47 @@ export const en = {
 
             // 底部提示
             hint: "After uploading an image, click the 'Split Image' button and AI will automatically decompose the image into multiple layers.",
+
+            // 图层数量选择
+            numLayers: {
+                label: "Split Layers",
+                description: "Choose the number of layers to split (1-8 layers)",
+            },
+
+            // 场景描述
+            prompt: {
+                label: "Scene Description",
+                placeholder: "Describe the scene content, e.g., A landscape painting with mountains",
+                description: "Providing scene description helps AI split layers more accurately",
+            },
+
+            // 验证提示
+            validation: {
+                missingImage: "Please upload an image first",
+                invalidNumLayers: "Number of layers must be between 1 and 8",
+            },
+
+            // 图层默认命名
+            layers: {
+                default: "Layer {index}",
+                defaultDescription: "Split layer {index}",
+                mainSubject: {
+                    name: "Main Subject Layer",
+                    description: "The main subject of the image",
+                },
+                background: {
+                    name: "Background Layer",
+                    description: "The background part of the image",
+                },
+                details: {
+                    name: "Details Layer",
+                    description: "Details and textures of the image",
+                },
+                lighting: {
+                    name: "Lighting Layer",
+                    description: "Lighting and shadow effects",
+                },
+            },
         },
 
         // 新增：提示词预览
@@ -839,7 +880,7 @@ export const en = {
                 all: "All Modes",
                 creator: "Creator",
                 style: "Style",
-                inversion: "Inversion",
+                split_images: "Inversion",
             },
 
             model: {

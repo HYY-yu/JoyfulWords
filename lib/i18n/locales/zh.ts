@@ -810,6 +810,47 @@ export const zh = {
 
             // 底部提示
             hint: "上传图片后点击「拆分图片」按钮，AI 将自动将图片分解为多个图层。",
+
+            // 图层数量选择
+            numLayers: {
+                label: "拆分层级",
+                description: "选择要拆分的图层数量（1-8层）",
+            },
+
+            // 场景描述
+            prompt: {
+                label: "场景描述",
+                placeholder: "描述图片中的场景内容，例如：一个有山的风景画",
+                description: "提供场景描述可以帮助 AI 更准确地拆分层级",
+            },
+
+            // 验证提示
+            validation: {
+                missingImage: "请先上传图片",
+                invalidNumLayers: "图层数量必须在 1-8 之间",
+            },
+
+            // 图层默认命名
+            layers: {
+                default: "图层 {index}",
+                defaultDescription: "拆分后的第 {index} 层",
+                mainSubject: {
+                    name: "主体层",
+                    description: "图像的主要主体",
+                },
+                background: {
+                    name: "背景层",
+                    description: "图像的背景部分",
+                },
+                details: {
+                    name: "细节层",
+                    description: "图像的细节纹理",
+                },
+                lighting: {
+                    name: "光影层",
+                    description: "光照和阴影效果",
+                },
+            },
         },
 
         // 新增：提示词预览
@@ -839,7 +880,7 @@ export const zh = {
                 all: "全部模式",
                 creator: "创作",
                 style: "风格",
-                inversion: "反向",
+                split_images: "反向",
             },
 
             model: {
