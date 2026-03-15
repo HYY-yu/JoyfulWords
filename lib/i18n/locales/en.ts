@@ -779,25 +779,7 @@ export const en = {
             splitCompleted: "Split completed!",
             successfullySplit: "Successfully split into {count} layers",
 
-            // 图层名称
-            layers: {
-                mainSubject: {
-                    name: "Main Subject Layer",
-                    description: "The main subject of the image",
-                },
-                background: {
-                    name: "Background Layer",
-                    description: "The background part of the image",
-                },
-                details: {
-                    name: "Details Layer",
-                    description: "Details and textures of the image",
-                },
-                lighting: {
-                    name: "Lighting Layer",
-                    description: "Lighting and shadow effects",
-                },
-            },
+
 
             // 结果区域
             splitResults: "Split Results",

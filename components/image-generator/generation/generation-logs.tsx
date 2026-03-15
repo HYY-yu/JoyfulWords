@@ -61,12 +61,14 @@ export function GenerationLogs() {
 
       if ('error' in result) {
         console.error('[GenerationLogs] Copy failed:', result.error)
+        
+        const errorMsg = String(result.error)
 
         let errorKey = "serverError"
-        if (result.error.includes("not found")) errorKey = "logNotFound"
-        else if (result.error.includes("not completed")) errorKey = "notCompleted"
-        else if (result.error.includes("no images")) errorKey = "noImages"
-        else if (result.error.includes("unauthorized")) errorKey = "unauthorized"
+        if (errorMsg.includes("not found")) errorKey = "logNotFound"
+        else if (errorMsg.includes("not completed")) errorKey = "notCompleted"
+        else if (errorMsg.includes("no images")) errorKey = "noImages"
+        else if (errorMsg.includes("unauthorized")) errorKey = "unauthorized"
 
         toast({
           variant: "destructive",

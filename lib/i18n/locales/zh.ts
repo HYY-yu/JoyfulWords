@@ -779,25 +779,7 @@ export const zh = {
             splitCompleted: "拆分完成！",
             successfullySplit: "成功拆分为 {count} 个图层",
 
-            // 图层名称
-            layers: {
-                mainSubject: {
-                    name: "主体层",
-                    description: "图像的主要主体",
-                },
-                background: {
-                    name: "背景层",
-                    description: "图像的背景部分",
-                },
-                details: {
-                    name: "细节层",
-                    description: "图像的细节纹理",
-                },
-                lighting: {
-                    name: "光影层",
-                    description: "光照和阴影效果",
-                },
-            },
+
 
             // 结果区域
             splitResults: "拆分结果",
