@@ -1,14 +1,10 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
-  Sparkles,
   Globe,
-  ImagePlus,
-  Library,
-  PanelsTopLeft,
-  Radar,
-  ScanSearch,
 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -17,90 +13,40 @@ import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-p
 const featureKeys = [
   {
     key: "aiWriting",
-    icon: Sparkles,
     num: "01",
-    variant: "hero",
-    gridClass: "md:col-span-7",
-    heightClass: "min-h-[22rem]",
-    iconClass: "text-blue-700",
-    iconWrapClass: "border-blue-500/20 bg-blue-500/12",
-    cardClass:
-      "border-blue-500/18 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]",
-    accentClass: "from-blue-500/14 via-sky-500/10 to-transparent",
   },
   {
     key: "materialSearch",
-    icon: Library,
     num: "02",
-    variant: "hero",
-    gridClass: "md:col-span-5",
-    heightClass: "min-h-[22rem] md:translate-y-8",
-    iconClass: "text-emerald-700",
-    iconWrapClass: "border-emerald-500/20 bg-emerald-500/12",
-    cardClass:
-      "border-emerald-500/18 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_40%),linear-gradient(160deg,rgba(255,255,255,0.98),rgba(244,251,247,0.94))]",
-    accentClass: "from-emerald-500/16 via-teal-500/10 to-transparent",
   },
   {
     key: "imageGen",
-    icon: ImagePlus,
     num: "03",
-    variant: "standard",
-    gridClass: "md:col-span-3",
-    heightClass: "min-h-[15rem] md:-translate-y-5",
-    iconClass: "text-fuchsia-700",
-    iconWrapClass: "border-fuchsia-500/20 bg-fuchsia-500/12",
-    cardClass:
-      "border-fuchsia-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,247,255,0.94))]",
-    accentClass: "from-fuchsia-500/16 to-transparent",
   },
   {
     key: "knowledgeCards",
-    icon: PanelsTopLeft,
     num: "04",
-    variant: "standard",
-    gridClass: "md:col-span-3",
-    heightClass: "min-h-[17rem] md:translate-y-6",
-    iconClass: "text-amber-700",
-    iconWrapClass: "border-amber-500/20 bg-amber-500/12",
-    cardClass:
-      "border-amber-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,251,240,0.95))]",
-    accentClass: "from-amber-500/16 to-transparent",
   },
   {
     key: "seoGeo",
-    icon: Radar,
     num: "05",
-    variant: "standard",
-    gridClass: "md:col-span-3",
-    heightClass: "min-h-[16rem] md:-translate-y-2",
-    iconClass: "text-cyan-700",
-    iconWrapClass: "border-cyan-500/20 bg-cyan-500/12",
-    cardClass:
-      "border-cyan-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(242,251,253,0.95))]",
-    accentClass: "from-cyan-500/16 to-transparent",
   },
   {
     key: "competitors",
-    icon: ScanSearch,
     num: "06",
-    variant: "standard",
-    gridClass: "md:col-span-3",
-    heightClass: "min-h-[18rem] md:translate-y-10",
-    iconClass: "text-rose-700",
-    iconWrapClass: "border-rose-500/20 bg-rose-500/12",
-    cardClass:
-      "border-rose-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,245,246,0.95))]",
-    accentClass: "from-rose-500/16 to-transparent",
   },
 ] as const
 
 function Logo() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 text-sm font-bold text-white">
-        J
-      </div>
+      <Image
+        src="/logo.jpeg"
+        alt="JoyfulWords logo"
+        width={32}
+        height={32}
+        className="h-8 w-8 shrink-0 rounded-sm object-cover"
+      />
       <span className="text-base font-semibold tracking-tight">
         JoyfulWords
       </span>
@@ -110,12 +56,43 @@ function Logo() {
 
 export default function LandingPage() {
   const { t, locale, setLocale } = useTranslation()
+  const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
     { value: t("landing.stats.tools"), label: t("landing.stats.toolsLabel") },
     { value: t("landing.stats.seo"), label: t("landing.stats.seoLabel") },
   ]
+
+  useEffect(() => {
+    const elements = document.querySelectorAll<HTMLElement>("[data-feature-key]")
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+
+          const key = entry.target.getAttribute("data-feature-key")
+          if (!key) return
+
+          setVisibleFeatures((current) => {
+            if (current[key]) return current
+            return { ...current, [key]: true }
+          })
+
+          observer.unobserve(entry.target)
+        })
+      },
+      {
+        threshold: 0.35,
+        rootMargin: "0px 0px -12% 0px",
+      }
+    )
+
+    elements.forEach((element) => observer.observe(element))
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div className="overflow-x-hidden">
@@ -188,7 +165,7 @@ export default function LandingPage() {
 
       <section
         id="features"
-        className="border-t bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,1))] px-6 py-24 md:px-10"
+        className="border-t bg-background px-6 py-24 md:px-10"
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 max-w-2xl">
@@ -203,57 +180,65 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-white/80 p-3 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.07),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.08),transparent_26%)]" />
-            <div className="relative grid grid-cols-1 gap-3 md:grid-cols-12">
-              {featureKeys.map((feature) => {
-                const Icon = feature.icon
-                const isHero = feature.variant === "hero"
+          <div className="relative space-y-10 md:space-y-14">
+            {featureKeys.map((feature, index) => {
+                const isVisible = Boolean(visibleFeatures[feature.key])
+                const isRightAligned = index % 2 === 1
+                const contentAlignClass = isRightAligned
+                  ? "items-end text-right"
+                  : "items-start text-left"
+                const articleOffsetClass = isRightAligned
+                  ? "md:ml-20 lg:ml-28"
+                  : "md:mr-20 lg:mr-28"
 
                 return (
                   <article
                     key={feature.key}
-                    className={`${feature.gridClass} ${feature.heightClass} group relative overflow-hidden rounded-[1.75rem] border p-6 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] md:p-7 ${feature.cardClass}`}
+                    data-feature-key={feature.key}
+                    className={`group relative overflow-visible bg-transparent px-2 py-2 transition duration-500 ${articleOffsetClass}`}
                   >
-                    <div className={`pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${feature.accentClass}`} />
-                    <div className="pointer-events-none absolute top-5 right-5 h-24 w-24 rounded-full border border-white/60 bg-white/30 blur-2xl" />
-                    <div className="pointer-events-none absolute -right-10 bottom-0 h-28 w-28 rounded-full border border-black/5 bg-white/60" />
+                    <div
+                      className={`pointer-events-none absolute top-0 font-serif text-[6rem] leading-none tracking-[-0.06em] text-foreground/[0.05] md:text-[9rem] lg:text-[11rem] ${
+                        isRightAligned ? "left-0" : "right-0"
+                      }`}
+                    >
+                      {feature.num}
+                    </div>
 
-                    <div className="relative flex h-full flex-col">
-                      <div className="flex items-start justify-between gap-4">
-                        <div
-                          className={`flex h-12 w-12 items-center justify-center rounded-2xl border backdrop-blur-sm ${feature.iconWrapClass}`}
-                        >
-                          <Icon className={`h-5 w-5 ${feature.iconClass}`} />
-                        </div>
-                        <div className="text-[11px] font-medium tracking-[0.26em] text-muted-foreground/80">
-                          {feature.num}
-                        </div>
-                      </div>
-
-                      <div className={`mt-8 flex-1 ${isHero ? "max-w-md" : ""}`}>
-                        <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80">
+                    <div className={`relative flex min-h-[16rem] flex-col justify-between gap-10 ${contentAlignClass} md:min-h-[19rem]`}>
+                      <div className={`flex max-w-4xl flex-1 flex-col ${contentAlignClass}`}>
+                        <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.34em] text-muted-foreground/75">
                           {t(`landing.features.${feature.key}.eyebrow`)}
                         </div>
-                        <h3 className={isHero ? "text-2xl font-semibold tracking-tight md:text-[2rem]" : "text-lg font-semibold tracking-tight"}>
+                        <h3 className="max-w-[16ch] font-serif text-4xl leading-[0.95] tracking-[-0.04em] md:text-6xl lg:text-7xl">
                           {t(`landing.features.${feature.key}.title`)}
                         </h3>
-                        <p className={`mt-3 leading-relaxed text-muted-foreground ${isHero ? "max-w-sm text-[15px]" : "text-sm"}`}>
+                        <p
+                          className={`mt-8 max-w-[30rem] text-base leading-relaxed text-muted-foreground/72 transition-all duration-700 ease-out md:text-lg ${
+                            isVisible
+                              ? "translate-y-0 opacity-100"
+                              : "translate-y-8 opacity-0"
+                          }`}
+                        >
                           {t(`landing.features.${feature.key}.desc`)}
                         </p>
                       </div>
 
-                      <div className={`mt-6 flex items-center justify-between ${isHero ? "text-sm" : "text-xs"} text-muted-foreground`}>
-                        <span>{t(`landing.features.${feature.key}.highlight`)}</span>
-                        <span className="rounded-full border border-black/5 bg-white/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-foreground/70">
-                          {isHero ? t("landing.featuresBadgePrimary") : t("landing.featuresBadgeSupport")}
+                      <div
+                        className={`w-full text-sm text-muted-foreground transition-all duration-700 ease-out ${
+                          isVisible
+                            ? "translate-y-0 opacity-100"
+                            : "translate-y-10 opacity-0"
+                        }`}
+                      >
+                        <span className="max-w-xl text-muted-foreground/80">
+                          {t(`landing.features.${feature.key}.highlight`)}
                         </span>
                       </div>
                     </div>
                   </article>
                 )
               })}
-            </div>
           </div>
         </div>
       </section>

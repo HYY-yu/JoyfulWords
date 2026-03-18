@@ -1447,7 +1447,7 @@ export const zh = {
         badge: "AI 驱动的内容创作平台",
         heading: "写出更好的内容，",
         headingAccent: "更快",
-        description: "JoyfulWords 将 AI 写作、图片生成、SEO 优化集于一体，让每一篇内容都值得被看见。",
+        description: "JoyfulWords 是一个 AI 驱动的写作工作台，你可以在这里收集、整理素材，并将它们转化为优质内容。",
         cta: "立即开始创作",
         viewArticles: "查看我的文章",
         stats: {
@@ -1456,7 +1456,7 @@ export const zh = {
             tools: "6 合 1",
             toolsLabel: "工具集成",
             seo: "实时",
-            seoLabel: "SEO 分析",
+            seoLabel: "全网搜索",
         },
         featuresLabel: "全套工具",
         featuresHeading: "写作所需，",

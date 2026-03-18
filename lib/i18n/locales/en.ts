@@ -1447,7 +1447,7 @@ export const en = {
         badge: "AI-Powered Content Platform",
         heading: "Write Better Content,",
         headingAccent: "Faster",
-        description: "JoyfulWords combines AI writing, image generation, and SEO optimization in one place, making every piece of content worth seeing.",
+        description: "JoyfulWords is an AI-powered writing workspace where you collect, organize, and turn materials into great content.",
         cta: "Start Creating",
         viewArticles: "View My Articles",
         stats: {
@@ -1456,7 +1456,7 @@ export const en = {
             tools: "6 in 1",
             toolsLabel: "Integrated Tools",
             seo: "Real-time",
-            seoLabel: "SEO Analysis",
+            seoLabel: "Web Search",
         },
         featuresLabel: "FULL TOOLKIT",
         featuresHeading: "Everything You Need, ",
