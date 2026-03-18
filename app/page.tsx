@@ -3,25 +3,97 @@
 import Link from "next/link"
 import {
   Sparkles,
-  Gem,
-  Target,
-  Square,
-  LayoutGrid,
-  MessageSquareMore,
   Globe,
+  ImagePlus,
+  Library,
+  PanelsTopLeft,
+  Radar,
+  ScanSearch,
 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 
 const featureKeys = [
-  { key: "aiWriting", icon: Sparkles, color: "text-blue-600", bg: "bg-blue-600/10", border: "border-blue-600/20", num: "01" },
-  { key: "imageGen", icon: Gem, color: "text-violet-600", bg: "bg-violet-600/10", border: "border-violet-600/20", num: "02" },
-  { key: "seoGeo", icon: Target, color: "text-green-600", bg: "bg-green-600/10", border: "border-green-600/20", num: "03" },
-  { key: "knowledgeCards", icon: Square, color: "text-amber-600", bg: "bg-amber-600/10", border: "border-amber-600/20", num: "04" },
-  { key: "materialSearch", icon: LayoutGrid, color: "text-cyan-600", bg: "bg-cyan-600/10", border: "border-cyan-600/20", num: "05" },
-  { key: "competitors", icon: MessageSquareMore, color: "text-red-600", bg: "bg-red-600/10", border: "border-red-600/20", num: "06" },
-]
+  {
+    key: "aiWriting",
+    icon: Sparkles,
+    num: "01",
+    variant: "hero",
+    gridClass: "md:col-span-7",
+    heightClass: "min-h-[22rem]",
+    iconClass: "text-blue-700",
+    iconWrapClass: "border-blue-500/20 bg-blue-500/12",
+    cardClass:
+      "border-blue-500/18 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]",
+    accentClass: "from-blue-500/14 via-sky-500/10 to-transparent",
+  },
+  {
+    key: "materialSearch",
+    icon: Library,
+    num: "02",
+    variant: "hero",
+    gridClass: "md:col-span-5",
+    heightClass: "min-h-[22rem] md:translate-y-8",
+    iconClass: "text-emerald-700",
+    iconWrapClass: "border-emerald-500/20 bg-emerald-500/12",
+    cardClass:
+      "border-emerald-500/18 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_40%),linear-gradient(160deg,rgba(255,255,255,0.98),rgba(244,251,247,0.94))]",
+    accentClass: "from-emerald-500/16 via-teal-500/10 to-transparent",
+  },
+  {
+    key: "imageGen",
+    icon: ImagePlus,
+    num: "03",
+    variant: "standard",
+    gridClass: "md:col-span-3",
+    heightClass: "min-h-[15rem] md:-translate-y-5",
+    iconClass: "text-fuchsia-700",
+    iconWrapClass: "border-fuchsia-500/20 bg-fuchsia-500/12",
+    cardClass:
+      "border-fuchsia-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(250,247,255,0.94))]",
+    accentClass: "from-fuchsia-500/16 to-transparent",
+  },
+  {
+    key: "knowledgeCards",
+    icon: PanelsTopLeft,
+    num: "04",
+    variant: "standard",
+    gridClass: "md:col-span-3",
+    heightClass: "min-h-[17rem] md:translate-y-6",
+    iconClass: "text-amber-700",
+    iconWrapClass: "border-amber-500/20 bg-amber-500/12",
+    cardClass:
+      "border-amber-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,251,240,0.95))]",
+    accentClass: "from-amber-500/16 to-transparent",
+  },
+  {
+    key: "seoGeo",
+    icon: Radar,
+    num: "05",
+    variant: "standard",
+    gridClass: "md:col-span-3",
+    heightClass: "min-h-[16rem] md:-translate-y-2",
+    iconClass: "text-cyan-700",
+    iconWrapClass: "border-cyan-500/20 bg-cyan-500/12",
+    cardClass:
+      "border-cyan-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(242,251,253,0.95))]",
+    accentClass: "from-cyan-500/16 to-transparent",
+  },
+  {
+    key: "competitors",
+    icon: ScanSearch,
+    num: "06",
+    variant: "standard",
+    gridClass: "md:col-span-3",
+    heightClass: "min-h-[18rem] md:translate-y-10",
+    iconClass: "text-rose-700",
+    iconWrapClass: "border-rose-500/20 bg-rose-500/12",
+    cardClass:
+      "border-rose-500/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,245,246,0.95))]",
+    accentClass: "from-rose-500/16 to-transparent",
+  },
+] as const
 
 function Logo() {
   return (
@@ -114,41 +186,71 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="border-t bg-card px-10 py-24">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14">
+      <section
+        id="features"
+        className="border-t bg-[linear-gradient(180deg,rgba(248,250,252,0.92),rgba(255,255,255,1))] px-6 py-24 md:px-10"
+      >
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 max-w-2xl">
             <div className="mb-3 text-xs uppercase tracking-widest text-muted-foreground">
               {t("landing.featuresLabel")}
             </div>
             <h2 className="font-serif text-4xl leading-tight tracking-tight">
               {t("landing.featuresHeading")}<em className="text-primary">{t("landing.featuresHeadingAccent")}</em>
             </h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              {t("landing.featuresSubheading")}
+            </p>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-border">
-            <div className="grid grid-cols-1 gap-px md:grid-cols-3">
-              {featureKeys.map((f) => {
-                const Icon = f.icon
+          <div className="relative overflow-hidden rounded-[2rem] border border-border/70 bg-white/80 p-3 shadow-[0_24px_80px_rgba(15,23,42,0.06)] backdrop-blur">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.07),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.08),transparent_26%)]" />
+            <div className="relative grid grid-cols-1 gap-3 md:grid-cols-12">
+              {featureKeys.map((feature) => {
+                const Icon = feature.icon
+                const isHero = feature.variant === "hero"
+
                 return (
-                  <div
-                    key={f.num}
-                    className="bg-card p-9 transition hover:bg-background"
+                  <article
+                    key={feature.key}
+                    className={`${feature.gridClass} ${feature.heightClass} group relative overflow-hidden rounded-[1.75rem] border p-6 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)] md:p-7 ${feature.cardClass}`}
                   >
-                    <div
-                      className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg border ${f.bg} ${f.border}`}
-                    >
-                      <Icon className={`h-[17px] w-[17px] ${f.color}`} />
+                    <div className={`pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b ${feature.accentClass}`} />
+                    <div className="pointer-events-none absolute top-5 right-5 h-24 w-24 rounded-full border border-white/60 bg-white/30 blur-2xl" />
+                    <div className="pointer-events-none absolute -right-10 bottom-0 h-28 w-28 rounded-full border border-black/5 bg-white/60" />
+
+                    <div className="relative flex h-full flex-col">
+                      <div className="flex items-start justify-between gap-4">
+                        <div
+                          className={`flex h-12 w-12 items-center justify-center rounded-2xl border backdrop-blur-sm ${feature.iconWrapClass}`}
+                        >
+                          <Icon className={`h-5 w-5 ${feature.iconClass}`} />
+                        </div>
+                        <div className="text-[11px] font-medium tracking-[0.26em] text-muted-foreground/80">
+                          {feature.num}
+                        </div>
+                      </div>
+
+                      <div className={`mt-8 flex-1 ${isHero ? "max-w-md" : ""}`}>
+                        <div className="mb-3 text-[11px] font-medium uppercase tracking-[0.28em] text-muted-foreground/80">
+                          {t(`landing.features.${feature.key}.eyebrow`)}
+                        </div>
+                        <h3 className={isHero ? "text-2xl font-semibold tracking-tight md:text-[2rem]" : "text-lg font-semibold tracking-tight"}>
+                          {t(`landing.features.${feature.key}.title`)}
+                        </h3>
+                        <p className={`mt-3 leading-relaxed text-muted-foreground ${isHero ? "max-w-sm text-[15px]" : "text-sm"}`}>
+                          {t(`landing.features.${feature.key}.desc`)}
+                        </p>
+                      </div>
+
+                      <div className={`mt-6 flex items-center justify-between ${isHero ? "text-sm" : "text-xs"} text-muted-foreground`}>
+                        <span>{t(`landing.features.${feature.key}.highlight`)}</span>
+                        <span className="rounded-full border border-black/5 bg-white/70 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-foreground/70">
+                          {isHero ? t("landing.featuresBadgePrimary") : t("landing.featuresBadgeSupport")}
+                        </span>
+                      </div>
                     </div>
-                    <div className="mb-1.5 text-xs tracking-widest text-muted-foreground">
-                      {f.num}
-                    </div>
-                    <div className="mb-2 text-base font-semibold">
-                      {t(`landing.features.${f.key}.title`)}
-                    </div>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {t(`landing.features.${f.key}.desc`)}
-                    </p>
-                  </div>
+                  </article>
                 )
               })}
             </div>
