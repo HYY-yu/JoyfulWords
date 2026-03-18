@@ -112,6 +112,12 @@ export default function LandingPage() {
         >
           {t("landing.nav.features")}
         </a>
+        <Link
+          href="/blog"
+          className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        >
+          {t("landing.nav.blog")}
+        </Link>
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard">{t("landing.nav.myArticles")}</Link>
         </Button>
@@ -169,9 +175,6 @@ export default function LandingPage() {
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 max-w-2xl">
-            <div className="mb-3 text-xs uppercase tracking-widest text-muted-foreground">
-              {t("landing.featuresLabel")}
-            </div>
             <h2 className="font-serif text-4xl leading-tight tracking-tight">
               {t("landing.featuresHeading")}<em className="text-primary">{t("landing.featuresHeadingAccent")}</em>
             </h2>
@@ -184,6 +187,7 @@ export default function LandingPage() {
             {featureKeys.map((feature, index) => {
                 const isVisible = Boolean(visibleFeatures[feature.key])
                 const isRightAligned = index % 2 === 1
+                const [leadingDigit, trailingDigit] = feature.num
                 const contentAlignClass = isRightAligned
                   ? "items-end text-right"
                   : "items-start text-left"
@@ -198,11 +202,17 @@ export default function LandingPage() {
                     className={`group relative overflow-visible bg-transparent px-2 py-2 transition duration-500 ${articleOffsetClass}`}
                   >
                     <div
-                      className={`pointer-events-none absolute top-0 font-serif text-[6rem] leading-none tracking-[-0.06em] text-foreground/[0.05] md:text-[9rem] lg:text-[11rem] ${
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute top-0 h-[6rem] w-[5.8rem] font-mono tabular-nums leading-none md:h-[9rem] md:w-[8.6rem] lg:h-[11rem] lg:w-[10.4rem] ${
                         isRightAligned ? "left-0" : "right-0"
                       }`}
                     >
-                      {feature.num}
+                      <span className="absolute top-[0.45rem] left-0 font-sans text-[4.35rem] tracking-[-0.08em] text-foreground/[0.025] md:top-[0.7rem] md:text-[6.45rem] lg:top-[0.8rem] lg:text-[7.85rem]">
+                        {leadingDigit}
+                      </span>
+                      <span className="absolute top-0 -right-[0.35rem] text-[6rem] tracking-[-0.08em] text-foreground/[0.06] md:-right-[0.5rem] md:text-[9rem] lg:-right-[0.7rem] lg:text-[11rem]">
+                        {trailingDigit}
+                      </span>
                     </div>
 
                     <div className={`relative flex min-h-[16rem] flex-col justify-between gap-10 ${contentAlignClass} md:min-h-[19rem]`}>

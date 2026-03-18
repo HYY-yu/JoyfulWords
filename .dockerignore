@@ -42,6 +42,8 @@ logs
 docs
 *.md
 !README.md
+!blog/
+!blog/*.md
 
 # CI/CD
 .github

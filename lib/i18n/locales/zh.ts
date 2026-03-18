@@ -1441,6 +1441,7 @@ export const zh = {
     landing: {
         nav: {
             features: "功能",
+            blog: "博客",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
@@ -1461,7 +1462,7 @@ export const zh = {
         featuresLabel: "全套工具",
         featuresHeading: "写作所需，",
         featuresHeadingAccent: "全部内置",
-        featuresSubheading: "把选题、写作、配图、素材沉淀、流量优化和竞品分析串成一个创作闭环，而不是六个分散的小工具。",
+        featuresSubheading: "把选题、写作、配图、素材沉淀、流量优化和竞品分析串成一个创作闭环。",
         featuresBadgePrimary: "主打能力",
         featuresBadgeSupport: "协同能力",
         features: {
@@ -1509,6 +1510,24 @@ export const zh = {
             version: "内容创作与管理工具 · v1.0.0",
             privacyPolicy: "隐私政策",
             termsOfUse: "服务条款",
+        },
+    },
+    blog: {
+        common: {
+            backToHome: "返回首页",
+            backToBlog: "返回博客",
+            readMore: "阅读全文",
+            noPosts: "暂时还没有博客文章",
+            missingArticle: "未找到对应文章",
+            fallbackNotice: "当前语言版本暂未提供，已自动切换为 {locale} 内容。",
+            localeLabel: "语言",
+        },
+        list: {
+            title: "博客",
+            subtitle: "分享产品更新、创作方法和实战经验。",
+        },
+        detail: {
+            articleLabel: "文章",
         },
     },
     billing: {

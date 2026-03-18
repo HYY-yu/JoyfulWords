@@ -1441,6 +1441,7 @@ export const en = {
     landing: {
         nav: {
             features: "Features",
+            blog: "Blog",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },
@@ -1509,6 +1510,24 @@ export const en = {
             version: "Content Creation Tool · v1.0.0",
             privacyPolicy: "Privacy Policy",
             termsOfUse: "Terms of Use",
+        },
+    },
+    blog: {
+        common: {
+            backToHome: "Back Home",
+            backToBlog: "Back to Blog",
+            readMore: "Read More",
+            noPosts: "No blog posts yet",
+            missingArticle: "Article not found",
+            fallbackNotice: "This locale is unavailable, so the {locale} version is shown instead.",
+            localeLabel: "Language",
+        },
+        list: {
+            title: "Blog",
+            subtitle: "Product updates, creation workflows, and practical insights.",
+        },
+        detail: {
+            articleLabel: "Article",
         },
     },
     billing: {
