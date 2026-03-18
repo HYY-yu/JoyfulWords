@@ -213,6 +213,11 @@ export default function LandingPage() {
                       <span className="absolute top-0 -right-[0.35rem] text-[6rem] tracking-[-0.08em] text-foreground/[0.06] md:-right-[0.5rem] md:text-[9rem] lg:-right-[0.7rem] lg:text-[11rem]">
                         {trailingDigit}
                       </span>
+                      <span
+                        className={`absolute bottom-[0.35rem] h-px w-[3.25rem] bg-foreground/[0.08] md:bottom-[0.5rem] md:w-[4.75rem] lg:bottom-[0.7rem] lg:w-[5.75rem] ${
+                          isRightAligned ? "left-0" : "right-0"
+                        }`}
+                      />
                     </div>
 
                     <div className={`relative flex min-h-[16rem] flex-col justify-between gap-10 ${contentAlignClass} md:min-h-[19rem]`}>
@@ -234,17 +239,6 @@ export default function LandingPage() {
                         </p>
                       </div>
 
-                      <div
-                        className={`w-full text-sm text-muted-foreground transition-all duration-700 ease-out ${
-                          isVisible
-                            ? "translate-y-0 opacity-100"
-                            : "translate-y-10 opacity-0"
-                        }`}
-                      >
-                        <span className="max-w-xl text-muted-foreground/80">
-                          {t(`landing.features.${feature.key}.highlight`)}
-                        </span>
-                      </div>
                     </div>
                   </article>
                 )
