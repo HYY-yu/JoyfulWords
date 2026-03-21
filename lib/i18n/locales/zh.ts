@@ -406,6 +406,27 @@ export const zh = {
             materialsCount: "{count} 个素材",
             titleUpdated: "标题已更新",
         },
+        taskProgress: {
+            title: "任务进度",
+            aiEdit: "AI 编辑",
+            imageGeneration: "图片生成",
+            noTasks: "暂无进行中的任务",
+            empty: "暂无进行中的任务",
+            removeTask: "删除记录",
+            types: {
+                aiEdit: "AI 编辑",
+                imageGeneration: "图片生成",
+            },
+        },
+        materialPanel: {
+            search: "搜索",
+            library: "素材库",
+            searchPlaceholder: "搜索素材...",
+            allMaterials: "全部素材",
+            favorites: "收藏夹",
+            newGroupPlaceholder: "新建分组名称",
+            emptyGroup: "暂无素材，拖拽素材到此分组",
+        },
         articleDialogs: {
             editTitle: {
                 title: "编辑文章标题",
@@ -1113,6 +1134,16 @@ export const zh = {
             saving: "保存中...",
             unsaved: "未保存",
             error: "保存失败",
+        },
+        aiPanel: {
+            title: "AI 功能",
+            aiEdit: "文章 AI 编辑",
+            createImage: "创作图片",
+            aiGenerate: "AI 生成文章",
+            reversalMode: "反向模式",
+            reverseMode: "反向模式",
+            imageStyle: "图片风格",
+            taskProgress: "任务进度",
         },
     },
     aiRewrite: {

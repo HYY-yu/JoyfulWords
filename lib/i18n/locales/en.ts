@@ -406,6 +406,27 @@ export const en = {
             materialsCount: "{count} materials",
             titleUpdated: "Title updated",
         },
+        taskProgress: {
+            title: "Task Progress",
+            aiEdit: "AI Edit",
+            imageGeneration: "Image Generation",
+            noTasks: "No tasks in progress",
+            empty: "No tasks in progress",
+            removeTask: "Remove record",
+            types: {
+                aiEdit: "AI Edit",
+                imageGeneration: "Image Generation",
+            },
+        },
+        materialPanel: {
+            search: "Search",
+            library: "Library",
+            searchPlaceholder: "Search materials...",
+            allMaterials: "All Materials",
+            favorites: "Favorites",
+            newGroupPlaceholder: "New group name",
+            emptyGroup: "No materials, drag materials to this group",
+        },
         articleDialogs: {
             editTitle: {
                 title: "Edit Article Title",
@@ -1113,6 +1134,16 @@ export const en = {
             saving: "Saving...",
             unsaved: "Unsaved",
             error: "Save failed",
+        },
+        aiPanel: {
+            title: "AI Features",
+            aiEdit: "AI Edit",
+            createImage: "Create Image",
+            aiGenerate: "AI Generate",
+            reversalMode: "Reversal Mode",
+            reverseMode: "Reverse Mode",
+            imageStyle: "Image Style",
+            taskProgress: "Task Progress",
         },
     },
     aiRewrite: {

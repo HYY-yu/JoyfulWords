@@ -1,0 +1,390 @@
+"use client"
+
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useAuth } from "@/lib/auth/auth-context"
+import { useArticles } from "@/lib/hooks/use-articles"
+import { Badge } from "@/components/ui/base/badge"
+import { Button } from "@/components/ui/base/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/base/dropdown-menu"
+import {
+  UserCircleIcon,
+  LogOutIcon,
+  Wallet,
+  LoaderIcon,
+  PlusIcon,
+  EditIcon,
+  TrashIcon,
+  RefreshCw,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react"
+import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
+import { ProfileDialog } from "@/components/auth/profile-dialog"
+import { useState } from "react"
+import { getStatusVariant, formatShortDate } from "@/components/article/article-types"
+import type { Article } from "@/lib/api/articles/types"
+import {
+  DeleteConfirmDialog,
+  EditTitleDialog,
+} from "@/components/article/article-dialogs"
+import { articlesClient } from "@/lib/api/articles/client"
+import { useToast } from "@/hooks/use-toast"
+
+export default function ArticlesPage() {
+  const { t } = useTranslation()
+  const { user, loading: authLoading, signOut } = useAuth()
+  const { toast } = useToast()
+  const router = useRouter()
+  const [profileOpen, setProfileOpen] = useState(false)
+
+  const {
+    articles,
+    loading,
+    pagination,
+    handleDelete,
+    handleRefresh,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useArticles()
+
+  // Dialog states
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [editTitleOpen, setEditTitleOpen] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/login")
+    }
+  }, [user, authLoading, router])
+
+  const handleEditArticle = (article: Article) => {
+    router.push(`/articles/${article.id}/edit`)
+  }
+
+  const confirmDeleteArticle = () => {
+    if (selectedArticle) {
+      handleDelete(selectedArticle.id)
+      setDeleteConfirmOpen(false)
+      setSelectedArticle(null)
+    }
+  }
+
+  const saveTitle = async (articleId: number, newTitle: string) => {
+    const result = await articlesClient.updateArticleMetadata(articleId, {
+      title: newTitle,
+    })
+
+    if ("message" in result) {
+      toast({
+        description: t("contentWriting.manager.titleUpdated"),
+      })
+      handleRefresh()
+    } else {
+      toast({
+        variant: "destructive",
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return null
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-background">
+      {/* Top Navigation Bar */}
+      <header className="shrink-0 border-b border-border bg-background">
+        <div className="flex items-center justify-between h-14 px-6">
+          {/* Left - Logo / Back to dashboard */}
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="text-base font-semibold text-foreground hover:text-foreground/80 transition-colors"
+          >
+            {t("sidebar.title")}
+          </button>
+
+          {/* Right - Actions */}
+          <div className="flex items-center gap-3 h-full">
+            {/* Feedback */}
+            <FeedbackErrorBoundary>
+              <TallyFeedbackButton className="w-auto py-0 h-8 text-sm text-muted-foreground hover:text-foreground hover:bg-accent" />
+            </FeedbackErrorBoundary>
+
+            {/* Billing */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-sm text-muted-foreground hover:text-foreground h-8"
+              onClick={() => {
+                localStorage.setItem("joyfulwords-active-tab", "billing")
+                router.push("/dashboard")
+              }}
+            >
+              <Wallet className="w-4 h-4" />
+              {t("sidebar.billing")}
+            </Button>
+
+            {/* User Avatar */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm" className="rounded-full">
+                  <UserCircleIcon className="!size-5 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{t("common.account")}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => setProfileOpen(true)}
+                >
+                  <UserCircleIcon className="mr-2 h-4 w-4" />
+                  {t("auth.profile")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                  onSelect={() => signOut()}
+                >
+                  <LogOutIcon className="mr-2 h-4 w-4" />
+                  {t("auth.logout")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {/* Page Title + Actions */}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-2xl font-bold text-foreground">
+              {t("contentWriting.tabs.articleManager")}
+            </h1>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                disabled={loading}
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+                />
+              </Button>
+              <Button
+                onClick={() => {
+                  localStorage.setItem(
+                    "joyfulwords-active-tab",
+                    "joyfulwords-content-writing"
+                  )
+                  localStorage.setItem(
+                    "joyfulwords-content-writing-tab",
+                    "article-writing"
+                  )
+                  router.push("/dashboard")
+                }}
+                className="gap-2"
+              >
+                <PlusIcon className="w-4 h-4" />
+                {t("contentWriting.editorHeader.newArticle")}
+              </Button>
+            </div>
+          </div>
+
+          {/* Article Cards Grid */}
+          {loading ? (
+            <div className="flex items-center justify-center py-24">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <LoaderIcon className="w-5 h-5 animate-spin" />
+                <span>{t("contentWriting.manager.loading")}</span>
+              </div>
+            </div>
+          ) : articles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+              <p className="text-lg">{t("contentWriting.manager.emptyTitle")}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {articles.map((article) => (
+                <div
+                  key={article.id}
+                  className="group relative bg-card border border-border rounded-xl p-5 hover:shadow-md hover:border-foreground/20 transition-all cursor-pointer"
+                  onClick={() => handleEditArticle(article)}
+                >
+                  {/* Status Badge */}
+                  <div className="flex items-center justify-between mb-3">
+                    <Badge
+                      variant={getStatusVariant(article.status)}
+                      className="text-xs"
+                    >
+                      {t(`contentWriting.manager.status.${article.status}`)}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {formatShortDate(article.updated_at)}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="font-semibold text-foreground line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+                    {article.title}
+                  </h3>
+
+                  {/* Content Preview */}
+                  <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+                    {article.content.replace(/<[^>]*>/g, "").substring(0, 150)}
+                  </p>
+
+                  {/* Footer - Tags & Actions */}
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/50">
+                    <div className="flex items-center gap-1 overflow-hidden">
+                      {article.tags &&
+                        article.tags
+                          .split(",")
+                          .slice(0, 2)
+                          .map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground truncate max-w-[80px]"
+                            >
+                              {tag.trim()}
+                            </span>
+                          ))}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div
+                      className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedArticle(article)
+                          setEditTitleOpen(true)
+                        }}
+                      >
+                        <EditIcon className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedArticle(article)
+                          setDeleteConfirmOpen(true)
+                        }}
+                      >
+                        <TrashIcon className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Pagination - 固定在底部 */}
+      {pagination.total > 0 && (
+        <footer className="shrink-0 border-t border-border bg-background">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {t("contentWriting.manager.totalCount", {
+                total: pagination.total,
+                page: pagination.page,
+              })}
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={pagination.page <= 1 || loading}
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+              </Button>
+              <div className="text-sm text-foreground min-w-[80px] text-center">
+                {pagination.page} /{" "}
+                {Math.ceil(pagination.total / pagination.pageSize)}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={
+                  pagination.page >=
+                    Math.ceil(pagination.total / pagination.pageSize) ||
+                  loading
+                }
+              >
+                <ChevronRightIcon className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </footer>
+      )}
+
+      {/* Dialogs */}
+      {selectedArticle && (
+        <>
+          <EditTitleDialog
+            article={selectedArticle}
+            open={editTitleOpen}
+            onOpenChange={setEditTitleOpen}
+            onSave={saveTitle}
+          />
+          <DeleteConfirmDialog
+            article={selectedArticle}
+            open={deleteConfirmOpen}
+            onOpenChange={setDeleteConfirmOpen}
+            onConfirm={confirmDeleteArticle}
+          />
+        </>
+      )}
+
+      {/* Profile Dialog */}
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+    </div>
+  )
+}
