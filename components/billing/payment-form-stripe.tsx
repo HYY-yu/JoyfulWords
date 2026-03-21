@@ -47,7 +47,7 @@ function StripeLogo() {
 const formSchema = z.object({
   credits: z
     .number({
-      requiredError: 'billing.payment.form.credits.required' as never,
+      required_error: 'billing.payment.form.credits.required' as never,
       invalid_type_error: 'billing.payment.form.credits.invalid' as never,
     })
     .min(200, { message: 'billing.payment.form.credits.min' })

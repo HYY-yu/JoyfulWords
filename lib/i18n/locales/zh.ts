@@ -44,6 +44,12 @@ export const zh = {
             cancel: "取消",
             confirm: "确认",
         },
+        infiniteScroll: {
+            loading: "加载中...",
+            noMoreData: "已加载全部数据",
+            loadFailed: "加载失败，点击重试",
+            error: "加载出错：{error}",
+        },
     },
     sidebar: {
         title: "创作者工具箱",
@@ -138,6 +144,7 @@ export const zh = {
             errors: {
                 invalidImageType: "请选择图片文件",
                 imageTooLarge: "图片大小不能超过 5MB",
+                searchTooShort: "您输入的搜索内容太短了，请输入更具体的搜索词，有助于您精准搜索数据",
             },
             logs: {
                 tabs: {
@@ -308,6 +315,10 @@ export const zh = {
             removeFile: "移除文件",
             uploadedFile: "已上传文件",
             uploadInProgress: "文件上传中，请稍候...",
+            materialsLoading: "正在加载素材...",
+            competitorsLoading: "正在加载竞品数据...",
+            noMoreMaterials: "已加载全部素材",
+            noMoreCompetitors: "已加载全部竞品",
         },
         saveDialog: {
             title: "保存文章",
@@ -500,6 +511,12 @@ export const zh = {
             descriptionRequired2: "必填项",
             referenceImage: "参考图片",
             referenceImageOptional: "(可选)",
+            selectReferenceImage: "选择参考图片",
+            selectImageFromMaterials: "从素材库选择",
+            noImageMaterials: "暂无图片素材，请先在素材模块上传",
+            imageSelected: "已选择: ",
+            materialsLoading: "正在加载素材...",
+            noMoreMaterials: "已加载全部素材",
             zIndex: "层级",
             infoBox: "提示: 选中画布中的矩形图层可编辑其属性",
 
@@ -644,6 +661,7 @@ export const zh = {
                 noImages: "该记录没有可复制的图片",
                 serverError: "服务器错误，请稍后重试",
                 unauthorized: "请先登录",
+                invalidFileType: "文件类型无效",
             },
         },
         reset: {
@@ -654,12 +672,39 @@ export const zh = {
             success: "画布已成功重置",
         },
         styleMode: {
-            // 上传区域
-            upload: {
-                title: "图片上传",
-                description: "拖拽或点击上传图片",
+            // 左侧栏 - 基础图片
+            baseImage: {
+                title: "基础图片",
+                description: "请上传黑白线稿图，AI 将会把风格迁移，并保留图片主体",
                 dropHere: "拖拽图片到此处",
                 orClick: "或点击选择文件",
+            },
+
+            // 上传状态
+            uploading: "上传中...",
+            uploadingHint: "正在上传图片到服务器",
+
+            // 验证错误
+            validation: {
+                missingInput: "信息不完整",
+                missingInputDesc: "请先上传图片并选择风格",
+                missingImage: "请先上传图片",
+                missingStyle: "请选择风格",
+                missingModel: "未选择模型",
+                missingModelDesc: "请选择一个图片生成模型",
+                uploadFailed: "图片上传失败",
+            },
+
+            // 右侧栏 - 风格列表
+            styleList: {
+                title: "Style List",
+                custom: "自定义",
+                customPlaceholder: "请输入风格描述（如：水彩画风格、油画风格...）",
+                customConfirm: "确认",
+                customCancel: "取消",
+                loading: "加载风格中...",
+                loadError: "加载风格失败",
+                retry: "重试",
             },
 
             // 预览区域
@@ -678,7 +723,7 @@ export const zh = {
             download: "下载图片",
             selected: "已选择",
 
-            // 预设风格
+            // 预设风格（保留以兼容，但不再使用）
             presets: {
                 cyberNeon: {
                     name: "赛博霓虹",
@@ -734,8 +779,43 @@ export const zh = {
             splitCompleted: "拆分完成！",
             successfullySplit: "成功拆分为 {count} 个图层",
 
-            // 图层名称
+
+
+            // 结果区域
+            splitResults: "拆分结果",
+            layersCount: "{count} 个图层",
+            selectAll: "全选",
+            deselectAll: "取消全选",
+            downloadSelected: "下载选中",
+            waiting: "等待拆分",
+            waitingHint: "上传图片并点击拆分按钮后，这里将显示拆分后的图层",
+
+            // 底部提示
+            hint: "上传图片后点击「拆分图片」按钮，AI 将自动将图片分解为多个图层。",
+
+            // 图层数量选择
+            numLayers: {
+                label: "拆分层级",
+                description: "选择要拆分的图层数量（1-8层）",
+            },
+
+            // 场景描述
+            prompt: {
+                label: "场景描述",
+                placeholder: "描述图片中的场景内容，例如：一个有山的风景画",
+                description: "提供场景描述可以帮助 AI 更准确地拆分层级",
+            },
+
+            // 验证提示
+            validation: {
+                missingImage: "请先上传图片",
+                invalidNumLayers: "图层数量必须在 1-8 之间",
+            },
+
+            // 图层默认命名
             layers: {
+                default: "图层 {index}",
+                defaultDescription: "拆分后的第 {index} 层",
                 mainSubject: {
                     name: "主体层",
                     description: "图像的主要主体",
@@ -753,18 +833,6 @@ export const zh = {
                     description: "光照和阴影效果",
                 },
             },
-
-            // 结果区域
-            splitResults: "拆分结果",
-            layersCount: "{count} 个图层",
-            selectAll: "全选",
-            deselectAll: "取消全选",
-            downloadSelected: "下载选中",
-            waiting: "等待拆分",
-            waitingHint: "上传图片并点击拆分按钮后，这里将显示拆分后的图层",
-
-            // 底部提示
-            hint: "上传图片后点击「拆分图片」按钮，AI 将自动将图片分解为多个图层。",
         },
 
         // 新增：提示词预览
@@ -794,7 +862,7 @@ export const zh = {
                 all: "全部模式",
                 creator: "创作",
                 style: "风格",
-                inversion: "反向",
+                split_images: "反向",
             },
 
             model: {
@@ -809,6 +877,7 @@ export const zh = {
                 images: "图片",
                 actions: "操作",
                 noData: "暂无生成记录",
+                clickToPreview: "点击预览",
             },
 
             actions: {
@@ -816,6 +885,11 @@ export const zh = {
                 download: "下载",
                 copyToMaterials: "复制到素材",
                 copying: "复制中...",
+            },
+
+            preview: {
+                title: "图片预览",
+                imageInfo: "图片 {current} / {total}",
             },
 
             toast: {
@@ -1068,6 +1142,8 @@ export const zh = {
             selectPlaceholder: "请选择素材...",
             noMaterials: "暂无素材",
             loadingMaterials: "加载素材中...",
+            loadingMore: "加载更多素材中...",
+            noMoreData: "已加载全部素材",
             selectedCount: "已选择 {count} 个素材",
             typeLabels: {
                 info: "资料",
@@ -1365,13 +1441,14 @@ export const zh = {
     landing: {
         nav: {
             features: "功能",
+            blog: "博客",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
         badge: "AI 驱动的内容创作平台",
         heading: "写出更好的内容，",
         headingAccent: "更快",
-        description: "JoyfulWords 将 AI 写作、图片生成、SEO 优化集于一体，让每一篇内容都值得被看见。",
+        description: "JoyfulWords 是一个 AI 驱动的写作工作台，你可以在这里收集、整理素材，并将它们转化为优质内容。",
         cta: "立即开始创作",
         viewArticles: "查看我的文章",
         stats: {
@@ -1380,35 +1457,44 @@ export const zh = {
             tools: "6 合 1",
             toolsLabel: "工具集成",
             seo: "实时",
-            seoLabel: "SEO 分析",
+            seoLabel: "全网搜索",
         },
         featuresLabel: "全套工具",
         featuresHeading: "写作所需，",
         featuresHeadingAccent: "全部内置",
+        featuresSubheading: "把选题、写作、配图、素材沉淀、流量优化和竞品分析串成一个创作闭环。",
+        featuresBadgePrimary: "主打能力",
+        featuresBadgeSupport: "协同能力",
         features: {
             aiWriting: {
+                eyebrow: "核心引擎",
                 title: "AI 智能写作",
-                desc: "输入主题，AI 秒级生成结构完整的文章草稿，支持续写、改写、风格切换。",
+                desc: "从选题到大纲到成稿，一次生成结构完整的内容初稿，并支持续写、改写、风格切换。",
             },
             imageGen: {
+                eyebrow: "视觉补全",
                 title: "一键配图",
-                desc: "内置 AI 图片生成与素材搜索，写作中随手配图，无需切换工具。",
+                desc: "写作过程中直接生成插图或补充视觉素材，让图文搭配自然完成，无需切换工作流。",
             },
             seoGeo: {
+                eyebrow: "流量放大",
                 title: "SEO / GEO 优化",
-                desc: "实时关键词密度、标题评分、结构建议，让文章在搜索引擎与 AI 问答中都被看见。",
+                desc: "同步检查标题、关键词与内容结构，让文章既适配搜索引擎，也更容易进入 AI 回答结果。",
             },
             knowledgeCards: {
+                eyebrow: "内容提炼",
                 title: "知识卡片",
-                desc: "复杂概念一键转化为可视化卡片，提升读者留存与内容分享率。",
+                desc: "把复杂信息提炼成易读、易转发的知识卡片，适合长文拆分和社媒分发。",
             },
             materialSearch: {
-                title: "素材搜索",
-                desc: "在编辑器内直接搜索、引用外部素材，自动标注来源。",
+                eyebrow: "资产沉淀",
+                title: "素材仓库",
+                desc: "把灵感、链接、图片和参考资料统一收集、整理、复用，让素材真正成为可积累的内容资产。",
             },
             competitors: {
+                eyebrow: "同题参考",
                 title: "竞品参考",
-                desc: "写作时随时查看同类竞品文章，分析结构与关键词布局。",
+                desc: "快速查看同题内容的结构、角度与关键词布局，帮助你判断切入点并拉开差异。",
             },
         },
         ctaHeading: "开始你的第一篇文章",
@@ -1418,6 +1504,24 @@ export const zh = {
             version: "内容创作与管理工具 · v1.0.0",
             privacyPolicy: "隐私政策",
             termsOfUse: "服务条款",
+        },
+    },
+    blog: {
+        common: {
+            backToHome: "返回首页",
+            backToBlog: "返回博客",
+            readMore: "阅读全文",
+            noPosts: "暂时还没有博客文章",
+            missingArticle: "未找到对应文章",
+            fallbackNotice: "当前语言版本暂未提供，已自动切换为 {locale} 内容。",
+            localeLabel: "语言",
+        },
+        list: {
+            title: "博客",
+            subtitle: "分享产品更新、创作方法和实战经验。",
+        },
+        detail: {
+            articleLabel: "文章",
         },
     },
     billing: {

@@ -73,7 +73,7 @@ export function useAIEditStatusPoller({
 
             if (result.status === 'success') {
                 stop()
-                onSuccessRef.current(result.response_text || '')
+                onSuccessRef.current(result.data || '')
                 return
             }
 

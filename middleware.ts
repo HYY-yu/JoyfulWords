@@ -16,6 +16,7 @@ const publicPages = [
   '/cookie-policy',         // Cookie 政策页面
   '/terms-of-use',          // 使用条款页面
   '/privacy-policy',        // 隐私政策页面
+  '/blog',                  // 博客页面
 ]
 
 // Exact match public routes (cannot use startsWith for '/')
@@ -32,9 +33,9 @@ export async function middleware(request: NextRequest) {
   const isPublic = isAuthRoute || isPublicPage || exactPublicRoutes.includes(pathname)
 
   // Redirect authenticated users away from auth pages (but NOT public pages)
-  if (isAuthenticated && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // if (isAuthenticated && isAuthRoute) {
+  //   return NextResponse.redirect(new URL('/dashboard', request.url))
+  // }
 
   // Redirect unauthenticated users to login for protected routes
   if (!isAuthenticated && !isPublic) {

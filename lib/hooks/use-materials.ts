@@ -223,6 +223,22 @@ export function useMaterials() {
     async (searchQuery: string, activeSearchTab: string) => {
       if (!searchQuery.trim()) return
 
+      // 验证搜索长度
+      const trimmedQuery = searchQuery.trim()
+      const chineseCharCount = (trimmedQuery.match(/[\u4e00-\u9fa5]/g) || []).length
+      const englishWordCount = trimmedQuery.split(/\s+/).filter(word =>
+        word.length > 0 && /[a-zA-Z]/.test(word)
+      ).length
+
+      // 检查是否太短：中文少于2个字，或英文少于1个单词（或总长度少于2个字符）
+      if (chineseCharCount < 2 && englishWordCount < 1 && trimmedQuery.length < 2) {
+        toast({
+          variant: "destructive",
+          title: t("contentWriting.materials.errors.searchTooShort"),
+        })
+        return
+      }
+
       setSearching(true)
 
       // 映射 UI Tab 到 API 枚举值

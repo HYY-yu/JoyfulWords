@@ -9,6 +9,9 @@ import type {
   GetGenerationLogsRequest,
   GetGenerationLogsResponse,
   CopyToMaterialsResponse,
+  GetStyleExamplesResponse,
+  CreateSplitTaskRequest,
+  CreateSplitTaskResponse,
 } from './types'
 
 /**
@@ -225,5 +228,68 @@ export const imageGenerationClient = {
         },
       }
     )
+  },
+
+  /**
+   * 获取风格示例列表
+   * GET /image-generation/style-examples
+   *
+   * 获取可用的风格示例列表
+   *
+   * @returns Promise<GetStyleExamplesResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.getStyleExamples()
+   * if ('error' in result) {
+   *   console.error(result.error)
+   * } else {
+   *   console.log(result.style_list)
+   * }
+   */
+  async getStyleExamples() {
+    console.debug('[ImageGeneration] Fetching style examples...')
+    return apiRequest<GetStyleExamplesResponse>('/image-generation/style-examples', {
+      method: 'GET',
+    })
+  },
+
+  /**
+   * 创建图片拆分任务
+   * POST /image-generation/split
+   *
+   * 创建异步图片拆分任务，返回 task_id 用于轮询结果
+   *
+   * @param request - 创建拆分任务请求对象
+   * @returns Promise<CreateSplitTaskResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.createSplitTask({
+   *   image_url: 'https://example.com/image.jpg',
+   *   num_layers: 4,
+   *   prompt: 'A beautiful landscape'
+   * })
+   * if ('error' in result) {
+   *   console.error(result.error)
+   * } else {
+   *   console.log(result.task_id)
+   * }
+   */
+  async createSplitTask(request: CreateSplitTaskRequest) {
+    const token = localStorage.getItem('access_token')
+
+    // TRACE: 任务创建入口 - 记录请求参数
+    console.debug('[ImageGeneration] Creating split task:', {
+      hasImageUrl: !!request.image_url,
+      numLayers: request.num_layers || 4,
+      hasPrompt: !!request.prompt,
+    })
+
+    return apiRequest<CreateSplitTaskResponse>('/image-generation/split', {
+      method: 'POST',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(request),
+    })
   },
 }

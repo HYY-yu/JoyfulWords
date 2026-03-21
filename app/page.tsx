@@ -1,13 +1,9 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import {
-  Sparkles,
-  Gem,
-  Target,
-  Square,
-  LayoutGrid,
-  MessageSquareMore,
   Globe,
 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
@@ -15,20 +11,42 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 
 const featureKeys = [
-  { key: "aiWriting", icon: Sparkles, color: "text-blue-600", bg: "bg-blue-600/10", border: "border-blue-600/20", num: "01" },
-  { key: "imageGen", icon: Gem, color: "text-violet-600", bg: "bg-violet-600/10", border: "border-violet-600/20", num: "02" },
-  { key: "seoGeo", icon: Target, color: "text-green-600", bg: "bg-green-600/10", border: "border-green-600/20", num: "03" },
-  { key: "knowledgeCards", icon: Square, color: "text-amber-600", bg: "bg-amber-600/10", border: "border-amber-600/20", num: "04" },
-  { key: "materialSearch", icon: LayoutGrid, color: "text-cyan-600", bg: "bg-cyan-600/10", border: "border-cyan-600/20", num: "05" },
-  { key: "competitors", icon: MessageSquareMore, color: "text-red-600", bg: "bg-red-600/10", border: "border-red-600/20", num: "06" },
-]
+  {
+    key: "aiWriting",
+    num: "01",
+  },
+  {
+    key: "materialSearch",
+    num: "02",
+  },
+  {
+    key: "imageGen",
+    num: "03",
+  },
+  {
+    key: "knowledgeCards",
+    num: "04",
+  },
+  {
+    key: "seoGeo",
+    num: "05",
+  },
+  {
+    key: "competitors",
+    num: "06",
+  },
+] as const
 
 function Logo() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-violet-600 text-sm font-bold text-white">
-        J
-      </div>
+      <Image
+        src="/logo.jpeg"
+        alt="JoyfulWords logo"
+        width={32}
+        height={32}
+        className="h-8 w-8 shrink-0 rounded-sm object-cover"
+      />
       <span className="text-base font-semibold tracking-tight">
         JoyfulWords
       </span>
@@ -38,12 +56,43 @@ function Logo() {
 
 export default function LandingPage() {
   const { t, locale, setLocale } = useTranslation()
+  const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
     { value: t("landing.stats.tools"), label: t("landing.stats.toolsLabel") },
     { value: t("landing.stats.seo"), label: t("landing.stats.seoLabel") },
   ]
+
+  useEffect(() => {
+    const elements = document.querySelectorAll<HTMLElement>("[data-feature-key]")
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return
+
+          const key = entry.target.getAttribute("data-feature-key")
+          if (!key) return
+
+          setVisibleFeatures((current) => {
+            if (current[key]) return current
+            return { ...current, [key]: true }
+          })
+
+          observer.unobserve(entry.target)
+        })
+      },
+      {
+        threshold: 0.35,
+        rootMargin: "0px 0px -12% 0px",
+      }
+    )
+
+    elements.forEach((element) => observer.observe(element))
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div className="overflow-x-hidden">
@@ -63,6 +112,12 @@ export default function LandingPage() {
         >
           {t("landing.nav.features")}
         </a>
+        <Link
+          href="/blog"
+          className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        >
+          {t("landing.nav.blog")}
+        </Link>
         <Button variant="outline" size="sm" asChild>
           <Link href="/dashboard">{t("landing.nav.myArticles")}</Link>
         </Button>
@@ -114,44 +169,80 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="border-t bg-card px-10 py-24">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14">
-            <div className="mb-3 text-xs uppercase tracking-widest text-muted-foreground">
-              {t("landing.featuresLabel")}
-            </div>
+      <section
+        id="features"
+        className="border-t bg-background px-6 py-24 md:px-10"
+      >
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 max-w-2xl">
             <h2 className="font-serif text-4xl leading-tight tracking-tight">
               {t("landing.featuresHeading")}<em className="text-primary">{t("landing.featuresHeadingAccent")}</em>
             </h2>
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              {t("landing.featuresSubheading")}
+            </p>
           </div>
 
-          <div className="overflow-hidden rounded-2xl bg-border">
-            <div className="grid grid-cols-1 gap-px md:grid-cols-3">
-              {featureKeys.map((f) => {
-                const Icon = f.icon
+          <div className="relative space-y-10 md:space-y-14">
+            {featureKeys.map((feature, index) => {
+                const isVisible = Boolean(visibleFeatures[feature.key])
+                const isRightAligned = index % 2 === 1
+                const [leadingDigit, trailingDigit] = feature.num
+                const contentAlignClass = isRightAligned
+                  ? "items-end text-right"
+                  : "items-start text-left"
+                const articleOffsetClass = isRightAligned
+                  ? "md:ml-20 lg:ml-28"
+                  : "md:mr-20 lg:mr-28"
+
                 return (
-                  <div
-                    key={f.num}
-                    className="bg-card p-9 transition hover:bg-background"
+                  <article
+                    key={feature.key}
+                    data-feature-key={feature.key}
+                    className={`group relative overflow-visible bg-transparent px-2 py-2 transition duration-500 ${articleOffsetClass}`}
                   >
                     <div
-                      className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg border ${f.bg} ${f.border}`}
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute top-0 h-[6rem] w-[5.8rem] font-mono tabular-nums leading-none md:h-[9rem] md:w-[8.6rem] lg:h-[11rem] lg:w-[10.4rem] ${
+                        isRightAligned ? "left-0" : "right-0"
+                      }`}
                     >
-                      <Icon className={`h-[17px] w-[17px] ${f.color}`} />
+                      <span className="absolute top-[0.45rem] left-0 font-sans text-[4.35rem] tracking-[-0.08em] text-foreground/[0.025] md:top-[0.7rem] md:text-[6.45rem] lg:top-[0.8rem] lg:text-[7.85rem]">
+                        {leadingDigit}
+                      </span>
+                      <span className="absolute top-0 -right-[0.35rem] text-[6rem] tracking-[-0.08em] text-foreground/[0.06] md:-right-[0.5rem] md:text-[9rem] lg:-right-[0.7rem] lg:text-[11rem]">
+                        {trailingDigit}
+                      </span>
+                      <span
+                        className={`absolute bottom-[0.35rem] h-px w-[3.25rem] bg-foreground/[0.08] md:bottom-[0.5rem] md:w-[4.75rem] lg:bottom-[0.7rem] lg:w-[5.75rem] ${
+                          isRightAligned ? "left-0" : "right-0"
+                        }`}
+                      />
                     </div>
-                    <div className="mb-1.5 text-xs tracking-widest text-muted-foreground">
-                      {f.num}
+
+                    <div className={`relative flex min-h-[16rem] flex-col justify-between gap-10 ${contentAlignClass} md:min-h-[19rem]`}>
+                      <div className={`flex max-w-4xl flex-1 flex-col ${contentAlignClass}`}>
+                        <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.34em] text-muted-foreground/75">
+                          {t(`landing.features.${feature.key}.eyebrow`)}
+                        </div>
+                        <h3 className="max-w-[16ch] font-serif text-4xl leading-[0.95] tracking-[-0.04em] md:text-6xl lg:text-7xl">
+                          {t(`landing.features.${feature.key}.title`)}
+                        </h3>
+                        <p
+                          className={`mt-8 max-w-[30rem] text-base leading-relaxed text-muted-foreground/72 transition-all duration-700 ease-out md:text-lg ${
+                            isVisible
+                              ? "translate-y-0 opacity-100"
+                              : "translate-y-8 opacity-0"
+                          }`}
+                        >
+                          {t(`landing.features.${feature.key}.desc`)}
+                        </p>
+                      </div>
+
                     </div>
-                    <div className="mb-2 text-base font-semibold">
-                      {t(`landing.features.${f.key}.title`)}
-                    </div>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
-                      {t(`landing.features.${f.key}.desc`)}
-                    </p>
-                  </div>
+                  </article>
                 )
               })}
-            </div>
           </div>
         </div>
       </section>

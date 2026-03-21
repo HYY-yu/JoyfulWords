@@ -49,6 +49,7 @@ RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 
 # 只拷贝运行需要的内容
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/blog ./blog
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 

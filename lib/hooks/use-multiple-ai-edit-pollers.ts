@@ -82,10 +82,10 @@ export function useMultipleAIEditPollers({
         if (!poller?.isActive) return
 
         console.log('[MultiplePollers] Polling result for exec_id:', execId)
-        console.log('[MultiplePollers] result.status:', result.status)
-        console.log('[MultiplePollers] result.data:', result.data)
+        console.log('[MultiplePollers] result.status:', (result as any).status)
+        console.log('[MultiplePollers] result.data:', (result as any).data)
 
-        if ('error' in result) {
+        if ('error' in result && !('status' in result)) {
           stopPoller(execId)
           onErrorRef.current(execId, result.error ?? '请求失败')
           return
