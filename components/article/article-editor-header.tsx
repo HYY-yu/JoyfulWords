@@ -158,9 +158,11 @@ export function ArticleEditorHeader({
                 {t("contentWriting.editorHeader.createMode")}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {wordCount} 
-            </p>
+            {wordCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {wordCount}
+              </p>
+            )}
           </div>
         </div>
 
@@ -253,9 +255,11 @@ export function ArticleEditorHeader({
                 {t("contentWriting.editorHeader.editMode")}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {wordCount} 
-            </p>
+            {wordCount > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {wordCount}
+              </p>
+            )}
           </div>
         </div>
 

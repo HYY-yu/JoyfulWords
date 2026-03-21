@@ -93,7 +93,14 @@ export async function apiRequest<T>(
       signal: options.signal, // 传递 signal 以支持请求取消
     })
 
-    const data = await response.json()
+    const text = await response.text()
+    let data: Record<string, unknown>
+    try {
+      data = JSON.parse(text)
+    } catch {
+      console.error(`[API] Invalid JSON from ${endpoint}:`, text.slice(0, 200))
+      return { error: `Server returned invalid response (status ${response.status})` } as T
+    }
 
     if (!response.ok) {
       // Handle 401 Unauthorized - token expired

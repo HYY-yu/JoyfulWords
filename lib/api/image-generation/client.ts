@@ -142,9 +142,13 @@ export const imageGenerationClient = {
    * }
    */
   async getModels() {
+    const token = localStorage.getItem('access_token')
     console.debug('[ImageGeneration] Fetching available models...')
     return apiRequest<GetModelsResponse>('/image-generation/models', {
       method: 'GET',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
   },
 
