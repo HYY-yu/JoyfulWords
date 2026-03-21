@@ -362,8 +362,12 @@ export const en = {
             saveMetadataFailed: "Save failed",
             categoryPlaceholder: "Optional",
             tagsPlaceholder: "Optional, e.g.: AI, Tech, Future",
+            backToList: "Back to article list",
         },
         manager: {
+            loadFailed: "Failed to load article",
+            articleNotFound: "Article not found",
+            loading: "Loading...",
             toast: {
                 loadFailed: "Failed to load",
                 deleteFailed: "Failed to delete article",
@@ -426,6 +430,17 @@ export const en = {
             favorites: "Favorites",
             newGroupPlaceholder: "New group name",
             emptyGroup: "No materials, drag materials to this group",
+            noResults: "No matching materials found",
+            searchHint: "Enter keywords to search materials",
+            favoriteGroups: "Favorite Groups",
+            createGroup: "Create Group",
+            groupNamePlaceholder: "Enter group name",
+            confirm: "Confirm",
+            noGroups: "No favorite groups yet",
+            searchTab: "Search",
+            libraryTab: "Library",
+            addToGroup: "Add to group",
+            emptyLibrary: "No materials",
         },
         articleDialogs: {
             editTitle: {

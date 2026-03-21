@@ -362,8 +362,12 @@ export const zh = {
             saveMetadataFailed: "保存失败",
             categoryPlaceholder: "可选",
             tagsPlaceholder: "可选，例如：AI,科技,未来",
+            backToList: "返回文章列表",
         },
         manager: {
+            loadFailed: "加载文章失败",
+            articleNotFound: "文章未找到",
+            loading: "加载中...",
             toast: {
                 loadFailed: "加载失败",
                 deleteFailed: "删除文章失败",
@@ -426,6 +430,17 @@ export const zh = {
             favorites: "收藏夹",
             newGroupPlaceholder: "新建分组名称",
             emptyGroup: "暂无素材，拖拽素材到此分组",
+            noResults: "未找到匹配的素材",
+            searchHint: "输入关键词搜索素材",
+            favoriteGroups: "收藏夹分组",
+            createGroup: "创建分组",
+            groupNamePlaceholder: "请输入分组名称",
+            confirm: "确认",
+            noGroups: "暂无收藏夹分组",
+            searchTab: "搜索",
+            libraryTab: "素材库",
+            addToGroup: "添加到分组",
+            emptyLibrary: "暂无素材",
         },
         articleDialogs: {
             editTitle: {
