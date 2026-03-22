@@ -1,152 +1,267 @@
+# 搜索 Tab 重新设计 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Redesign the editor panel's Search Tab from browsing existing materials to triggering async searches, polling for results, and manually collecting results into the library. Add an upload button above tabs.
+
+**Architecture:** Create a `useCollectedMaterials` hook (localStorage-based) for tracking which search results the user has "collected". Rewrite `SearchTab` to use async search + polling instead of `useInfiniteMaterials`. Update `LibraryTab` to client-filter by collected status. Add upload dialog directly in `EditorMaterialPanel`.
+
+**Tech Stack:** React, TypeScript, Shadcn/ui, Tailwind CSS, localStorage, existing `materialsClient` API
+
+**Spec:** `docs/superpowers/specs/2026-03-22-search-tab-redesign-design.md`
+
+---
+
+### Task 1: Create `useCollectedMaterials` hook
+
+**Files:**
+- Create: `lib/hooks/use-collected-materials.ts`
+
+This hook manages which materials the user has "collected" (added to library) from search results, using localStorage as temporary storage.
+
+- [ ] **Step 1: Create the hook file**
+
+```typescript
+// lib/hooks/use-collected-materials.ts
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
-import { GripVertical, Search, BookOpen, ChevronDown, ChevronRight, Plus, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2 } from "lucide-react"
-import { useTranslation } from "@/lib/i18n/i18n-context"
-import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
-import { useMaterialFavorites } from "@/lib/hooks/use-material-favorites"
-import { Input } from "@/components/ui/base/input"
-import { Button } from "@/components/ui/base/button"
-import { Badge } from "@/components/ui/base/badge"
-import { ScrollArea } from "@/components/ui/base/scroll-area"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
-import { Skeleton } from "@/components/ui/base/skeleton"
-import { Dialog, DialogContent } from "@/components/ui/base/dialog"
-import { cn } from "@/lib/utils"
-import type { Material, MaterialType, MaterialLog } from "@/lib/api/materials/types"
-import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
-import { useCollectedMaterials } from "@/lib/hooks/use-collected-materials"
-import { useToast } from "@/hooks/use-toast"
-import { Label } from "@/components/ui/base/label"
-import { Textarea } from "@/components/ui/base/textarea"
+import { useState, useCallback, useEffect } from "react"
+import { useAuth } from "@/lib/auth/auth-context"
 
-// ==================== MaterialCard ====================
+const STORAGE_KEY_PREFIX = "joyfulwords-collected-materials"
 
-interface MaterialCardProps {
-  material: Material
-  onAddToGroup?: (materialId: number) => void
-  showAddToGroup?: boolean
+function getStorageKey(userId: number): string {
+  return `${STORAGE_KEY_PREFIX}-${userId}`
 }
 
-function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardProps) {
-  const { t } = useTranslation()
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const isImage = material.material_type === "image"
-  const imageUrl = isImage ? material.content : null
+function loadFromStorage(userId: number): Set<number> {
+  try {
+    const raw = localStorage.getItem(getStorageKey(userId))
+    if (!raw) return new Set()
+    const ids: number[] = JSON.parse(raw)
+    return new Set(ids)
+  } catch {
+    return new Set()
+  }
+}
 
-  const handleDragStart = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.dataTransfer.effectAllowed = "copy"
-      if (isImage && imageUrl) {
-        e.dataTransfer.setData("text/plain", imageUrl)
-      } else {
-        e.dataTransfer.setData("text/plain", material.content || material.title)
-      }
+function saveToStorage(userId: number, ids: Set<number>): void {
+  localStorage.setItem(getStorageKey(userId), JSON.stringify([...ids]))
+}
+
+export interface UseCollectedMaterialsReturn {
+  collectedIds: Set<number>
+  collect: (id: number) => void
+  uncollect: (id: number) => void
+  isCollected: (id: number) => boolean
+}
+
+export function useCollectedMaterials(): UseCollectedMaterialsReturn {
+  const { user } = useAuth()
+  const [collectedIds, setCollectedIds] = useState<Set<number>>(new Set())
+
+  // Load from localStorage when user is available
+  useEffect(() => {
+    if (user?.id) {
+      setCollectedIds(loadFromStorage(user.id))
+    }
+  }, [user?.id])
+
+  const collect = useCallback(
+    (id: number) => {
+      if (!user?.id) return
+      setCollectedIds((prev) => {
+        const next = new Set(prev)
+        next.add(id)
+        saveToStorage(user.id, next)
+        return next
+      })
     },
-    [material.content, material.title, isImage, imageUrl]
+    [user?.id]
   )
 
-  return (
-    <>
-      <div
-        draggable
-        onDragStart={handleDragStart}
-        className={cn(
-          "group flex cursor-grab items-start gap-2 rounded-md border border-border bg-card p-3",
-          "hover:border-primary/50 hover:bg-accent/50 active:cursor-grabbing",
-          "transition-colors duration-150"
-        )}
-      >
-        {/* Drag handle */}
-        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground" />
-
-        {/* Content */}
-        <div className="min-w-0 flex-1">
-          <p className="mb-1 truncate text-sm font-medium leading-tight">{material.title}</p>
-
-          {isImage && imageUrl ? (
-            <button
-              type="button"
-              onClick={() => setPreviewOpen(true)}
-              className="mt-1 block w-full overflow-hidden rounded-md border border-border cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={material.title}
-                className="h-24 w-full object-cover"
-                loading="lazy"
-              />
-            </button>
-          ) : (
-            material.content && (
-              <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
-                {material.content}
-              </p>
-            )
-          )}
-
-          <div className="mt-1.5 flex flex-wrap items-center gap-1">
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-              {material.material_type}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Add to group button */}
-        {showAddToGroup && onAddToGroup && (
-          <button
-            type="button"
-            onClick={() => onAddToGroup(material.id)}
-            className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 transition-opacity"
-            title={t("contentWriting.materialPanel.addToGroup")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
-        )}
-      </div>
-
-      {/* Image preview dialog */}
-      {isImage && imageUrl && (
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="max-w-3xl p-2 border-none bg-transparent shadow-none [&>button]:hidden">
-            <button
-              type="button"
-              onClick={() => setPreviewOpen(false)}
-              className="absolute -top-10 right-0 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80 transition-colors z-10"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt={material.title}
-              className="max-h-[80vh] w-full rounded-lg object-contain"
-            />
-            <p className="mt-1 text-center text-sm text-white/80">{material.title}</p>
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+  const uncollect = useCallback(
+    (id: number) => {
+      if (!user?.id) return
+      setCollectedIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        saveToStorage(user.id, next)
+        return next
+      })
+    },
+    [user?.id]
   )
+
+  const isCollected = useCallback(
+    (id: number) => collectedIds.has(id),
+    [collectedIds]
+  )
+
+  return { collectedIds, collect, uncollect, isCollected }
 }
+```
 
-// ==================== MaterialCardSkeleton ====================
+- [ ] **Step 2: Verify file compiles**
 
-function MaterialCardSkeleton() {
-  return (
-    <div className="flex items-start gap-2 rounded-md border border-border p-3">
-      <Skeleton className="mt-0.5 h-4 w-4 shrink-0" />
-      <div className="flex-1 space-y-2">
-        <Skeleton className="h-3.5 w-3/4" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-1/2" />
-        <Skeleton className="h-4 w-12" />
-      </div>
-    </div>
-  )
-}
+Run: `pnpm tsc --noEmit --pretty 2>&1 | head -20`
+Expected: No errors related to `use-collected-materials.ts`
 
+- [ ] **Step 3: Commit**
+
+```bash
+git add lib/hooks/use-collected-materials.ts
+git commit -m "feat: add useCollectedMaterials hook (localStorage-based)"
+```
+
+---
+
+### Task 2: Add i18n translation keys
+
+**Files:**
+- Modify: `lib/i18n/locales/zh.ts`
+- Modify: `lib/i18n/locales/en.ts`
+
+Add all new translation keys needed for the redesigned search tab, upload dialog, and collection UI.
+
+- [ ] **Step 1: Read both translation files to find the exact insertion points**
+
+Read `lib/i18n/locales/zh.ts` and `lib/i18n/locales/en.ts`, locate `contentWriting.materialPanel` sections.
+
+- [ ] **Step 2: Add Chinese translations**
+
+**Important:** The keys `searchTab` and `libraryTab` already exist in this section. Do NOT duplicate them. Only add the NEW keys below. Merge them into the existing `contentWriting.materialPanel` object.
+
+Add to the `contentWriting.materialPanel` section in `zh.ts` (after the existing keys):
+
+```typescript
+// Search tab redesign — new keys only
+typeInfo: "资料",
+typeNews: "新闻",
+typeImage: "图片",
+searchInputPlaceholder: "输入搜索关键词...",
+searchButton: "搜索",
+searching: "AI 搜索中...",
+searchInitialHint: "输入关键词搜索新素材",
+searchNoResults: "未找到相关素材",
+collectButton: "加入素材库",
+collected: "已采纳",
+searchFailed: "搜索请求失败",
+searchStatusFailed: "搜索失败，请重试",
+searchTimeout: "搜索超时，请重试",
+// Upload dialog
+uploadButton: "上传素材",
+uploadDialogTitle: "上传素材",
+uploadMaterialName: "素材标题",
+uploadMaterialNamePlaceholder: "请输入素材标题",
+uploadMaterialType: "素材类型",
+uploadMaterialContent: "素材内容",
+uploadMaterialContentPlaceholder: "请输入素材内容",
+uploadSelectImage: "选择图片",
+uploadImageHint: "支持 PNG、JPEG 格式，最大 5MB",
+uploadSubmit: "上传",
+uploadCancel: "取消",
+uploadSuccess: "上传成功",
+uploadFailed: "上传失败",
+uploadNameRequired: "请输入素材标题",
+uploadContentRequired: "请输入素材内容",
+uploadImageRequired: "请选择图片文件",
+```
+
+- [ ] **Step 3: Add English translations**
+
+Same approach: merge into existing `contentWriting.materialPanel` in `en.ts`. Do NOT duplicate `searchTab`/`libraryTab`.
+
+```typescript
+// Search tab redesign — new keys only
+typeInfo: "Info",
+typeNews: "News",
+typeImage: "Image",
+searchInputPlaceholder: "Enter search keywords...",
+searchButton: "Search",
+searching: "AI searching...",
+searchInitialHint: "Enter keywords to search for new materials",
+searchNoResults: "No matching materials found",
+collectButton: "Add to Library",
+collected: "Collected",
+searchFailed: "Search request failed",
+searchStatusFailed: "Search failed, please retry",
+searchTimeout: "Search timed out, please retry",
+uploadButton: "Upload Material",
+uploadDialogTitle: "Upload Material",
+uploadMaterialName: "Material Title",
+uploadMaterialNamePlaceholder: "Enter material title",
+uploadMaterialType: "Material Type",
+uploadMaterialContent: "Material Content",
+uploadMaterialContentPlaceholder: "Enter material content",
+uploadSelectImage: "Select Image",
+uploadImageHint: "PNG, JPEG supported, max 5MB",
+uploadSubmit: "Upload",
+uploadCancel: "Cancel",
+uploadSuccess: "Upload successful",
+uploadFailed: "Upload failed",
+uploadNameRequired: "Please enter material title",
+uploadContentRequired: "Please enter material content",
+uploadImageRequired: "Please select an image file",
+```
+
+- [ ] **Step 4: Verify compilation**
+
+Run: `pnpm tsc --noEmit --pretty 2>&1 | head -20`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add lib/i18n/locales/zh.ts lib/i18n/locales/en.ts
+git commit -m "feat: add i18n keys for search tab redesign and upload dialog"
+```
+
+---
+
+### Task 3: Rewrite `SearchTab` component
+
+**Files:**
+- Modify: `components/article/editor-material-panel.tsx` (replace `SearchTab` function, lines 145-218)
+
+Replace the current `SearchTab` that uses `useInfiniteMaterials` with a new implementation that:
+1. Has a material type selector (资料/新闻/图片)
+2. Has a search input + search button
+3. Triggers async search via `materialsClient.search()`
+4. Polls `getSearchLogs` every 3 seconds to detect completion
+5. Fetches results via `getMaterials` filtered by `material_logs_id === latestLogId`
+6. Shows "加入素材库" button on each result card
+7. Handles errors and timeouts per spec
+
+- [ ] **Step 1: Add new imports at top of file**
+
+Modify existing imports in `editor-material-panel.tsx` — do NOT add duplicate import lines from the same modules:
+
+1. **Modify** the existing lucide-react import (line 4) to add `Check, Upload, Loader2`:
+   ```typescript
+   import { GripVertical, Search, BookOpen, ChevronDown, ChevronRight, Plus, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2 } from "lucide-react"
+   ```
+
+2. **Modify** the existing types import (line 16) to add `MaterialLog`:
+   ```typescript
+   import type { Material, MaterialType, MaterialLog } from "@/lib/api/materials/types"
+   ```
+
+3. **Add** these new imports:
+   ```typescript
+   import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
+   import { useCollectedMaterials } from "@/lib/hooks/use-collected-materials"
+   import { useToast } from "@/hooks/use-toast"
+   import { Label } from "@/components/ui/base/label"
+   import { Textarea } from "@/components/ui/base/textarea"
+   ```
+
+Note: `LibraryTab` still uses `useInfiniteMaterials`, so keep that import.
+
+- [ ] **Step 2: Add `SearchResultCard` component**
+
+Add after `MaterialCardSkeleton`, before `SearchTab`:
+
+```typescript
 // ==================== SearchResultCard ====================
 
 interface SearchResultCardProps {
@@ -237,7 +352,13 @@ function SearchResultCard({ material, isCollected, onCollect }: SearchResultCard
     </>
   )
 }
+```
 
+- [ ] **Step 3: Rewrite `SearchTab` component**
+
+Replace the entire `SearchTab` function (lines 145-218) with:
+
+```typescript
 // ==================== SearchTab ====================
 
 const SEARCH_TYPE_TABS = [
@@ -262,7 +383,7 @@ function SearchTab() {
   const pollingStartTimeRef = useRef<number>(0)
   const networkFailCountRef = useRef<number>(0)
 
-  // Cleanup polling on unmount
+  // Cleanup polling on unmount or type change
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearTimeout(pollingRef.current)
@@ -299,6 +420,7 @@ function SearchTab() {
     }
 
     // 2. Start polling for completion using recursive setTimeout
+    //    (avoids overlapping async polls that setInterval can cause)
     pollingStartTimeRef.current = Date.now()
     networkFailCountRef.current = 0
 
@@ -332,6 +454,7 @@ function SearchTab() {
             })
             return
           }
+          // Schedule next poll
           pollingRef.current = setTimeout(poll, 3000)
           return
         }
@@ -394,6 +517,7 @@ function SearchTab() {
           })
           return
         }
+        // Schedule next poll
         pollingRef.current = setTimeout(poll, 3000)
       }
     }
@@ -509,256 +633,93 @@ function SearchTab() {
     </div>
   )
 }
+```
 
-// ==================== FavoriteGroupSection ====================
+- [ ] **Step 4: Verify compilation**
 
-interface FavoriteGroupSectionProps {
-  groupId: string
-  groupName: string
-  materialIds: number[]
-  allMaterials: Material[]
-  onDelete: () => void
-  onRemoveMaterial: (materialId: number) => void
-}
+Run: `pnpm tsc --noEmit --pretty 2>&1 | head -30`
 
-function FavoriteGroupSection({
-  groupId,
-  groupName,
-  materialIds,
-  allMaterials,
-  onDelete,
-  onRemoveMaterial,
-}: FavoriteGroupSectionProps) {
-  const [expanded, setExpanded] = useState(true)
-  const groupMaterials = allMaterials.filter((m) => materialIds.includes(m.id))
+- [ ] **Step 5: Commit**
 
-  return (
-    <div className="rounded-md border border-border">
-      {/* Group header */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/50 transition-colors"
-      >
-        <span className="flex items-center gap-1.5">
-          {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-          )}
-          {groupName}
-          <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-            {materialIds.length}
-          </Badge>
-        </span>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className="rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </button>
+```bash
+git add components/article/editor-material-panel.tsx
+git commit -m "feat: rewrite SearchTab with async search, polling, and collect UI"
+```
 
-      {/* Group materials */}
-      {expanded && (
-        <div className="flex flex-col gap-1.5 border-t border-border px-2 pb-2 pt-1.5">
-          {groupMaterials.length === 0 ? (
-            <p className="py-2 text-center text-xs text-muted-foreground">—</p>
-          ) : (
-            groupMaterials.map((material) => (
-              <div key={material.id} className="relative">
-                <MaterialCard material={material} />
-                <button
-                  type="button"
-                  onClick={() => onRemoveMaterial(material.id)}
-                  className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
+---
 
-// ==================== LibraryTab ====================
+### Task 4: Update `LibraryTab` to filter by collected status
 
-const CATEGORY_TABS = [
-  { id: "info" as MaterialType, i18nKey: "info", icon: FileText },
-  { id: "news" as MaterialType, i18nKey: "news", icon: Newspaper },
-  { id: "image" as MaterialType, i18nKey: "image", icon: ImageIcon },
-] as const
+**Files:**
+- Modify: `components/article/editor-material-panel.tsx` (modify `LibraryTab` function, lines 298-466)
 
+The `LibraryTab` should now only show materials that are either:
+- User-uploaded (`material_logs_id === 0`)
+- Collected by the user (`isCollected(material.id)`)
+
+- [ ] **Step 1: Add `useCollectedMaterials` to LibraryTab and filter materials**
+
+In the `LibraryTab` function, add the hook and apply client-side filtering:
+
+```typescript
 function LibraryTab() {
   const { t } = useTranslation()
   const { groups, createGroup, deleteGroup, addToGroup, removeFromGroup } = useMaterialFavorites()
+  const { isCollected } = useCollectedMaterials()
   const [newGroupName, setNewGroupName] = useState("")
   const [showCreateInput, setShowCreateInput] = useState(false)
   const [activeCategory, setActiveCategory] = useState<MaterialType>("info")
+
   const { materials: allMaterials, isLoading, hasMore, observerTarget } = useInfiniteMaterials({
     type: activeCategory,
     pageSize: 20,
     enabled: true,
   })
 
-  const materials = allMaterials
-
-  const handleCreateGroup = useCallback(() => {
-    if (!newGroupName.trim()) return
-    createGroup(newGroupName.trim())
-    setNewGroupName("")
-    setShowCreateInput(false)
-  }, [newGroupName, createGroup])
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") handleCreateGroup()
-      if (e.key === "Escape") {
-        setShowCreateInput(false)
-        setNewGroupName("")
-      }
-    },
-    [handleCreateGroup]
+  // Client-side filter: only show uploaded (material_logs_id === 0) or collected materials
+  const materials = allMaterials.filter(
+    (m) => m.material_logs_id === 0 || isCollected(m.id)
   )
 
-  return (
-    <div className="flex h-full flex-col gap-3">
-      {/* Category tabs */}
-      <div className="flex gap-1.5 shrink-0">
-        {CATEGORY_TABS.map((tab) => {
-          const Icon = tab.icon
-          const isActive = activeCategory === tab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveCategory(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {t(`contentWriting.materials.types.${tab.i18nKey}`)}
-            </button>
-          )
-        })}
-      </div>
+  // hasMore from the hook is based on unfiltered total, which may be inaccurate after
+  // client-side filtering. Use "did the raw page return a full page of items" as the
+  // hasMore signal instead. The infinite scroll observer target should use this value.
+  const effectiveHasMore = hasMore && allMaterials.length > 0
 
-      {/* Materials list */}
-      <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="flex flex-col gap-2 pr-2">
-            {materials.map((material) => (
-              <MaterialCard
-                key={material.id}
-                material={material}
-                showAddToGroup={groups.length > 0}
-                onAddToGroup={
-                  groups.length > 0
-                    ? (materialId) => {
-                        // Add to first group as default — user can manage groups
-                        addToGroup(groups[0].id, materialId)
-                      }
-                    : undefined
-                }
-              />
-            ))}
+  // ... rest of the component stays the same, using `materials` for rendering and
+  // `effectiveHasMore` instead of `hasMore` for the observer target div.
+```
 
-            {isLoading &&
-              Array.from({ length: 3 }).map((_, i) => (
-                <MaterialCardSkeleton key={`lib-skeleton-${i}`} />
-              ))}
+The key changes are:
+1. Rename the hook's `materials` to `allMaterials` and add the filter
+2. Use `effectiveHasMore` for the infinite scroll observer target
+3. The rest of the JSX remains identical
 
-            {hasMore && <div ref={observerTarget} className="h-4" />}
+- [ ] **Step 2: Verify compilation**
 
-            {!isLoading && materials.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <BookOpen className="mb-2 h-7 w-7 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">
-                  {t("contentWriting.materialPanel.emptyLibrary")}
-                </p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-      </div>
+Run: `pnpm tsc --noEmit --pretty 2>&1 | head -20`
 
-      {/* Favorites groups section */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {t("contentWriting.materialPanel.favoriteGroups")}
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => setShowCreateInput((v) => !v)}
-          >
-            <Plus className="mr-1 h-3 w-3" />
-            {t("contentWriting.materialPanel.createGroup")}
-          </Button>
-        </div>
+- [ ] **Step 3: Commit**
 
-        {/* Create group input */}
-        {showCreateInput && (
-          <div className="flex gap-1.5">
-            <Input
-              autoFocus
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("contentWriting.materialPanel.groupNamePlaceholder")}
-              className="h-7 text-xs"
-            />
-            <Button
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handleCreateGroup}
-              disabled={!newGroupName.trim()}
-            >
-              {t("contentWriting.materialPanel.confirm")}
-            </Button>
-          </div>
-        )}
+```bash
+git add components/article/editor-material-panel.tsx
+git commit -m "feat: filter LibraryTab to show only uploaded or collected materials"
+```
 
-        {/* Groups list */}
-        <ScrollArea className="max-h-[240px]">
-          <div className="flex flex-col gap-2 pr-2">
-            {groups.length === 0 ? (
-              <p className="py-2 text-center text-xs text-muted-foreground">
-                {t("contentWriting.materialPanel.noGroups")}
-              </p>
-            ) : (
-              groups.map((group) => (
-                <FavoriteGroupSection
-                  key={group.id}
-                  groupId={group.id}
-                  groupName={group.name}
-                  materialIds={group.materialIds}
-                  allMaterials={materials}
-                  onDelete={() => deleteGroup(group.id)}
-                  onRemoveMaterial={(materialId) => removeFromGroup(group.id, materialId)}
-                />
-              ))
-            )}
-          </div>
-        </ScrollArea>
-      </div>
-    </div>
-  )
-}
+---
 
+### Task 5: Add upload button and upload dialog to `EditorMaterialPanel`
+
+**Files:**
+- Modify: `components/article/editor-material-panel.tsx` (modify `EditorMaterialPanel` function and add `UploadDialog`)
+
+Add an upload button above the tabs and a lightweight upload dialog.
+
+- [ ] **Step 1: Add `UploadDialog` component**
+
+Add before `EditorMaterialPanel`:
+
+```typescript
 // ==================== UploadDialog ====================
 
 interface UploadDialogProps {
@@ -860,7 +821,7 @@ function UploadDialog({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     } finally {
       setIsUploading(false)
     }
-  }, [title, materialType, content, imageFile, toast, t, resetForm, onOpenChange, onUploadSuccess])
+  }, [title, materialType, content, imageFile, toast, t, resetForm, onOpenChange])
 
   return (
     <Dialog
@@ -981,13 +942,13 @@ function UploadDialog({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
     </Dialog>
   )
 }
+```
 
-// ==================== EditorMaterialPanel ====================
+- [ ] **Step 2: Update `EditorMaterialPanel` to include upload button + dialog**
 
-export interface EditorMaterialPanelProps {
-  className?: string
-}
+Replace the `EditorMaterialPanel` function:
 
+```typescript
 export function EditorMaterialPanel({ className }: EditorMaterialPanelProps) {
   const { t } = useTranslation()
   const [showUpload, setShowUpload] = useState(false)
@@ -1039,3 +1000,41 @@ export function EditorMaterialPanel({ className }: EditorMaterialPanelProps) {
     </div>
   )
 }
+```
+
+- [ ] **Step 3: Verify compilation**
+
+Run: `pnpm tsc --noEmit --pretty 2>&1 | head -30`
+
+- [ ] **Step 4: Verify dev server renders correctly**
+
+Run: `pnpm dev` and manually check the editor material panel.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add components/article/editor-material-panel.tsx
+git commit -m "feat: add upload button and dialog to EditorMaterialPanel"
+```
+
+---
+
+### Task 6: Clean up unused imports
+
+**Files:**
+- Modify: `components/article/editor-material-panel.tsx`
+
+- [ ] **Step 1: Remove `useInfiniteMaterials` import if no longer used by any component**
+
+Check if `LibraryTab` still uses `useInfiniteMaterials`. If yes, keep the import. If no component uses it, remove the import line.
+
+- [ ] **Step 2: Verify no TypeScript errors**
+
+Run: `pnpm tsc --noEmit --pretty 2>&1 | head -20`
+
+- [ ] **Step 3: Final commit**
+
+```bash
+git add components/article/editor-material-panel.tsx
+git commit -m "refactor: clean up unused imports in editor-material-panel"
+```
