@@ -1,0 +1,5 @@
+{"type":"server-started","port":63002,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:63002","screen_dir":"/Users/fsm/JoyfulWords/.superpowers/brainstorm/83116-1774071598"}
+{"type":"screen-added","file":"/Users/fsm/JoyfulWords/.superpowers/brainstorm/83116-1774071598/layout-mockup-v2.html"}
+{"type":"screen-added","file":"/Users/fsm/JoyfulWords/.superpowers/brainstorm/83116-1774071598/layout-mockup-v3.html"}
+{"type":"screen-added","file":"/Users/fsm/JoyfulWords/.superpowers/brainstorm/83116-1774071598/layout-mockup-v4.html"}
+{"type":"server-stopped","reason":"idle timeout"}

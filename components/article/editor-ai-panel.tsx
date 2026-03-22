@@ -32,31 +32,31 @@ interface FeatureButton {
 const FEATURE_BUTTONS: FeatureButton[] = [
   {
     id: "ai-edit",
-    labelKey: "contentWriting.aiPanel.aiEdit",
+    labelKey: "tiptapEditor.aiPanel.aiEdit",
     icon: PencilIcon,
     bgColor: "bg-blue-50",
   },
   {
     id: "create-image",
-    labelKey: "contentWriting.aiPanel.createImage",
+    labelKey: "tiptapEditor.aiPanel.createImage",
     icon: ImageIcon,
     bgColor: "bg-indigo-50",
   },
   {
     id: "ai-generate",
-    labelKey: "contentWriting.aiPanel.aiGenerate",
+    labelKey: "tiptapEditor.aiPanel.aiGenerate",
     icon: FileTextIcon,
     bgColor: "bg-green-50",
   },
   {
     id: "reversal-mode",
-    labelKey: "contentWriting.aiPanel.reversalMode",
+    labelKey: "tiptapEditor.aiPanel.reversalMode",
     icon: RefreshCwIcon,
     bgColor: "bg-pink-50",
   },
   {
     id: "image-style",
-    labelKey: "contentWriting.aiPanel.imageStyle",
+    labelKey: "tiptapEditor.aiPanel.imageStyle",
     icon: PaletteIcon,
     bgColor: "bg-amber-50",
     colSpan: true,
@@ -94,7 +94,7 @@ export function EditorAIPanel({
       {/* Header */}
       <div className="px-4 py-3 border-b">
         <h3 className="text-sm font-semibold text-foreground">
-          {t("contentWriting.aiPanel.title")}
+          {t("tiptapEditor.aiPanel.title")}
         </h3>
       </div>
 
@@ -131,7 +131,7 @@ export function EditorAIPanel({
       <div className="flex flex-col flex-1 overflow-hidden">
         <div className="px-4 py-2 border-b">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            {t("contentWriting.aiPanel.taskProgress")}
+            {t("tiptapEditor.aiPanel.taskProgress")}
           </h4>
         </div>
         <div className="flex-1 overflow-y-auto">
