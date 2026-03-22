@@ -405,7 +405,6 @@ export const zh = {
             clickForDetail: "点击查看详情",
             clickForEdit: "点击编辑",
             emptyTitle: "暂无文章",
-            loading: "加载中...",
             perPage: "每页",
             items: "条",
             materialsCount: "{count} 个素材",
