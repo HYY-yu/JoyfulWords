@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/base/badge"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { Skeleton } from "@/components/ui/base/skeleton"
-import { Dialog, DialogContent } from "@/components/ui/base/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { cn } from "@/lib/utils"
 import type { Material, MaterialType, MaterialLog } from "@/lib/api/materials/types"
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
@@ -80,9 +80,15 @@ function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardPr
             </button>
           ) : (
             material.content && (
-              <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
-                {material.content}
-              </p>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(true)}
+                className="w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
+                  {material.content}
+                </p>
+              </button>
             )
           )}
 
@@ -106,9 +112,9 @@ function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardPr
         )}
       </div>
 
-      {/* Image preview dialog */}
-      {isImage && imageUrl && (
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+      {/* Preview dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        {isImage && imageUrl ? (
           <DialogContent className="max-w-3xl p-2 border-none bg-transparent shadow-none [&>button]:hidden">
             <button
               type="button"
@@ -125,8 +131,17 @@ function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardPr
             />
             <p className="mt-1 text-center text-sm text-white/80">{material.title}</p>
           </DialogContent>
-        </Dialog>
-      )}
+        ) : (
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogTitle className="text-base font-semibold">{material.title}</DialogTitle>
+            <ScrollArea className="flex-1 mt-2">
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed pr-4">
+                {material.content}
+              </p>
+            </ScrollArea>
+          </DialogContent>
+        )}
+      </Dialog>
     </>
   )
 }
