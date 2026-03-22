@@ -767,6 +767,229 @@ function LibraryTab() {
   )
 }
 
+// ==================== UploadDialog ====================
+
+interface UploadDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onUploadSuccess?: () => void
+}
+
+function UploadDialog({ open, onOpenChange, onUploadSuccess }: UploadDialogProps) {
+  const { t } = useTranslation()
+  const { toast } = useToast()
+
+  const [title, setTitle] = useState("")
+  const [materialType, setMaterialType] = useState<"info" | "image">("info")
+  const [content, setContent] = useState("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState("")
+  const [isUploading, setIsUploading] = useState(false)
+  const [errors, setErrors] = useState<{ title?: string; content?: string }>({})
+
+  const resetForm = useCallback(() => {
+    setTitle("")
+    setMaterialType("info")
+    setContent("")
+    setImageFile(null)
+    setImagePreview("")
+    setErrors({})
+  }, [])
+
+  const handleImageSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      if (!file.type.startsWith("image/")) {
+        setErrors({ content: t("contentWriting.materials.errors.invalidImageType") })
+        return
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors({ content: t("contentWriting.materials.errors.imageTooLarge") })
+        return
+      }
+
+      setImageFile(file)
+      setErrors({})
+      const reader = new FileReader()
+      reader.onloadend = () => setImagePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    },
+    [t]
+  )
+
+  const handleSubmit = useCallback(async () => {
+    const newErrors: { title?: string; content?: string } = {}
+    if (!title.trim()) newErrors.title = t("contentWriting.materialPanel.uploadNameRequired")
+    if (materialType === "info" && !content.trim())
+      newErrors.content = t("contentWriting.materialPanel.uploadContentRequired")
+    if (materialType === "image" && !imageFile)
+      newErrors.content = t("contentWriting.materialPanel.uploadImageRequired")
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    setIsUploading(true)
+
+    try {
+      let finalContent = content
+
+      if (materialType === "image" && imageFile) {
+        const presigned = await materialsClient.getPresignedUrl(imageFile.name, imageFile.type)
+        if ("error" in presigned) throw new Error(presigned.error)
+
+        const ok = await uploadFileToPresignedUrl(presigned.upload_url, imageFile, imageFile.type)
+        if (!ok) throw new Error("Image upload failed")
+
+        finalContent = presigned.file_url
+      }
+
+      const result = await materialsClient.createMaterial({
+        title: title.trim(),
+        material_type: materialType,
+        content: finalContent,
+      })
+
+      if ("error" in result) throw new Error(result.error)
+
+      toast({ title: t("contentWriting.materialPanel.uploadSuccess") })
+      resetForm()
+      onOpenChange(false)
+      onUploadSuccess?.()
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.uploadFailed"),
+        description: err instanceof Error ? err.message : "",
+      })
+    } finally {
+      setIsUploading(false)
+    }
+  }, [title, materialType, content, imageFile, toast, t, resetForm, onOpenChange, onUploadSuccess])
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) resetForm()
+        onOpenChange(v)
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <h3 className="text-lg font-semibold">{t("contentWriting.materialPanel.uploadDialogTitle")}</h3>
+
+        <div className="flex flex-col gap-4 mt-2">
+          {/* Title */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm">{t("contentWriting.materialPanel.uploadMaterialName")}</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("contentWriting.materialPanel.uploadMaterialNamePlaceholder")}
+            />
+            {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
+          </div>
+
+          {/* Type selector */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-sm">{t("contentWriting.materialPanel.uploadMaterialType")}</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMaterialType("info")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                  materialType === "info"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                {t("contentWriting.materialPanel.typeInfo")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMaterialType("image")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                  materialType === "image"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                {t("contentWriting.materialPanel.typeImage")}
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          {materialType === "info" ? (
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm">{t("contentWriting.materialPanel.uploadMaterialContent")}</Label>
+              <Textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder={t("contentWriting.materialPanel.uploadMaterialContentPlaceholder")}
+                rows={4}
+              />
+              {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-sm">{t("contentWriting.materialPanel.uploadSelectImage")}</Label>
+              {imagePreview ? (
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imagePreview} alt="Preview" className="h-32 w-full object-cover rounded-md border" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null)
+                      setImagePreview("")
+                    }}
+                    className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-md border-2 border-dashed border-border p-6 hover:border-primary/50 transition-colors">
+                  <Upload className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {t("contentWriting.materialPanel.uploadImageHint")}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
+                </label>
+              )}
+              {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
+            {t("contentWriting.materialPanel.uploadCancel")}
+          </Button>
+          <Button onClick={handleSubmit} disabled={isUploading}>
+            {isUploading && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+            {t("contentWriting.materialPanel.uploadSubmit")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ==================== EditorMaterialPanel ====================
 
 export interface EditorMaterialPanelProps {
@@ -775,11 +998,27 @@ export interface EditorMaterialPanelProps {
 
 export function EditorMaterialPanel({ className }: EditorMaterialPanelProps) {
   const { t } = useTranslation()
+  const [showUpload, setShowUpload] = useState(false)
+  // Incrementing key forces LibraryTab to remount and refetch after upload
+  const [libraryKey, setLibraryKey] = useState(0)
 
   return (
     <div className={cn("flex h-full flex-col overflow-hidden bg-background", className)}>
+      {/* Upload button — above tabs */}
+      <div className="px-3 pt-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => setShowUpload(true)}
+        >
+          <Upload className="mr-1.5 h-3.5 w-3.5" />
+          {t("contentWriting.materialPanel.uploadButton")}
+        </Button>
+      </div>
+
       <Tabs defaultValue="search" className="flex h-full flex-col">
-        <TabsList className="mx-3 mt-3 shrink-0">
+        <TabsList className="mx-3 mt-2 shrink-0">
           <TabsTrigger value="search" className="flex-1 text-xs">
             <Search className="mr-1.5 h-3.5 w-3.5" />
             {t("contentWriting.materialPanel.searchTab")}
@@ -795,9 +1034,16 @@ export function EditorMaterialPanel({ className }: EditorMaterialPanelProps) {
         </TabsContent>
 
         <TabsContent value="library" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-3">
-          <LibraryTab />
+          <LibraryTab key={libraryKey} />
         </TabsContent>
       </Tabs>
+
+      {/* Upload dialog */}
+      <UploadDialog
+        open={showUpload}
+        onOpenChange={setShowUpload}
+        onUploadSuccess={() => setLibraryKey((k) => k + 1)}
+      />
     </div>
   )
 }
