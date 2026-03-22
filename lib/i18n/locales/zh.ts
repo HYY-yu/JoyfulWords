@@ -66,7 +66,8 @@ export const zh = {
         title: "内容书写",
         subtitle: "内容创作与管理工具",
         tabs: {
-            materialSearch: "素材搜索",
+            search: "搜索",
+            materialLibrary: "素材库",
             competitorTracking: "竞品跟踪",
             articleWriting: "文章撰写",
             articleManager: "文章管理",

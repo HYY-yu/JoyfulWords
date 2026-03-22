@@ -66,8 +66,9 @@ export const en = {
         title: "Content Writing",
         subtitle: "Content creation and management tools",
         tabs: {
-            materialSearch: "Materials",
-            competitorTracking: "Competitors",
+            search: "Search",
+            materialLibrary: "Material Library",
+            competitorTracking: "Competitor Tracking",
             articleWriting: "Writing",
             articleManager: "Articles",
         },
