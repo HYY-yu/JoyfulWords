@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs,FileTextIcon } from "lucide-react"
-import { MaterialSearch } from "./materials/material-search"
+import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs, FileTextIcon, DatabaseIcon } from "lucide-react"
+import { MaterialSearchTab } from "./materials/material-search-tab"
+import { MaterialLibraryTab } from "./materials/material-library-tab"
 import { CompetitorTracking } from "./competitors/competitor-tracking"
 import { ArticleWriting } from "./article/article-writing"
 import { ArticleManager } from "./article/article-manager"
@@ -18,7 +19,8 @@ export function ContentWriting() {
   const tabs = [
     { id: "article-writing", label: t("contentWriting.tabs.articleWriting"), icon: PenToolIcon },
     { id: "article-manager", label: t("contentWriting.tabs.articleManager"), icon: NotebookTabs },
-    { id: "material-search", label: t("contentWriting.tabs.materialSearch"), icon: SearchIcon },
+    { id: "search", label: t("contentWriting.tabs.search"), icon: SearchIcon },
+    { id: "material-library", label: t("contentWriting.tabs.materialLibrary"), icon: DatabaseIcon },
     { id: "competitor-tracking", label: t("contentWriting.tabs.competitorTracking"), icon: TrendingUpIcon },
   ]
 
@@ -140,8 +142,10 @@ export function ContentWriting() {
 
       {/* Tab Content Area */}
       <div className="flex-1 p-8 overflow-hidden flex flex-col">
-        {activeTab === "material-search" ? (
-          <MaterialSearch />
+        {activeTab === "search" ? (
+          <MaterialSearchTab />
+        ) : activeTab === "material-library" ? (
+          <MaterialLibraryTab />
         ) : activeTab === "competitor-tracking" ? (
           <CompetitorTracking />
         ) : activeTab === "article-writing" ? (
