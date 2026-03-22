@@ -602,12 +602,21 @@ function LibraryTab() {
   const [newGroupName, setNewGroupName] = useState("")
   const [showCreateInput, setShowCreateInput] = useState(false)
   const [activeCategory, setActiveCategory] = useState<MaterialType>("info")
+  const { isCollected } = useCollectedMaterials()
 
-  const { materials, isLoading, hasMore, observerTarget } = useInfiniteMaterials({
+  const { materials: allMaterials, isLoading, hasMore, observerTarget } = useInfiniteMaterials({
     type: activeCategory,
     pageSize: 20,
     enabled: true,
   })
+
+  // Client-side filter: only show uploaded (material_logs_id === 0) or collected materials
+  const materials = allMaterials.filter(
+    (m) => m.material_logs_id === 0 || isCollected(m.id)
+  )
+
+  // hasMore from hook may be inaccurate after client-side filtering
+  const effectiveHasMore = hasMore && allMaterials.length > 0
 
   const handleCreateGroup = useCallback(() => {
     if (!newGroupName.trim()) return
@@ -678,7 +687,7 @@ function LibraryTab() {
                 <MaterialCardSkeleton key={`lib-skeleton-${i}`} />
               ))}
 
-            {hasMore && <div ref={observerTarget} className="h-4" />}
+            {effectiveHasMore && <div ref={observerTarget} className="h-4" />}
 
             {!isLoading && materials.length === 0 && (
               <div className="flex flex-col items-center justify-center py-6 text-center">
