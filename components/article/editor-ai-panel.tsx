@@ -93,7 +93,7 @@ export function EditorAIPanel({
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b">
-        <h3 className="text-sm font-semibold text-foreground">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
           {t("tiptapEditor.aiPanel.title")}
         </h3>
       </div>

@@ -550,33 +550,30 @@ function FavoriteGroupSection({
   return (
     <div className="rounded-md border border-border">
       {/* Group header */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/50 transition-colors"
-      >
-        <span className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/50 transition-colors">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+        >
           {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           ) : (
-            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           )}
-          {groupName}
+          <span className="truncate">{groupName}</span>
           <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
             {materialIds.length}
           </Badge>
-        </span>
+        </button>
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
+          onClick={onDelete}
           className="rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
-      </button>
+      </div>
 
       {/* Group materials */}
       {expanded && (

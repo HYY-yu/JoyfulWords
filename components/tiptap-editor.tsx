@@ -562,8 +562,13 @@ export function TiptapEditor({
     setIsAIDialogOpen(true);
   }, [editor, toast, mode, t]);
 
+  const editorShellClassName =
+    mode === "edit"
+      ? "flex h-full w-full flex-col overflow-hidden bg-transparent"
+      : "flex h-full w-full flex-col overflow-hidden rounded-lg border bg-background";
+
   return (
-    <div className="border rounded-lg bg-background flex flex-col h-full overflow-hidden w-full">
+    <div className={editorShellClassName}>
       <TiptapToolbar
         editor={editor}
         onInsertImage={insertImage}
