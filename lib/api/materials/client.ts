@@ -6,12 +6,16 @@ import type {
   CreateMaterialRequest,
   UpdateMaterialRequest,
   GetPresignedUrlRequest,
+  AddMaterialsFromLogRequest,
   MaterialListResponse,
   MaterialLogListResponse,
   CreateMaterialResponse,
   PresignedUrlResponse,
   MessageResponse,
   ErrorResponse,
+  TriggerMaterialSearchV2Response,
+  MaterialSearchDetailResponse,
+  AddMaterialsFromLogResponse,
 } from './types'
 
 /**
@@ -56,6 +60,30 @@ export const materialsClient = {
   },
 
   /**
+   * 2. 触发素材搜索 V2
+   * POST /materials/search-v2
+   *
+   * 返回 material_logs.id，供前端轮询详情接口。
+   */
+  async searchV2(
+    materialType: SearchMaterialsRequest['material_type'],
+    searchText: SearchMaterialsRequest['search_text']
+  ): Promise<TriggerMaterialSearchV2Response | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<TriggerMaterialSearchV2Response>('/materials/search-v2', {
+      method: 'POST',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify({
+        material_type: materialType,
+        search_text: searchText,
+      } as SearchMaterialsRequest),
+    })
+  },
+
+  /**
    * 2. 获取搜索日志列表
    * GET /materials/search-logs/list
    *
@@ -88,6 +116,22 @@ export const materialsClient = {
     const url = queryString ? `/materials/search-logs/list?${queryString}` : '/materials/search-logs/list'
 
     return apiRequest<MaterialLogListResponse>(url, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+  },
+
+  /**
+   * 4. 获取搜索结果详情
+   * GET /materials/search-logs/:id
+   */
+  async getSearchLogDetail(
+    id: number
+  ): Promise<MaterialSearchDetailResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<MaterialSearchDetailResponse>(`/materials/search-logs/${id}`, {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
       },
@@ -193,6 +237,24 @@ export const materialsClient = {
     const token = localStorage.getItem('access_token')
 
     return apiRequest<CreateMaterialResponse>('/materials', {
+      method: 'POST',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * 8. 从搜索结果创建素材
+   * POST /materials/add-from-log
+   */
+  async addFromLog(
+    data: AddMaterialsFromLogRequest
+  ): Promise<AddMaterialsFromLogResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<AddMaterialsFromLogResponse>('/materials/add-from-log', {
       method: 'POST',
       headers: {
         Authorization: token ? `Bearer ${token}` : '',

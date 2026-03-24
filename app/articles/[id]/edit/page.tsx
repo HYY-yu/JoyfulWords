@@ -469,7 +469,7 @@ export default function ArticleEditPage() {
     />
   )
 
-  const leftPanel = <EditorMaterialPanel />
+  const leftPanel = <EditorMaterialPanel articleId={article.id} userId={user.id} />
 
   const centerPanel = (
     <div className="flex flex-col flex-1 overflow-hidden">

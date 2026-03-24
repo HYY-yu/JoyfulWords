@@ -28,7 +28,7 @@ export function ArticleEditorLayout({
     storageKey: "joyfulwords-editor-panel-widths",
     defaultLeftWidth: 22,
     defaultRightWidth: 24,
-    leftConstraints: { minWidth: 180, maxWidth: 400 },
+    leftConstraints: { minWidth: 160, maxWidth: 400 },
     rightConstraints: { minWidth: 200, maxWidth: 420 },
     centerMinWidth: 400,
   })

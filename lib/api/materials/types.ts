@@ -13,7 +13,7 @@ export type MaterialType = 'info' | 'news' | 'image'
 /**
  * 搜索状态枚举（来自 API 定义）
  */
-export type MaterialStatus = 'doing' | 'success' | 'failed'
+export type MaterialStatus = 'doing' | 'success' | 'failed' | 'nodata'
 
 // ==================== Entity Types ====================
 
@@ -73,6 +73,53 @@ export interface GetSearchLogsRequest {
   page_size?: number // 每页数量，默认 20，最大 100
   type?: MaterialType // 素材类型过滤
   status?: MaterialStatus // 状态过滤
+}
+
+/**
+ * 触发素材搜索 V2 响应
+ */
+export interface TriggerMaterialSearchV2Response {
+  id: number
+}
+
+export interface MaterialSearchResultItem {
+  url: string
+  title: string
+  content: string
+  published_date?: string
+}
+
+export interface MaterialSearchDetailAIResult {
+  ai_answer?: string
+  ai_result?: MaterialSearchResultItem[]
+  images?: string[]
+}
+
+/**
+ * 获取搜索结果详情响应
+ */
+export interface MaterialSearchDetailResponse {
+  id: number
+  material_type: MaterialType
+  status: MaterialStatus
+  query: string
+  ai_result: MaterialSearchDetailAIResult | null
+}
+
+/**
+ * 从搜索结果创建素材请求
+ */
+export interface AddMaterialsFromLogRequest {
+  material_log_id: number
+  urls: string[]
+}
+
+/**
+ * 从搜索结果创建素材响应
+ */
+export interface AddMaterialsFromLogResponse {
+  ids: number[]
+  message: string
 }
 
 /**

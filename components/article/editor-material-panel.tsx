@@ -1,21 +1,21 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
-import { GripVertical, Search, BookOpen, ChevronDown, ChevronRight, Plus, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2 } from "lucide-react"
+import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
+import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
-import { useMaterialFavorites } from "@/lib/hooks/use-material-favorites"
 import { Input } from "@/components/ui/base/input"
 import { Button } from "@/components/ui/base/button"
 import { Badge } from "@/components/ui/base/badge"
+import { Checkbox } from "@/components/ui/base/checkbox"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { Skeleton } from "@/components/ui/base/skeleton"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
-import { cn } from "@/lib/utils"
-import type { Material, MaterialType, MaterialLog } from "@/lib/api/materials/types"
+import { cn, formatDate } from "@/lib/utils"
+import type { CheckedState } from "@radix-ui/react-checkbox"
+import type { Material, MaterialType, MaterialSearchDetailResponse, MaterialSearchResultItem } from "@/lib/api/materials/types"
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
-import { useCollectedMaterials } from "@/lib/hooks/use-collected-materials"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
@@ -24,12 +24,9 @@ import { Textarea } from "@/components/ui/base/textarea"
 
 interface MaterialCardProps {
   material: Material
-  onAddToGroup?: (materialId: number) => void
-  showAddToGroup?: boolean
 }
 
-function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardProps) {
-  const { t } = useTranslation()
+function MaterialCard({ material }: MaterialCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const isImage = material.material_type === "image"
   const imageUrl = isImage ? material.content : null
@@ -52,63 +49,53 @@ function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardPr
         draggable
         onDragStart={handleDragStart}
         className={cn(
-          "group flex cursor-grab items-start gap-2 rounded-md border border-border bg-card p-3",
+          isImage
+            ? "group flex h-full cursor-grab flex-col gap-2 overflow-hidden rounded-md border border-border bg-card p-2"
+            : "group flex cursor-grab items-start gap-2 rounded-md border border-border bg-card p-3",
           "hover:border-primary/50 hover:bg-accent/50 active:cursor-grabbing",
           "transition-colors duration-150"
         )}
       >
-        {/* Drag handle */}
-        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground" />
-
-        {/* Content */}
-        <div className="min-w-0 flex-1">
-          <p className="mb-1 truncate text-sm font-medium leading-tight">{material.title}</p>
-
-          {isImage && imageUrl ? (
-            <button
-              type="button"
-              onClick={() => setPreviewOpen(true)}
-              className="mt-1 block w-full overflow-hidden rounded-md border border-border cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={material.title}
-                className="h-24 w-full object-cover"
-                loading="lazy"
-              />
-            </button>
-          ) : (
-            material.content && (
+        {isImage ? (
+          <>
+            <div className="flex items-start gap-2">
+              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground" />
+              <p className="line-clamp-2 min-w-0 flex-1 text-sm font-medium leading-tight">{material.title}</p>
+            </div>
+            {imageUrl ? (
               <button
                 type="button"
                 onClick={() => setPreviewOpen(true)}
-                className="w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
+                className="block w-full overflow-hidden rounded-md border border-border cursor-pointer hover:opacity-80 transition-opacity"
               >
-                <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed">
-                  {material.content}
-                </p>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imageUrl}
+                  alt={material.title}
+                  className="aspect-square w-full object-cover"
+                  loading="lazy"
+                />
               </button>
-            )
-          )}
-
-          <div className="mt-1.5 flex flex-wrap items-center gap-1">
-            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-              {material.material_type}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Add to group button */}
-        {showAddToGroup && onAddToGroup && (
-          <button
-            type="button"
-            onClick={() => onAddToGroup(material.id)}
-            className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 transition-opacity"
-            title={t("contentWriting.materialPanel.addToGroup")}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 truncate text-sm font-medium leading-tight">{material.title}</p>
+              {material.content ? (
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(true)}
+                  className="w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                  <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">
+                    {material.content}
+                  </p>
+                </button>
+              ) : null}
+            </div>
+          </>
         )}
       </div>
 
@@ -116,6 +103,7 @@ function MaterialCard({ material, onAddToGroup, showAddToGroup }: MaterialCardPr
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         {isImage && imageUrl ? (
           <DialogContent className="max-w-3xl p-2 border-none bg-transparent shadow-none [&>button]:hidden">
+            <DialogTitle className="sr-only">{material.title}</DialogTitle>
             <button
               type="button"
               onClick={() => setPreviewOpen(false)}
@@ -162,97 +150,6 @@ function MaterialCardSkeleton() {
   )
 }
 
-// ==================== SearchResultCard ====================
-
-interface SearchResultCardProps {
-  material: Material
-  isCollected: boolean
-  onCollect: (id: number) => void
-}
-
-function SearchResultCard({ material, isCollected, onCollect }: SearchResultCardProps) {
-  const { t } = useTranslation()
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const isImage = material.material_type === "image"
-  const imageUrl = isImage ? material.content : null
-
-  return (
-    <>
-      <div
-        className={cn(
-          "flex items-start gap-2 rounded-md border border-border bg-card p-3",
-          "transition-colors duration-150"
-        )}
-      >
-        <div className="min-w-0 flex-1">
-          <p className="mb-1 truncate text-sm font-medium leading-tight">{material.title}</p>
-
-          {isImage && imageUrl ? (
-            <button
-              type="button"
-              onClick={() => setPreviewOpen(true)}
-              className="mt-1 block w-full overflow-hidden rounded-md border border-border cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={material.title}
-                className="h-24 w-full object-cover"
-                loading="lazy"
-              />
-            </button>
-          ) : (
-            material.content && (
-              <p className="line-clamp-3 text-xs text-muted-foreground leading-relaxed">
-                {material.content}
-              </p>
-            )
-          )}
-        </div>
-
-        {/* Collect button */}
-        <Button
-          variant={isCollected ? "secondary" : "outline"}
-          size="sm"
-          className="shrink-0 text-xs h-7 px-2"
-          disabled={isCollected}
-          onClick={() => onCollect(material.id)}
-        >
-          {isCollected ? (
-            <>
-              <Check className="mr-1 h-3 w-3" />
-              {t("contentWriting.materialPanel.collected")}
-            </>
-          ) : (
-            t("contentWriting.materialPanel.collectButton")
-          )}
-        </Button>
-      </div>
-
-      {/* Image preview dialog */}
-      {isImage && imageUrl && (
-        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-          <DialogContent className="max-w-3xl p-2 border-none bg-transparent shadow-none [&>button]:hidden">
-            <button
-              type="button"
-              onClick={() => setPreviewOpen(false)}
-              className="absolute -top-10 right-0 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80 transition-colors z-10"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imageUrl}
-              alt={material.title}
-              className="max-h-[80vh] w-full rounded-lg object-contain"
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
-  )
-}
-
 // ==================== SearchTab ====================
 
 const SEARCH_TYPE_TABS = [
@@ -261,23 +158,394 @@ const SEARCH_TYPE_TABS = [
   { id: "image" as MaterialType, i18nKey: "typeImage", icon: ImageIcon },
 ] as const
 
-function SearchTab() {
+const SEARCH_POLL_INTERVAL_MS = 3000
+const SEARCH_MAX_FAIL_COUNT = 3
+
+interface PersistedMaterialSearchTask {
+  logId: number
+  articleId: number
+  userId: number
+  query: string
+  materialType: MaterialType
+  createdAt: string
+}
+
+interface SearchTabProps {
+  articleId: number | null
+  userId: number | null
+  onImportSuccess?: () => void
+}
+
+function buildMaterialSearchStorageKey(userId: number, articleId: number) {
+  return `${userId}_${articleId}`
+}
+
+function loadPersistedMaterialSearchTask(userId: number, articleId: number): PersistedMaterialSearchTask | null {
+  try {
+    const raw = localStorage.getItem(buildMaterialSearchStorageKey(userId, articleId))
+    if (!raw) return null
+    return JSON.parse(raw) as PersistedMaterialSearchTask
+  } catch {
+    return null
+  }
+}
+
+function savePersistedMaterialSearchTask(task: PersistedMaterialSearchTask) {
+  localStorage.setItem(
+    buildMaterialSearchStorageKey(task.userId, task.articleId),
+    JSON.stringify(task)
+  )
+}
+
+function clearPersistedMaterialSearchTask(userId: number, articleId: number) {
+  localStorage.removeItem(buildMaterialSearchStorageKey(userId, articleId))
+}
+
+function buildSelectableUrl(item: MaterialSearchResultItem) {
+  return item.url
+}
+
+function buildImageSelectableUrl(url: string) {
+  return url
+}
+
+function SearchStatusBanner({
+  status,
+  query,
+}: {
+  status: "triggered" | "polling"
+  query: string
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="rounded-2xl border border-primary/15 bg-primary/[0.06] px-3 py-2.5">
+      <div className="flex items-start gap-2.5">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Clock3 className="h-4 w-4 animate-pulse" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            {status === "triggered"
+              ? t("contentWriting.materialPanel.searchTriggered")
+              : t("contentWriting.materialPanel.searching")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {t("contentWriting.materialPanel.searchingHint", { query })}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SearchEmptyState() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col items-center justify-center rounded-[24px] border border-dashed border-border/80 bg-gradient-to-br from-muted/60 via-background to-background px-5 py-12 text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Search className="h-6 w-6" />
+      </div>
+      <p className="text-sm font-medium text-foreground">
+        {t("contentWriting.materialPanel.searchInitialHint")}
+      </p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+        {t("contentWriting.materialPanel.searchInitialDescription")}
+      </p>
+    </div>
+  )
+}
+
+function SearchCardShell({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-[24px] border border-slate-200 bg-white shadow-[0_22px_48px_-34px_rgba(15,23,42,0.28)]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+function SearchStateCard({
+  icon,
+  title,
+  description,
+  query,
+  onDelete,
+}: {
+  icon: ReactNode
+  title: string
+  description: string
+  query: string
+  onDelete: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <SearchCardShell className="overflow-hidden">
+      <div className="border-b border-slate-100 px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+              {icon}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon-sm" onClick={onDelete} aria-label={t("contentWriting.materialPanel.deleteCard")}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="px-4 py-4">
+        <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+          {query}
+        </Badge>
+      </div>
+    </SearchCardShell>
+  )
+}
+
+function SearchResultContent({
+  content,
+}: {
+  content: string
+}) {
+  const { t } = useTranslation()
+  const [expanded, setExpanded] = useState(false)
+  const shouldCollapse = content.length > 180
+
+  return (
+    <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5">
+      <p
+        className={cn(
+          "whitespace-pre-wrap text-xs leading-5 text-slate-600",
+          !expanded && shouldCollapse && "line-clamp-4"
+        )}
+      >
+        {content}
+      </p>
+      {shouldCollapse && (
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="mt-2 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+        >
+          {expanded
+            ? t("contentWriting.materialPanel.collapseContent")
+            : t("contentWriting.materialPanel.expandContent")}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function SearchResultListItem({
+  item,
+  checked,
+  onCheckedChange,
+}: {
+  item: MaterialSearchResultItem
+  checked: boolean
+  onCheckedChange: (checked: CheckedState) => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <label className="flex cursor-pointer gap-3 rounded-[20px] border border-slate-200 bg-slate-50/60 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]">
+      <Checkbox checked={checked} onCheckedChange={onCheckedChange} className="mt-1" />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold leading-6 text-slate-900">{item.title}</p>
+        {item.published_date ? (
+          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+            {t("contentWriting.materialPanel.publishedAt")}: {formatDate(item.published_date)}
+          </p>
+        ) : null}
+        {item.content ? <div className="mt-2"><SearchResultContent content={item.content} /></div> : null}
+        {item.url ? (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t("contentWriting.materialPanel.viewSource")}
+          </a>
+        ) : null}
+      </div>
+    </label>
+  )
+}
+
+function SearchImageItem({
+  url,
+  checked,
+  onCheckedChange,
+}: {
+  url: string
+  checked: boolean
+  onCheckedChange: (checked: CheckedState) => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <label className="group relative cursor-pointer overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt={t("contentWriting.materialPanel.imageResultAlt")} className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
+      <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
+        <Checkbox
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          className="border-white/70 bg-white/90 shadow-sm"
+        />
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          {t("contentWriting.materialPanel.openImage")}
+        </a>
+      </div>
+    </label>
+  )
+}
+
+function SearchResultCard({
+  result,
+  selectedUrls,
+  importLoading,
+  onToggleUrl,
+  onDelete,
+  onImport,
+}: {
+  result: MaterialSearchDetailResponse
+  selectedUrls: Set<string>
+  importLoading: boolean
+  onToggleUrl: (url: string, checked: boolean) => void
+  onDelete: () => void
+  onImport: () => void
+}) {
+  const { t } = useTranslation()
+  const aiResultItems = result.ai_result?.ai_result ?? []
+  const imageItems = result.ai_result?.images ?? []
+  const selectedCount = selectedUrls.size
+  const importDisabled = selectedCount === 0 || importLoading
+
+  return (
+    <SearchCardShell className="overflow-hidden">
+      <div className="border-b border-slate-100 bg-[linear-gradient(135deg,rgba(248,250,252,1),rgba(255,255,255,1),rgba(239,246,255,0.7))] px-4 py-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">
+              {t("contentWriting.materialPanel.resultCardTitle")}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1 self-start">
+            <Button
+              size="icon-sm"
+              className="h-8 w-8"
+              onClick={onImport}
+              disabled={importDisabled}
+              aria-label={t("contentWriting.materialPanel.importToLibrary")}
+              title={t("contentWriting.materialPanel.importToLibrary")}
+            >
+              {importLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Inbox className="h-3.5 w-3.5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-8 w-8"
+              onClick={onDelete}
+              aria-label={t("contentWriting.materialPanel.deleteCard")}
+              title={t("contentWriting.materialPanel.deleteCard")}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 px-4 py-4">
+        {result.material_type === "info" && result.ai_result?.ai_answer ? (
+          <div className="rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+              {t("contentWriting.materialPanel.aiSummary")}
+            </p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+              {result.ai_result.ai_answer}
+            </p>
+          </div>
+        ) : null}
+
+        {result.material_type === "image" ? (
+          <div className="grid grid-cols-2 gap-3">
+            {imageItems.map((url) => (
+              <SearchImageItem
+                key={url}
+                url={url}
+                checked={selectedUrls.has(buildImageSelectableUrl(url))}
+                onCheckedChange={(checked) => onToggleUrl(buildImageSelectableUrl(url), checked === true)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {aiResultItems.map((item) => (
+              <SearchResultListItem
+                key={item.url}
+                item={item}
+                checked={selectedUrls.has(buildSelectableUrl(item))}
+                onCheckedChange={(checked) => onToggleUrl(buildSelectableUrl(item), checked === true)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </SearchCardShell>
+  )
+}
+
+function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
-  const { isCollected, collect } = useCollectedMaterials()
 
   const [searchType, setSearchType] = useState<MaterialType>("info")
   const [searchText, setSearchText] = useState("")
-  const [isSearching, setIsSearching] = useState(false)
-  const [results, setResults] = useState<Material[]>([])
-  const [hasSearched, setHasSearched] = useState(false)
+  const [activeTask, setActiveTask] = useState<PersistedMaterialSearchTask | null>(null)
+  const [detail, setDetail] = useState<MaterialSearchDetailResponse | null>(null)
+  const [bannerStatus, setBannerStatus] = useState<"triggered" | "polling" | null>(null)
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
+  const [isImporting, setIsImporting] = useState(false)
 
-  // Polling refs
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
-  const pollingStartTimeRef = useRef<number>(0)
-  const networkFailCountRef = useRef<number>(0)
+  const networkFailCountRef = useRef(0)
 
-  // Cleanup polling on unmount
+  const persistTask = useCallback(
+    (task: PersistedMaterialSearchTask | null) => {
+      if (!userId || !articleId) return
+
+      if (task) {
+        savePersistedMaterialSearchTask(task)
+      } else {
+        clearPersistedMaterialSearchTask(userId, articleId)
+      }
+    },
+    [articleId, userId]
+  )
+
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
       clearTimeout(pollingRef.current)
@@ -286,147 +554,220 @@ function SearchTab() {
     networkFailCountRef.current = 0
   }, [])
 
+  const clearSearchTask = useCallback(() => {
+    console.info("[MaterialSearch] clearing active card")
+    stopPolling()
+    setActiveTask(null)
+    setDetail(null)
+    setBannerStatus(null)
+    setSelectedUrls(new Set())
+    if (userId && articleId) {
+      clearPersistedMaterialSearchTask(userId, articleId)
+    }
+  }, [articleId, stopPolling, userId])
+
+  const hydrateSelections = useCallback((response: MaterialSearchDetailResponse) => {
+    if (response.status !== "success" || !response.ai_result) {
+      setSelectedUrls(new Set())
+      return
+    }
+
+    if (response.material_type === "image") {
+      setSelectedUrls(new Set((response.ai_result.images ?? []).map((url) => buildImageSelectableUrl(url))))
+      return
+    }
+
+    setSelectedUrls(
+      new Set((response.ai_result.ai_result ?? []).map((item) => buildSelectableUrl(item)))
+    )
+  }, [])
+
+  const handlePollResult = useCallback(
+    async (task: PersistedMaterialSearchTask) => {
+      console.debug("[MaterialSearch] polling detail", { logId: task.logId, query: task.query })
+      const response = await materialsClient.getSearchLogDetail(task.logId)
+
+      if ("error" in response) {
+        networkFailCountRef.current += 1
+        console.warn("[MaterialSearch] detail poll failed", {
+          logId: task.logId,
+          failCount: networkFailCountRef.current,
+          error: response.error,
+        })
+
+        if (networkFailCountRef.current >= SEARCH_MAX_FAIL_COUNT) {
+          stopPolling()
+          clearSearchTask()
+          toast({
+            variant: "destructive",
+            title: t("contentWriting.materialPanel.searchFailed"),
+            description: response.error,
+          })
+          return
+        }
+
+        pollingRef.current = setTimeout(() => {
+          void handlePollResult(task)
+        }, SEARCH_POLL_INTERVAL_MS)
+        return
+      }
+
+      networkFailCountRef.current = 0
+      setDetail(response)
+
+      if (response.status === "doing") {
+        setBannerStatus("polling")
+        pollingRef.current = setTimeout(() => {
+          void handlePollResult(task)
+        }, SEARCH_POLL_INTERVAL_MS)
+        return
+      }
+
+      stopPolling()
+      setBannerStatus(null)
+      hydrateSelections(response)
+      console.info("[MaterialSearch] search finished", {
+        logId: task.logId,
+        status: response.status,
+      })
+    },
+    [clearSearchTask, hydrateSelections, stopPolling, t, toast]
+  )
+
   useEffect(() => {
+    if (!userId || !articleId) return
+
+    const storedTask = loadPersistedMaterialSearchTask(userId, articleId)
+    if (!storedTask) return
+
+    console.info("[MaterialSearch] restoring task from localStorage", {
+      articleId,
+      userId,
+      logId: storedTask.logId,
+    })
+    setActiveTask(storedTask)
+    setSearchType(storedTask.materialType)
+    setSearchText(storedTask.query)
+    setBannerStatus("polling")
+    void handlePollResult(storedTask)
+
     return stopPolling
-  }, [stopPolling])
+  }, [articleId, handlePollResult, stopPolling, userId])
+
+  useEffect(() => stopPolling, [stopPolling])
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
-    if (!trimmed) return
+    if (!trimmed || !userId || !articleId || activeTask) return
 
-    // Stop any existing polling
     stopPolling()
-    setIsSearching(true)
-    setHasSearched(true)
-    setResults([])
+    setDetail(null)
+    setSelectedUrls(new Set())
 
-    // 1. Trigger async search
-    const searchResult = await materialsClient.search(searchType, trimmed)
+    const nextTaskBase = {
+      articleId,
+      userId,
+      query: trimmed,
+      materialType: searchType,
+      createdAt: new Date().toISOString(),
+    }
+
+    console.info("[MaterialSearch] triggering v2 search", {
+      articleId,
+      userId,
+      materialType: searchType,
+      query: trimmed,
+    })
+
+    const searchResult = await materialsClient.searchV2(searchType, trimmed)
 
     if ("error" in searchResult) {
+      console.warn("[MaterialSearch] trigger failed", {
+        materialType: searchType,
+        query: trimmed,
+        error: searchResult.error,
+      })
       toast({
         variant: "destructive",
         title: t("contentWriting.materialPanel.searchFailed"),
         description: searchResult.error,
       })
-      setIsSearching(false)
+      setBannerStatus(null)
       return
     }
 
-    // 2. Start polling for completion using recursive setTimeout
-    pollingStartTimeRef.current = Date.now()
-    networkFailCountRef.current = 0
-
-    const poll = async () => {
-      // Timeout check (30 seconds)
-      if (Date.now() - pollingStartTimeRef.current > 30000) {
-        stopPolling()
-        setIsSearching(false)
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.materialPanel.searchTimeout"),
-        })
-        return
-      }
-
-      try {
-        // Poll search logs
-        const logsResult = await materialsClient.getSearchLogs({
-          type: searchType,
-          page_size: 5,
-        })
-
-        if ("error" in logsResult) {
-          networkFailCountRef.current++
-          if (networkFailCountRef.current >= 3) {
-            stopPolling()
-            setIsSearching(false)
-            toast({
-              variant: "destructive",
-              title: t("contentWriting.materialPanel.searchFailed"),
-            })
-            return
-          }
-          pollingRef.current = setTimeout(poll, 3000)
-          return
-        }
-
-        networkFailCountRef.current = 0
-
-        // Find matching log
-        const matchingLog = logsResult.list.find(
-          (log: MaterialLog) =>
-            log.material_type === searchType &&
-            log.query === trimmed &&
-            log.status !== "doing"
-        )
-
-        if (!matchingLog) {
-          // Still searching — schedule next poll
-          pollingRef.current = setTimeout(poll, 3000)
-          return
-        }
-
-        // Check for failure
-        if (matchingLog.status === "failed") {
-          stopPolling()
-          setIsSearching(false)
-          toast({
-            variant: "destructive",
-            title: t("contentWriting.materialPanel.searchStatusFailed"),
-          })
-          return
-        }
-
-        // Search completed — fetch results
-        stopPolling()
-        const latestLogId = matchingLog.id
-
-        const materialsResult = await materialsClient.getMaterials({
-          type: searchType,
-          page_size: 100,
-        })
-
-        if ("error" in materialsResult) {
-          setIsSearching(false)
-          return
-        }
-
-        // Client-side filter by material_logs_id
-        const filtered = materialsResult.list.filter(
-          (m: Material) => m.material_logs_id === latestLogId
-        )
-        setResults(filtered)
-        setIsSearching(false)
-      } catch {
-        networkFailCountRef.current++
-        if (networkFailCountRef.current >= 3) {
-          stopPolling()
-          setIsSearching(false)
-          toast({
-            variant: "destructive",
-            title: t("contentWriting.materialPanel.searchFailed"),
-          })
-          return
-        }
-        pollingRef.current = setTimeout(poll, 3000)
-      }
+    const task: PersistedMaterialSearchTask = {
+      ...nextTaskBase,
+      logId: searchResult.id,
     }
 
-    // Start first poll after 3 seconds
-    pollingRef.current = setTimeout(poll, 3000)
-  }, [searchText, searchType, stopPolling, toast, t])
+    persistTask(task)
+    setActiveTask(task)
+    setBannerStatus("triggered")
+    void handlePollResult(task)
+  }, [activeTask, articleId, handlePollResult, persistTask, searchText, searchType, stopPolling, t, toast, userId])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") handleSearch()
+      if (e.key === "Enter") {
+        void handleSearch()
+      }
     },
     [handleSearch]
   )
 
+  const handleToggleUrl = useCallback((url: string, checked: boolean) => {
+    setSelectedUrls((prev) => {
+      const next = new Set(prev)
+      if (checked) {
+        next.add(url)
+      } else {
+        next.delete(url)
+      }
+      return next
+    })
+  }, [])
+
+  const handleImport = useCallback(async () => {
+    if (!activeTask || selectedUrls.size === 0) return
+
+    console.info("[MaterialSearch] importing selected results", {
+      logId: activeTask.logId,
+      count: selectedUrls.size,
+    })
+    setIsImporting(true)
+
+    const result = await materialsClient.addFromLog({
+      material_log_id: activeTask.logId,
+      urls: Array.from(selectedUrls),
+    })
+
+    if ("error" in result) {
+      console.warn("[MaterialSearch] import failed", {
+        logId: activeTask.logId,
+        error: result.error,
+      })
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.importFailed"),
+        description: result.error,
+      })
+      setIsImporting(false)
+      return
+    }
+
+    toast({
+      title: t("contentWriting.materialPanel.importSuccess"),
+      description: t("contentWriting.materialPanel.importSuccessCount", { count: result.ids.length }),
+    })
+    onImportSuccess?.()
+    setIsImporting(false)
+  }, [activeTask, onImportSuccess, selectedUrls, t, toast])
+
+  const isSearchLocked = Boolean(activeTask)
+
   return (
-    <div className="flex h-full flex-col gap-3">
-      {/* Type selector */}
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
       <div className="flex gap-1.5 shrink-0">
         {SEARCH_TYPE_TABS.map((tab) => {
           const Icon = tab.icon
@@ -436,8 +777,9 @@ function SearchTab() {
               key={tab.id}
               type="button"
               onClick={() => setSearchType(tab.id)}
+              disabled={isSearchLocked}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50",
                 isActive
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
@@ -450,152 +792,71 @@ function SearchTab() {
         })}
       </div>
 
-      {/* Search input + button */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t("contentWriting.materialPanel.searchInputPlaceholder")}
-            className="pl-8"
-            disabled={isSearching}
-          />
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t("contentWriting.materialPanel.searchInputPlaceholder")}
+              className="h-9"
+              disabled={isSearchLocked}
+            />
+          </div>
+          <Button
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => void handleSearch()}
+            disabled={isSearchLocked || !searchText.trim()}
+          >
+            {bannerStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          </Button>
         </div>
-        <Button
-          size="sm"
-          onClick={handleSearch}
-          disabled={isSearching || !searchText.trim()}
-          className="shrink-0"
-        >
-          {isSearching ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Search className="h-4 w-4" />
-          )}
-        </Button>
+
+        {bannerStatus && activeTask ? (
+          <SearchStatusBanner status={bannerStatus} query={activeTask.query} />
+        ) : null}
       </div>
 
-      {/* Results area */}
-      <ScrollArea className="flex-1">
-        <div className="flex flex-col gap-2 pr-2">
-          {/* Searching state */}
-          {isSearching && (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Loader2 className="mb-2 h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                {t("contentWriting.materialPanel.searching")}
-              </p>
-            </div>
-          )}
+      <ScrollArea className="min-h-0 flex-1 min-w-0">
+        <div className="flex min-w-0 flex-col gap-3 px-0.5 pr-2">
+          {!activeTask ? <SearchEmptyState /> : null}
 
-          {/* Results list */}
-          {!isSearching &&
-            results.map((material) => (
-              <SearchResultCard
-                key={material.id}
-                material={material}
-                isCollected={isCollected(material.id)}
-                onCollect={collect}
-              />
-            ))}
+          {activeTask && detail?.status === "success" ? (
+            <SearchResultCard
+              result={detail}
+              selectedUrls={selectedUrls}
+              importLoading={isImporting}
+              onToggleUrl={handleToggleUrl}
+              onDelete={clearSearchTask}
+              onImport={() => void handleImport()}
+            />
+          ) : null}
 
-          {/* Empty states */}
-          {!isSearching && hasSearched && results.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Search className="mb-2 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                {t("contentWriting.materialPanel.searchNoResults")}
-              </p>
-            </div>
-          )}
+          {activeTask && detail?.status === "failed" ? (
+            <SearchStateCard
+              icon={<AlertTriangle className="h-5 w-5" />}
+              title={t("contentWriting.materialPanel.failedCardTitle")}
+              description={t("contentWriting.materialPanel.failedCardDescription")}
+              query={detail.query}
+              onDelete={clearSearchTask}
+            />
+          ) : null}
 
-          {!isSearching && !hasSearched && (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Search className="mb-2 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                {t("contentWriting.materialPanel.searchInitialHint")}
-              </p>
-            </div>
-          )}
+          {activeTask && detail?.status === "nodata" ? (
+            <SearchStateCard
+              icon={<SearchX className="h-5 w-5" />}
+              title={t("contentWriting.materialPanel.noDataCardTitle")}
+              description={t("contentWriting.materialPanel.noDataCardDescription")}
+              query={detail.query}
+              onDelete={clearSearchTask}
+            />
+          ) : null}
+
+          <div className="h-10 shrink-0" aria-hidden="true" />
         </div>
       </ScrollArea>
-    </div>
-  )
-}
-
-// ==================== FavoriteGroupSection ====================
-
-interface FavoriteGroupSectionProps {
-  groupId: string
-  groupName: string
-  materialIds: number[]
-  allMaterials: Material[]
-  onDelete: () => void
-  onRemoveMaterial: (materialId: number) => void
-}
-
-function FavoriteGroupSection({
-  groupId,
-  groupName,
-  materialIds,
-  allMaterials,
-  onDelete,
-  onRemoveMaterial,
-}: FavoriteGroupSectionProps) {
-  const [expanded, setExpanded] = useState(true)
-  const groupMaterials = allMaterials.filter((m) => materialIds.includes(m.id))
-
-  return (
-    <div className="rounded-md border border-border">
-      {/* Group header */}
-      <div className="flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/50 transition-colors">
-        <button
-          type="button"
-          onClick={() => setExpanded((v) => !v)}
-          className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-        >
-          {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          )}
-          <span className="truncate">{groupName}</span>
-          <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-            {materialIds.length}
-          </Badge>
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Group materials */}
-      {expanded && (
-        <div className="flex flex-col gap-1.5 border-t border-border px-2 pb-2 pt-1.5">
-          {groupMaterials.length === 0 ? (
-            <p className="py-2 text-center text-xs text-muted-foreground">—</p>
-          ) : (
-            groupMaterials.map((material) => (
-              <div key={material.id} className="relative">
-                <MaterialCard material={material} />
-                <button
-                  type="button"
-                  onClick={() => onRemoveMaterial(material.id)}
-                  className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -610,9 +871,6 @@ const CATEGORY_TABS = [
 
 function LibraryTab() {
   const { t } = useTranslation()
-  const { groups, createGroup, deleteGroup, addToGroup, removeFromGroup } = useMaterialFavorites()
-  const [newGroupName, setNewGroupName] = useState("")
-  const [showCreateInput, setShowCreateInput] = useState(false)
   const [activeCategory, setActiveCategory] = useState<MaterialType>("info")
   const { materials: allMaterials, isLoading, hasMore, observerTarget } = useInfiniteMaterials({
     type: activeCategory,
@@ -621,24 +879,6 @@ function LibraryTab() {
   })
 
   const materials = allMaterials
-
-  const handleCreateGroup = useCallback(() => {
-    if (!newGroupName.trim()) return
-    createGroup(newGroupName.trim())
-    setNewGroupName("")
-    setShowCreateInput(false)
-  }, [newGroupName, createGroup])
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") handleCreateGroup()
-      if (e.key === "Escape") {
-        setShowCreateInput(false)
-        setNewGroupName("")
-      }
-    },
-    [handleCreateGroup]
-  )
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -669,20 +909,14 @@ function LibraryTab() {
       {/* Materials list */}
       <div className="flex-1 overflow-hidden">
         <ScrollArea className="h-full">
-          <div className="flex flex-col gap-2 pr-2">
+          <div className={cn(
+            "pr-2 pb-4",
+            activeCategory === "image" ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"
+          )}>
             {materials.map((material) => (
               <MaterialCard
                 key={material.id}
                 material={material}
-                showAddToGroup={groups.length > 0}
-                onAddToGroup={
-                  groups.length > 0
-                    ? (materialId) => {
-                        // Add to first group as default — user can manage groups
-                        addToGroup(groups[0].id, materialId)
-                      }
-                    : undefined
-                }
               />
             ))}
 
@@ -691,79 +925,26 @@ function LibraryTab() {
                 <MaterialCardSkeleton key={`lib-skeleton-${i}`} />
               ))}
 
-            {hasMore && <div ref={observerTarget} className="h-4" />}
+            {hasMore && (
+              <div
+                ref={observerTarget}
+                className={cn("h-4", activeCategory === "image" ? "col-span-2" : "")}
+              />
+            )}
 
             {!isLoading && materials.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
+              <div className={cn(
+                "flex flex-col items-center justify-center py-6 text-center",
+                activeCategory === "image" ? "col-span-2" : ""
+              )}>
                 <BookOpen className="mb-2 h-7 w-7 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">
                   {t("contentWriting.materialPanel.emptyLibrary")}
                 </p>
               </div>
             )}
-          </div>
-        </ScrollArea>
-      </div>
 
-      {/* Favorites groups section */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {t("contentWriting.materialPanel.favoriteGroups")}
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => setShowCreateInput((v) => !v)}
-          >
-            <Plus className="mr-1 h-3 w-3" />
-            {t("contentWriting.materialPanel.createGroup")}
-          </Button>
-        </div>
-
-        {/* Create group input */}
-        {showCreateInput && (
-          <div className="flex gap-1.5">
-            <Input
-              autoFocus
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("contentWriting.materialPanel.groupNamePlaceholder")}
-              className="h-7 text-xs"
-            />
-            <Button
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handleCreateGroup}
-              disabled={!newGroupName.trim()}
-            >
-              {t("contentWriting.materialPanel.confirm")}
-            </Button>
-          </div>
-        )}
-
-        {/* Groups list */}
-        <ScrollArea className="max-h-[240px]">
-          <div className="flex flex-col gap-2 pr-2">
-            {groups.length === 0 ? (
-              <p className="py-2 text-center text-xs text-muted-foreground">
-                {t("contentWriting.materialPanel.noGroups")}
-              </p>
-            ) : (
-              groups.map((group) => (
-                <FavoriteGroupSection
-                  key={group.id}
-                  groupId={group.id}
-                  groupName={group.name}
-                  materialIds={group.materialIds}
-                  allMaterials={materials}
-                  onDelete={() => deleteGroup(group.id)}
-                  onRemoveMaterial={(materialId) => removeFromGroup(group.id, materialId)}
-                />
-              ))
-            )}
+            <div className={cn("h-8 shrink-0", activeCategory === "image" ? "col-span-2" : "")} aria-hidden="true" />
           </div>
         </ScrollArea>
       </div>
@@ -998,9 +1179,11 @@ function UploadDialog({ open, onOpenChange, onUploadSuccess }: UploadDialogProps
 
 export interface EditorMaterialPanelProps {
   className?: string
+  articleId: number | null
+  userId: number | null
 }
 
-export function EditorMaterialPanel({ className }: EditorMaterialPanelProps) {
+export function EditorMaterialPanel({ className, articleId, userId }: EditorMaterialPanelProps) {
   const { t } = useTranslation()
   const [showUpload, setShowUpload] = useState(false)
   // Incrementing key forces LibraryTab to remount and refetch after upload
@@ -1034,7 +1217,13 @@ export function EditorMaterialPanel({ className }: EditorMaterialPanelProps) {
         </TabsList>
 
         <TabsContent value="search" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-3">
-          <SearchTab />
+          <div className="min-h-0 h-full min-w-0">
+            <SearchTab
+              articleId={articleId}
+              userId={userId}
+              onImportSuccess={() => setLibraryKey((k) => k + 1)}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="library" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-3">
