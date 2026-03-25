@@ -8,6 +8,11 @@ import type { Material, MaterialType } from "@/lib/api/materials/types"
  */
 export interface UseInfiniteMaterialsOptions {
   /**
+   * 按文章筛选素材
+   */
+  articleId?: number
+
+  /**
    * 素材类型过滤
    */
   type?: MaterialType
@@ -60,9 +65,10 @@ export interface UseInfiniteMaterialsOptions {
  * ```
  */
 export function useInfiniteMaterials(options: UseInfiniteMaterialsOptions = {}) {
-  const { type, nameFilter, pageSize = 20, enabled = true } = options
+  const { articleId, type, nameFilter, pageSize = 20, enabled = true } = options
 
   // 保存上一次的过滤参数，用于检测变化
+  const prevArticleIdRef = useRef<number | undefined>(articleId)
   const prevTypeRef = useRef<MaterialType | undefined>(type)
   const prevNameFilterRef = useRef<string | undefined>(nameFilter)
 
@@ -73,6 +79,7 @@ export function useInfiniteMaterials(options: UseInfiniteMaterialsOptions = {}) 
       const result = await materialsClient.getMaterials({
         page,
         page_size: pageSize,
+        article_id: articleId,
         type,
         name: nameFilter,
       })
@@ -86,7 +93,7 @@ export function useInfiniteMaterials(options: UseInfiniteMaterialsOptions = {}) 
         total: result.total,
       }
     },
-    [type, nameFilter]
+    [articleId, type, nameFilter]
   )
 
   // ==================== 使用核心无限滚动 Hook ====================
@@ -96,23 +103,26 @@ export function useInfiniteMaterials(options: UseInfiniteMaterialsOptions = {}) 
     pageSize,
     enabled,
   })
+  const { reset } = infiniteScroll
 
   // ==================== 参数变化时重置 ====================
 
   useEffect(() => {
     // 检测过滤参数是否发生变化
+    const articleIdChanged = prevArticleIdRef.current !== articleId
     const typeChanged = prevTypeRef.current !== type
     const nameFilterChanged = prevNameFilterRef.current !== nameFilter
 
-    if (typeChanged || nameFilterChanged) {
+    if (articleIdChanged || typeChanged || nameFilterChanged) {
       // 更新 ref
+      prevArticleIdRef.current = articleId
       prevTypeRef.current = type
       prevNameFilterRef.current = nameFilter
 
       // 如果参数发生变化，重置列表
-      infiniteScroll.reset()
+      reset()
     }
-  }, [type, nameFilter, infiniteScroll.reset]) // 只依赖 reset 函数，避免频繁重置
+  }, [articleId, type, nameFilter, reset]) // 只依赖 reset 函数，避免频繁重置
 
   // ==================== 返回值 ====================
 

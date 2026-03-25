@@ -6,10 +6,14 @@ import type {
   CreateMaterialRequest,
   UpdateMaterialRequest,
   GetPresignedUrlRequest,
+  GetMaterialFavoritesRequest,
   AddMaterialsFromLogRequest,
+  CreateMaterialFavoriteRequest,
   MaterialListResponse,
   MaterialLogListResponse,
+  MaterialFavoriteListResponse,
   CreateMaterialResponse,
+  CreateMaterialFavoriteResponse,
   PresignedUrlResponse,
   MessageResponse,
   ErrorResponse,
@@ -166,11 +170,35 @@ export const materialsClient = {
     if (params?.page_size) searchParams.append('page_size', String(params.page_size))
     if (params?.name) searchParams.append('name', params.name)
     if (params?.type) searchParams.append('type', params.type)
+    if (params?.article_id) searchParams.append('article_id', String(params.article_id))
 
     const queryString = searchParams.toString()
     const url = queryString ? `/materials/list?${queryString}` : '/materials/list'
 
     return apiRequest<MaterialListResponse>(url, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+  },
+
+  /**
+   * 3. 获取收藏列表
+   * GET /materials/favorites/list
+   */
+  async getFavorites(
+    params?: GetMaterialFavoritesRequest
+  ): Promise<MaterialFavoriteListResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.append('page', String(params.page))
+    if (params?.page_size) searchParams.append('page_size', String(params.page_size))
+
+    const queryString = searchParams.toString()
+    const url = queryString ? `/materials/favorites/list?${queryString}` : '/materials/favorites/list'
+
+    return apiRequest<MaterialFavoriteListResponse>(url, {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
       },
@@ -246,6 +274,24 @@ export const materialsClient = {
   },
 
   /**
+   * 6. 创建素材收藏
+   * POST /materials/favorites
+   */
+  async createFavorite(
+    data: CreateMaterialFavoriteRequest
+  ): Promise<CreateMaterialFavoriteResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<CreateMaterialFavoriteResponse>('/materials/favorites', {
+      method: 'POST',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
    * 8. 从搜索结果创建素材
    * POST /materials/add-from-log
    */
@@ -260,6 +306,57 @@ export const materialsClient = {
         Authorization: token ? `Bearer ${token}` : '',
       },
       body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * 9. 置顶收藏
+   * PUT /materials/favorites/:id/pin
+   */
+  async pinFavorite(
+    id: number
+  ): Promise<MessageResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<MessageResponse>(`/materials/favorites/${id}/pin`, {
+      method: 'PUT',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+  },
+
+  /**
+   * 10. 取消置顶收藏
+   * PUT /materials/favorites/:id/unpin
+   */
+  async unpinFavorite(
+    id: number
+  ): Promise<MessageResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<MessageResponse>(`/materials/favorites/${id}/unpin`, {
+      method: 'PUT',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+  },
+
+  /**
+   * 11. 删除收藏
+   * DELETE /materials/favorites/:id
+   */
+  async deleteFavorite(
+    id: number
+  ): Promise<MessageResponse | ErrorResponse> {
+    const token = localStorage.getItem('access_token')
+
+    return apiRequest<MessageResponse>(`/materials/favorites/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
   },
 

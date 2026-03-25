@@ -24,6 +24,9 @@ export interface Material {
   id: number
   user_id: number
   material_logs_id: number // 搜索日志 ID，用户上传的素材为 0
+  article_id: number
+  is_favorite: boolean
+  favorite_id: number
   title: string // 素材标题 (1-200 字符)
   material_type: MaterialType
   source_url: string // 素材原链接
@@ -45,6 +48,26 @@ export interface MaterialLog {
   updated_at: string // ISO 8601 格式时间
 }
 
+/**
+ * 收藏实体
+ */
+export interface MaterialFavorite {
+  id: number
+  user_id: number
+  material_id: number
+  is_pinned: boolean
+  pinned_at: string
+  created_at: string
+  updated_at: string
+  material_user_id: number
+  article_id: number
+  material_logs_id: number
+  title: string
+  material_type: MaterialType
+  source_url: string
+  content: string
+}
+
 // ==================== Request Types ====================
 
 /**
@@ -63,6 +86,7 @@ export interface GetMaterialsRequest {
   page_size?: number // 每页数量，默认 20，最大 100
   name?: string // 标题筛选（模糊搜索）
   type?: MaterialType // 素材类型过滤
+  article_id?: number // 按文章 ID 筛选素材
 }
 
 /**
@@ -73,6 +97,14 @@ export interface GetSearchLogsRequest {
   page_size?: number // 每页数量，默认 20，最大 100
   type?: MaterialType // 素材类型过滤
   status?: MaterialStatus // 状态过滤
+}
+
+/**
+ * 获取收藏列表请求参数
+ */
+export interface GetMaterialFavoritesRequest {
+  page?: number
+  page_size?: number
 }
 
 /**
@@ -111,7 +143,15 @@ export interface MaterialSearchDetailResponse {
  */
 export interface AddMaterialsFromLogRequest {
   material_log_id: number
+  article_id: number
   urls: string[]
+}
+
+/**
+ * 新增收藏请求
+ */
+export interface CreateMaterialFavoriteRequest {
+  material_id: number
 }
 
 /**
@@ -129,6 +169,7 @@ export interface CreateMaterialRequest {
   title: string // 素材标题 (1-200 字符)
   material_type: MaterialType
   content: string // 素材内容（info/news 为文本，image 为图片 URL）
+  article_id?: number // 归属文章 ID
 }
 
 /**
@@ -167,9 +208,25 @@ export interface MaterialLogListResponse {
 }
 
 /**
+ * 收藏列表响应
+ */
+export interface MaterialFavoriteListResponse {
+  total: number
+  list: MaterialFavorite[]
+}
+
+/**
  * 创建素材响应
  */
 export interface CreateMaterialResponse {
+  id: number
+  message: string
+}
+
+/**
+ * 创建收藏响应
+ */
+export interface CreateMaterialFavoriteResponse {
   id: number
   message: string
 }
