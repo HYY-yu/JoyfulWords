@@ -28,6 +28,7 @@ interface MaterialTableProps {
   onPageChange: (page: number) => void
   onPageSizeChange: (pageSize: number) => void
   t: (key: string) => string
+  hideTypeFilter?: boolean
 }
 
 export function MaterialTable({
@@ -44,6 +45,7 @@ export function MaterialTable({
   onPageChange,
   onPageSizeChange,
   t,
+  hideTypeFilter,
 }: MaterialTableProps) {
   // 预览状态
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -101,6 +103,7 @@ export function MaterialTable({
                   />
                 </div>
               </div>
+              {!hideTypeFilter && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {t("contentWriting.materials.filterType")}
@@ -117,6 +120,7 @@ export function MaterialTable({
                   </SelectContent>
                 </Select>
               </div>
+              )}
             </div>
             <Button onClick={onUpload} className="gap-2" disabled={loading}>
               <UploadIcon className="w-4 h-4" />

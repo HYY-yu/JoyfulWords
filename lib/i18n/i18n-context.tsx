@@ -3,8 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { zh } from './locales/zh';
 import { en } from './locales/en';
-
-type Locale = 'zh' | 'en';
+import { LOCALE_COOKIE_NAME, type Locale } from './shared';
 
 interface I18nContextType {
   locale: Locale;
@@ -38,6 +37,17 @@ function detectBrowserLocale(): Locale {
   return 'zh';
 }
 
+function detectCookieLocale(): Locale | null {
+  if (typeof document === 'undefined') return null;
+
+  const localeCookie = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith(`${LOCALE_COOKIE_NAME}=`))
+    ?.split('=')[1];
+
+  return localeCookie === 'zh' || localeCookie === 'en' ? localeCookie : null;
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   // Always start with default locale to avoid hydration mismatch
   const [locale, setLocaleState] = useState<Locale>('zh');
@@ -51,7 +61,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 2. 检测浏览器语言（不持久化）
+    // 2. 兼容 SSR 读取的语言 cookie
+    const cookieLocale = detectCookieLocale();
+    if (cookieLocale) {
+      setLocaleState(cookieLocale);
+      return;
+    }
+
+    // 3. 检测浏览器语言（不持久化）
     const detectedLocale = detectBrowserLocale();
     setLocaleState(detectedLocale);
   }, []);
@@ -60,8 +77,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLocaleState(newLocale);
     if (typeof window !== 'undefined') {
       localStorage.setItem('locale', newLocale);
+      document.cookie = `${LOCALE_COOKIE_NAME}=${newLocale}; path=/; max-age=31536000; samesite=lax`;
     }
   };
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
+    }
+  }, [locale]);
 
   const t = (key: string, params?: Record<string, any>): any => {
     const keys = key.split('.');

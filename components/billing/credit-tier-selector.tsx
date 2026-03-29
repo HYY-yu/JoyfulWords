@@ -20,7 +20,7 @@ export function CreditTierSelector<T extends z.ZodType>({
   t,
 }: CreditTierSelectorProps<T>) {
   const handleTierSelect = (tier: number) => {
-    form.setValue(fieldName as any, tier)
+    form.setValue(fieldName as any, tier as any)
   }
 
   return (

@@ -55,7 +55,7 @@ export function useGenerationLogs() {
       toast({
         variant: "destructive",
         title: t("imageGeneration.logs.toast.fetchFailed"),
-        description: result.error,
+        description: String(result.error),
       })
       return false
     } else {

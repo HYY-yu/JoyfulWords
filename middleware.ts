@@ -16,6 +16,7 @@ const publicPages = [
   '/cookie-policy',         // Cookie 政策页面
   '/terms-of-use',          // 使用条款页面
   '/privacy-policy',        // 隐私政策页面
+  '/blog',                  // 博客页面
 ]
 
 // Exact match public routes (cannot use startsWith for '/')
@@ -48,6 +49,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
   ],
 }

@@ -545,3 +545,58 @@
 .animate-delay-2 { animation-delay: 0.16s; }
 .animate-delay-3 { animation-delay: 0.26s; }
 .animate-delay-4 { animation-delay: 0.38s; }
+
+/* ========================================
+   Blog Content Styles
+   ======================================== */
+.blog-content {
+  @apply text-foreground antialiased;
+}
+
+.blog-content h1 {
+  @apply mt-10 mb-5 font-serif text-4xl tracking-tight;
+}
+
+.blog-content h2 {
+  @apply mt-8 mb-4 font-serif text-3xl tracking-tight;
+}
+
+.blog-content h3 {
+  @apply mt-6 mb-3 text-2xl font-semibold;
+}
+
+.blog-content p {
+  @apply mb-5 text-base leading-8 text-foreground/88;
+}
+
+.blog-content ul {
+  @apply mb-5 list-disc space-y-2 pl-6;
+}
+
+.blog-content ol {
+  @apply mb-5 list-decimal space-y-2 pl-6;
+}
+
+.blog-content li {
+  @apply leading-8 text-foreground/88;
+}
+
+.blog-content blockquote {
+  @apply my-6 border-l-4 border-primary/60 bg-primary/5 px-5 py-3 text-muted-foreground;
+}
+
+.blog-content a {
+  @apply text-primary underline underline-offset-2;
+}
+
+.blog-content pre {
+  @apply my-6 overflow-x-auto rounded-2xl border border-border bg-muted/60 p-4;
+}
+
+.blog-content code:not(pre code) {
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm;
+}
+
+.blog-content hr {
+  @apply my-8 border-border;
+}

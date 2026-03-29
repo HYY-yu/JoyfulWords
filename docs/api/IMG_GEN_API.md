@@ -249,7 +249,108 @@ curl http://localhost:8080/image-generation/style-examples
 
 ---
 
-### 5. 获取任务结果
+### 5. 图片拆分任务
+
+将一张图片拆分为多个 RGBA 图层，适用于图像编辑、背景分离等场景。
+
+**端点：** `POST /image-generation/split`
+
+**认证：** 需要
+
+**请求体：**
+
+```json
+{
+  "image_url": "https://example.com/image.png",
+  "num_layers": 4,
+  "prompt": "a landscape with mountains"
+}
+```
+
+**请求参数说明：**
+
+| 参数 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `image_url` | string | 是 | - | 输入图片 URL（必需） |
+| `num_layers` | int | 否 | 4 | 拆分图层数量（1-8） |
+| `prompt` | string | 否 | "" | 描述场景的文本提示（可选） |
+
+**响应（202 Accepted）：**
+
+```json
+{
+  "task_id": 123,
+  "status": "pending",
+  "poll_url": "/image-generation/tasks/123",
+  "estimated_eta": 90,
+  "num_layers": 4
+}
+```
+
+**响应字段说明：**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `task_id` | int64 | 任务 ID |
+| `status` | string | 任务状态（pending/processing/success/failed） |
+| `poll_url` | string | 轮询结果的 URL |
+| `estimated_eta` | int | 预计完成时间（秒，约 90 秒） |
+| `num_layers` | int | 拆分的图层数量 |
+
+**错误响应：**
+
+| 状态码 | MessageID | 说明 |
+|--------|-----------|------|
+| 401 | not_authenticated | 未认证 |
+| 400 | invalid_request | 请求格式错误 |
+| 400 | invalid_num_layers | 图层数量必须在 1-8 之间 |
+| 500 | server_error | 服务器内部错误 |
+
+**使用的模型：**
+- `wavespeed-ai/qwen-image/layered`
+- 支持 1-8 层 RGBA 图层拆分
+- 返回多个图层图片 URL
+
+**示例 cURL：**
+
+```bash
+curl -X POST http://localhost:8080/image-generation/split \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/image.png",
+    "num_layers": 4,
+    "prompt": "a landscape with mountains"
+  }'
+```
+
+**轮询结果：**
+
+使用与"获取任务结果"相同的端点 `GET /image-generation/tasks/:task_id` 进行轮询。
+
+**完成时的响应示例：**
+
+```json
+{
+  "task_id": "123",
+  "status": "success",
+  "image_url": "[\"https://r2.example.com/layer1.png\",\"https://r2.example.com/layer2.png\",\"https://r2.example.com/layer3.png\",\"https://r2.example.com/layer4.png\"]",
+  "prompt_used": "a landscape with mountains",
+  "model_name": "wavespeed-ai/qwen-image/layered",
+  "created_at": "2026-03-15T10:00:00Z",
+  "completed_at": "2026-03-15T10:01:30Z"
+}
+```
+
+**注意：**
+- `image_url` 字段包含多个图层 URL 的 JSON 数组字符串
+- 所有图层图片会自动上传到 S3 存储
+- `gen_mode` 为 `split_images`
+- 建议客户端使用指数退避策略轮询（参考轮询策略章节）
+
+---
+
+### 6. 获取任务结果
 
 轮询获取图片生成任务结果。
 
@@ -312,7 +413,7 @@ curl http://localhost:8080/image-generation/style-examples
 
 ---
 
-### 6. 查询图片生成日志列表
+### 7. 查询图片生成日志列表
 
 查询用户的图片生成历史记录，支持分页和过滤。
 
@@ -327,7 +428,7 @@ curl http://localhost:8080/image-generation/style-examples
 | `page` | int | 否 | 1 | 页码（从 1 开始） |
 | `page_size` | int | 否 | 20 | 每页数量（1-100） |
 | `status` | string | 否 | - | 状态过滤：pending、processing、success、failed |
-| `gen_mode` | string | 否 | - | 生成模式过滤：creator、style |
+| `gen_mode` | string | 否 | - | 生成模式过滤：creator、style、split_images |
 | `model_name` | string | 否 | - | 模型名称模糊匹配 |
 
 **响应（200 OK）：**
@@ -507,6 +608,19 @@ curl -X POST http://localhost:8080/image-generation/generate \
   }'
 ```
 
+### 创建图片拆分任务
+
+```bash
+curl -X POST http://localhost:8080/image-generation/split \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "https://example.com/image.png",
+    "num_layers": 4,
+    "prompt": "a landscape with mountains"
+  }'
+```
+
 ### 获取任务结果
 
 ```bash
@@ -527,7 +641,7 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=suc
 
 ---
 
-### 7. 复制图片到素材
+### 8. 复制图片到素材
 
 将指定图片生成记录中的图片复制到素材表。
 

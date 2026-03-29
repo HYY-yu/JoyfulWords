@@ -11,12 +11,15 @@
 ## 目录
 
 1. [触发素材搜索](#1-触发素材搜索)
-2. [获取搜索日志列表](#2-获取搜索日志列表)
-3. [获取素材列表](#3-获取素材列表)
-4. [获取预签名上传 URL](#4-获取预签名上传-url)
-5. [创建素材](#5-创建素材)
-6. [更新素材](#6-更新素材)
-7. [删除素材](#7-删除素材)
+2. [触发素材搜索 V2](#2-触发素材搜索-v2)
+3. [获取搜索日志列表](#3-获取搜索日志列表)
+4. [获取搜索结果详情](#4-获取搜索结果详情)
+5. [获取素材列表](#5-获取素材列表)
+6. [获取预签名上传 URL](#6-获取预签名上传-url)
+7. [创建素材](#7-创建素材)
+8. [从搜索结果创建素材](#8-从搜索结果创建素材)
+9. [更新素材](#9-更新素材)
+10. [删除素材](#10-删除素材)
 
 ---
 
@@ -36,7 +39,7 @@
 | 参数 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | material_type | string | 是 | 素材类型：info/news/image |
-| search_text | string | 是 | 搜索关键词（1-500 字符） |
+| search_text | string | 是 | 搜索关键词（2-500 字符；中文至少 2 个字，英文至少 1 个单词） |
 
 ### 请求示例
 
@@ -76,7 +79,39 @@ curl -X POST http://localhost:8080/materials/search \
 
 ---
 
-## 2. 获取搜索日志列表
+## 2. 触发素材搜索 V2
+
+V2 搜索会返回 `material_logs.id`，供前端轮询结果。
+
+### 接口信息
+
+- **URL:** `/materials/search-v2`
+- **方法:** `POST`
+- **需要认证:** 是
+- **限流/计费:** 与 `/materials/search` 一致
+
+### 请求参数
+
+与 `/materials/search` 相同：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| material_type | string | 是 | 素材类型：info/news/image |
+| search_text | string | 是 | 搜索关键词（2-500 字符；中文至少 2 个字，英文至少 1 个单词） |
+
+### 响应
+
+**成功 (200 OK)**
+
+```json
+{
+  "id": 123
+}
+```
+
+---
+
+## 3. 获取搜索日志列表
 
 查看用户的素材搜索历史记录。
 
@@ -145,9 +180,126 @@ curl -X GET "http://localhost:8080/materials/search-logs/list?page=1&page_size=2
 
 ---
 
-## 3. 获取素材列表
+## 4. 获取搜索结果详情
 
-查看用户的素材列表，支持分页、标题搜索和类型过滤。
+按搜索日志 ID 查询当前用户的搜索结果。
+
+### 接口信息
+
+- **URL:** `/materials/search-logs/:id`
+- **方法:** `GET`
+- **需要认证:** 是
+
+### 响应
+
+**成功 (200 OK)**
+
+```json
+{
+  "id": 123,
+  "material_type": "news",
+  "status": "success",
+  "query": "OpenAI",
+  "ai_result": {
+    "ai_result": [
+      {
+        "url": "https://example.com",
+        "title": "Title",
+        "content": "Content",
+        "published_date": "2026-03-08T07:10:25Z"
+      }
+    ]
+  }
+}
+```
+
+**说明**
+
+- 非 `success` 状态时，`ai_result` 返回 `null`
+- `news` 的 `published_date` 会统一转成 UTC ISO 8601
+- 如果日志不属于当前用户，返回 `404`
+
+### `ai_result` 格式说明
+
+不同 `material_type` 下，`ai_result` 的结构不同：
+
+**1. `material_type=info`**
+
+```json
+{
+  "id": 123,
+  "material_type": "info",
+  "status": "success",
+  "query": "OpenAI",
+  "ai_result": {
+    "ai_answer": "总结性的 AI 回答",
+    "ai_result": [
+      {
+        "url": "https://example.com/info-1",
+        "title": "资料标题",
+        "content": "资料正文"
+      }
+    ]
+  }
+}
+```
+
+字段含义：
+
+- `ai_answer`: AI 对本次 info 查询的总结回答
+- `ai_result`: 可选入库的资料列表
+
+**2. `material_type=news`**
+
+```json
+{
+  "id": 123,
+  "material_type": "news",
+  "status": "success",
+  "query": "OpenAI",
+  "ai_result": {
+    "ai_result": [
+      {
+        "url": "https://example.com/news-1",
+        "title": "新闻标题",
+        "content": "新闻正文",
+        "published_date": "2026-03-08T07:10:25Z"
+      }
+    ]
+  }
+}
+```
+
+字段含义：
+
+- `published_date`: 如果 n8n 提供了发布时间，后端会转换成 UTC ISO 8601；如果原值为空，则返回空字符串
+
+**3. `material_type=image`**
+
+```json
+{
+  "id": 123,
+  "material_type": "image",
+  "status": "success",
+  "query": "OpenAI",
+  "ai_result": {
+    "images": [
+      "https://example.com/image-1.png",
+      "https://example.com/image-2.png"
+    ]
+  }
+}
+```
+
+字段含义：
+
+- `images`: 图片 URL 列表，前端选中后可批量提交给 `/materials/add-from-log`
+
+---
+
+## 5. 获取素材列表
+
+查看用户的素材列表，支持分页、标题搜索、类型过滤和按文章筛选。
 
 ### 接口信息
 
@@ -163,11 +315,12 @@ curl -X GET "http://localhost:8080/materials/search-logs/list?page=1&page_size=2
 | page_size | number | 否 | 每页数量，默认 20，最大 100 |
 | name | string | 否 | 标题筛选（模糊搜索） |
 | type | string | 否 | 素材类型过滤：info/news/image |
+| article_id | number | 否 | 按文章 ID 筛选素材 |
 
 ### 请求示例
 
 ```bash
-curl -X GET "http://localhost:8080/materials/list?page=1&page_size=20&type=news" \
+curl -X GET "http://localhost:8080/materials/list?page=1&page_size=20&type=news&article_id=123" \
   -H "Accept-Language: zh-CN" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJlbWFpbCI6ImZlbmdAZXhhbXBsZS5jb20iLCJleHAiOjE3Njc2MTc4MDcsIm5iZiI6MTc2NzYxNjkwNywiaWF0IjoxNzY3NjE2OTA3fQ.iLSPga9i6xSDQel1ZHihXdkopmLI_axdicAT0cvjPuQ"
 ```
@@ -184,6 +337,9 @@ curl -X GET "http://localhost:8080/materials/list?page=1&page_size=20&type=news"
       "id": 1,
       "user_id": 123,
       "material_logs_id": 5,
+      "article_id": 123,
+      "is_favorite": true,
+      "favorite_id": 99,
       "title": "AI 技术发展新闻",
       "material_type": "news",
       "source_url": "https://example.com/article1",
@@ -199,6 +355,9 @@ curl -X GET "http://localhost:8080/materials/list?page=1&page_size=20&type=news"
 | id | number | 素材 ID |
 | user_id | number | 用户 ID |
 | material_logs_id | number | 搜索日志 ID（用户上传的素材为 0） |
+| article_id | number | 归属文章 ID |
+| is_favorite | boolean | 当前用户是否已收藏该素材 |
+| favorite_id | number | 收藏 ID，未收藏时为 0 |
 | title | string | 素材标题 |
 | material_type | string | 素材类型 |
 | source_url | string | 素材原链接 |
@@ -214,7 +373,7 @@ curl -X GET "http://localhost:8080/materials/list?page=1&page_size=20&type=news"
 
 ---
 
-## 4. 获取预签名上传 URL
+## 6. 获取预签名上传 URL
 
 获取 Cloudflare R2 的预签名上传 URL，用于上传图片等文件。
 
@@ -282,7 +441,7 @@ curl -X POST http://localhost:8080/materials/presigned-url \
 
 ---
 
-## 5. 创建素材
+## 7. 创建素材
 
 创建新的素材记录。
 
@@ -299,6 +458,7 @@ curl -X POST http://localhost:8080/materials/presigned-url \
 | title | string | 是 | 素材标题（1-200 字符） |
 | material_type | string | 是 | 素材类型：info/news/image |
 | content | string | 是 | 素材内容（info/news 为文本，image 为图片 URL） |
+| article_id | number | 是 | 归属文章 ID |
 
 ### 请求示例
 
@@ -312,7 +472,8 @@ curl -X POST http://localhost:8080/materials \
   -d '{
     "title": "AI 技术资料",
     "material_type": "info",
-    "content": "这是关于 AI 技术的详细资料..."
+    "content": "这是关于 AI 技术的详细资料...",
+    "article_id": 123
   }'
 ```
 
@@ -326,7 +487,8 @@ curl -X POST http://localhost:8080/materials \
   -d '{
     "title": "产品图片",
     "material_type": "image",
-    "content": "https://example.r2.cloudflarestorage.com/materials/user123/abc123.jpg"
+    "content": "https://example.r2.cloudflarestorage.com/materials/user123/abc123.jpg",
+    "article_id": 123
   }'
 ```
 
@@ -352,11 +514,60 @@ curl -X POST http://localhost:8080/materials \
 **注意:**
 - 用户手动上传的素材，`material_logs_id` 会自动设置为 0
 - `source_url` 会自动设置为空字符串
+- `article_id` 为必传，素材会直接绑定到对应文章
 - 图片素材请先使用"获取预签名上传 URL"接口上传图片
 
 ---
 
-## 6. 更新素材
+## 8. 从搜索结果创建素材
+
+根据指定 `material_log_id`、`article_id` 和前端选中的 `urls`，从 `ai_result` 里批量反查并写入 `materials` 表。
+
+### 接口信息
+
+- **URL:** `/materials/add-from-log`
+- **方法:** `POST`
+- **需要认证:** 是
+
+### 请求参数
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| material_log_id | number | 是 | 搜索日志 ID |
+| article_id | number | 是 | 归属文章 ID |
+| urls | string[] | 是 | 前端选中的结果 URL 列表 |
+
+### 请求示例
+
+```json
+{
+  "material_log_id": 123,
+  "article_id": 456,
+  "urls": [
+    "https://example.com/news-1",
+    "https://example.com/news-2"
+  ]
+}
+```
+
+**说明**
+
+- `article_id` 为必传，后端会将本次写入的所有素材绑定到该文章
+
+### 响应
+
+**成功 (201 Created)**
+
+```json
+{
+  "ids": [456, 457],
+  "message": "Material created successfully"
+}
+```
+
+---
+
+## 9. 更新素材
 
 更新已有素材的信息，支持部分更新。
 
@@ -421,7 +632,7 @@ curl -X PUT http://localhost:8080/materials/20 \
 
 ---
 
-## 7. 删除素材
+## 10. 删除素材
 
 删除指定的素材。
 

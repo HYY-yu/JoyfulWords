@@ -11,7 +11,15 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { articlesClient } from '@/lib/api/articles/client'
-import type { ArticleEditState } from '@/lib/api/articles/types'
+export interface ArticleEditState {
+  execId: string;
+  articleId: number;
+  editType: string;
+  status: 'waiting' | 'completed' | 'failed';
+  createdAt: string;
+  responseText?: string;
+  errorMessage?: string;
+}
 
 const POLLING_DELAYS = [2000, 4000, 8000, 16000, 30000] as const
 const MAX_DURATION = 5 * 60 * 1000  // 5 分钟
@@ -107,7 +115,7 @@ export function useArticleEditPolling(articleId: number) {
         throw new Error(result.error)
       }
 
-      const { status, response_text, error } = result
+      const { status, data, error } = result
 
       // 检查是否超时
       const elapsed = Date.now() - startTime
@@ -118,20 +126,20 @@ export function useArticleEditPolling(articleId: number) {
         return
       }
 
-      if (status === 'completed') {
+      if (status === 'success') {
         // 轮询成功
         console.info('[ArticleEditPolling] Completed', { execId, duration: elapsed })
 
         const newState: ArticleEditState = {
           ...loadState()!,
           status: 'completed',
-          responseText: response_text,
+          responseText: data,
         }
 
         saveState(newState)
         setEditState(newState)
         stopPolling()
-        callbacks.onCompleted?.(response_text || '')
+        callbacks.onCompleted?.(data || '')
         return
       }
 

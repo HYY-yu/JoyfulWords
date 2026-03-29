@@ -10,24 +10,9 @@ import type {
   GetGenerationLogsResponse,
   CopyToMaterialsResponse,
   GetStyleExamplesResponse,
+  CreateSplitTaskRequest,
+  CreateSplitTaskResponse,
 } from './types'
-
-// Wavespeed API 类型
-export type WavespeedCreateTaskRequest = {
-  image_url: string
-}
-
-export type WavespeedCreateTaskResponse = {
-  task_id: string
-  status: 'pending' | 'completed' | 'failed'
-}
-
-export type WavespeedTaskStatusResponse = {
-  task_id: string
-  status: 'pending' | 'completed' | 'failed'
-  outputs: string[]
-  error: string
-}
 
 /**
  * Image Generation API Client
@@ -160,9 +145,13 @@ export const imageGenerationClient = {
    * }
    */
   async getModels() {
+    const token = localStorage.getItem('access_token')
     console.debug('[ImageGeneration] Fetching available models...')
     return apiRequest<GetModelsResponse>('/image-generation/models', {
       method: 'GET',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
   },
 
@@ -265,43 +254,42 @@ export const imageGenerationClient = {
   },
 
   /**
-   * 创建 Wavespeed 任务
-   * POST /api/wavespeed/create-task
+   * 创建图片拆分任务
+   * POST /image-generation/split
    *
-   * @param request - 创建任务请求对象
-   * @returns Promise<WavespeedCreateTaskResponse | ErrorResponse>
+   * 创建异步图片拆分任务，返回 task_id 用于轮询结果
+   *
+   * @param request - 创建拆分任务请求对象
+   * @returns Promise<CreateSplitTaskResponse | ErrorResponse>
+   *
+   * @example
+   * const result = await imageGenerationClient.createSplitTask({
+   *   image_url: 'https://example.com/image.jpg',
+   *   num_layers: 4,
+   *   prompt: 'A beautiful landscape'
+   * })
+   * if ('error' in result) {
+   *   console.error(result.error)
+   * } else {
+   *   console.log(result.task_id)
+   * }
    */
-  async createWavespeedTask(request: WavespeedCreateTaskRequest) {
+  async createSplitTask(request: CreateSplitTaskRequest) {
     const token = localStorage.getItem('access_token')
-    
-    console.debug('[ImageGeneration] Creating wavespeed task:', {
-      imageUrl: request.image_url,
+
+    // TRACE: 任务创建入口 - 记录请求参数
+    console.debug('[ImageGeneration] Creating split task:', {
+      hasImageUrl: !!request.image_url,
+      numLayers: request.num_layers || 4,
+      hasPrompt: !!request.prompt,
     })
-    return apiRequest<WavespeedCreateTaskResponse>('/api/wavespeed/create-task', {
+
+    return apiRequest<CreateSplitTaskResponse>('/image-generation/split', {
       method: 'POST',
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
       },
       body: JSON.stringify(request),
-    })
-  },
-
-  /**
-   * 获取 Wavespeed 任务状态
-   * GET /api/wavespeed/task/:id
-   *
-   * @param taskId - 任务 ID
-   * @returns Promise<WavespeedTaskStatusResponse | ErrorResponse>
-   */
-  async getWavespeedTaskStatus(taskId: string) {
-    const token = localStorage.getItem('access_token')
-    
-    console.debug('[ImageGeneration] Fetching wavespeed task status:', taskId)
-    return apiRequest<WavespeedTaskStatusResponse>(`/api/wavespeed/task/${taskId}`, {
-      method: 'GET',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 }

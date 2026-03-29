@@ -6,8 +6,12 @@ import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
 import { Slider } from "@/components/ui/base/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
+import { Button } from "@/components/ui/base/button"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { ModelSelector } from "./model-selector"
+import { MaterialSelectorDialog } from "./material-selector-dialog"
+import { useState, useMemo } from "react"
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 
 interface PropertiesPanelProps {
   selectedLayer: Layer | null
@@ -43,6 +47,40 @@ export function PropertiesPanel({
   onModelChange,
 }: PropertiesPanelProps) {
   const { t } = useTranslation()
+
+  // 新增：对话框状态
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false)
+
+  // 新增：使用无限滚动素材 Hook，只在对话框打开时启用
+  const {
+    materials,
+    isLoading: materialsLoading,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    type: 'image',
+    enabled: showMaterialSelector,
+    pageSize: 20,
+  })
+
+  // 过滤图片类型素材
+  const imageMaterials = useMemo(() => {
+    return materials
+      .filter(m => m.material_type === 'image' && m.content)
+      .map(m => ({
+        id: m.id,
+        title: m.title,
+        source_url: m.content
+      }))
+  }, [materials])
+
+  // 新增：获取当前选中素材的标题
+  const selectedMaterialTitle = useMemo(() => {
+    if (!layerProps.reference_image) return null
+    const material = imageMaterials.find(m => m.source_url === layerProps.reference_image)
+    return material?.title || null
+  }, [layerProps.reference_image, imageMaterials])
 
   const handleLayerPropChange = (key: keyof LayerProps, value: string | number) => {
     onLayerPropsChange({ ...layerProps, [key]: value })
@@ -159,13 +197,55 @@ export function PropertiesPanel({
                 <Label htmlFor="layer-ref-image" className="text-sm text-muted-foreground">
                   {t("imageGeneration.properties.referenceImage")} {t("imageGeneration.properties.referenceImageOptional")}
                 </Label>
-                <Input
-                  id="layer-ref-image"
-                  type="url"
-                  value={layerProps.reference_image || ""}
-                  onChange={(e) => handleLayerPropChange("reference_image", e.target.value)}
-                  className="h-9"
-                  placeholder="https://example.com/image.jpg"
+
+                {/* 选择按钮 */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => setShowMaterialSelector(true)}
+                  disabled={materialsLoading}
+                >
+                  {layerProps.reference_image ? (
+                    <span className="truncate">
+                      {t("imageGeneration.properties.imageSelected")}{selectedMaterialTitle || layerProps.reference_image}
+                    </span>
+                  ) : (
+                    t("imageGeneration.properties.selectImageFromMaterials")
+                  )}
+                </Button>
+
+                {/* 预览缩略图 */}
+                {layerProps.reference_image && (
+                  <div className="mt-2 relative aspect-video rounded-lg overflow-hidden border border-border">
+                    <img
+                      src={layerProps.reference_image}
+                      alt="Reference"
+                      className="w-full h-full object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => handleLayerPropChange("reference_image", "")}
+                    >
+                      {t("common.delete")}
+                    </Button>
+                  </div>
+                )}
+
+                {/* 获取了所有数据后传递给对话框 */}
+                <MaterialSelectorDialog
+                  open={showMaterialSelector}
+                  onOpenChange={setShowMaterialSelector}
+                  materials={imageMaterials}
+                  isLoading={materialsLoading}
+                  hasMore={hasMoreMaterials}
+                  onLoadMore={loadMoreMaterials}
+                  observerTarget={materialsObserverTarget}
+                  onSelect={(url) => handleLayerPropChange("reference_image", url)}
+                  currentUrl={layerProps.reference_image}
                 />
               </div>
 

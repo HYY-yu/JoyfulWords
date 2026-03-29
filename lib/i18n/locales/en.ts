@@ -44,6 +44,12 @@ export const en = {
             cancel: "Cancel",
             confirm: "Confirm",
         },
+        infiniteScroll: {
+            loading: "Loading...",
+            noMoreData: "All data loaded",
+            loadFailed: "Load failed, tap to retry",
+            error: "Load error: {error}",
+        },
     },
     sidebar: {
         title: "Creator Toolbox",
@@ -60,8 +66,9 @@ export const en = {
         title: "Content Writing",
         subtitle: "Content creation and management tools",
         tabs: {
-            materialSearch: "Materials",
-            competitorTracking: "Competitors",
+            search: "Search",
+            materialLibrary: "Material Library",
+            competitorTracking: "Competitor Tracking",
             articleWriting: "Writing",
             articleManager: "Articles",
         },
@@ -309,6 +316,10 @@ export const en = {
             removeFile: "Remove File",
             uploadedFile: "Uploaded File",
             uploadInProgress: "File upload in progress, please wait...",
+            materialsLoading: "Loading materials...",
+            competitorsLoading: "Loading competitors...",
+            noMoreMaterials: "All materials loaded",
+            noMoreCompetitors: "All competitors loaded",
         },
         saveDialog: {
             title: "Save Article",
@@ -352,8 +363,12 @@ export const en = {
             saveMetadataFailed: "Save failed",
             categoryPlaceholder: "Optional",
             tagsPlaceholder: "Optional, e.g.: AI, Tech, Future",
+            backToList: "Back to article list",
         },
         manager: {
+            loadFailed: "Failed to load article",
+            articleNotFound: "Article not found",
+            loading: "Loading...",
             toast: {
                 loadFailed: "Failed to load",
                 deleteFailed: "Failed to delete article",
@@ -390,11 +405,98 @@ export const en = {
             clickForDetail: "Click for details",
             clickForEdit: "Click to edit",
             emptyTitle: "No Articles",
-            loading: "Loading...",
             perPage: "Per page",
             items: "items",
             materialsCount: "{count} materials",
             titleUpdated: "Title updated",
+        },
+        taskProgress: {
+            title: "Task Progress",
+            aiEdit: "AI Edit",
+            imageGeneration: "Image Generation",
+            noTasks: "No tasks in progress",
+            empty: "No tasks in progress",
+            removeTask: "Remove record",
+            types: {
+                aiEdit: "AI Edit",
+                imageGeneration: "Image Generation",
+            },
+        },
+        materialPanel: {
+            search: "Search",
+            library: "Library",
+            searchPlaceholder: "Search materials...",
+            allMaterials: "All Materials",
+            searchTab: "Search",
+            libraryTab: "Library",
+            globalFavoriteButton: "Global Favorite",
+            emptyLibrary: "No materials",
+            emptyFavorites: "No favorite materials",
+            typeInfo: "Info",
+            typeNews: "News",
+            typeImage: "Image",
+            searchInputPlaceholder: "Enter search keywords...",
+            searchButton: "Search",
+            searching: "AI searching...",
+            searchTriggered: "Search task submitted",
+            searchingHint: "Gathering and organizing materials for \"{query}\". New searches are locked until this task finishes.",
+            searchInitialHint: "Enter keywords to search for new materials",
+            searchInitialDescription: "Supports info, news, and image results. When finished, you can multi-select and import them into the library.",
+            searchNoResults: "No matching materials found",
+            collectButton: "Add to Library",
+            collected: "Collected",
+            searchFailed: "Search request failed",
+            searchStatusFailed: "Search failed, please retry",
+            searchTimeout: "Search timed out, please retry",
+            deleteCard: "Delete",
+            collapseContent: "Collapse",
+            expandContent: "View full content",
+            publishedAt: "Published",
+            viewSource: "View source",
+            imageResultAlt: "Search result image",
+            openImage: "Open",
+            resultCardTitle: "AI Search Result",
+            aiSummary: "AI Summary",
+            importSelected: "Import Selected ({count})",
+            importToLibrary: "Import to Library",
+            importSuccess: "Materials imported",
+            importSuccessCount: "{count} materials imported into the library",
+            importFailed: "Failed to import materials",
+            failedCardTitle: "Search failed",
+            failedCardDescription: "This search did not complete successfully. Delete the card to search again.",
+            noDataCardTitle: "No data found",
+            noDataCardDescription: "This search returned no usable results. Delete the card and try another query.",
+            uploadButton: "Upload Material",
+            uploadDialogTitle: "Upload Material",
+            uploadMaterialName: "Material Title",
+            uploadMaterialNamePlaceholder: "Enter material title",
+            uploadMaterialType: "Material Type",
+            uploadMaterialContent: "Material Content",
+            uploadMaterialContentPlaceholder: "Enter material content",
+            uploadSelectImage: "Select Image",
+            uploadImageHint: "PNG, JPEG supported, max 5MB",
+            uploadSubmit: "Upload",
+            uploadCancel: "Cancel",
+            uploadSuccess: "Upload successful",
+            uploadFailed: "Upload failed",
+            uploadNameRequired: "Please enter material title",
+            uploadContentRequired: "Please enter material content",
+            uploadImageRequired: "Please select an image file",
+            favoriteAction: "Favorite material",
+            favoritedAction: "Favorited",
+            favoriteSuccess: "Favorite added",
+            favoriteFailed: "Failed to add favorite",
+            unfavoriteSuccess: "Favorite removed",
+            unfavoriteFailed: "Failed to remove favorite",
+            pinAction: "Pin favorite",
+            unpinAction: "Unpin favorite",
+            pinSuccess: "Favorite pinned",
+            pinFailed: "Failed to pin favorite",
+            unpinSuccess: "Favorite unpinned",
+            unpinFailed: "Failed to unpin favorite",
+            favoriteDeleteAction: "Delete favorite",
+            favoriteDeleteSuccess: "Favorite deleted",
+            favoriteDeleteFailed: "Failed to delete favorite",
         },
         articleDialogs: {
             editTitle: {
@@ -501,6 +603,12 @@ export const en = {
             descriptionRequired2: "Required",
             referenceImage: "Reference Image",
             referenceImageOptional: "(Optional)",
+            selectReferenceImage: "Select Reference Image",
+            selectImageFromMaterials: "Select from materials",
+            noImageMaterials: "No image materials available. Please upload in materials module first.",
+            imageSelected: "Selected: ",
+            materialsLoading: "Loading materials...",
+            noMoreMaterials: "All materials loaded",
             zIndex: "Z-Index",
             infoBox: "Hint: Select a rectangle layer on the canvas to edit its properties",
 
@@ -763,8 +871,43 @@ export const en = {
             splitCompleted: "Split completed!",
             successfullySplit: "Successfully split into {count} layers",
 
-            // 图层名称
+
+
+            // 结果区域
+            splitResults: "Split Results",
+            layersCount: "{count} layers",
+            selectAll: "Select All",
+            deselectAll: "Deselect All",
+            downloadSelected: "Download Selected",
+            waiting: "Waiting to split",
+            waitingHint: "After uploading an image and clicking the split button, the split layers will be displayed here",
+
+            // 底部提示
+            hint: "After uploading an image, click the 'Split Image' button and AI will automatically decompose the image into multiple layers.",
+
+            // 图层数量选择
+            numLayers: {
+                label: "Split Layers",
+                description: "Choose the number of layers to split (1-8 layers)",
+            },
+
+            // 场景描述
+            prompt: {
+                label: "Scene Description",
+                placeholder: "Describe the scene content, e.g., A landscape painting with mountains",
+                description: "Providing scene description helps AI split layers more accurately",
+            },
+
+            // 验证提示
+            validation: {
+                missingImage: "Please upload an image first",
+                invalidNumLayers: "Number of layers must be between 1 and 8",
+            },
+
+            // 图层默认命名
             layers: {
+                default: "Layer {index}",
+                defaultDescription: "Split layer {index}",
                 mainSubject: {
                     name: "Main Subject Layer",
                     description: "The main subject of the image",
@@ -782,18 +925,6 @@ export const en = {
                     description: "Lighting and shadow effects",
                 },
             },
-
-            // 结果区域
-            splitResults: "Split Results",
-            layersCount: "{count} layers",
-            selectAll: "Select All",
-            deselectAll: "Deselect All",
-            downloadSelected: "Download Selected",
-            waiting: "Waiting to split",
-            waitingHint: "After uploading an image and clicking the split button, the split layers will be displayed here",
-
-            // 底部提示
-            hint: "After uploading an image, click the 'Split Image' button and AI will automatically decompose the image into multiple layers.",
         },
 
         // 新增：提示词预览
@@ -823,7 +954,7 @@ export const en = {
                 all: "All Modes",
                 creator: "Creator",
                 style: "Style",
-                inversion: "Inversion",
+                split_images: "Inversion",
             },
 
             model: {
@@ -1075,6 +1206,16 @@ export const en = {
             unsaved: "Unsaved",
             error: "Save failed",
         },
+        aiPanel: {
+            title: "AI Features",
+            aiEdit: "AI Edit",
+            createImage: "Create Image",
+            aiGenerate: "AI Generate",
+            reversalMode: "Reversal Mode",
+            reverseMode: "Reverse Mode",
+            imageStyle: "Image Style",
+            taskProgress: "Task Progress",
+        },
     },
     aiRewrite: {
         title: "AI Smart Rewrite",
@@ -1103,6 +1244,8 @@ export const en = {
             selectPlaceholder: "Please select materials...",
             noMaterials: "No materials available",
             loadingMaterials: "Loading materials...",
+            loadingMore: "Loading more materials...",
+            noMoreData: "All materials loaded",
             selectedCount: "{count} material(s) selected",
             typeLabels: {
                 info: "Info",
@@ -1400,13 +1543,14 @@ export const en = {
     landing: {
         nav: {
             features: "Features",
+            blog: "Blog",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },
         badge: "AI-Powered Content Platform",
         heading: "Write Better Content,",
         headingAccent: "Faster",
-        description: "JoyfulWords combines AI writing, image generation, and SEO optimization in one place, making every piece of content worth seeing.",
+        description: "JoyfulWords is an AI-powered writing workspace where you collect, organize, and turn materials into great content.",
         cta: "Start Creating",
         viewArticles: "View My Articles",
         stats: {
@@ -1415,35 +1559,44 @@ export const en = {
             tools: "6 in 1",
             toolsLabel: "Integrated Tools",
             seo: "Real-time",
-            seoLabel: "SEO Analysis",
+            seoLabel: "Web Search",
         },
         featuresLabel: "FULL TOOLKIT",
         featuresHeading: "Everything You Need, ",
         featuresHeadingAccent: "Built In",
+        featuresSubheading: "Turn ideation, writing, imagery, source collection, discoverability, and competitive research into one connected content workflow.",
+        featuresBadgePrimary: "Primary",
+        featuresBadgeSupport: "Support",
         features: {
             aiWriting: {
+                eyebrow: "Core Engine",
                 title: "AI Smart Writing",
-                desc: "Enter a topic, AI generates a complete article draft in seconds. Supports continuation, rewriting, and style switching.",
+                desc: "Go from topic to outline to full draft in one flow, with built-in continuation, rewriting, and tone switching.",
             },
             imageGen: {
+                eyebrow: "Visual Layer",
                 title: "One-Click Images",
-                desc: "Built-in AI image generation and material search. Add images while writing, no need to switch tools.",
+                desc: "Generate illustrations or add supporting visuals while you write, without breaking your editing workflow.",
             },
             seoGeo: {
+                eyebrow: "Distribution",
                 title: "SEO / GEO Optimization",
-                desc: "Real-time keyword density, title scoring, and structure suggestions. Get seen in search engines and AI answers.",
+                desc: "Improve titles, keywords, and structure so your content performs in search engines and AI answers.",
             },
             knowledgeCards: {
+                eyebrow: "Content Extraction",
                 title: "Knowledge Cards",
-                desc: "Transform complex concepts into visual cards with one click, boosting reader retention and content sharing.",
+                desc: "Turn dense ideas into compact, shareable cards that work well for repurposing and social distribution.",
             },
             materialSearch: {
-                title: "Material Search",
-                desc: "Search and reference external materials directly in the editor, with automatic source attribution.",
+                eyebrow: "Asset Hub",
+                title: "Material Library",
+                desc: "Collect, organize, and reuse links, images, and references in one place so materials become lasting content assets.",
             },
             competitors: {
-                title: "Competitor Analysis",
-                desc: "View competitor articles anytime while writing. Analyze structure and keyword placement.",
+                eyebrow: "Market Read",
+                title: "Competitor Reference",
+                desc: "Review similar content angles, structures, and keyword strategies quickly to find your strongest positioning.",
             },
         },
         ctaHeading: "Start Your First Article",
@@ -1453,6 +1606,24 @@ export const en = {
             version: "Content Creation Tool · v1.0.0",
             privacyPolicy: "Privacy Policy",
             termsOfUse: "Terms of Use",
+        },
+    },
+    blog: {
+        common: {
+            backToHome: "Back Home",
+            backToBlog: "Back to Blog",
+            readMore: "Read More",
+            noPosts: "No blog posts yet",
+            missingArticle: "Article not found",
+            fallbackNotice: "This locale is unavailable, so the {locale} version is shown instead.",
+            localeLabel: "Language",
+        },
+        list: {
+            title: "Blog",
+            subtitle: "Product updates, creation workflows, and practical insights.",
+        },
+        detail: {
+            articleLabel: "Article",
         },
     },
     billing: {

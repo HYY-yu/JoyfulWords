@@ -1,0 +1,54 @@
+<h2>文章编辑器三栏布局方案</h2>
+<p class="subtitle">两种实现方案的对比</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>方案 A：全新独立页面</h3>
+      <p>创建一个新的 <code>/articles/[id]/edit</code> 路由页面，三栏布局作为独立页面实现。编辑器从文章列表页点击"编辑"后进入。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优点</h4>
+          <ul>
+            <li>代码结构清晰，与现有页面解耦</li>
+            <li>独占整个视口，布局空间最大化</li>
+            <li>浏览器前进/后退导航自然</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>缺点</h4>
+          <ul>
+            <li>需要新建路由，可能需要调整导航结构</li>
+            <li>现有 article-writing.tsx 的逻辑需要迁移</li>
+          </ul>
+        </div>
+      </div>
+      <p><strong>推荐理由：</strong>三栏布局需要全屏宽度才能发挥效果，独立页面是最自然的选择。当前 article-writing 已经是接近全屏的容器，转为独立页面改动最小。</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>方案 B：在现有结构中改造</h3>
+      <p>保持当前的页面结构，将 article-writing.tsx 组件内部重构为三栏布局。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优点</h4>
+          <ul>
+            <li>不需要新建路由</li>
+            <li>现有的状态管理和逻辑保持不变</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>缺点</h4>
+          <ul>
+            <li>受限于父容器的宽度约束</li>
+            <li>article-writing.tsx 已经很大，继续膨胀难维护</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

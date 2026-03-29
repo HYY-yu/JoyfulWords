@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -371,7 +371,7 @@ export function ImageGeneration() {
     setShowJsonPreview(true)
   }
 
-  const buildCreatorConfig = (): CreatorConfig => {
+  const buildCreatorConfig = useCallback((): CreatorConfig => {
     // 将 layers 转换为 CreatorLayer 格式
     const creatorLayers = layers.map((layer) => ({
       id: layer.id,
@@ -413,7 +413,7 @@ export function ImageGeneration() {
 
     console.log("生成的 Creator JSON:", JSON.stringify(creatorConfig, null, 2))
     return creatorConfig
-  }
+  }, [layers, metaSettings, globalStyleSettings, compositionSettings])
 
   const handleGenerateImageFromPrompt = async (prompt: string) => {
     // TRACE: 生成入口 - 使用专业提示词生成图片
@@ -673,6 +673,14 @@ export function ImageGeneration() {
     setShowResetDialog(false)
   }
 
+  // Memoize config to prevent infinite loop in JsonPreviewDialog
+  const memoizedConfig = useMemo(() => buildCreatorConfig(), [
+    layers,
+    metaSettings,
+    globalStyleSettings,
+    compositionSettings,
+  ])
+
   return (
     <main className="flex-1 overflow-auto flex flex-col bg-background">
       {/* Header */}
@@ -756,7 +764,7 @@ export function ImageGeneration() {
       <JsonPreviewDialog
         open={showJsonPreview}
         onOpenChange={setShowJsonPreview}
-        config={buildCreatorConfig()}
+        config={memoizedConfig}
         onGenerateImage={handleGenerateImageFromPrompt}
       />
 

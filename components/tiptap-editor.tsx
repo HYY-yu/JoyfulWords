@@ -562,8 +562,13 @@ export function TiptapEditor({
     setIsAIDialogOpen(true);
   }, [editor, toast, mode, t]);
 
+  const editorShellClassName =
+    mode === "edit"
+      ? "flex h-full w-full flex-col overflow-hidden bg-transparent"
+      : "flex h-full w-full flex-col overflow-hidden rounded-lg border bg-background";
+
   return (
-    <div className="border rounded-lg bg-background flex flex-col h-full overflow-hidden w-full">
+    <div className={editorShellClassName}>
       <TiptapToolbar
         editor={editor}
         onInsertImage={insertImage}
@@ -573,7 +578,25 @@ export function TiptapEditor({
         mode={mode}
         isAIEditWaiting={false} // 不再使用，保留兼容性
       />
-      <EditorContent editor={editor} className="flex-1 overflow-y-auto min-h-0" />
+      <div
+        className="flex-1 overflow-y-auto min-h-0"
+        onDrop={(e) => {
+          const text = e.dataTransfer.getData("text/plain");
+          if (text && editor) {
+            e.preventDefault();
+            const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
+            if (pos) {
+              editor.chain().focus().insertContentAt(pos.pos, text).run();
+            }
+          }
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }}
+      >
+        <EditorContent editor={editor} className="h-full" />
+      </div>
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}
       <AIRewriteDialog

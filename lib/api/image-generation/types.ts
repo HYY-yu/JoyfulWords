@@ -15,7 +15,7 @@ export interface ConvertPromptResponse {
 /**
  * 图片生成模式
  */
-export type GenerationMode = 'creator' | 'style'
+export type GenerationMode = 'creator' | 'style' | 'split_images'
 
 /**
  * 创建图片生成任务请求
@@ -166,7 +166,7 @@ export interface GetModelsResponse {
 export interface GenerationLog {
   id: number
   user_id: number
-  gen_mode: 'creator' | 'style' | 'inversion'
+  gen_mode: 'creator' | 'style' | 'split_images'
   config: string  // JSON 字符串
   prompt: string
   referenced_material_ids: number[]
@@ -191,7 +191,7 @@ export interface GetGenerationLogsRequest {
   page: number
   page_size: number
   status?: 'pending' | 'processing' | 'success' | 'failed'
-  gen_mode?: 'creator' | 'style' | 'inversion'
+  gen_mode?: 'creator' | 'style' | 'split_images'
   model_name?: string
 }
 
@@ -228,4 +228,26 @@ export interface StyleExample {
  */
 export interface GetStyleExamplesResponse {
   style_list: StyleExample[]
+}
+
+// ============ 图片拆分任务相关类型 ============
+
+/**
+ * 创建图片拆分任务请求
+ */
+export interface CreateSplitTaskRequest {
+  image_url: string
+  num_layers?: number
+  prompt?: string
+}
+
+/**
+ * 创建图片拆分任务响应
+ */
+export interface CreateSplitTaskResponse {
+  task_id: string
+  status: 'pending' | 'processing' | 'success' | 'failed'
+  poll_url: string
+  estimated_eta?: number
+  num_layers: number
 }
