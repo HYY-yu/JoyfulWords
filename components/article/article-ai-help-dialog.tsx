@@ -342,7 +342,7 @@ export function ArticleAIHelpDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 min-w-0">
           {/* User Requirements - FIRST FIELD */}
           <div className="space-y-2">
             <Label htmlFor="prompt" className="text-base font-semibold">
@@ -427,15 +427,15 @@ export function ArticleAIHelpDialog({
                     <div className="text-xs text-muted-foreground">
                       {t("contentWriting.aiHelp.selectedCompetitor")}
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 min-w-0">
                       {selectedCompetitors.map((id) => {
                         const post = competitors.find(p => p.id === id)
                         return post ? (
-                          <Badge key={id} variant="secondary" className="gap-1">
-                            <span>{post.platform}</span>
+                          <Badge key={id} variant="secondary" className="min-w-0 max-w-full gap-1">
+                            <span className="max-w-[12rem] truncate sm:max-w-[20rem]">{post.platform}</span>
                             <button
                               onClick={() => setSelectedCompetitors([])}
-                              className="hover:bg-destructive hover:text-destructive-foreground rounded"
+                              className="hover:bg-destructive hover:text-destructive-foreground shrink-0 rounded"
                             >
                               <XIcon className="w-3 h-3" />
                             </button>
@@ -566,15 +566,15 @@ export function ArticleAIHelpDialog({
                   <div className="text-xs text-muted-foreground">
                     {t("contentWriting.aiHelp.selectedMaterials").replace("{count}", selectedMaterials.length.toString())}
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 min-w-0">
                     {selectedMaterials.map((id) => {
                       const material = materials.find(m => m.id === id)
                       return material ? (
-                        <Badge key={id} variant="secondary" className="gap-1">
-                          <span>{material.title}</span>
+                        <Badge key={id} variant="secondary" className="min-w-0 max-w-full gap-1">
+                          <span className="max-w-[12rem] truncate sm:max-w-[20rem]">{material.title}</span>
                           <button
                             onClick={() => handleRemoveMaterial(id)}
-                            className="hover:bg-destructive hover:text-destructive-foreground rounded"
+                            className="hover:bg-destructive hover:text-destructive-foreground shrink-0 rounded"
                           >
                             <XIcon className="w-3 h-3" />
                           </button>

@@ -966,9 +966,11 @@ function FavoriteEmptyState() {
 function LibraryTab({
   articleId,
   onFavorite,
+  onDelete,
 }: {
   articleId: number | null
   onFavorite: (material: Material) => void
+  onDelete: (material: Material) => void
 }) {
   const { t } = useTranslation()
   const [activeCategory, setActiveCategory] = useState<MaterialType>("info")
@@ -1019,14 +1021,22 @@ function LibraryTab({
                 key={material.id}
                 material={toMaterialCardItem(material)}
                 leftActions={(
-                  <MaterialIconButton
-                    icon={<Heart className={cn("h-3.5 w-3.5", material.is_favorite && "fill-current")} />}
-                    label={material.is_favorite
-                      ? t("contentWriting.materialPanel.favoritedAction")
-                      : t("contentWriting.materialPanel.favoriteAction")}
-                    onClick={() => onFavorite(material)}
-                    active={material.is_favorite}
-                  />
+                  <>
+                    <MaterialIconButton
+                      icon={<Heart className={cn("h-3.5 w-3.5", material.is_favorite && "fill-current")} />}
+                      label={material.is_favorite
+                        ? t("contentWriting.materialPanel.favoritedAction")
+                        : t("contentWriting.materialPanel.favoriteAction")}
+                      onClick={() => onFavorite(material)}
+                      active={material.is_favorite}
+                    />
+                    <MaterialIconButton
+                      icon={<Trash2 className="h-3.5 w-3.5" />}
+                      label={t("contentWriting.materialPanel.libraryDeleteAction")}
+                      onClick={() => onDelete(material)}
+                      destructive
+                    />
+                  </>
                 )}
               />
             ))}
@@ -1461,6 +1471,37 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
     })
   }, [articleId, refreshFavorites, t, toast])
 
+  const handleDeleteMaterial = useCallback(async (material: Material) => {
+    console.info("[MaterialLibrary] deleting material", {
+      materialId: material.id,
+      articleId,
+      materialType: material.material_type,
+    })
+
+    const result = await materialsClient.deleteMaterial(material.id)
+
+    if ("error" in result) {
+      console.warn("[MaterialLibrary] delete material failed", {
+        materialId: material.id,
+        articleId,
+        materialType: material.material_type,
+        error: result.error,
+      })
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.libraryDeleteFailed"),
+        description: result.error,
+      })
+      return
+    }
+
+    setLibraryKey((key) => key + 1)
+    setFavoritesKey((key) => key + 1)
+    toast({
+      title: t("contentWriting.materialPanel.libraryDeleteSuccess"),
+    })
+  }, [articleId, t, toast])
+
   return (
     <div className={cn("flex h-full flex-col overflow-hidden bg-background", className)}>
       {/* Upload button — above tabs */}
@@ -1518,6 +1559,7 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
               key={libraryKey}
               articleId={articleId}
               onFavorite={(material) => void handleFavoriteMaterial(material)}
+              onDelete={(material) => void handleDeleteMaterial(material)}
             />
           </div>
         </TabsContent>
