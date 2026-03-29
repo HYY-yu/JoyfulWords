@@ -25,6 +25,7 @@ import { Canvas } from "./ui/canvas"
 import { PropertiesPanel } from "./ui/properties-panel"
 import { StyleMode } from "./modes/style-mode"
 import { InversionMode } from "./modes/inversion-mode"
+import { WavespeedMode } from "./modes/wavespeed-mode"
 import { GenerationLogs } from "./generation/generation-logs"
 import { JsonPreviewDialog } from "./dialogs/json-preview-dialog"
 import {
@@ -705,6 +706,8 @@ export function ImageGeneration() {
         <StyleMode />
       ) : activeTab === "inversion" ? (
         <InversionMode />
+      ) : activeTab === "wavespeed" ? (
+        <WavespeedMode />
       ) : activeTab === "history" ? (
         <div className="flex-1 p-8 overflow-hidden flex flex-col">
           <GenerationLogs />

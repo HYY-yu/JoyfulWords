@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet, UserCircleIcon, LogOutIcon, Feather } from "lucide-react"
+import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet, UserCircleIcon, LogOutIcon, Feather, CheckSquareIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -55,6 +55,11 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         id: "joyfulwords-video-editing",
         label: t("sidebar.videoEditing"),
         icon: VideoIcon,
+      },
+      {
+        id: "taskcenter",
+        label: "任务中心",
+        icon: CheckSquareIcon,
       },
     ]
   }

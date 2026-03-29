@@ -1,11 +1,12 @@
 "use client"
 
-import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet } from "lucide-react"
+import { ImageIcon, FileTextIcon, CreditCardIcon, SearchIcon, VideoIcon, Wallet, CheckSquareIcon } from "lucide-react"
 import { ImageGeneration } from "./image-generation"
 import { ContentWriting } from "./content-writing"
 import { KnowledgeCards } from "./knowledge-cards"
 import { SeoGeo } from "./seo-geo/seo-geo"
 import { BillingPage } from "./billing/billing-page"
+import { TaskCenterContent } from "./taskcenter/taskcenter-content"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { isFeatureEnabled } from "@/lib/config"
 
@@ -27,6 +28,31 @@ export function MainContent({ activeTab }: MainContentProps) {
     }
     return migrationMap[activeTab] || activeTab
   })()
+
+  // 任务中心页面
+  if (activeTab === "taskcenter") {
+    return (
+      <main className="flex-1 overflow-auto flex flex-col">
+        {/* Header */}
+        <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+          <div className="px-8 py-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <CheckSquareIcon className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">任务中心</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">查看您的所有任务及其状态</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <TaskCenterContent />
+      </main>
+    )
+  }
 
   // ============ 功能开关逻辑 ============
   // 已上线功能的早期返回

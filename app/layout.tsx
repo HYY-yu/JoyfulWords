@@ -41,6 +41,7 @@ import { AuthProvider } from "@/lib/auth/auth-context"
 import { Toaster } from "@/components/ui/hooks/toaster"
 import { OpenTelemetryProvider } from "@/components/otel/client-tracing-provider"
 import { InsufficientCreditsRoot } from "@/lib/credits/index"
+import { WebSocketProvider } from "@/components/websocket/websocket-provider"
 
 export default function RootLayout({
   children,
@@ -52,11 +53,13 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased h-full`}>
         <I18nProvider>
           <AuthProvider>
-            <InsufficientCreditsRoot>
-              {children}
-              <Toaster />
-              <OpenTelemetryProvider />
-            </InsufficientCreditsRoot>
+            <WebSocketProvider>
+              <InsufficientCreditsRoot>
+                {children}
+                <Toaster />
+                <OpenTelemetryProvider />
+              </InsufficientCreditsRoot>
+            </WebSocketProvider>
           </AuthProvider>
         </I18nProvider>
       </body>
