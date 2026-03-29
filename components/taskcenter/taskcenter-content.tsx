@@ -69,11 +69,6 @@ export function TaskCenterContent() {
     }
   }
 
-  // 初始加载和刷新
-  useEffect(() => {
-    fetchTasks()
-  }, [selectedType, selectedStatus])
-
   // 检测URL参数，自动打开任务详情
   useEffect(() => {
     const taskId = searchParams.get('taskId')
