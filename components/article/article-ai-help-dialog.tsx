@@ -16,13 +16,13 @@ import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Checkbox } from "@/components/ui/base/checkbox"
 import { Badge } from "@/components/ui/base/badge"
-import { SparklesIcon, FileTextIcon, TrendingUpIcon, XIcon, LoaderIcon, UploadIcon } from "lucide-react"
+import { SparklesIcon, FileTextIcon, PenToolIcon, XIcon, LoaderIcon, UploadIcon, CheckIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
+import { AI_WRITE_STYLE_OPTIONS } from "@/lib/api/articles/enums"
 import { materialsClient } from "@/lib/api/materials/client"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
-import { useInfiniteCompetitors } from "@/lib/hooks/use-infinite-competitors"
-import type { Article } from "@/lib/api/articles/types"
+import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -41,10 +41,9 @@ export function ArticleAIHelpDialog({
 
   const [prompt, setPrompt] = useState("")
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>([])
-  const [selectedCompetitors, setSelectedCompetitors] = useState<string[]>([])
+  const [selectedStyleId, setSelectedStyleId] = useState<AIWriteStyleId | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [materialSearch, setMaterialSearch] = useState("")
-  const [competitorSearch, setCompetitorSearch] = useState("")
 
   // 文件上传状态
   const [uploadedFile, setUploadedFile] = useState<{
@@ -55,10 +54,8 @@ export function ArticleAIHelpDialog({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // 滚动位置状态
-  const [materialsScrollPosition, setMaterialsScrollPosition] = useState(0)
-  const [competitorsScrollPosition, setCompetitorsScrollPosition] = useState(0)
+  const materialsScrollPositionRef = useRef(0)
   const materialsScrollRef = useRef<HTMLDivElement>(null)
-  const competitorsScrollRef = useRef<HTMLDivElement>(null)
 
   // 使用无限滚动素材 Hook
   const {
@@ -74,46 +71,20 @@ export function ArticleAIHelpDialog({
     nameFilter: materialSearch || undefined,
   })
 
-  // 使用无限滚动竞品 Hook
-  const {
-    competitors,
-    isLoading: competitorsLoading,
-    hasMore: hasMoreCompetitors,
-    loadMore: loadMoreCompetitors,
-    reset: resetCompetitors,
-    observerTarget: competitorsObserverTarget,
-  } = useInfiniteCompetitors({
-    enabled: open,
-    pageSize: 20,
-  })
-
   // 对话框关闭时清理状态
   useEffect(() => {
     if (!open) {
       resetMaterials()
-      resetCompetitors()
-      setMaterialsScrollPosition(0)
-      setCompetitorsScrollPosition(0)
+      materialsScrollPositionRef.current = 0
     }
-  }, [open, resetMaterials, resetCompetitors])
+  }, [open, resetMaterials])
 
   // 保持素材列表滚动位置（只在对话框打开时恢复）
   useEffect(() => {
-    if (open && materialsScrollPosition > 0 && materialsScrollRef.current) {
+    if (open && materialsScrollPositionRef.current > 0 && materialsScrollRef.current) {
       setTimeout(() => {
         if (materialsScrollRef.current) {
-          materialsScrollRef.current.scrollTop = materialsScrollPosition
-        }
-      }, 0)
-    }
-  }, [open]) // 只依赖 open，避免数据加载时频繁触发
-
-  // 保持竞品列表滚动位置（只在对话框打开时恢复）
-  useEffect(() => {
-    if (open && competitorsScrollPosition > 0 && competitorsScrollRef.current) {
-      setTimeout(() => {
-        if (competitorsScrollRef.current) {
-          competitorsScrollRef.current.scrollTop = competitorsScrollPosition
+          materialsScrollRef.current.scrollTop = materialsScrollPositionRef.current
         }
       }, 0)
     }
@@ -121,13 +92,7 @@ export function ArticleAIHelpDialog({
 
   const handleMaterialsScroll = () => {
     if (materialsScrollRef.current) {
-      setMaterialsScrollPosition(materialsScrollRef.current.scrollTop)
-    }
-  }
-
-  const handleCompetitorsScroll = () => {
-    if (competitorsScrollRef.current) {
-      setCompetitorsScrollPosition(competitorsScrollRef.current.scrollTop)
+      materialsScrollPositionRef.current = materialsScrollRef.current.scrollTop
     }
   }
 
@@ -137,12 +102,12 @@ export function ArticleAIHelpDialog({
     )
   }
 
-  const handleToggleCompetitor = (id: string) => {
-    // 互斥逻辑：选择竞品时清空已上传文件
+  const handleSelectStyle = (styleId: AIWriteStyleId) => {
+    // 互斥逻辑：选择文字风格时清空已上传文件
     if (uploadedFile) {
       setUploadedFile(null)
     }
-    setSelectedCompetitors([id]) // 单选
+    setSelectedStyleId(prev => (prev === styleId ? null : styleId))
   }
 
   // 文件验证
@@ -175,9 +140,9 @@ export function ArticleAIHelpDialog({
       return
     }
 
-    // 互斥逻辑：上传文件时清空竞品选择
-    if (selectedCompetitors.length > 0) {
-      setSelectedCompetitors([])
+    // 互斥逻辑：上传文件时清空已选文字风格
+    if (selectedStyleId) {
+      setSelectedStyleId(null)
     }
 
     setIsUploading(true)
@@ -252,13 +217,18 @@ export function ArticleAIHelpDialog({
     setSelectedMaterials(prev => prev.filter(i => i !== id))
   }
 
-  const handleRemoveCompetitor = (id: string) => {
-    setSelectedCompetitors(prev => prev.filter(i => i !== id))
-  }
-
   const handleGenerate = async () => {
+    // Validation: style 和上传参考文章二选一
+    if (!selectedStyleId && !uploadedFile) {
+      toast({
+        variant: "destructive",
+        description: t("contentWriting.aiHelp.styleRequired"),
+      })
+      return
+    }
+
     // Validation: At least one selection or prompt required
-    if (selectedMaterials.length === 0 && selectedCompetitors.length === 0 && !uploadedFile && !prompt.trim()) {
+    if (selectedMaterials.length === 0 && !prompt.trim()) {
       toast({
         variant: "destructive",
         description: t("contentWriting.aiHelp.promptRequired"),
@@ -272,18 +242,15 @@ export function ArticleAIHelpDialog({
     console.log('[AI Help] Starting article generation:', {
       promptLength: prompt.length,
       materialsCount: selectedMaterials.length,
-      competitorId: selectedCompetitors[0] || null,
+      styleId: selectedStyleId,
       hasUploadedFile: !!uploadedFile
     })
 
     try {
-      // 转换竞品 ID（string → number），目前只有一个竞品可选
-      const postId = selectedCompetitors.length > 0 ? Number(selectedCompetitors[0]) : 0
-
       const result = await articlesClient.aiWrite({
         req: prompt,
-        link_post: postId,
         link_materials: selectedMaterials,
+        style_id: selectedStyleId ?? undefined,
         competitor_file_url: uploadedFile?.url,
       })
 
@@ -314,7 +281,7 @@ export function ArticleAIHelpDialog({
       // Reset form and close dialog
       setPrompt("")
       setSelectedMaterials([])
-      setSelectedCompetitors([])
+      setSelectedStyleId(null)
       setUploadedFile(null)
       onOpenChange(false)
     } catch (error) {
@@ -359,92 +326,49 @@ export function ArticleAIHelpDialog({
           </div>
 
           <div className="space-y-6">
-            {/* Competitor Selection & File Upload - mutually exclusive */}
+            {/* Writing style selection & reference article upload - mutually exclusive */}
             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-6">
-              {/* Option 1: Select from existing competitors */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <TrendingUpIcon className="w-4 h-4" />
-                  <Label>{t("contentWriting.aiHelp.competitorLabel")}</Label>
+                  <PenToolIcon className="w-4 h-4" />
+                  <Label>{t("contentWriting.aiHelp.styleLabel")}</Label>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("contentWriting.aiHelp.styleHint")}
+                </p>
+                <div className="max-h-72 overflow-y-auto pr-1">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                  {AI_WRITE_STYLE_OPTIONS.map(({ value }) => {
+                    const isSelected = selectedStyleId === value
+                    const label = t(`contentWriting.aiHelp.styles.${value}.label`)
+                    const description = t(`contentWriting.aiHelp.styles.${value}.description`)
 
-                <div className="space-y-2">
-                  <Input
-                    placeholder={t("contentWriting.aiHelp.competitorPlaceholder")}
-                    value={competitorSearch}
-                    onChange={(e) => setCompetitorSearch(e.target.value)}
-                    disabled={!!uploadedFile}
-                  />
-
-                  <div
-                    ref={competitorsScrollRef}
-                    onScroll={handleCompetitorsScroll}
-                    className="h-[200px] overflow-y-auto border rounded-md p-2"
-                  >
-                    {competitorsLoading && competitors.length === 0 ? (
-                      <div className="flex items-center justify-center h-full">
-                        <LoaderIcon className="w-5 h-5 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        {competitors.map((post) => (
-                        <div
-                          key={post.id}
-                          className={`flex items-center space-x-2 p-2 rounded cursor-pointer ${
-                            selectedCompetitors.includes(post.id) ? 'bg-muted' : 'hover:bg-muted/50'
-                          } ${uploadedFile ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          onClick={() => uploadedFile ? null : handleToggleCompetitor(post.id)}
-                        >
-                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            selectedCompetitors.includes(post.id)
-                              ? 'bg-primary border-primary'
-                              : 'border-border'
-                          }`}>
-                            {selectedCompetitors.includes(post.id) && (
-                              <div className="w-2.5 h-2.5 rounded-full bg-white" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{post.platform}</div>
-                            <div className="text-xs text-muted-foreground line-clamp-2">{post.content}</div>
-                          </div>
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        disabled={!!uploadedFile}
+                        onClick={() => handleSelectStyle(value)}
+                        className={[
+                          "rounded-lg border p-4 text-left transition-colors",
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/40 hover:bg-muted/40",
+                        ].join(" ")}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="text-sm font-semibold text-foreground">{label}</div>
+                          {isSelected ? <CheckIcon className="h-4 w-4 shrink-0 text-primary" /> : null}
                         </div>
-                      ))}
-                      {/* 无限滚动 observer */}
-                      {(hasMoreCompetitors || competitorsLoading) && competitors.length > 0 && (
-                        <div ref={competitorsObserverTarget} className="flex justify-center py-2">
-                          <LoaderIcon className="h-4 w-4 animate-spin text-muted-foreground" />
-                        </div>
-                      )}
-                      </div>
-                    )}
+                        <p className="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                          {description}
+                        </p>
+                      </button>
+                    )
+                  })}
                   </div>
                 </div>
-
-                {/* Selected Competitor */}
-                {selectedCompetitors.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground">
-                      {t("contentWriting.aiHelp.selectedCompetitor")}
-                    </div>
-                    <div className="flex flex-wrap gap-2 min-w-0">
-                      {selectedCompetitors.map((id) => {
-                        const post = competitors.find(p => p.id === id)
-                        return post ? (
-                          <Badge key={id} variant="secondary" className="min-w-0 max-w-full gap-1">
-                            <span className="max-w-[12rem] truncate sm:max-w-[20rem]">{post.platform}</span>
-                            <button
-                              onClick={() => setSelectedCompetitors([])}
-                              className="hover:bg-destructive hover:text-destructive-foreground shrink-0 rounded"
-                            >
-                              <XIcon className="w-3 h-3" />
-                            </button>
-                          </Badge>
-                        ) : null
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Divider */}
@@ -457,7 +381,7 @@ export function ArticleAIHelpDialog({
                 </div>
               </div>
 
-              {/* Option 2: Upload competitor article */}
+              {/* Option 2: Upload a reference article to imitate */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-medium">
@@ -479,7 +403,7 @@ export function ArticleAIHelpDialog({
                       type="file"
                       accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,image/jpg,application/pdf"
                       onChange={handleFileSelect}
-                      disabled={isUploading || selectedCompetitors.length > 0}
+                      disabled={isUploading || !!selectedStyleId}
                     />
                   ) : (
                     <div className="flex items-center justify-between p-3 bg-muted rounded-md">

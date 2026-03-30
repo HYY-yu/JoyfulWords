@@ -10,6 +10,17 @@
  */
 export type ArticleStatus = 'init' | 'draft' | 'published' | 'archived'
 
+/**
+ * AI 写作风格枚举（来自 /docs/api/ARTICLE_API.md）
+ */
+export type AIWriteStyleId =
+  | 'CalmAnalysis'
+  | 'EmpatheticDrive'
+  | 'NarrativeNonfiction'
+  | 'SharpCommentary'
+  | 'BusinessInsight'
+  | 'SocialSpark'
+
 // ==================== Entity Types ====================
 
 /**
@@ -60,7 +71,8 @@ export interface AIWriteRequest {
   req: string  // 写作要求/主题（1-500 字符）
   link_post?: number  // 关联的竞品文章 ID
   link_materials?: number[]  // 关联的素材 ID 列表
-  competitor_file_url?: string  // 上传的竞品参考文件 URL (PDF/图片)
+  style_id?: AIWriteStyleId  // 写作风格 ID（与参考文章上传互斥）
+  competitor_file_url?: string  // 上传的参考文章文件 URL (PDF/图片)
 }
 
 /**

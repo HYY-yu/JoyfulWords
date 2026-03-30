@@ -12,12 +12,13 @@
 
 1. [AI 写文章](#1-ai-写文章)
 2. [AI 编辑文章](#2-ai-编辑文章)
-3. [获取文章列表](#3-获取文章列表)
-4. [新建文章](#4-新建文章)
-5. [编辑文章内容](#5-编辑文章内容)
-6. [编辑文章元数据](#6-编辑文章元数据)
-7. [删除文章](#7-删除文章)
-8. [更新文章状态](#8-更新文章状态)
+3. [获取编辑状态](#3-获取编辑状态)
+4. [获取文章列表](#4-获取文章列表)
+5. [新建文章](#5-新建文章)
+6. [编辑文章内容](#6-编辑文章内容)
+7. [编辑文章元数据](#7-编辑文章元数据)
+8. [删除文章](#8-删除文章)
+9. [更新文章状态](#9-更新文章状态)
 
 ---
 
@@ -38,6 +39,20 @@
 | req            | string   | 是  | 写作要求/主题（1-500 字符） |
 | link_post      | number   | 否  | 关联的竞品文章 ID        |
 | link_materials | number[] | 否  | 关联的素材 ID 列表       |
+| style_id       | string   | 是  | 写作风格 ID，前端需传入下方枚举中的英文名 |
+
+### `style_id` 可选值
+
+前端调用 `/article/ai-write` 时，`style_id` 请传 **英文名**，不要传中文名。
+
+| 中文名 | 英文名（`style_id`） | 简介 |
+|------|--------------------|----|
+| 冷静分析型 | `CalmAnalysis` | 克制、清晰、稳定、有判断，但不煽情。 |
+| 共情激励型 | `EmpatheticDrive` | 有温度、有力量、有立场，能替被压抑、被低估、被质疑的人说话。 |
+| 纪实叙事型 | `NarrativeNonfiction` | 有画面、有节奏、有现场感，用故事自然带出观点。 |
+| 犀利评论型 | `SharpCommentary` | 尖锐、直接、有火力、观点先行。 |
+| 商业观察型 | `BusinessInsight` | 专业、现实、有框架，不空谈情怀。 |
+| 轻快传播型 | `SocialSpark` | 节奏快、钩子强、金句密、易读易转发。 |
 
 ### 请求示例
 
@@ -49,7 +64,8 @@ curl -X POST http://localhost:8080/article/ai-write \
   -d '{
     "req": "写一篇小鹏飞行汽车的科普介绍性文章",
     "link_post": 0,
-    "link_materials": [91, 89, 88]
+    "link_materials": [91, 89, 88],
+    "style_id": "BusinessInsight"
   }'
 ```
 
@@ -71,7 +87,7 @@ curl -X POST http://localhost:8080/article/ai-write \
 
 | 状态码 | 说明                                              |
 |-----|-------------------------------------------------|
-| 400 | 请求格式错误（req 过长、link_post 不存在、link_materials 不存在） |
+| 400 | 请求格式错误（req 过长、link_post 不存在、link_materials 不存在、style_id 不符合前端约定等） |
 | 401 | 未授权（token 无效或过期）                                |
 | 500 | AI 写作启动失败或文章未创建                                 |
 
@@ -82,12 +98,13 @@ curl -X POST http://localhost:8080/article/ai-write \
 - 生成完成后状态会自动更新为 `draft`
 - 可通过"获取文章列表"接口查看文章状态
 - 关联的素材和竞品文章会自动建立关联关系
+- 前端调用时应始终传入 `style_id`，值为上表中的英文枚举
 
 ---
 
 ## 2. AI 编辑文章
 
-使用 AI 对文章的选中段落进行编辑和改写。
+使用 AI 对文章的选中段落进行编辑和改写（异步模式）。
 
 ### 接口信息
 
@@ -99,7 +116,7 @@ curl -X POST http://localhost:8080/article/ai-write \
 
 | 参数         | 类型     | 必填 | 说明                                   |
 |------------|--------|----|--------------------------------------|
-| article_id | int | 是  | 文章 id                                |
+| article_id | number | 是  | 文章 id                                |
 | article    | string | 是  | 完整文章内容                               |
 | cut_text   | string | 是  | 用户选择的需要编辑的段落（必须是 article 的子集）        |
 | type       | string | 是  | 编辑类型，可选值：`material`、`style`、`struct` |
@@ -145,6 +162,7 @@ curl -X POST http://localhost:8080/article/edit \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access_token>" \
   -d '{
+    "article_id": 123,
     "article": "人工智能正在改变世界。机器学习是AI的重要分支。",
     "cut_text": "机器学习是AI的重要分支",
     "type": "material",
@@ -161,6 +179,7 @@ curl -X POST http://localhost:8080/article/edit \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access_token>" \
   -d '{
+    "article_id": 123,
     "article": "人工智能正在改变世界。机器学习是AI的重要分支。",
     "cut_text": "人工智能正在改变世界",
     "type": "style",
@@ -178,6 +197,7 @@ curl -X POST http://localhost:8080/article/edit \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access_token>" \
   -d '{
+    "article_id": 123,
     "article": "人工智能有很多优点。首先，它提高效率。其次，它降低成本。",
     "cut_text": "人工智能有很多优点。首先，它提高效率。其次，它降低成本。",
     "type": "struct",
@@ -193,57 +213,71 @@ curl -X POST http://localhost:8080/article/edit \
 
 ```json
 {
-  "response_text": "改写后的段落内容..."
+  "exec_id": "exec-abc123xyz"
 }
 ```
 
-| 字段            | 类型     | 说明          |
-|---------------|--------|-------------|
-| response_text | string | AI 改写后的段落内容 |
+| 字段      | 类型     | 说明              |
+|---------|--------|-----------------|
+| exec_id | string | n8n 执行 ID，用于查询编辑状态 |
 
 **错误响应**
 
 | 状态码 | 说明                                                                          |
 |-----|-----------------------------------------------------------------------------|
-| 400 | 请求格式错误（cut_text 不是 article 的子集、material_ids 不存在、style_type/struct_type 无效等） |
+| 400 | 请求格式错误（cut_text 不是 article 的子集、material_ids 不存在、style_type/struct_type 无效、文章不存在等） |
 | 401 | 未授权（token 无效或过期）                                                            |
-| 500 | AI 编辑失败（n8n 处理失败或返回错误）                                                      |
+| 402 | 积分不足                                                                         |
+| 404 | 文章不存在或无权访问                                                                  |
+| 500 | AI 编辑启动失败（n8n 调用失败）                                                          |
 
 **注意:**
 
-- 文章编辑由 n8n 工作流同步执行
-- 返回的 `response_text` 是改写后的完整段落
-- 前端编辑器应使用定时保存机制将改写后的内容保存到数据库
+- 文章编辑由 n8n 工作流**异步执行**
+- 接口立即返回 `exec_id`，需要使用**获取编辑状态接口**轮询查询结果
 - AI 会根据整篇文章的文风进行适配改写，只改写 `cut_text`，不影响其他内容
-- 如果 n8n 返回 `response_error`，Go 服务会记录日志并返回 500 错误
+- 系统会自动创建 `article_logs` 记录用于追踪执行状态
+- 推荐轮询策略：每 2-3 秒轮询一次，使用指数退避（2s → 3s → 5s → ... → 30s）
 
 ---
 
-## 2.5. 查询 AI 编辑状态
+## 3. 获取编辑状态
+
+查询 AI 编辑任务的执行状态和结果。
 
 ### 接口信息
 
 - **URL:** `/article/edit/status/:exec_id`
 - **方法:** `GET`
-- **认证:** 需要 Bearer Token
+- **需要认证:** 是（需要有效的 access_token）
 
-### 请求参数
+### 路径参数
 
-| 参数名   | 类型   | 必填 | 说明         |
-|------|------|----|-----------|
-| exec_id | string | 是  | 异步任务 ID |
+| 参数      | 类型     | 必填 | 说明       |
+|---------|--------|----|----------|
+| exec_id | string | 是  | n8n 执行 ID（由 /article/edit 返回） |
+
+### 请求示例
+
+```bash
+curl -X GET http://localhost:8080/article/edit/status/exec-abc123xyz \
+  -H "Authorization: Bearer <access_token>"
+```
 
 ### 响应
 
 **成功 (200 OK)**
 
+#### 3.1 处理中（pending）
+
 ```json
 {
-  "status": "pending"
+  "status": "pending",
+  "data": ""
 }
 ```
 
-或
+#### 3.2 处理成功（success）
 
 ```json
 {
@@ -252,30 +286,53 @@ curl -X POST http://localhost:8080/article/edit \
 }
 ```
 
-或
+#### 3.3 处理失败（error）
 
 ```json
 {
-  "status": "failed",
-  "error": "错误信息"
+  "status": "error",
+  "data": "AI 处理失败：无法理解输入内容"
 }
 ```
 
-| 字段     | 类型     | 说明                             |
-|--------|------|--------------------------------|
-| status | string | 任务状态：pending（进行中）、success（成功）、failed（失败） |
-| data   | string | status='success' 时包含改写后的内容         |
-| error  | string | status='failed' 时包含错误信息             |
+| 字段     | 类型     | 说明                                            |
+|--------|--------|-----------------------------------------------|
+| status | string | 执行状态：`pending`（处理中）、`success`（成功）、`error`（失败） |
+| data   | string | 当 status=success 时为改写后的文本；status=error 时为错误信息；pending 时为空 |
+
+**n8n 执行状态映射:**
+
+| n8n 状态         | API 状态  | 说明                   |
+|----------------|---------|----------------------|
+| new             | pending | 新任务，等待执行            |
+| running         | pending | 正在执行 AI 编辑           |
+| waiting         | pending | 等待外部资源             |
+| retry           | pending | 重试中（n8n 自动重试）       |
+| success         | success | 执行成功，data 字段包含改写结果  |
+| error/failed    | error   | 执行失败，data 字段包含错误信息   |
+| stopped/killed  | error   | 任务被停止或杀死，视为失败      |
+| crashed         | error   | 任务崩溃，视为失败          |
+
+**错误响应**
+
+| 状态码 | 说明                             |
+|-----|--------------------------------|
+| 400 | 请求格式错误（exec_id 为空或格式无效）      |
+| 401 | 未授权（token 无效或过期）               |
+| 404 | 编辑任务不存在或无权访问（exec_id 无效或属于其他用户） |
+| 500 | 获取状态失败（n8n API 调用失败或数据库错误）  |
 
 **注意:**
 
-- 前端应使用指数退避策略轮询此接口
-- 建议初始间隔 3 秒，最大间隔 30 秒
-- 超过 5 分钟未完成应视为超时
+- 只能查询自己创建的编辑任务（通过 article_logs 验证权限）
+- 推荐使用指数退避策略轮询，避免频繁请求
+- 当 status=success 或 status=error 时，轮询可以停止
+- status=pending 时需要继续轮询
+- data 字段在 status=error 时可能为空（n8n 未返回具体错误信息）
 
 ---
 
-## 3. 获取文章列表
+## 4. 获取文章列表
 
 查看用户的文章列表，包括关联的素材和竞品文章信息。
 
@@ -392,7 +449,7 @@ curl -X GET "http://localhost:8080/article?page=1&page_size=20&status=draft" \
 
 ---
 
-## 4. 新建文章
+## 5. 新建文章
 
 用户手动创建文章（非 AI 生成）。
 
@@ -458,7 +515,7 @@ curl -X POST http://localhost:8080/article \
 
 ---
 
-## 5. 编辑文章内容
+## 6. 编辑文章内容
 
 更新文章的内容字段（独立接口，性能优化）。
 
@@ -520,7 +577,7 @@ curl -X PUT http://localhost:8080/article/2/content \
 
 ---
 
-## 6. 编辑文章元数据
+## 7. 编辑文章元数据
 
 更新文章的标题、分类、标签等元数据，支持部分更新。
 
@@ -598,7 +655,7 @@ curl -X PUT http://localhost:8080/article/123 \
 
 ---
 
-## 7. 删除文章
+## 8. 删除文章
 
 删除指定的文章，同时级联删除关联的素材和竞品文章引用。
 
@@ -650,7 +707,7 @@ curl -X DELETE http://localhost:8080/article/2 \
 
 ---
 
-## 8. 更新文章状态
+## 9. 更新文章状态
 
 更新文章的状态，支持特定的状态转换。
 
@@ -752,6 +809,25 @@ curl -X GET http://localhost:8080/article \
 6. PUT /article/:id/status → 发布文章（status: published）
 ```
 
+### AI 编辑文章流程（异步）
+
+```
+1. POST /article/edit → 触发 n8n AI 编辑任务，返回 exec_id
+2. GET /article/edit/status/:exec_id → 轮询查询状态（status: pending）
+3. 继续轮询直到 status != pending
+4. 如果 status=success，使用返回的 data（改写后的内容）
+5. 如果 status=error，显示错误信息给用户
+6. PUT /article/:id/content → 前端编辑器保存改写后的内容
+```
+
+**推荐轮询策略（指数退避）:**
+
+```
+初始间隔：2秒
+每次轮询后增加间隔时间：2s → 3s → 5s → 8s → 12s → 20s → 30s（最大）
+总轮询时间限制：5 分钟（超时后提示用户稍后重试）
+```
+
 ### 手动创建文章流程
 
 ```
@@ -817,51 +893,110 @@ curl -X GET http://localhost:8080/article \
 - 初始状态为 `init`，完成后变为 `draft`
 - 可同时关联素材和竞品文章作为参考
 
-### 4. 内容编辑
+### 4. AI 编辑（异步）
+
+- **AI 编辑由 n8n 工作流异步执行**
+- 调用 `/article/edit` 后立即返回 `exec_id`
+- 使用 `/article/edit/status/:exec_id` 轮询查询结果
+- **推荐使用指数退避策略**避免频繁请求（2s → 3s → 5s → ... → 30s）
+- 当 `status=success` 或 `status=error` 时停止轮询
+- 改写后的内容由前端编辑器保存到数据库（调用 `/article/:id/content`）
+- 每次编辑消耗 10 积分
+
+### 5. 内容编辑
 
 - 文章内容可能很长，建议使用专门的 `/article/:id/content` 接口更新
 - 元数据更新使用 `/article/:id` 接口
 - 两个接口可以配合使用，提高性能
 
-### 5. 文章删除
+### 6. 文章删除
 
 - 删除操作会级联删除关联关系（article_materials、article_posts）
 - 不会删除实际的素材和竞品文章
 - 使用事务确保删除操作的原子性
 - 删除前请确认不再需要该文章
 
-### 6. 状态管理
+### 7. 状态管理
 
 - 状态转换有严格规则，不允许随意转换
 - `published` 状态不能退回到 `draft`
 - `archived` 状态是最终状态，不能恢复
 - 建议在发布前仔细检查文章内容
 
-### 7. 分页参数
+### 8. 分页参数
 
 - `page` 从 1 开始，不是 0
 - `page_size` 最大值为 100
 - 建议使用合理的分页大小提高性能
 
-### 8. 时间格式
+### 9. 时间格式
 
 - 所有时间使用 ISO 8601 格式（UTC）
 - 示例：`2024-01-15T10:30:00Z`
 
-### 9. 输入验证
+### 10. 输入验证
 
 - `title`: 1-200 字符
+- `article_id`: 必须是用户自己的文章 ID
 - `req`: 1-500 字符
+- `cut_text`: 必须是 `article` 的子集
 - `content`: 必填字段
 - `category`: 最多 100 字符
 - `tags`: 最多 500 字符，逗号分隔
 - `status`: 必须是 draft/published/archived 之一
 
-### 10. 关联关系
+### 11. 关联关系
 
 - AI 写作时可同时关联素材和竞品文章
 - 关联关系通过 `article_materials` 和 `article_posts` 表维护
 - 删除文章时自动删除关联关系
+
+### 12. 异步编辑轮询建议
+
+**前端轮询示例代码（JavaScript）:**
+
+```javascript
+async function pollEditStatus(execId, maxDuration = 300000) {
+  const startTime = Date.now();
+  let delay = 2000; // 初始间隔 2 秒
+  const maxDelay = 30000; // 最大间隔 30 秒
+
+  while (Date.now() - startTime < maxDuration) {
+    try {
+      const response = await fetch(`/article/edit/status/${execId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.status === 'success') {
+        return { success: true, data: result.data };
+      } else if (result.status === 'error') {
+        return { success: false, error: result.data };
+      }
+      // status === 'pending'，继续轮询
+
+      await sleep(delay);
+
+      // 指数退避
+      delay = Math.min(delay * 1.5, maxDelay);
+
+    } catch (error) {
+      console.error('Polling error:', error);
+      await sleep(delay);
+      delay = Math.min(delay * 1.5, maxDelay);
+    }
+  }
+
+  throw new Error('编辑超时，请稍后重试');
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+```
 
 ---
 
@@ -876,6 +1011,9 @@ curl -X GET http://localhost:8080/article \
 
 ---
 
-**文档版本:** 1.0
-**最后更新:** 2026-01-16
+**文档版本:** 2.0
+**最后更新:** 2026-02-28
 **作者:** joyful-words development team
+**更新日志:**
+- v2.0 (2026-02-28): AI 编辑改为异步模式，新增获取编辑状态接口
+- v1.0 (2026-01-16): 初始版本

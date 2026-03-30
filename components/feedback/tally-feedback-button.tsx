@@ -65,7 +65,7 @@ export function TallyFeedbackButton({ className }: TallyFeedbackButtonProps) {
         </>
       ) : (
         <>
-          <MessageSquareIcon className="w-5 h-5 text-sidebar-foreground/60" />
+          <MessageSquareIcon className="w-5 h-5 shrink-0" />
           <span>{t('common.feedback')}</span>
         </>
       )}

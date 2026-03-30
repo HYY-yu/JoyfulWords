@@ -3,7 +3,7 @@
  * 枚举常量和辅助函数
  */
 
-import type { ArticleStatus } from './types'
+import type { AIWriteStyleId, ArticleStatus } from './types'
 
 /**
  * 状态转换规则映射（来自 API 文档）
@@ -64,6 +64,18 @@ export const STATUS_OPTIONS = [
   { value: 'draft', label: '草稿', labelEn: 'Draft' },
   { value: 'published', label: '已发布', labelEn: 'Published' },
   { value: 'archived', label: '已存档', labelEn: 'Archived' },
+] as const
+
+/**
+ * AI 写作风格枚举配置
+ */
+export const AI_WRITE_STYLE_OPTIONS: ReadonlyArray<{ value: AIWriteStyleId }> = [
+  { value: 'CalmAnalysis' },
+  { value: 'EmpatheticDrive' },
+  { value: 'NarrativeNonfiction' },
+  { value: 'SharpCommentary' },
+  { value: 'BusinessInsight' },
+  { value: 'SocialSpark' },
 ] as const
 
 /**
