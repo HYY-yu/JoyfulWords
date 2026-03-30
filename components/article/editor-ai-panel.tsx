@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import {
   PencilIcon,
   ImageIcon,
@@ -21,6 +22,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/base/badge"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Spinner } from "@/components/ui/custom/spinner"
+import { CreatorMode } from "@/components/image-generator/creator-mode"
+import { InversionMode } from "@/components/image-generator/modes/inversion-mode"
+import { StyleMode } from "@/components/image-generator/modes/style-mode"
 
 type ActiveDialog =
   | "ai-edit"
@@ -99,6 +103,9 @@ export function EditorAIPanel({
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [copyToMaterialsError, setCopyToMaterialsError] = useState<string | null>(null)
   const [copyToMaterialsSuccess, setCopyToMaterialsSuccess] = useState<string | null>(null)
+  const [isCreateImageOpen, setIsCreateImageOpen] = useState(false)
+  const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
+  const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
 
   // 获取任务中心任务
   useEffect(() => {
@@ -256,11 +263,33 @@ export function EditorAIPanel({
   }
 
   function handleOpenDialog(id: ActiveDialog) {
-    setActiveDialog(id)
+    // 对于图片相关的功能，使用滑入窗口
+    if (id === 'create-image') {
+      setIsCreateImageOpen(true)
+    } else if (id === 'reversal-mode') {
+      setIsReversalModeOpen(true)
+    } else if (id === 'image-style') {
+      setIsImageStyleOpen(true)
+    } else {
+      // 其他功能使用普通对话框
+      setActiveDialog(id)
+    }
   }
 
   function handleCloseDialog() {
     setActiveDialog(null)
+  }
+
+  function handleCloseCreateImage() {
+    setIsCreateImageOpen(false)
+  }
+
+  function handleCloseReversalMode() {
+    setIsReversalModeOpen(false)
+  }
+
+  function handleCloseImageStyle() {
+    setIsImageStyleOpen(false)
   }
 
   return (
@@ -549,6 +578,84 @@ export function EditorAIPanel({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {/* 创作图片弹窗 */}
+      {createPortal(
+        <div className={`fixed top-0 right-0 h-full bg-background/95 shadow-2xl z-500 transition-transform duration-300 ease-in-out ${isCreateImageOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '80vw', maxWidth: '1200px' }}>
+          <div className="flex flex-col h-full">
+            {/* 头部 */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-sm font-semibold">{t('tiptapEditor.aiPanel.createImage')}</h3>
+              <button
+                type="button"
+                onClick={handleCloseCreateImage}
+                className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                title="关闭"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {/* 内容区域 */}
+            <div className="flex-1 p-0 overflow-hidden">
+              <CreatorMode />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 反向模式弹窗 */}
+      {createPortal(
+        <div className={`fixed top-0 right-0 h-full bg-background/95 shadow-2xl z-500 transition-transform duration-300 ease-in-out ${isReversalModeOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '80vw', maxWidth: '1200px' }}>
+          <div className="flex flex-col h-full">
+            {/* 头部 */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-sm font-semibold">{t('tiptapEditor.aiPanel.reversalMode')}</h3>
+              <button
+                type="button"
+                onClick={handleCloseReversalMode}
+                className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                title="关闭"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {/* 内容区域 */}
+            <div className="flex-1 p-0 overflow-hidden">
+              <InversionMode />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 图片风格弹窗 */}
+      {createPortal(
+        <div className={`fixed top-0 right-0 h-full bg-background/95 shadow-2xl z-500 transition-transform duration-300 ease-in-out ${isImageStyleOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '80vw', maxWidth: '1200px' }}>
+          <div className="flex flex-col h-full">
+            {/* 头部 */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-sm font-semibold">{t('tiptapEditor.aiPanel.imageStyle')}</h3>
+              <button
+                type="button"
+                onClick={handleCloseImageStyle}
+                className="p-1.5 rounded-full hover:bg-muted transition-colors"
+                title="关闭"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {/* 内容区域 */}
+            <div className="flex-1 p-0 overflow-hidden">
+              <StyleMode />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
