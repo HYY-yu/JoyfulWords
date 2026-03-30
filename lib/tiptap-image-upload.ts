@@ -65,7 +65,16 @@ export async function uploadImageToR2(file: File): Promise<string> {
 
   // 检查是否返回错误
   if ('error' in presignedResult) {
-    throw new Error(presignedResult.error || 'presignedUrlFailed')
+    let errorMessage: string
+    try {
+      const rawError = presignedResult.error
+      errorMessage = typeof rawError === 'string' 
+        ? (rawError === 'Internal Service Error' ? '服务器内部错误，请稍后重试' : rawError) 
+        : JSON.stringify(rawError) || '获取预签名URL失败，请稍后重试'
+    } catch (e) {
+      errorMessage = '获取预签名URL失败，请稍后重试'
+    }
+    throw new Error(errorMessage)
   }
 
   // 3. 上传文件到R2

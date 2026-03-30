@@ -32,7 +32,6 @@ class WebSocketService {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000 // 1 second
-  private heartbeatInterval: NodeJS.Timeout | null = null
   private toast: ((props: any) => any) | null = null
   private notificationSound: HTMLAudioElement | null = null
 
@@ -43,6 +42,12 @@ class WebSocketService {
     console.log('Toast 实例:', !!toastInstance)
     console.log('Toast 实例类型:', typeof toastInstance)
     this.initNotificationSound()
+    // 暂时不自动连接，等待明确调用 connect 方法
+    console.log('WebSocket 服务已初始化，等待连接')
+  }
+
+  // 手动连接 WebSocket
+  connectWebSocket(token: string) {
     this.connect(token)
   }
 
@@ -83,7 +88,6 @@ class WebSocketService {
       this.ws.onopen = () => {
         console.log('WebSocket 连接成功')
         this.reconnectAttempts = 0
-        this.startHeartbeat()
       }
 
       this.ws.onmessage = (event) => {
@@ -116,8 +120,6 @@ class WebSocketService {
 
       this.ws.onclose = () => {
         console.log('WebSocket 连接关闭')
-        this.stopHeartbeat()
-        this.reconnect()
       }
     } catch (error) {
       // 检查 error 是否是空对象
@@ -215,48 +217,9 @@ class WebSocketService {
     console.log('任务状态更新:', payload)
   }
 
-  // 发送心跳
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send({
-          type: WebSocketMessageType.PING,
-          payload: {}
-        })
-      }
-    }, 30000) // 30秒发送一次心跳
-  }
-
-  // 停止心跳
-  private stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval)
-      this.heartbeatInterval = null
-    }
-  }
-
-  // 重新连接
+  // 重新连接方法（已禁用）
   private reconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      console.log(`尝试重新连接 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
-      setTimeout(() => {
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          this.connect(token)
-        }
-      }, this.reconnectDelay * this.reconnectAttempts)
-    } else {
-      console.log('WebSocket 重连失败，已达到最大尝试次数，将在 30 秒后再次尝试...')
-      // 30 秒后重置尝试次数并再次尝试连接
-      setTimeout(() => {
-        this.reconnectAttempts = 0
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          this.connect(token)
-        }
-      }, 30000) // 30 秒后再次尝试
-    }
+    console.log('WebSocket 重连已禁用')
   }
 
   // 发送消息
@@ -268,7 +231,6 @@ class WebSocketService {
 
   // 关闭连接
   close() {
-    this.stopHeartbeat()
     if (this.ws) {
       this.ws.close()
       this.ws = null
