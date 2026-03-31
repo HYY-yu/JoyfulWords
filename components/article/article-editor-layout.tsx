@@ -34,7 +34,7 @@ export function ArticleEditorLayout({
   })
 
   const panelShellClassName =
-    "overflow-hidden rounded-[14px] border border-border/70 bg-background/95 shadow-[0_24px_48px_-32px_rgba(15,23,42,0.24)] ring-1 ring-black/[0.02] backdrop-blur-sm"
+    "overflow-hidden rounded-[7px] border border-border/70 bg-background/95 shadow-[0_24px_48px_-32px_rgba(15,23,42,0.24)] ring-1 ring-black/[0.02] backdrop-blur-sm"
 
   const leftPanelStyle = {
     ["--left-panel-width" as string]: `${leftWidth}%`,
@@ -53,7 +53,7 @@ export function ArticleEditorLayout({
       <div className="flex-1 overflow-hidden">
         <div
           ref={containerRef}
-          className="flex h-full min-h-0 flex-col gap-2 px-2 py-2 sm:px-3 sm:py-3 lg:flex-row lg:items-stretch lg:gap-1 xl:gap-1.5 xl:px-4 xl:py-4"
+          className="flex h-full min-h-0 flex-col gap-1.5 px-0 py-1.5 lg:flex-row lg:items-stretch lg:gap-px xl:gap-px xl:px-0 xl:py-1.5"
         >
           {!leftCollapsed && (
             <>
