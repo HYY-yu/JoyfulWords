@@ -7,8 +7,9 @@ import { ImageIcon, RefreshCwIcon, SaveIcon, EyeIcon, EyeOffIcon } from "lucide-
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
-import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
+
 import type {
   Layer,
   ToolType,
@@ -57,35 +58,39 @@ export function CreatorMode() {
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
-  // 轮询 Hook
-  const { startPolling, stopPolling, isPolling } = useImageGenerationPolling({
-    onSuccess: (result) => {
-      // INFO: 任务完成 - 轮询成功
-      console.info('[ImageGeneration] Task completed successfully:', {
-        taskId: result.task_id,
-        imageUrl: result.image_url,
+  // 处理任务完成事件
+  const handleTaskComplete = (payload: any) => {
+    if (payload.task_id === currentTaskId) {
+      // INFO: 任务完成 - WebSocket 通知
+      console.info('[ImageGeneration] Task completed successfully via WebSocket:', {
+        taskId: payload.task_id,
+        imageUrl: payload.outputs?.image_urls,
       })
 
       // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
       let imageUrl: string
       try {
-        if (typeof result.image_url === 'string' && result.image_url.startsWith('[')) {
+        const imageUrls = payload.outputs?.image_urls
+        if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
           // JSON 数组字符串，解析并取第一个元素
-          const urls = JSON.parse(result.image_url) as string[]
+          const urls = JSON.parse(imageUrls) as string[]
           imageUrl = urls[0]
           console.debug('[ImageGeneration] Parsed image_url from JSON array:', imageUrl)
-        } else if (Array.isArray(result.image_url)) {
+        } else if (Array.isArray(imageUrls)) {
           // 已经是数组，取第一个元素
-          imageUrl = result.image_url[0]
+          imageUrl = imageUrls[0]
           console.debug('[ImageGeneration] Extracted first URL from array:', imageUrl)
-        } else {
+        } else if (typeof imageUrls === 'string') {
           // 直接是字符串
-          imageUrl = result.image_url
+          imageUrl = imageUrls
+        } else {
+          // 回退到空字符串
+          imageUrl = ''
         }
       } catch (error) {
         // ERROR: 解析失败，回退到原始值
         console.error('[ImageGeneration] Failed to parse image_url:', error)
-        imageUrl = String(result.image_url)
+        imageUrl = ''
       }
 
       setIsGenerating(false)
@@ -95,18 +100,23 @@ export function CreatorMode() {
       setShowGeneratedImage(true)
 
       // 保存生成记录ID
-      setCurrentGenerationLogId(Number(result.task_id))
-      console.info('[ImageGeneration] Saved generation log ID:', result.task_id)
+      setCurrentGenerationLogId(Number(payload.task_id))
+      console.info('[ImageGeneration] Saved generation log ID:', payload.task_id)
 
       toast({
         title: t("imageGeneration.toast.generationSuccess"),
         description: t("imageGeneration.generating.description"),
       })
-    },
-    onError: (error) => {
-      // ERROR: 任务失败 - 显示错误提示
-      console.error('[ImageGeneration] Task failed:', {
-        error: error.message,
+    }
+  }
+
+  // 处理任务失败事件
+  const handleTaskFailed = (payload: any) => {
+    if (payload.task_id === currentTaskId) {
+      // ERROR: 任务失败 - WebSocket 通知
+      console.error('[ImageGeneration] Task failed via WebSocket:', {
+        taskId: payload.task_id,
+        error: payload.error,
       })
 
       setIsGenerating(false)
@@ -116,12 +126,93 @@ export function CreatorMode() {
       toast({
         variant: "destructive",
         title: t("imageGeneration.toast.generationFailed"),
-        description: error.message,
+        description: payload.error || t("imageGeneration.toast.generationFailed"),
       })
-    },
-    onTimeout: () => {
-      // ERROR: 任务超时 - 显示超时提示
-      console.error('[ImageGeneration] Task timeout')
+    }
+  }
+
+  // 处理任务更新事件
+  const handleTaskUpdate = (payload: any) => {
+    if (payload.task_id === currentTaskId) {
+      // DEBUG: 任务进度 - WebSocket 通知
+      console.debug('[ImageGeneration] Task status updated via WebSocket:', {
+        taskId: payload.task_id,
+        status: payload.status,
+      })
+
+      if (payload.status === 'processing') {
+        setGeneratingMessage(
+          t("imageGeneration.generating.processing", {
+            eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
+          })
+        )
+      }
+    }
+  }
+
+  // 轮询任务状态
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 处理任务完成
+  const handleTaskComplete = (data: any) => {
+    if (data.task_id === currentTaskId) {
+      // INFO: 任务完成
+      console.info('[ImageGeneration] Task completed successfully:', {
+        taskId: data.task_id,
+        imageUrl: data.image_url,
+      })
+
+      // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
+      let imageUrl: string
+      try {
+        const imageUrls = data.image_url
+        if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
+          // JSON 数组字符串，解析并取第一个元素
+          const urls = JSON.parse(imageUrls) as string[]
+          imageUrl = urls[0]
+          console.debug('[ImageGeneration] Parsed image_url from JSON array:', imageUrl)
+        } else if (Array.isArray(imageUrls)) {
+          // 已经是数组，取第一个元素
+          imageUrl = imageUrls[0]
+          console.debug('[ImageGeneration] Extracted first URL from array:', imageUrl)
+        } else if (typeof imageUrls === 'string') {
+          // 直接是字符串
+          imageUrl = imageUrls
+        } else {
+          // 回退到空字符串
+          imageUrl = ''
+        }
+      } catch (error) {
+        // ERROR: 解析失败，回退到原始值
+        console.error('[ImageGeneration] Failed to parse image_url:', error)
+        imageUrl = ''
+      }
+
+      setIsGenerating(false)
+      setGeneratingMessage("")
+      setCurrentTaskId(null)
+      setGeneratedImageUrl(imageUrl)
+      setShowGeneratedImage(true)
+
+      // 保存生成记录ID
+      setCurrentGenerationLogId(Number(data.task_id))
+      console.info('[ImageGeneration] Saved generation log ID:', data.task_id)
+
+      toast({
+        title: t("imageGeneration.toast.generationSuccess"),
+        description: t("imageGeneration.generating.description"),
+      })
+    }
+  }
+
+  // 处理任务失败
+  const handleTaskFailed = (data: any) => {
+    if (data.task_id === currentTaskId) {
+      // ERROR: 任务失败
+      console.error('[ImageGeneration] Task failed:', {
+        taskId: data.task_id,
+        error: data.error_message,
+      })
 
       setIsGenerating(false)
       setGeneratingMessage("")
@@ -129,28 +220,73 @@ export function CreatorMode() {
 
       toast({
         variant: "destructive",
-        title: t("imageGeneration.toast.timeout"),
+        title: t("imageGeneration.toast.generationFailed"),
+        description: data.error_message || t("imageGeneration.toast.generationFailed"),
       })
-    },
-    onProgress: (result) => {
-      // DEBUG: 任务进度 - 更新进度消息
-      if (result.status === 'processing') {
-        setGeneratingMessage(
-          t("imageGeneration.generating.processing", {
-            eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
+    }
+  }
+
+  // 轮询任务状态
+  useEffect(() => {
+    if (!currentTaskId) return
+
+    const checkTaskStatus = async () => {
+      try {
+        const result = await imageGenerationClient.getTaskResult(currentTaskId)
+
+        if ('error' in result) {
+          console.error('[ImageGeneration] Failed to get task status:', result.error)
+          setIsGenerating(false)
+          setGeneratingMessage("")
+          setCurrentTaskId(null)
+          toast({
+            variant: "destructive",
+            title: t("imageGeneration.toast.generationFailed"),
           })
-        )
+          return
+        }
+
+        console.info('[ImageGeneration] Task status check:', {
+          taskId: currentTaskId,
+          status: result.status
+        })
+
+        if (result.status === 'success') {
+          handleTaskComplete(result)
+        } else if (result.status === 'failed') {
+          handleTaskFailed(result)
+        } else if (result.status === 'processing') {
+          setGeneratingMessage(
+            t("imageGeneration.generating.processing", {
+              eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
+            })
+          )
+        }
+      } catch (error) {
+        console.error('[ImageGeneration] Error checking task status:', error)
       }
-    },
-  })
+    }
+
+    // 立即检查一次
+    checkTaskStatus()
+
+    // 开始轮询，每10秒检查一次
+    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [currentTaskId, t, toast])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
     const savedTask = loadTaskFromStorage(DEFAULT_POLLING_CONFIG)
 
     if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
-      // INFO: 恢复轮询 - 发现未完成的任务
-      console.info('[ImageGeneration] Resuming polling from localStorage:', {
+      // INFO: 发现未完成的任务，等待 WebSocket 通知
+      console.info('[ImageGeneration] Found pending task in localStorage:', {
         taskId: savedTask.task_id,
         status: savedTask.status,
         hasPrompt: !!savedTask.prompt,
@@ -160,9 +296,6 @@ export function CreatorMode() {
       setIsGenerating(true)
       setGeneratingMessage(t("imageGeneration.generating.resuming"))
       setCurrentTaskId(savedTask.task_id)
-
-      // 启动轮询（不带 storage 参数，因为已经从 localStorage 加载了）
-      startPolling(savedTask.task_id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // 只在 mount 时执行一次
@@ -444,13 +577,11 @@ export function CreatorMode() {
         description: t("imageGeneration.generating.started"),
       })
 
-      // 保存任务状态并开始轮询
+      // 保存任务状态
       setCurrentTaskId(result.task_id)
-      await startPolling(result.task_id, {
-        status: result.status,
-        prompt,
-        estimated_eta: result.estimated_eta,
-      })
+      
+      // 发送事件通知主页面刷新任务列表
+      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -517,13 +648,11 @@ export function CreatorMode() {
         description: t("imageGeneration.generating.started"),
       })
 
-      // 保存任务状态并开始轮询
+      // 保存任务状态
       setCurrentTaskId(result.task_id)
-      await startPolling(result.task_id, {
-        status: result.status,
-        config: creatorConfig,
-        estimated_eta: result.estimated_eta,
-      })
+      
+      // 发送事件通知主页面刷新任务列表
+      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'

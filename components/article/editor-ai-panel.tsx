@@ -108,85 +108,127 @@ export function EditorAIPanel({
   const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
 
   // 获取任务中心任务
-  useEffect(() => {
-    const fetchTaskCenterTasks = async () => {
-      try {
-        setLoadingTaskCenter(true)
-        // 获取所有类型的任务
-        const taskTypes = Object.values(TaskCenterTaskType)
-        const allTasks: any[] = []
+  const fetchTaskCenterTasks = async () => {
+    try {
+      setLoadingTaskCenter(true)
+      // 获取所有类型的任务
+      const taskTypes = Object.values(TaskCenterTaskType)
+      const allTasks: any[] = []
 
-        for (const type of taskTypes) {
-          const tasks = await taskCenterClient.getTasks({ type })
-          if (Array.isArray(tasks)) {
-            allTasks.push(...tasks)
+      for (const type of taskTypes) {
+        const tasks = await taskCenterClient.getTasks({ type })
+        if (Array.isArray(tasks)) {
+          allTasks.push(...tasks)
+        }
+      }
+
+      // 转换为TaskItem格式
+      const taskItems: TaskItem[] = allTasks.map(task => {
+        let label = `任务中心 - ${task.type}`;
+        
+        // 处理图片任务的特殊标签
+        if (task.type === 'image') {
+          // 尝试从任务数据中获取gen_mode
+          let genMode: string | undefined;
+          // 打印任务数据结构，以便调试
+          console.log('图片任务数据:', {
+            taskId: task.id,
+            hasDetails: !!task.details,
+            hasDetail: !!task.detail,
+            hasGenMode: !!task.gen_mode,
+            detailsGenMode: task.details?.gen_mode,
+            detailGenMode: task.detail?.gen_mode,
+            genMode: task.gen_mode
+          });
+          if (task.details?.gen_mode) {
+            genMode = task.details.gen_mode;
+          } else if (task.detail?.gen_mode) {
+            genMode = task.detail.gen_mode;
+          } else if (task.gen_mode) {
+            genMode = task.gen_mode;
+          }
+          console.log('获取到的genMode:', genMode);
+          switch (genMode) {
+            case 'split_images':
+              label = '反向模式';
+              break;
+            case 'creator':
+              label = '创作模式';
+              break;
+            case 'style':
+              label = '风格模式';
+              break;
+            default:
+              label = '图片任务';
           }
         }
+        
+        return {
+          id: `${task.type}-${task.id.toString()}`,
+          type: "task-center" as TaskType,
+          status: task.status === "completed" || task.status === "success" ? "completed" : 
+                 task.status === "failed" ? "failed" : "pending",
+          label,
+          description: `任务 ID: ${task.id}`,
+          startedAt: new Date(task.created_at).getTime(),
+          taskCenterData: task
+        };
+      })
 
-        // 转换为TaskItem格式
-        const taskItems: TaskItem[] = allTasks.map(task => {
-          let label = `任务中心 - ${task.type}`;
-          
-          // 处理图片任务的特殊标签
-          if (task.type === 'image') {
-            // 尝试从任务数据中获取gen_mode
-            let genMode: string | undefined;
-            // 打印任务数据结构，以便调试
-            console.log('图片任务数据:', {
-              taskId: task.id,
-              hasDetails: !!task.details,
-              hasDetail: !!task.detail,
-              hasGenMode: !!task.gen_mode,
-              detailsGenMode: task.details?.gen_mode,
-              detailGenMode: task.detail?.gen_mode,
-              genMode: task.gen_mode
-            });
-            if (task.details?.gen_mode) {
-              genMode = task.details.gen_mode;
-            } else if (task.detail?.gen_mode) {
-              genMode = task.detail.gen_mode;
-            } else if (task.gen_mode) {
-              genMode = task.gen_mode;
-            }
-            console.log('获取到的genMode:', genMode);
-            switch (genMode) {
-              case 'split_images':
-                label = '反向模式';
-                break;
-              case 'creator':
-                label = '创作模式';
-                break;
-              case 'style':
-                label = '风格模式';
-                break;
-              default:
-                label = '图片任务';
-            }
-          }
-          
-          return {
-            id: `${task.type}-${task.id.toString()}`,
-            type: "task-center" as TaskType,
-            status: task.status === "completed" || task.status === "success" ? "completed" : 
-                   task.status === "failed" ? "failed" : "pending",
-            label,
-            description: `任务 ID: ${task.id}`,
-            startedAt: new Date(task.created_at).getTime(),
-            taskCenterData: task
-          };
-        })
+      // 只保留最近的10个任务
+      taskItems.sort((a, b) => b.startedAt - a.startedAt)
+      setTaskCenterTasks(taskItems.slice(0, 10))
+    } catch (error) {
+      console.error('获取任务中心任务失败:', error)
+    } finally {
+      setLoadingTaskCenter(false)
+    }
+  }
 
-        // 只保留最近的10个任务
-        taskItems.sort((a, b) => b.startedAt - a.startedAt)
-        setTaskCenterTasks(taskItems.slice(0, 10))
-      } catch (error) {
-        console.error('获取任务中心任务失败:', error)
-      } finally {
-        setLoadingTaskCenter(false)
+  // 初始加载任务中心任务
+  useEffect(() => {
+    fetchTaskCenterTasks()
+  }, [])
+
+  // 轮询任务中心任务
+  useEffect(() => {
+    // 检查是否有未完成的任务
+    const hasPendingTasks = taskCenterTasks.some(task => task.status === 'pending')
+    
+    let pollingInterval: NodeJS.Timeout | null = null
+    
+    // 只有当有未完成任务时才轮询
+    if (hasPendingTasks) {
+      console.log('发现未完成任务，开始轮询')
+      // 每20秒刷新一次任务中心任务
+      pollingInterval = setInterval(() => {
+        console.log('轮询任务中心任务')
+        fetchTaskCenterTasks()
+      }, 20000)
+    }
+    
+    // 组件卸载时清除定时器
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
       }
     }
-
-    fetchTaskCenterTasks()
+  }, [taskCenterTasks])
+  
+  // 监听任务创建事件
+  useEffect(() => {
+    const handleTaskCreated = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'TASK_CREATED') {
+        console.log('收到任务创建事件，刷新任务列表')
+        fetchTaskCenterTasks()
+      }
+    }
+    
+    window.addEventListener('message', handleTaskCreated)
+    
+    return () => {
+      window.removeEventListener('message', handleTaskCreated)
+    }
   }, [])
 
   // 获取任务详情

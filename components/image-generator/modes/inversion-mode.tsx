@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, Split, Download, CheckCircle2, Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
-import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Slider } from "@/components/ui/base/slider"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
@@ -46,18 +46,33 @@ export function InversionMode() {
   const [numLayers, setNumLayers] = useState(4)
   const [prompt, setPrompt] = useState("")
 
-  // 轮询配置
-  const { startPolling, stopPolling, isPolling } = useImageGenerationPolling({
-    config: INVERSION_POLLING_CONFIG,
-    onSuccess: (result) => {
+  // 图片生成相关状态
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
+
+  // 轮询任务状态
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 处理任务完成
+  const handleTaskComplete = (data: any) => {
+    if (data.task_id === currentTaskId) {
       console.info('[InversionMode] Split completed successfully')
 
       // 解析多图 URL
       let layerUrls: string[]
-      if (typeof result.image_url === 'string' && result.image_url.startsWith('[')) {
-        layerUrls = JSON.parse(result.image_url) as string[]
-      } else {
-        layerUrls = [result.image_url as string]
+      try {
+        const imageUrls = data.image_url
+        if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
+          layerUrls = JSON.parse(imageUrls) as string[]
+        } else if (Array.isArray(imageUrls)) {
+          layerUrls = imageUrls
+        } else if (typeof imageUrls === 'string') {
+          layerUrls = [imageUrls]
+        } else {
+          layerUrls = []
+        }
+      } catch (error) {
+        console.error('[InversionMode] Failed to parse image_url:', error)
+        layerUrls = []
       }
 
       // 转换为 LayerImage 格式
@@ -72,37 +87,90 @@ export function InversionMode() {
 
       setLayerImages(layers)
       setSplitStatus("completed")
-      setCurrentGenerationLogId(Number(result.task_id))
-      console.info('[InversionMode] Saved generation log ID:', result.task_id)
+      setCurrentGenerationLogId(Number(data.task_id))
+      console.info('[InversionMode] Saved generation log ID:', data.task_id)
 
       toast({ title: t("imageGeneration.inversionMode.splitCompleted") })
-    },
-    onError: (error) => {
-      console.error('[InversionMode] Split failed:', error.message)
+    }
+  }
+
+  // 处理任务失败
+  const handleTaskFailed = (data: any) => {
+    if (data.task_id === currentTaskId) {
+      console.error('[InversionMode] Split failed:', data.error_message)
       setSplitStatus("error")
       toast({
         variant: "destructive",
-        title: error.message || t("imageGeneration.toast.generationFailed"),
+        title: data.error_message || t("imageGeneration.toast.generationFailed"),
       })
-    },
-  })
+    }
+  }
+
+  // 轮询任务状态
+  useEffect(() => {
+    if (!currentTaskId) return
+
+    const checkTaskStatus = async () => {
+      try {
+        const result = await imageGenerationClient.getTaskResult(currentTaskId)
+
+        if ('error' in result) {
+          console.error('[InversionMode] Failed to get task status:', result.error)
+          setSplitStatus("error")
+          setIsProcessing(false)
+          toast({
+            variant: "destructive",
+            title: t("imageGeneration.toast.generationFailed"),
+          })
+          return
+        }
+
+        console.info('[InversionMode] Task status check:', {
+          taskId: currentTaskId,
+          status: result.status
+        })
+
+        if (result.status === 'success') {
+          handleTaskComplete(result)
+          setCurrentTaskId(null)
+          setIsProcessing(false)
+        } else if (result.status === 'failed') {
+          handleTaskFailed(result)
+          setCurrentTaskId(null)
+          setIsProcessing(false)
+        }
+      } catch (error) {
+        console.error('[InversionMode] Error checking task status:', error)
+      }
+    }
+
+    // 立即检查一次
+    checkTaskStatus()
+
+    // 开始轮询，每10秒检查一次
+    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [currentTaskId, t, toast, locale])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
     const savedTask = loadTaskFromStorage(INVERSION_POLLING_CONFIG)
 
     if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
-      // INFO: 恢复轮询 - 发现未完成的任务
-      console.info('[InversionMode] Resuming polling from localStorage:', {
+      // INFO: 发现未完成的任务，等待 WebSocket 通知
+      console.info('[InversionMode] Found pending task in localStorage:', {
         taskId: savedTask.task_id,
         status: savedTask.status,
       })
 
       setSplitStatus("splitting")
       setIsProcessing(true)
-
-      // 启动轮询（不带 storage 参数，因为已经从 localStorage 加载了）
-      startPolling(savedTask.task_id)
+      setCurrentTaskId(savedTask.task_id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // 只在 mount 时执行一次
@@ -242,11 +310,11 @@ export function InversionMode() {
         return
       }
 
-      // 启动轮询
-      await startPolling(result.task_id, {
-        status: result.status,
-        prompt: prompt,
-      })
+      // 保存任务状态
+      setCurrentTaskId(result.task_id)
+      
+      // 发送事件通知主页面刷新任务列表
+      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
     } catch (error) {
       console.error('[InversionMode] Unexpected error:', error)
       setSplitStatus("error")
@@ -256,7 +324,7 @@ export function InversionMode() {
         title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [uploadedImageUrl, numLayers, prompt, startPolling, t, toast])
+  }, [uploadedImageUrl, numLayers, prompt, t, toast])
 
   const handleToggleLayer = (layerId: string) => {
     setSelectedLayers(prev => {

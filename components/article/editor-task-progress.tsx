@@ -246,10 +246,15 @@ export function EditorTaskProgress(props: EditorTaskProgressProps) {
 
     // Re-render every second to keep time-ago fresh
     const [, setTick] = useState(0)
+    // 用于触发任务列表更新的状态
+    const [taskUpdateTrigger, setTaskUpdateTrigger] = useState(0)
+    
     useEffect(() => {
         const interval = setInterval(() => setTick((n) => n + 1), 1000)
         return () => clearInterval(interval)
     }, [])
+    
+
 
     if (allTasks.length === 0) {
         return (
