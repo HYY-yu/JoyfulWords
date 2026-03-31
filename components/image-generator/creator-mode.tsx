@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { ImageIcon, RefreshCwIcon, SaveIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -58,97 +58,7 @@ export function CreatorMode() {
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
-  // 处理任务完成事件
-  const handleTaskComplete = (payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // INFO: 任务完成 - WebSocket 通知
-      console.info('[ImageGeneration] Task completed successfully via WebSocket:', {
-        taskId: payload.task_id,
-        imageUrl: payload.outputs?.image_urls,
-      })
 
-      // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
-      let imageUrl: string
-      try {
-        const imageUrls = payload.outputs?.image_urls
-        if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
-          // JSON 数组字符串，解析并取第一个元素
-          const urls = JSON.parse(imageUrls) as string[]
-          imageUrl = urls[0]
-          console.debug('[ImageGeneration] Parsed image_url from JSON array:', imageUrl)
-        } else if (Array.isArray(imageUrls)) {
-          // 已经是数组，取第一个元素
-          imageUrl = imageUrls[0]
-          console.debug('[ImageGeneration] Extracted first URL from array:', imageUrl)
-        } else if (typeof imageUrls === 'string') {
-          // 直接是字符串
-          imageUrl = imageUrls
-        } else {
-          // 回退到空字符串
-          imageUrl = ''
-        }
-      } catch (error) {
-        // ERROR: 解析失败，回退到原始值
-        console.error('[ImageGeneration] Failed to parse image_url:', error)
-        imageUrl = ''
-      }
-
-      setIsGenerating(false)
-      setGeneratingMessage("")
-      setCurrentTaskId(null)
-      setGeneratedImageUrl(imageUrl)
-      setShowGeneratedImage(true)
-
-      // 保存生成记录ID
-      setCurrentGenerationLogId(Number(payload.task_id))
-      console.info('[ImageGeneration] Saved generation log ID:', payload.task_id)
-
-      toast({
-        title: t("imageGeneration.toast.generationSuccess"),
-        description: t("imageGeneration.generating.description"),
-      })
-    }
-  }
-
-  // 处理任务失败事件
-  const handleTaskFailed = (payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // ERROR: 任务失败 - WebSocket 通知
-      console.error('[ImageGeneration] Task failed via WebSocket:', {
-        taskId: payload.task_id,
-        error: payload.error,
-      })
-
-      setIsGenerating(false)
-      setGeneratingMessage("")
-      setCurrentTaskId(null)
-
-      toast({
-        variant: "destructive",
-        title: t("imageGeneration.toast.generationFailed"),
-        description: payload.error || t("imageGeneration.toast.generationFailed"),
-      })
-    }
-  }
-
-  // 处理任务更新事件
-  const handleTaskUpdate = (payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // DEBUG: 任务进度 - WebSocket 通知
-      console.debug('[ImageGeneration] Task status updated via WebSocket:', {
-        taskId: payload.task_id,
-        status: payload.status,
-      })
-
-      if (payload.status === 'processing') {
-        setGeneratingMessage(
-          t("imageGeneration.generating.processing", {
-            eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
-          })
-        )
-      }
-    }
-  }
 
   // 轮询任务状态
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
