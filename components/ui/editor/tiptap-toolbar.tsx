@@ -66,7 +66,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 p-2 border-b">
+    <div className="flex items-center justify-between gap-2 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="flex flex-wrap gap-1">
       {/* Undo/Redo */}
       <ToolbarButton
@@ -87,7 +87,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         <Redo2Icon className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Text Formatting */}
       <ToolbarButton
@@ -134,17 +134,17 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         <Code2Icon className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Highlight */}
       <HighlightButtons editor={editor} />
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Text Alignment */}
       <TextAlignButtons editor={editor} />
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Headings */}
       <select
@@ -177,7 +177,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         <option value="h3">{t("tiptapEditor.toolbar.heading.heading3")}</option>
       </select>
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Lists */}
       <ToolbarButton
@@ -200,7 +200,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         <ListOrderedIcon className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Quote */}
       <ToolbarButton
@@ -229,7 +229,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         <SeparatorHorizontalIcon className="h-4 w-4" />
       </ToolbarButton>
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* Link */}
       <ToolbarButton
@@ -258,7 +258,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         )}
       </ToolbarButton>
 
-      <div className="w-px h-8 bg-border mx-1" />
+      <div className="w-px h-8 bg-border/40 mx-1" />
 
       {/* AI Rewrite */}
       <ToolbarButton
