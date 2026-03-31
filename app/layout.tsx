@@ -1,7 +1,10 @@
 import type React from "react"
 import type { Metadata } from "next"
+import Script from "next/script"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
+import { APP_URL } from "@/lib/config"
+import { SITE_NAME } from "@/lib/seo"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +17,25 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "创作者工具箱 - Content Creator Tools",
-  description: "Professional SAAS toolbox for content creators",
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: `${SITE_NAME} - AI Content Creation Workspace`,
+    template: `%s`,
+  },
+  description: "AI content creation workspace for writing, visuals, material management, and SEO optimization.",
   generator: "v0.app",
+  applicationName: SITE_NAME,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    siteName: SITE_NAME,
+    type: "website",
+    locale: "zh_CN",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
   icons: {
     icon: [
       {
@@ -48,9 +67,22 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: SITE_NAME,
+    url: APP_URL,
+    email: "support@joyword.link",
+  }
+
   return (
     <html lang="zh-CN" className="h-full" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased h-full`}>
+        <Script
+          id="joyfulwords-organization-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <I18nProvider>
           <AuthProvider>
             <WebSocketProvider>

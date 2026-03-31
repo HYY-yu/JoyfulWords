@@ -4,10 +4,22 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import { BlogLanguageToggle } from "@/components/blog/blog-language-toggle"
 import { getBlogList } from "@/lib/blog"
 import { getServerDictionary, getServerLocale } from "@/lib/i18n/server"
+import { buildMetadata } from "@/lib/seo"
 
 export const metadata: Metadata = {
-  title: "Blog | JoyfulWords",
-  description: "Markdown-driven blog posts for JoyfulWords.",
+  ...buildMetadata({
+    title: "Blog",
+    description:
+      "Explore JoyfulWords articles on AI writing, SEO content creation, blogging workflows, visuals, and content production systems.",
+    path: "/blog",
+    keywords: [
+      "AI writing blog",
+      "SEO content creation",
+      "blog writing workflow",
+      "content marketing writing",
+      "JoyfulWords blog",
+    ],
+  }),
 }
 
 function formatDate(dateString: string, locale: "zh" | "en") {
