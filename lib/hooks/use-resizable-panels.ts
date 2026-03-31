@@ -22,6 +22,8 @@ interface ResizablePanelsReturn {
   centerWidth: number
   leftCollapsed: boolean
   rightCollapsed: boolean
+  leftAtMin: boolean
+  rightAtMin: boolean
   toggleLeftPanel: () => void
   toggleRightPanel: () => void
   handleLeftDragStart: (e: React.MouseEvent) => void
@@ -67,6 +69,8 @@ export function useResizablePanels(options: UseResizablePanelsOptions): Resizabl
 
   const [leftCollapsed, setLeftCollapsed] = useState(false)
   const [rightCollapsed, setRightCollapsed] = useState(false)
+  const [leftAtMin, setLeftAtMin] = useState(false)
+  const [rightAtMin, setRightAtMin] = useState(false)
 
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify({ leftWidth, rightWidth }))
@@ -97,6 +101,7 @@ export function useResizablePanels(options: UseResizablePanelsOptions): Resizabl
           const maxAllowed = 100 - (rightCollapsed ? 0 : rightWidth) - centerMinPct
           const newWidth = Math.max(minPct, Math.min(maxPct, Math.min(maxAllowed, percentage)))
           setLeftWidth(newWidth)
+          setLeftAtMin(percentage < minPct)
         } else {
           const rightPct = 100 - (relativeX / containerWidth) * 100
           const minPct = (rightConstraints.minWidth / containerWidth) * 100
@@ -105,6 +110,7 @@ export function useResizablePanels(options: UseResizablePanelsOptions): Resizabl
           const maxAllowed = 100 - (leftCollapsed ? 0 : leftWidth) - centerMinPct
           const newWidth = Math.max(minPct, Math.min(maxPct, Math.min(maxAllowed, rightPct)))
           setRightWidth(newWidth)
+          setRightAtMin(rightPct < minPct)
         }
       }
 
@@ -113,6 +119,8 @@ export function useResizablePanels(options: UseResizablePanelsOptions): Resizabl
         document.removeEventListener("mouseup", handleMouseUp)
         document.body.style.cursor = ""
         document.body.style.userSelect = ""
+        setLeftAtMin(false)
+        setRightAtMin(false)
       }
 
       document.addEventListener("mousemove", handleMouseMove)
@@ -128,6 +136,8 @@ export function useResizablePanels(options: UseResizablePanelsOptions): Resizabl
     centerWidth,
     leftCollapsed,
     rightCollapsed,
+    leftAtMin,
+    rightAtMin,
     toggleLeftPanel,
     toggleRightPanel,
     handleLeftDragStart: createDragHandler("left"),

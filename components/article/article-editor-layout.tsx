@@ -21,6 +21,7 @@ export function ArticleEditorLayout({
     rightWidth,
     leftCollapsed,
     rightCollapsed,
+    leftAtMin,
     handleLeftDragStart,
     handleRightDragStart,
     containerRef,
@@ -28,7 +29,7 @@ export function ArticleEditorLayout({
     storageKey: "joyfulwords-editor-panel-widths",
     defaultLeftWidth: 22,
     defaultRightWidth: 24,
-    leftConstraints: { minWidth: 160, maxWidth: 400 },
+    leftConstraints: { minWidth: 320, maxWidth: 400 },
     rightConstraints: { minWidth: 200, maxWidth: 420 },
     centerMinWidth: 400,
   })
@@ -69,7 +70,12 @@ export function ArticleEditorLayout({
                 className="group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
                 onMouseDown={handleLeftDragStart}
               >
-                <div className="h-16 w-[3px] rounded-full bg-border/90 transition-colors duration-150 group-hover:bg-primary/35 group-active:bg-primary/45" />
+                <div className={`h-16 w-[3px] rounded-full transition-colors duration-150 ${leftAtMin ? "bg-destructive/60" : "bg-border/90 group-hover:bg-primary/35 group-active:bg-primary/45"}`} />
+                {leftAtMin && (
+                  <div className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-[calc(50%+24px)] whitespace-nowrap rounded-md bg-foreground/90 px-2.5 py-1 text-xs text-background shadow-md">
+                    已到最小宽度
+                  </div>
+                )}
               </div>
             </>
           )}

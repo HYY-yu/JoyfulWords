@@ -310,7 +310,7 @@ function SearchCardShell({
   return (
     <div
       className={cn(
-        "rounded-[24px] border border-slate-200 bg-white shadow-[0_22px_48px_-34px_rgba(15,23,42,0.28)]",
+        "rounded-[8px] border border-slate-200 bg-white shadow-[0_22px_48px_-34px_rgba(15,23,42,0.28)]",
         className
       )}
     >
@@ -374,7 +374,7 @@ function SearchResultContent({
     <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5">
       <p
         className={cn(
-          "whitespace-pre-wrap text-xs leading-5 text-slate-600",
+          "whitespace-pre-wrap break-words text-xs leading-5 text-slate-600",
           !expanded && shouldCollapse && "line-clamp-4"
         )}
       >
@@ -407,7 +407,7 @@ function SearchResultListItem({
   const { t } = useTranslation()
 
   return (
-    <label className="flex cursor-pointer gap-3 rounded-[20px] border border-slate-200 bg-slate-50/60 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]">
+    <label className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]">
       <Checkbox checked={checked} onCheckedChange={onCheckedChange} className="mt-1" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold leading-6 text-slate-900">{item.title}</p>
@@ -446,7 +446,7 @@ function SearchImageItem({
   const { t } = useTranslation()
 
   return (
-    <label className="group relative cursor-pointer overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50">
+    <label className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={t("contentWriting.materialPanel.imageResultAlt")} className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
       <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
@@ -530,11 +530,11 @@ function SearchResultCard({
 
         <div className="flex flex-col gap-4 px-4 py-4">
           {result.material_type === "info" && result.ai_result?.ai_answer ? (
-            <div className="rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
                 {t("contentWriting.materialPanel.aiSummary")}
               </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
                 {result.ai_result.ai_answer}
               </p>
             </div>
@@ -888,8 +888,8 @@ function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
         ) : null}
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 min-w-0">
-        <div className="flex min-w-0 flex-col gap-3 px-0.5 pr-2">
+      <ScrollArea className="min-h-0 flex-1 min-w-0 [&_[data-slot=scroll-area-scrollbar]]:hidden">
+        <div className="flex min-w-0 flex-col gap-3 px-0.5">
           {!activeTask ? <SearchEmptyState /> : null}
 
           {activeTask && detail?.status === "success" ? (
