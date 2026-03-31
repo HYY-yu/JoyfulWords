@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react"
 import { BlogLanguageToggle } from "@/components/blog/blog-language-toggle"
 import { getBlogPostBySlug, getBlogSlugs } from "@/lib/blog"
 import { getServerDictionary, getServerLocale } from "@/lib/i18n/server"
+import { buildCanonicalUrl, DEFAULT_OG_IMAGE, SITE_NAME } from "@/lib/seo"
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -32,13 +33,42 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
   if (!post) {
     return {
-      title: "Blog | JoyfulWords",
+      title: `Blog | ${SITE_NAME}`,
+      robots: {
+        index: false,
+        follow: false,
+      },
     }
   }
 
+  const canonical = buildCanonicalUrl(`/blog/${slug}`)
+  const title = `${post.title} | ${SITE_NAME}`
+
   return {
-    title: `${post.title} | JoyfulWords`,
+    title,
     description: post.summary,
+    alternates: {
+      canonical,
+    },
+    openGraph: {
+      title,
+      description: post.summary,
+      type: "article",
+      url: canonical,
+      siteName: SITE_NAME,
+      publishedTime: post.date,
+      images: [
+        {
+          url: DEFAULT_OG_IMAGE,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description: post.summary,
+      images: [DEFAULT_OG_IMAGE],
+    },
   }
 }
 
