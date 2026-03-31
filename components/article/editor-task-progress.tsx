@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, WandSparklesIcon, ImageIcon } from "lucide-react"
+import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, WandSparklesIcon, ImageIcon, ClipboardListIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
 
 // ---- Types ----
 
-export type TaskType = "ai-edit" | "image-generation"
+export type TaskType = "ai-edit" | "image-generation" | "task-center"
 export type TaskStatus = "pending" | "completed" | "failed"
 
 export interface TaskItem {
@@ -18,11 +18,13 @@ export interface TaskItem {
     label: string
     description: string
     startedAt: number
+    taskCenterData?: any // 存储任务中心任务的原始数据
 }
 
 interface EditorTaskProgressProps {
     aiEditTasks: Map<string, AIEditState>
     imageGenerationTasks?: TaskItem[]
+    taskCenterTasks?: TaskItem[]
     onRemoveTask: (id: string, type: TaskType) => void
     onClickTask: (task: TaskItem) => void
 }
@@ -81,8 +83,12 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
     const typeIcon =
         task.type === "ai-edit" ? (
             <WandSparklesIcon className="w-4 h-4 shrink-0" />
-        ) : (
+        ) : task.type === "image-generation" ? (
             <ImageIcon className="w-4 h-4 shrink-0" />
+        ) : task.type === "task-center" && task.taskCenterData?.type === "image" ? (
+            <ImageIcon className="w-4 h-4 shrink-0" />
+        ) : (
+            <ClipboardListIcon className="w-4 h-4 shrink-0" />
         )
 
     const statusIcon = () => {
@@ -104,7 +110,51 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         task.status === "failed" && "border-red-200 bg-red-50/50 hover:bg-red-50"
     )
 
-    return (
+    // 获取参考图片的第一张
+  const getFirstReferenceImage = () => {
+    if (task.type === "task-center" && task.taskCenterData?.type === "image") {
+      // 尝试从不同位置获取reference_image_urls
+      let referenceImages: string | undefined;
+      if (task.taskCenterData.details?.reference_image_urls) {
+        referenceImages = task.taskCenterData.details.reference_image_urls;
+      } else if (task.taskCenterData.detail?.reference_image_urls) {
+        referenceImages = task.taskCenterData.detail.reference_image_urls;
+      } else if (task.taskCenterData.reference_image_urls) {
+        referenceImages = task.taskCenterData.reference_image_urls;
+      }
+      
+      if (referenceImages) {
+        let urls: string[] = [];
+        try {
+          // 尝试解析JSON字符串
+          const parsed = JSON.parse(referenceImages);
+          if (Array.isArray(parsed)) {
+            urls = parsed;
+          } else if (typeof parsed === 'string') {
+            urls = [parsed];
+          }
+        } catch (e) {
+          // 如果解析失败，尝试按逗号拆分
+          urls = referenceImages.split(',');
+        }
+        
+        // 清理URL并取第一张
+        const firstUrl = urls[0];
+        if (firstUrl) {
+          // 清理URL：去除反引号、空格和可能的引号
+          const cleanedUrl = firstUrl.trim()
+            .replace(/[`"']/g, '') // 去除反引号和引号
+            .trim();
+          return cleanedUrl || null;
+        }
+      }
+    }
+    return null;
+  };
+
+  const firstReferenceImage = getFirstReferenceImage();
+
+  return (
         <div
             className={borderClass}
             onClick={onClick}
@@ -113,16 +163,29 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         >
             {/* Header row */}
             <div className="flex items-center gap-2">
-                {/* Type icon */}
-                <span
-                    className={cn(
-                        task.status === "pending" && "text-blue-500",
-                        task.status === "completed" && "text-green-500",
-                        task.status === "failed" && "text-red-500"
-                    )}
-                >
-                    {typeIcon}
-                </span>
+                {/* Type icon or image preview */}
+                {firstReferenceImage ? (
+                    <div className="relative w-8 h-8 rounded-md overflow-hidden border border-border flex-shrink-0">
+                        <img 
+                            src={firstReferenceImage} 
+                            alt="参考图片" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.jpg';
+                            }}
+                        />
+                    </div>
+                ) : (
+                    <span
+                        className={cn(
+                            task.status === "pending" && "text-blue-500",
+                            task.status === "completed" && "text-green-500",
+                            task.status === "failed" && "text-red-500"
+                        )}
+                    >
+                        {typeIcon}
+                    </span>
+                )}
 
                 {/* Label */}
                 <span className="text-xs font-semibold flex-1 truncate">
@@ -154,12 +217,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
                 </p>
             )}
 
-            {/* Progress bar for pending */}
-            {isPending && (
-                <div className="mt-2 h-1 rounded-full bg-blue-100 overflow-hidden">
-                    <div className="h-full bg-blue-400 rounded-full animate-pulse w-2/3" />
-                </div>
-            )}
+            {/* 移除进度条展示 */}
 
             {/* Time ago */}
             <p className="mt-1.5 text-[10px] text-muted-foreground/70">
@@ -171,12 +229,8 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 
 // ---- Main Component ----
 
-export function EditorTaskProgress({
-    aiEditTasks,
-    imageGenerationTasks = [],
-    onRemoveTask,
-    onClickTask,
-}: EditorTaskProgressProps) {
+export function EditorTaskProgress(props: EditorTaskProgressProps) {
+    const { aiEditTasks, imageGenerationTasks = [], taskCenterTasks, onRemoveTask, onClickTask } = props
     const { t } = useTranslation()
 
     // Convert AI edit tasks to unified TaskItem[]
@@ -185,17 +239,22 @@ export function EditorTaskProgress({
     )
 
     // Merge all tasks
-    const allTasks: TaskItem[] = [...aiEditItems, ...imageGenerationTasks]
+    const allTasks: TaskItem[] = [...aiEditItems, ...imageGenerationTasks, ...(taskCenterTasks || [])]
 
     // Sort newest first
     allTasks.sort((a, b) => b.startedAt - a.startedAt)
 
     // Re-render every second to keep time-ago fresh
     const [, setTick] = useState(0)
+    // 用于触发任务列表更新的状态
+    const [taskUpdateTrigger, setTaskUpdateTrigger] = useState(0)
+    
     useEffect(() => {
         const interval = setInterval(() => setTick((n) => n + 1), 1000)
         return () => clearInterval(interval)
     }, [])
+    
+
 
     if (allTasks.length === 0) {
         return (

@@ -9,7 +9,8 @@ export enum WebSocketMessageType {
   PONG = 'pong',
   TASK_UPDATE = 'task_update',
   TASK_COMPLETE = 'task_complete',
-  TASK_FAILED = 'task_failed'
+  TASK_FAILED = 'task_failed',
+  TASK_CREATE = 'task_create'
 }
 
 // WebSocket 消息接口
@@ -32,9 +33,9 @@ class WebSocketService {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000 // 1 second
-  private heartbeatInterval: NodeJS.Timeout | null = null
   private toast: ((props: any) => any) | null = null
   private notificationSound: HTMLAudioElement | null = null
+  private eventListeners: Map<string, ((data: any) => void)[]> = new Map()
 
   // 初始化 WebSocket 服务
   init(token: string, toastInstance: any) {
@@ -43,13 +44,19 @@ class WebSocketService {
     console.log('Toast 实例:', !!toastInstance)
     console.log('Toast 实例类型:', typeof toastInstance)
     this.initNotificationSound()
+    // 暂时不自动连接，等待明确调用 connect 方法
+    console.log('WebSocket 服务已初始化，等待连接')
+  }
+
+  // 手动连接 WebSocket
+  connectWebSocket(token: string) {
     this.connect(token)
   }
 
   // 初始化通知声音
   private initNotificationSound() {
     try {
-      this.notificationSound = new Audio('/lib/websocket/tips.mp3')
+      this.notificationSound = new Audio('https://cdn.joyword.link/audio/tips.mp3')
       console.log('通知声音初始化成功')
     } catch (error) {
       console.error('初始化通知声音失败:', error)
@@ -83,7 +90,6 @@ class WebSocketService {
       this.ws.onopen = () => {
         console.log('WebSocket 连接成功')
         this.reconnectAttempts = 0
-        this.startHeartbeat()
       }
 
       this.ws.onmessage = (event) => {
@@ -116,8 +122,6 @@ class WebSocketService {
 
       this.ws.onclose = () => {
         console.log('WebSocket 连接关闭')
-        this.stopHeartbeat()
-        this.reconnect()
       }
     } catch (error) {
       // 检查 error 是否是空对象
@@ -146,6 +150,10 @@ class WebSocketService {
         case WebSocketMessageType.TASK_UPDATE:
           console.log('处理任务更新消息')
           this.handleTaskUpdate(message.payload)
+          break
+        case WebSocketMessageType.TASK_CREATE:
+          console.log('处理任务创建消息')
+          this.handleTaskCreate(message.payload)
           break
         case WebSocketMessageType.WELCOME:
           console.log('欢迎消息:', message.payload)
@@ -184,6 +192,14 @@ class WebSocketService {
     } else {
       console.error('Toast 实例不可用或不是函数')
     }
+    // 触发任务完成事件
+    this.emit('task:complete', payload)
+    // 触发任务更新事件
+    this.emit('task:update', payload)
+    // 触发图片生成任务完成事件，以便图片生成组件可以监听
+    if (payload.task_type === 'image') {
+      this.emit('image:task:complete', payload)
+    }
   }
 
   // 处理任务失败通知
@@ -207,56 +223,44 @@ class WebSocketService {
     } else {
       console.error('Toast 实例不可用或不是函数')
     }
+    // 触发任务失败事件
+    this.emit('task:failed', payload)
+    // 触发任务更新事件
+    this.emit('task:update', payload)
+    // 触发图片生成任务失败事件，以便图片生成组件可以监听
+    if (payload.task_type === 'image') {
+      this.emit('image:task:failed', payload)
+    }
   }
 
   // 处理任务状态更新
   private handleTaskUpdate(payload: TaskUpdatePayload) {
     // 可以在这里添加任务状态更新的逻辑
     console.log('任务状态更新:', payload)
-  }
-
-  // 发送心跳
-  private startHeartbeat() {
-    this.heartbeatInterval = setInterval(() => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        this.send({
-          type: WebSocketMessageType.PING,
-          payload: {}
-        })
-      }
-    }, 30000) // 30秒发送一次心跳
-  }
-
-  // 停止心跳
-  private stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval)
-      this.heartbeatInterval = null
+    // 触发任务更新事件
+    this.emit('task:update', payload)
+    // 触发图片生成任务更新事件，以便图片生成组件可以监听
+    if (payload.task_type === 'image') {
+      this.emit('image:task:update', payload)
     }
   }
 
-  // 重新连接
+  // 处理任务创建通知
+  private handleTaskCreate(payload: TaskUpdatePayload) {
+    console.log('收到任务创建通知:', payload)
+    // 触发任务创建事件
+    this.emit('task:create', payload)
+    // 触发任务更新事件，以便任务列表可以刷新
+    this.emit('task:update', payload)
+    // 触发图片生成任务创建事件，以便图片生成组件可以监听
+    if (payload.task_type === 'image') {
+      this.emit('image:task:create', payload)
+    }
+  }
+
+  // 重新连接方法（已禁用）
   private reconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      console.log(`尝试重新连接 (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
-      setTimeout(() => {
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          this.connect(token)
-        }
-      }, this.reconnectDelay * this.reconnectAttempts)
-    } else {
-      console.log('WebSocket 重连失败，已达到最大尝试次数，将在 30 秒后再次尝试...')
-      // 30 秒后重置尝试次数并再次尝试连接
-      setTimeout(() => {
-        this.reconnectAttempts = 0
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          this.connect(token)
-        }
-      }, 30000) // 30 秒后再次尝试
-    }
+    console.log('WebSocket 重连已禁用')
   }
 
   // 发送消息
@@ -266,9 +270,36 @@ class WebSocketService {
     }
   }
 
+  // 监听事件
+  on(event: string, callback: (data: any) => void) {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, [])
+    }
+    this.eventListeners.get(event)?.push(callback)
+  }
+
+  // 取消监听
+  off(event: string, callback: (data: any) => void) {
+    const listeners = this.eventListeners.get(event)
+    if (listeners) {
+      this.eventListeners.set(event, listeners.filter(cb => cb !== callback))
+    }
+  }
+
+  // 触发事件
+  private emit(event: string, data: any) {
+    const listeners = this.eventListeners.get(event)
+    listeners?.forEach(callback => {
+      try {
+        callback(data)
+      } catch (error) {
+        console.error('触发事件失败:', error)
+      }
+    })
+  }
+
   // 关闭连接
   close() {
-    this.stopHeartbeat()
     if (this.ws) {
       this.ws.close()
       this.ws = null

@@ -1,22 +1,15 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, Copy } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
-import { useImageGenerationPolling, loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { ModelSelector } from "@/components/image-generator/ui/model-selector"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Button } from "@/components/ui/base/button"
-
-// Style 模式专用的轮询配置
-const STYLE_POLLING_CONFIG = {
-  ...require('@/lib/api/image-generation/types').DEFAULT_POLLING_CONFIG,
-  storageKey: 'joyfulwords-style-generation-task',
-}
 
 // 风格项目接口
 interface StyleItem {
@@ -104,6 +97,7 @@ export function StyleMode() {
   const [isUploading, setIsUploading] = useState(false)
   const [currentGenerationLogId, setCurrentGenerationLogId] = useState<number | null>(null)
   const [isSavingToMaterials, setIsSavingToMaterials] = useState(false)
+  const [currentTaskId, setCurrentTaskId] = useState<number | null>(null)
 
   // 风格列表相关状态
   const [styles, setStyles] = useState<StyleItem[]>([])
@@ -192,59 +186,89 @@ export function StyleMode() {
     fetchModels()
   }, [t, toast])
 
-  // 轮询配置
-  const { startPolling, stopPolling, isPolling } = useImageGenerationPolling({
-    config: STYLE_POLLING_CONFIG,
-    onSuccess: (result) => {
-      console.info('[StyleMode] Generation completed successfully')
+  // 轮询任务状态
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-      // 解析 image_url（可能是字符串或 JSON 数组字符串）
-      let imageUrl: string
-      if (typeof result.image_url === 'string' && result.image_url.startsWith('[')) {
-        const urls = JSON.parse(result.image_url) as string[]
-        imageUrl = urls[0]
-      } else {
-        imageUrl = result.image_url as string
-      }
-
-      setRenderedImage(imageUrl)
-      setRenderStatus("completed")
-
-      // 保存生成记录ID
-      setCurrentGenerationLogId(Number(result.task_id))
-      console.info('[StyleMode] Saved generation log ID:', result.task_id)
-
-      toast({ title: t("imageGeneration.toast.generationSuccess") })
-    },
-    onError: (error) => {
-      console.error('[StyleMode] Generation failed:', error.message)
-      setRenderStatus("error")
-      toast({
-        variant: "destructive",
-        title: error.message || t("imageGeneration.toast.generationFailed"),
-      })
-    },
-  })
-
-  // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
-    const savedTask = loadTaskFromStorage(STYLE_POLLING_CONFIG)
+    if (!currentTaskId) return
 
-    if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
-      // INFO: 恢复轮询 - 发现未完成的任务
-      console.info('[StyleMode] Resuming polling from localStorage:', {
-        taskId: savedTask.task_id,
-        status: savedTask.status,
-        hasPrompt: !!savedTask.prompt,
-      })
+    const checkTaskStatus = async () => {
+      try {
+        const result = await imageGenerationClient.getTaskResult(currentTaskId.toString())
 
-      setRenderStatus("generating")
+        if ('error' in result) {
+          console.error('[StyleMode] Failed to get task status:', result.error)
+          setRenderStatus("error")
+          setCurrentTaskId(null)
+          toast({
+            variant: "destructive",
+            title: t("imageGeneration.toast.generationFailed"),
+          })
+          return
+        }
 
-      // 启动轮询（不带 storage 参数，因为已经从 localStorage 加载了）
-      startPolling(savedTask.task_id)
+        console.info('[StyleMode] Task status check:', {
+          taskId: currentTaskId,
+          status: result.status
+        })
+
+        if (result.status === 'success') {
+          // 解析 image_url（可能是字符串或数组）
+          let imageUrl: string
+          if (result.image_url) {
+            if (Array.isArray(result.image_url) && result.image_url.length > 0) {
+              imageUrl = result.image_url[0]
+            } else if (typeof result.image_url === 'string') {
+              if (result.image_url.startsWith('[')) {
+                try {
+                  const urls = JSON.parse(result.image_url) as string[]
+                  imageUrl = urls[0]
+                } catch {
+                  imageUrl = result.image_url
+                }
+              } else {
+                imageUrl = result.image_url
+              }
+            } else {
+              imageUrl = String(result.image_url)
+            }
+          } else {
+            imageUrl = ''
+          }
+
+          setRenderedImage(imageUrl)
+          setRenderStatus("completed")
+          setCurrentGenerationLogId(currentTaskId)
+          setCurrentTaskId(null)
+
+          toast({ title: t("imageGeneration.toast.generationSuccess") })
+        } else if (result.status === 'failed') {
+          console.error('[StyleMode] Task failed:', result.error_message)
+          setRenderStatus("error")
+          setCurrentTaskId(null)
+
+          toast({
+            variant: "destructive",
+            title: result.error_message || t("imageGeneration.toast.generationFailed"),
+          })
+        }
+      } catch (error) {
+        console.error('[StyleMode] Error checking task status:', error)
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // 只在 mount 时执行一次
+
+    // 立即检查一次
+    checkTaskStatus()
+
+    // 开始轮询，每10秒检查一次
+    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
+  }, [currentTaskId, t, toast])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsUploading(true)
@@ -410,11 +434,11 @@ export function StyleMode() {
         estimatedEta: result.estimated_eta
       })
 
-      // 启动轮询
-      await startPolling(result.task_id, {
-        status: result.status,
-        prompt: selectedStyle.full_prompt,
-      })
+      // 设置当前任务ID
+      setCurrentTaskId(Number(result.task_id))
+      
+      // 发送事件通知主页面刷新任务列表
+      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
     } catch (error) {
       console.error('[StyleMode] Generation error:', error)
       setRenderStatus("error")
@@ -492,7 +516,7 @@ export function StyleMode() {
     setRenderedImage(null)
     setSelectedStyle(null)
     setRenderStatus("idle")
-    stopPolling()
+    setCurrentTaskId(null)
   }
 
   const handleRetryFetchStyles = () => {
@@ -593,7 +617,7 @@ export function StyleMode() {
               {/* 已上传图片的预览 */}
               <div
                 onClick={() => {
-                  if (isUploading || isPolling) return
+                  if (isUploading || currentTaskId) return
                   const input = document.createElement("input")
                   input.type = "file"
                   input.accept = "image/*"
@@ -604,7 +628,7 @@ export function StyleMode() {
                   input.click()
                 }}
                 className={`relative aspect-square rounded-2xl border-2 border-dashed transition-all duration-300 overflow-hidden ${
-                  isUploading || isPolling
+                  isUploading || currentTaskId
                     ? "border-muted bg-muted/20 cursor-not-allowed"
                     : "border-border/50 hover:border-primary/50 hover:bg-muted/50 cursor-pointer"
                 }`}
@@ -620,7 +644,7 @@ export function StyleMode() {
                   </div>
                 )}
                 <div className={`absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors duration-200 flex items-center justify-center ${
-                  isUploading || isPolling ? "opacity-0" : "opacity-0 hover:opacity-100"
+                  isUploading || currentTaskId ? "opacity-0" : "opacity-0 hover:opacity-100"
                 }`}>
                   <Upload className="w-8 h-8 text-foreground" />
                 </div>
@@ -629,9 +653,9 @@ export function StyleMode() {
               {/* 重新上传按钮 */}
               <button
                 onClick={handleReset}
-                disabled={isPolling}
+                disabled={!!currentTaskId}
                 className={`text-xs transition-colors w-fit ${
-                  isPolling
+                  currentTaskId
                     ? "text-muted-foreground cursor-not-allowed"
                     : "text-destructive hover:text-destructive/80"
                 }`}
@@ -675,7 +699,7 @@ export function StyleMode() {
                 !uploadedImageUrl ||
                 !selectedStyle ||
                 !selectedModel ||
-                isPolling ||
+                !!currentTaskId ||
                 isUploading
               }
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -683,7 +707,7 @@ export function StyleMode() {
                 !uploadedImageUrl ||
                 !selectedStyle ||
                 !selectedModel ||
-                isPolling ||
+                currentTaskId ||
                 isUploading
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95"
@@ -702,7 +726,7 @@ export function StyleMode() {
             </button>
 
             {/* 状态提示 */}
-            {!isUploading && !isPolling && renderStatus === "idle" && (
+            {!isUploading && !currentTaskId && renderStatus === "idle" && (
               <>
                 {!uploadedImageUrl && (
                   <span className="text-xs text-muted-foreground">
