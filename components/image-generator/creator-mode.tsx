@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { ImageIcon } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { ImageIcon, RefreshCwIcon, SaveIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
-import { webSocketService } from "@/lib/websocket/websocket-service"
+
 import type {
   Layer,
   ToolType,
@@ -17,16 +17,11 @@ import type {
   GlobalStyleSettings,
   CompositionSettings,
   LayerProps,
-  TabValue,
   CreatorConfig,
 } from "./types"
-import { ModeTabs } from "./ui/mode-tabs"
 import { Toolbar } from "./ui/toolbar"
 import { Canvas } from "./ui/canvas"
 import { PropertiesPanel } from "./ui/properties-panel"
-import { StyleMode } from "./modes/style-mode"
-import { InversionMode } from "./modes/inversion-mode"
-import { GenerationLogs } from "./generation/generation-logs"
 import { JsonPreviewDialog } from "./dialogs/json-preview-dialog"
 import {
   AlertDialog,
@@ -39,9 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/base/alert-dialog"
 
-const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
-
-export function ImageGeneration() {
+export function CreatorMode() {
   const { t } = useTranslation()
   const { toast } = useToast()
 
@@ -49,12 +42,6 @@ export function ImageGeneration() {
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
   const [layers, setLayers] = useState<Layer[]>([])
   const [showResetDialog, setShowResetDialog] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabValue>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(TAB_STORAGE_KEY) as TabValue || "creation"
-    }
-    return "creation"
-  })
   const [showJsonPreview, setShowJsonPreview] = useState(false)
 
   // 图片生成相关状态
@@ -71,19 +58,24 @@ export function ImageGeneration() {
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
-  // 处理任务完成事件
-  const handleTaskComplete = (payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // INFO: 任务完成 - WebSocket 通知
-      console.info('[ImageGeneration] Task completed successfully via WebSocket:', {
-        taskId: payload.task_id,
-        imageUrl: payload.outputs?.image_urls,
+
+
+  // 轮询任务状态
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // 处理任务完成
+  const handleTaskComplete = (data: any) => {
+    if (data.task_id === currentTaskId) {
+      // INFO: 任务完成
+      console.info('[ImageGeneration] Task completed successfully:', {
+        taskId: data.task_id,
+        imageUrl: data.image_url,
       })
 
       // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
       let imageUrl: string
       try {
-        const imageUrls = payload.outputs?.image_urls
+        const imageUrls = data.image_url
         if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
           // JSON 数组字符串，解析并取第一个元素
           const urls = JSON.parse(imageUrls) as string[]
@@ -113,8 +105,8 @@ export function ImageGeneration() {
       setShowGeneratedImage(true)
 
       // 保存生成记录ID
-      setCurrentGenerationLogId(Number(payload.task_id))
-      console.info('[ImageGeneration] Saved generation log ID:', payload.task_id)
+      setCurrentGenerationLogId(Number(data.task_id))
+      console.info('[ImageGeneration] Saved generation log ID:', data.task_id)
 
       toast({
         title: t("imageGeneration.toast.generationSuccess"),
@@ -123,13 +115,13 @@ export function ImageGeneration() {
     }
   }
 
-  // 处理任务失败事件
-  const handleTaskFailed = (payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // ERROR: 任务失败 - WebSocket 通知
-      console.error('[ImageGeneration] Task failed via WebSocket:', {
-        taskId: payload.task_id,
-        error: payload.error,
+  // 处理任务失败
+  const handleTaskFailed = (data: any) => {
+    if (data.task_id === currentTaskId) {
+      // ERROR: 任务失败
+      console.error('[ImageGeneration] Task failed:', {
+        taskId: data.task_id,
+        error: data.error_message,
       })
 
       setIsGenerating(false)
@@ -139,44 +131,62 @@ export function ImageGeneration() {
       toast({
         variant: "destructive",
         title: t("imageGeneration.toast.generationFailed"),
-        description: payload.error || t("imageGeneration.toast.generationFailed"),
+        description: data.error_message || t("imageGeneration.toast.generationFailed"),
       })
     }
   }
 
-  // 处理任务更新事件
-  const handleTaskUpdate = (payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // DEBUG: 任务进度 - WebSocket 通知
-      console.debug('[ImageGeneration] Task status updated via WebSocket:', {
-        taskId: payload.task_id,
-        status: payload.status,
-      })
+  // 轮询任务状态
+  useEffect(() => {
+    if (!currentTaskId) return
 
-      if (payload.status === 'processing') {
-        setGeneratingMessage(
-          t("imageGeneration.generating.processing", {
-            eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
+    const checkTaskStatus = async () => {
+      try {
+        const result = await imageGenerationClient.getTaskResult(currentTaskId)
+
+        if ('error' in result) {
+          console.error('[ImageGeneration] Failed to get task status:', result.error)
+          setIsGenerating(false)
+          setGeneratingMessage("")
+          setCurrentTaskId(null)
+          toast({
+            variant: "destructive",
+            title: t("imageGeneration.toast.generationFailed"),
           })
-        )
+          return
+        }
+
+        console.info('[ImageGeneration] Task status check:', {
+          taskId: currentTaskId,
+          status: result.status
+        })
+
+        if (result.status === 'success') {
+          handleTaskComplete(result)
+        } else if (result.status === 'failed') {
+          handleTaskFailed(result)
+        } else if (result.status === 'processing') {
+          setGeneratingMessage(
+            t("imageGeneration.generating.processing", {
+              eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
+            })
+          )
+        }
+      } catch (error) {
+        console.error('[ImageGeneration] Error checking task status:', error)
       }
     }
-  }
 
-  // 监听 WebSocket 事件
-  useEffect(() => {
-    // 监听图片生成任务完成事件
-    webSocketService.on('image:task:complete', handleTaskComplete)
-    // 监听图片生成任务失败事件
-    webSocketService.on('image:task:failed', handleTaskFailed)
-    // 监听图片生成任务更新事件
-    webSocketService.on('image:task:update', handleTaskUpdate)
+    // 立即检查一次
+    checkTaskStatus()
 
-    // 组件卸载时取消监听
+    // 开始轮询，每10秒检查一次
+    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
+
     return () => {
-      webSocketService.off('image:task:complete', handleTaskComplete)
-      webSocketService.off('image:task:failed', handleTaskFailed)
-      webSocketService.off('image:task:update', handleTaskUpdate)
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
     }
   }, [currentTaskId, t, toast])
 
@@ -477,8 +487,11 @@ export function ImageGeneration() {
         description: t("imageGeneration.generating.started"),
       })
 
-      // 保存任务状态，等待 WebSocket 通知
+      // 保存任务状态
       setCurrentTaskId(result.task_id)
+      
+      // 发送事件通知主页面刷新任务列表
+      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -545,8 +558,11 @@ export function ImageGeneration() {
         description: t("imageGeneration.generating.started"),
       })
 
-      // 保存任务状态，等待 WebSocket 通知
+      // 保存任务状态
       setCurrentTaskId(result.task_id)
+      
+      // 发送事件通知主页面刷新任务列表
+      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -691,81 +707,49 @@ export function ImageGeneration() {
   ])
 
   return (
-    <main className="flex-1 overflow-auto flex flex-col bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-        <div className="px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <ImageIcon className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-foreground">{t("imageGeneration.title")}</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">{t("imageGeneration.subtitle")}</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="flex-1 flex overflow-hidden">
+      {/* Left Column - Toolbar */}
+      <Toolbar selectedTool={selectedTool} onToolSelect={handleToolClick} onReset={handleResetClick} />
 
-      {/* Mode Tabs */}
-      <ModeTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Center Column - Canvas */}
+      <Canvas
+        layers={layers}
+        selectedTool={selectedTool}
+        selectedLayer={selectedLayer}
+        metaSettings={metaSettings}
+        generatedImageUrl={generatedImageUrl}
+        showGeneratedImage={showGeneratedImage}
+        isGenerating={isGenerating}
+        generatingMessage={generatingMessage}
+        onCanvasClick={handleCanvasClick}
+        onLayerClick={handleLayerClick}
+        onLayerPositionChange={handleLayerPositionChange}
+        onLayerSizeChange={handleLayerSizeChange}
+        onDeleteLayer={handleDeleteLayer}
+        onGenerateJson={handleGenerateJson}
+        onGenerateImage={handleGenerateImage}
+        onToggleImageVisibility={handleToggleImageVisibility}
+        onSaveImageToMaterials={handleSaveImageToMaterials}
+      />
 
-      {/* Main Content */}
-      {activeTab === "style" ? (
-        <StyleMode />
-      ) : activeTab === "inversion" ? (
-        <InversionMode />
-      ) : activeTab === "history" ? (
-        <div className="flex-1 p-8 overflow-hidden flex flex-col">
-          <GenerationLogs />
-        </div>
-      ) : (
-        /* Main Content - Three Columns */
-        <div className="flex-1 flex overflow-hidden relative">
-          {/* Left Column - Toolbar */}
-          <Toolbar selectedTool={selectedTool} onToolSelect={handleToolClick} onReset={handleResetClick} />
-
-          {/* Center Column - Canvas */}
-          <Canvas
-            layers={layers}
-            selectedTool={selectedTool}
-            selectedLayer={selectedLayer}
-            metaSettings={metaSettings}
-            generatedImageUrl={generatedImageUrl}
-            showGeneratedImage={showGeneratedImage}
-            isGenerating={isGenerating}
-            generatingMessage={generatingMessage}
-            onCanvasClick={handleCanvasClick}
-            onLayerClick={handleLayerClick}
-            onLayerPositionChange={handleLayerPositionChange}
-            onLayerSizeChange={handleLayerSizeChange}
-            onDeleteLayer={handleDeleteLayer}
-            onGenerateJson={handleGenerateJson}
-            onGenerateImage={handleGenerateImage}
-            onToggleImageVisibility={handleToggleImageVisibility}
-            onSaveImageToMaterials={handleSaveImageToMaterials}
-          />
-
-          {/* Right Column - Properties Panel */}
-          <PropertiesPanel
-            selectedLayer={selectedLayer}
-            metaSettings={metaSettings}
-            globalStyleSettings={globalStyleSettings}
-            compositionSettings={compositionSettings}
-            layerProps={layerProps}
-            // 新增 props
-            selectedModel={selectedModel}
-            availableModels={availableModels}
-            isLoadingModels={isLoadingModels}
-            onMetaSettingsChange={setMetaSettings}
-            onGlobalStyleSettingsChange={setGlobalStyleSettings}
-            onCompositionSettingsChange={setCompositionSettings}
-            onLayerPropsChange={handleLayerPropsChange}
-            // 新增回调
-            onModelChange={setSelectedModel}
-          />
-        </div>
-      )}
+      {/* Right Column - Properties Panel */}
+      <PropertiesPanel
+        selectedLayer={selectedLayer}
+        metaSettings={metaSettings}
+        globalStyleSettings={globalStyleSettings}
+        compositionSettings={compositionSettings}
+        layerProps={layerProps}
+        // 新增 props
+        selectedModel={selectedModel}
+        availableModels={availableModels}
+        isLoadingModels={isLoadingModels}
+        onMetaSettingsChange={setMetaSettings}
+        onGlobalStyleSettingsChange={setGlobalStyleSettings}
+        onCompositionSettingsChange={setCompositionSettings}
+        onLayerPropsChange={handleLayerPropsChange}
+        // 新增回调
+        onModelChange={setSelectedModel}
+      />
 
       {/* JSON 预览弹框 */}
       <JsonPreviewDialog
@@ -794,6 +778,6 @@ export function ImageGeneration() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </div>
   )
 }
