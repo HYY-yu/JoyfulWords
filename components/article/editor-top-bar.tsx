@@ -176,7 +176,7 @@ export function EditorTopBar({
   }
 
   return (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background">
+    <div className="flex items-center justify-between px-4 py-2 bg-background shadow-[0_2px_6px_rgba(0,0,0,0.1)] relative z-10">
       {/* Left: Back button + Title + Status Badge */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Back Button */}

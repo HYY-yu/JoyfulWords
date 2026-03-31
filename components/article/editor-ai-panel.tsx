@@ -99,7 +99,7 @@ export function EditorAIPanel({
       </div>
 
       {/* Feature Buttons */}
-      <div className="px-3 py-3 border-b">
+      <div className="px-3 py-3">
         <div className="grid grid-cols-2 gap-2">
           {FEATURE_BUTTONS.map((btn) => {
             const Icon = btn.icon
@@ -109,9 +109,9 @@ export function EditorAIPanel({
                 onClick={() => handleOpenDialog(btn.id)}
                 className={`
                   flex flex-col items-center justify-center gap-1.5 p-3
-                  bg-white border border-border rounded-lg
-                  hover:border-blue-400 hover:bg-blue-50/50
-                  transition-colors duration-150 cursor-pointer
+                  bg-white rounded-lg shadow-sm
+                  hover:shadow-md hover:bg-blue-50/50
+                  transition-all duration-150 cursor-pointer
                   ${btn.colSpan ? "col-span-2" : ""}
                 `}
               >
@@ -129,7 +129,7 @@ export function EditorAIPanel({
 
       {/* Task Progress Section */}
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="px-4 py-2 border-b">
+        <div className="px-4 py-2">
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             {t("tiptapEditor.aiPanel.taskProgress")}
           </h4>
