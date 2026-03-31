@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '@/lib/config'
 import { trace, context } from '@opentelemetry/api'
+import type { InsufficientCreditsData } from '@/components/credits/insufficient-credits-dialog'
 import type {
   LoginRequest,
   SignupRequestCode,
@@ -18,6 +19,19 @@ import type {
 
 const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
+}
+
+function isInsufficientCreditsData(data: unknown): data is InsufficientCreditsData {
+  if (!data || typeof data !== 'object') return false
+
+  const candidate = data as Record<string, unknown>
+  return (
+    typeof candidate.current_credits === 'number' &&
+    typeof candidate.required_credits === 'number' &&
+    typeof candidate.shortage_credits === 'number' &&
+    typeof candidate.recommended_recharge === 'number' &&
+    typeof candidate.recommended_recharge_usd === 'string'
+  )
 }
 
 /**
@@ -139,12 +153,15 @@ export async function apiRequest<T>(
       // Handle 402 Payment Required - insufficient credits
       if (response.status === 402 && data?.data) {
         // 在客户端环境下触发积分不足弹窗
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && isInsufficientCreditsData(data.data)) {
           // 动态导入避免服务端渲染问题
           const { showInsufficientCreditsDialog } = await import(
             '@/lib/credits/insufficient-credits-dialog-handler'
           )
           showInsufficientCreditsDialog(data.data)
+        } else if (typeof window !== 'undefined') {
+          console.warn('[API] Invalid insufficient credits payload:', data.data)
+          // TODO(observability): count invalid insufficient credits payloads from API responses.
         }
         return { error: data.error || 'Insufficient credits' } as T
       }

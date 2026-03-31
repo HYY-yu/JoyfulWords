@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/base/dialog'
 import { TaskDetailResponse } from '@/lib/api/taskcenter/types'
 
+type TaskDetailTrigger = Pick<TaskListItem, 'id' | 'type' | 'status'>
+
 // 任务类型显示文本
 const taskTypeLabels: Record<string, string> = {
   [TaskType.ARTICLE]: '文章',
@@ -47,7 +49,7 @@ export function TaskCenterContent() {
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [taskDetailError, setTaskDetailError] = useState<string | null>(null)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
-  const [currentTask, setCurrentTask] = useState<TaskListItem | null>(null)
+  const [currentTask, setCurrentTask] = useState<TaskDetailTrigger | null>(null)
   const [hasProcessedUrlParams, setHasProcessedUrlParams] = useState(false)
 
   // 获取任务列表
@@ -79,12 +81,10 @@ export function TaskCenterContent() {
     if (taskId && taskType && !hasProcessedUrlParams) {
       console.log('检测到URL参数，自动打开任务详情:', { taskId, taskType })
       // 创建一个临时的TaskListItem对象
-      const tempTask: TaskListItem = {
+      const tempTask: TaskDetailTrigger = {
         id: parseInt(taskId),
         type: taskType as TaskType,
         status: '',
-        created_at: '',
-        cost: '{}'
       }
       fetchTaskDetail(tempTask)
       
@@ -125,7 +125,7 @@ export function TaskCenterContent() {
   }
 
   // 获取任务详情
-  const fetchTaskDetail = async (task: TaskListItem) => {
+  const fetchTaskDetail = async (task: TaskDetailTrigger) => {
     try {
       setTaskDetailLoading(true)
       setTaskDetailError(null)

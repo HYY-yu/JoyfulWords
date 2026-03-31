@@ -7,7 +7,7 @@ import { markdownToHTML } from "@/lib/tiptap-utils"
 import type { Locale } from "@/lib/i18n/shared"
 
 const BLOG_DIRECTORY = path.join(process.cwd(), "blog")
-const BLOG_FILE_PATTERN = /^(?<slug>.+)\.(?<locale>zh|en)\.md$/
+const BLOG_FILE_PATTERN = /^(.+)\.(zh|en)\.md$/
 
 interface BlogFrontmatter {
   title: string
@@ -107,10 +107,10 @@ const getRawBlogPosts = cache(async (): Promise<RawBlogPost[]> => {
 
   for (const fileName of fileNames) {
     const matched = fileName.match(BLOG_FILE_PATTERN)
-    if (!matched?.groups) continue
+    if (!matched) continue
 
-    const slug = matched.groups.slug
-    const locale = matched.groups.locale as Locale
+    const [, slug, localeValue] = matched
+    const locale = localeValue as Locale
     const dedupeKey = `${slug}:${locale}`
     const filePath = path.join(BLOG_DIRECTORY, fileName)
 
