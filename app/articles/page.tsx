@@ -39,6 +39,7 @@ import {
 import { articlesClient } from "@/lib/api/articles/client"
 import { useToast } from "@/hooks/use-toast"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
+import { ArticleCreateModeDialog } from "@/components/article/article-create-mode-dialog"
 
 export default function ArticlesPage() {
   const { t } = useTranslation()
@@ -46,7 +47,9 @@ export default function ArticlesPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [profileOpen, setProfileOpen] = useState(false)
+  const [createModeDialogOpen, setCreateModeDialogOpen] = useState(false)
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
+  const [isCreatingArticle, setIsCreatingArticle] = useState(false)
 
   const {
     articles,
@@ -102,6 +105,54 @@ export default function ArticlesPage() {
 
   const handleAIArticleCreated = () => {
     handleRefresh()
+  }
+
+  const handleCreateManualArticle = async () => {
+    setIsCreatingArticle(true)
+    console.info("[ArticlesPage] Creating manual article from article manager")
+
+    try {
+      const result = await articlesClient.createArticle({
+        title: t("contentWriting.createModeDialog.manual.defaultTitle"),
+        content: "",
+      })
+
+      if ("error" in result) {
+        console.warn("[ArticlesPage] Manual article creation failed:", result.error)
+        throw new Error(result.error)
+      }
+
+      console.info("[ArticlesPage] Manual article created successfully:", {
+        articleId: result.id,
+      })
+
+      toast({
+        description: t("contentWriting.createModeDialog.manual.success"),
+      })
+
+      setCreateModeDialogOpen(false)
+      router.push(`/articles/${result.id}/edit`)
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : t("contentWriting.createModeDialog.manual.failed")
+
+      console.error("[ArticlesPage] Manual article creation error:", error)
+      toast({
+        variant: "destructive",
+        description: errorMessage,
+      })
+    } finally {
+      setIsCreatingArticle(false)
+    }
+  }
+
+  const handleOpenAIHelpDialog = () => {
+    setCreateModeDialogOpen(false)
+    window.setTimeout(() => {
+      setAiHelpDialogOpen(true)
+    }, 0)
   }
 
   if (authLoading) {
@@ -212,7 +263,7 @@ export default function ArticlesPage() {
                 />
               </Button>
               <Button
-                onClick={() => setAiHelpDialogOpen(true)}
+                onClick={() => setCreateModeDialogOpen(true)}
                 className="gap-2"
               >
                 <PlusIcon className="w-4 h-4" />
@@ -381,6 +432,14 @@ export default function ArticlesPage() {
 
       {/* Profile Dialog */}
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+
+      <ArticleCreateModeDialog
+        open={createModeDialogOpen}
+        onOpenChange={setCreateModeDialogOpen}
+        onSelectManual={handleCreateManualArticle}
+        onSelectAI={handleOpenAIHelpDialog}
+        isCreatingManual={isCreatingArticle}
+      />
 
       <ArticleAIHelpDialog
         open={aiHelpDialogOpen}

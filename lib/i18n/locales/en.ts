@@ -350,6 +350,22 @@ export const en = {
                 },
             },
         },
+        createModeDialog: {
+            title: "Choose How to Start",
+            description: "Decide whether to open a blank draft first or use AI to help generate a first version.",
+            cancel: "Cancel",
+            manual: {
+                title: "Create New Article",
+                description: "Create an empty draft immediately and jump straight into the editor.",
+                defaultTitle: "Untitled Article",
+                success: "Blank article created. Opening editor...",
+                failed: "Failed to create article, please try again",
+            },
+            ai: {
+                title: "AI Writing",
+                description: "Open the AI Writing Assistant to select materials and style before generating a draft.",
+            },
+        },
         saveDialog: {
             title: "Save Article",
             description: "Fill in basic information for your article",

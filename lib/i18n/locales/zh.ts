@@ -350,6 +350,22 @@ export const zh = {
                 },
             },
         },
+        createModeDialog: {
+            title: "选择创建方式",
+            description: "先选择您要直接开始写作，还是先让 AI 协助生成首稿。",
+            cancel: "取消",
+            manual: {
+                title: "创建新文章",
+                description: "直接创建一篇空白草稿，并立即进入编辑器开始写作。",
+                defaultTitle: "未命名文章",
+                success: "已创建空白文章，正在进入编辑器",
+                failed: "创建文章失败，请重试",
+            },
+            ai: {
+                title: "AI 帮写",
+                description: "继续打开 AI 帮写弹窗，先选素材和风格，再生成文章初稿。",
+            },
+        },
         saveDialog: {
             title: "保存文章",
             description: "为您的文章填写基本信息",
