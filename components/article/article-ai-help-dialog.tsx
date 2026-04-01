@@ -29,12 +29,14 @@ interface ArticleAIHelpDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onArticleCreated: (article: Article) => void  // 接收后端返回的 Article 对象
+  variant?: "default" | "feature" | "feature-compact"
 }
 
 export function ArticleAIHelpDialog({
   open,
   onOpenChange,
   onArticleCreated,
+  variant = "default",
 }: ArticleAIHelpDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -298,7 +300,266 @@ export function ArticleAIHelpDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent
+        overlayClassName={variant === "feature" || variant === "feature-compact" ? "bg-black/75" : undefined}
+        showCloseButton={variant === "default"}
+        className={
+          variant === "feature"
+            ? "flex h-screen w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none sm:h-[calc(100vh-1rem)] sm:w-[calc(100vw-1rem)] sm:max-w-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl"
+            : variant === "feature-compact"
+            ? "flex h-screen w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none sm:h-[calc(100vh-1rem)] sm:w-[calc(50vw-1rem)] sm:max-w-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl xl:w-[calc(44vw-1rem)] 2xl:w-[920px]"
+            : "max-w-2xl"
+        }
+      >
+        {variant === "feature" || variant === "feature-compact" ? (
+          <div className="flex h-full min-h-0 flex-col bg-background">
+            <DialogHeader className="shrink-0 border-b bg-background px-4 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <SparklesIcon className="h-5 w-5 text-primary" />
+                    {t("contentWriting.aiHelp.title")}
+                  </DialogTitle>
+                  <DialogDescription className="mt-2">
+                    {t("contentWriting.aiHelp.description")}
+                  </DialogDescription>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleOpenChange(false)}
+                  className="shrink-0 rounded-full"
+                >
+                  <XIcon className="h-4 w-4" />
+                </Button>
+              </div>
+            </DialogHeader>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+              <div className="space-y-6 min-w-0">
+                {/* User Requirements - FIRST FIELD */}
+                <div className="space-y-2">
+                  <Label htmlFor="prompt" className="text-base font-semibold">
+                    {t("contentWriting.aiHelp.promptLabel")}
+                  </Label>
+                  <Textarea
+                    id="prompt"
+                    placeholder={t("contentWriting.aiHelp.promptPlaceholder")}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="space-y-6">
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-6">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <PenToolIcon className="w-4 h-4" />
+                        <Label>{t("contentWriting.aiHelp.styleLabel")}</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("contentWriting.aiHelp.styleHint")}
+                      </p>
+                      <div className="max-h-72 overflow-y-auto pr-1">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {AI_WRITE_STYLE_OPTIONS.map(({ value }) => {
+                            const isSelected = selectedStyleId === value
+                            const label = t(`contentWriting.aiHelp.styles.${value}.label`)
+                            const description = t(`contentWriting.aiHelp.styles.${value}.description`)
+
+                            return (
+                              <button
+                                key={value}
+                                type="button"
+                                disabled={!!uploadedFile}
+                                onClick={() => handleSelectStyle(value)}
+                                className={[
+                                  "rounded-lg border p-4 text-left transition-colors",
+                                  "disabled:cursor-not-allowed disabled:opacity-50",
+                                  isSelected
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:border-primary/40 hover:bg-muted/40",
+                                ].join(" ")}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="text-sm font-semibold text-foreground">{label}</div>
+                                  {isSelected ? <CheckIcon className="h-4 w-4 shrink-0 text-primary" /> : null}
+                                </div>
+                                <p className="mt-3 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                  {description}
+                                </p>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-gray-200 dark:border-gray-700"></span>
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">{t("common.or") || "或"}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <UploadIcon className="w-4 h-4" />
+                          <Label>{t("contentWriting.aiHelp.fileUploadLabel")}</Label>
+                        </div>
+                        {isUploading && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <LoaderIcon className="w-3 h-3 animate-spin" />
+                            {t("contentWriting.aiHelp.uploading")}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        {!uploadedFile ? (
+                          <Input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,image/jpg,application/pdf"
+                            onChange={handleFileSelect}
+                            disabled={isUploading || !!selectedStyleId}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileTextIcon className="w-4 h-4 flex-shrink-0" />
+                              <span className="text-sm truncate">{uploadedFile.name}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleRemoveFile}
+                              disabled={isUploading}
+                              className="flex-shrink-0"
+                            >
+                              <XIcon className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+
+                        <p className="text-xs text-muted-foreground">
+                          {t("contentWriting.aiHelp.fileUploadHint")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <FileTextIcon className="w-4 h-4" />
+                      <Label>{t("contentWriting.aiHelp.materialLabel")}</Label>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Input
+                        placeholder={t("contentWriting.aiHelp.materialPlaceholder")}
+                        value={materialSearch}
+                        onChange={(e) => setMaterialSearch(e.target.value)}
+                      />
+
+                      <div
+                        ref={materialsScrollRef}
+                        onScroll={handleMaterialsScroll}
+                        className="h-[240px] overflow-y-auto border rounded-md p-2"
+                      >
+                        {materialsLoading && materials.length === 0 ? (
+                          <div className="flex items-center justify-center h-full">
+                            <LoaderIcon className="w-5 h-5 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {materials.map((material) => (
+                              <div
+                                key={material.id}
+                                className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                                onClick={() => handleToggleMaterial(material.id)}
+                              >
+                                <Checkbox checked={selectedMaterials.includes(material.id)} />
+                                {material.material_type === 'image' && material.content ? (
+                                  <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden border">
+                                    <img src={material.content} alt={material.title} className="w-full h-full object-cover" />
+                                  </div>
+                                ) : null}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{material.title}</div>
+                                  <div className="text-xs text-muted-foreground">{material.material_type}</div>
+                                </div>
+                              </div>
+                            ))}
+                            {(hasMoreMaterials || materialsLoading) && materials.length > 0 && (
+                              <div ref={materialsObserverTarget} className="flex justify-center py-2">
+                                <LoaderIcon className="h-4 w-4 animate-spin text-muted-foreground" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedMaterials.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground">
+                          {t("contentWriting.aiHelp.selectedMaterials").replace("{count}", selectedMaterials.length.toString())}
+                        </div>
+                        <div className="flex flex-wrap gap-2 min-w-0">
+                          {selectedMaterials.map((id) => {
+                            const material = materials.find(m => m.id === id)
+                            return material ? (
+                              <Badge key={id} variant="secondary" className="min-w-0 max-w-full gap-1">
+                                <span className="max-w-[12rem] truncate sm:max-w-[20rem]">{material.title}</span>
+                                <button
+                                  onClick={() => handleRemoveMaterial(id)}
+                                  className="hover:bg-destructive hover:text-destructive-foreground shrink-0 rounded"
+                                >
+                                  <XIcon className="w-3 h-3" />
+                                </button>
+                              </Badge>
+                            ) : null
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="shrink-0 border-t bg-background px-4 py-4 sm:px-6">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                {t("contentWriting.aiHelp.cancelBtn")}
+              </Button>
+              <Button
+                onClick={handleGenerate}
+                disabled={isGenerating || isUploading}
+                className="gap-2"
+              >
+                {isGenerating ? (
+                  <>
+                    <LoaderIcon className="w-4 h-4 animate-spin" />
+                    {t("contentWriting.aiHelp.generatingBtn")}
+                  </>
+                ) : (
+                  <>
+                    <SparklesIcon className="w-4 h-4" />
+                    {t("contentWriting.aiHelp.confirmBtn")}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <SparklesIcon className="w-5 h-5 text-primary" />
@@ -534,6 +795,8 @@ export function ArticleAIHelpDialog({
             )}
           </Button>
         </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

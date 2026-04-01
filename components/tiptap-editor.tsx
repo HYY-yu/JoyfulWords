@@ -319,6 +319,38 @@ export function TiptapEditor({
     }
   }, [editor, dialogExecId, aiEditTasks, onAIEditResultConsumed, toast, t]);
 
+  // 处理 AI 改写 - 等待中时忽略点击
+  const handleAIRewrite = useCallback(() => {
+    // 检查是否为创建模式，如果是则禁止打开 AI 改写对话框
+    if (mode === "create") {
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.toast.saveBeforeAIRewrite"),
+        description: t("tiptapEditor.toast.saveBeforeAIRewriteDesc"),
+      });
+      return;
+    }
+
+    if (!editor) return;
+
+    const { state } = editor;
+    const { from, to } = state.selection;
+    const text = state.doc.textBetween(from, to, ' ');
+
+    if (text.trim().length === 0) {
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.toast.selectTextFirst"),
+        description: t("tiptapEditor.toast.selectTextFirstDesc"),
+      });
+      return;
+    }
+
+    setSelectedTextForAI(text);
+    setDialogExecId(null); // null 表示新的 AI 编辑请求
+    setIsAIDialogOpen(true);
+  }, [editor, toast, mode, t]);
+
   // Expose editor methods and set up global click handler
   useEffect(() => {
     if (editor) {
@@ -361,7 +393,13 @@ export function TiptapEditor({
         console.info('[TiptapEditor] AIPendingBlock inserted immediately for exec_id:', execId);
       };
 
+      const handleOpenAIEdit = () => {
+        console.log('[TiptapEditor] Received external AI edit trigger');
+        handleAIRewrite();
+      };
+
       window.addEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
+      window.addEventListener('joyfulwords-open-ai-edit', handleOpenAIEdit as EventListener);
 
       console.log('[TiptapEditor] Global click handler registered');
       console.log('[TiptapEditor] window.handleAIPendingBlockClick:', typeof (window as any).handleAIPendingBlockClick);
@@ -371,9 +409,10 @@ export function TiptapEditor({
         console.log('[TiptapEditor] Cleaning up global handler');
         delete (window as any).handleAIPendingBlockClick;
         window.removeEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
+        window.removeEventListener('joyfulwords-open-ai-edit', handleOpenAIEdit as EventListener);
       };
     }
-  }, [editor, onAIPendingBlockClick]);
+  }, [editor, onAIPendingBlockClick, handleAIRewrite]);
 
   // Handle image upload using presigned URL
   const handleImageUpload = useCallback(async (file: File): Promise<string> => {
@@ -530,38 +569,6 @@ export function TiptapEditor({
     input.click();
   }, [editor, handleImageUpload, isUploadingImage, toast, t]);
 
-  // 处理 AI 改写 - 等待中时忽略点击
-  const handleAIRewrite = useCallback(() => {
-    // 检查是否为创建模式，如果是则禁止打开 AI 改写对话框
-    if (mode === "create") {
-      toast({
-        variant: "destructive",
-        title: t("tiptapEditor.toast.saveBeforeAIRewrite"),
-        description: t("tiptapEditor.toast.saveBeforeAIRewriteDesc"),
-      });
-      return;
-    }
-
-    if (!editor) return;
-
-    const { state } = editor;
-    const { from, to } = state.selection;
-    const text = state.doc.textBetween(from, to, ' ');
-
-    if (text.trim().length === 0) {
-      toast({
-        variant: "destructive",
-        title: t("tiptapEditor.toast.selectTextFirst"),
-        description: t("tiptapEditor.toast.selectTextFirstDesc"),
-      });
-      return;
-    }
-
-    setSelectedTextForAI(text);
-    setDialogExecId(null); // null 表示新的 AI 编辑请求
-    setIsAIDialogOpen(true);
-  }, [editor, toast, mode, t]);
-
   const editorShellClassName =
     mode === "edit"
       ? "flex h-full w-full flex-col overflow-hidden bg-transparent"
@@ -573,10 +580,8 @@ export function TiptapEditor({
         editor={editor}
         onInsertImage={insertImage}
         isUploadingImage={isUploadingImage}
-        onAIRewrite={handleAIRewrite}
         saveStatus={saveStatus}
         mode={mode}
-        isAIEditWaiting={false} // 不再使用，保留兼容性
       />
       <div
         className="flex-1 overflow-y-auto min-h-0"

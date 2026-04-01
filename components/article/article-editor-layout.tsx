@@ -54,7 +54,7 @@ export function ArticleEditorLayout({
       <div className="flex-1 overflow-hidden">
         <div
           ref={containerRef}
-          className="flex h-full min-h-0 flex-col gap-1.5 px-0 py-1.5 lg:flex-row lg:items-stretch lg:gap-px xl:gap-px xl:px-0 xl:py-1.5"
+          className="flex h-full min-h-0 flex-col gap-1.5 p-1.5 lg:flex-row lg:items-stretch lg:gap-px"
         >
           {!leftCollapsed && (
             <>

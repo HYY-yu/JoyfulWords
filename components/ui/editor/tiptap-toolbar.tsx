@@ -16,7 +16,6 @@ import {
   Redo2Icon,
   SeparatorHorizontalIcon,
   Loader2Icon,
-  SparklesIcon,
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useCallback } from "react";
@@ -31,13 +30,11 @@ interface TiptapToolbarProps {
   editor: Editor | null;
   onInsertImage?: () => void;
   isUploadingImage?: boolean;
-  onAIRewrite?: () => void;
   saveStatus?: AutoSaveState;
   mode?: "create" | "edit";
-  isAIEditWaiting?: boolean;  // 异步 AI 编辑等待中
 }
 
-export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, onAIRewrite, saveStatus, mode = "create", isAIEditWaiting = false }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, saveStatus, mode = "create" }: TiptapToolbarProps) {
   const { t } = useTranslation()
 
   const setImage = useCallback(() => {
@@ -255,22 +252,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
           <Loader2Icon className="h-4 w-4 animate-spin" />
         ) : (
           <ImageIcon className="h-4 w-4" />
-        )}
-      </ToolbarButton>
-
-      <div className="w-px h-8 bg-border/40 mx-1" />
-
-      {/* AI Rewrite */}
-      <ToolbarButton
-        tooltip={isAIEditWaiting ? t("tiptapEditor.toolbar.aiWriting") : t("tiptapEditor.toolbar.ai")}
-        onClick={isAIEditWaiting ? undefined : onAIRewrite}
-        disabled={isAIEditWaiting}
-        className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 hover:from-purple-500/20 hover:to-blue-500/20"
-      >
-        {isAIEditWaiting ? (
-          <Loader2Icon className="h-4 w-4 animate-spin text-blue-500" />
-        ) : (
-          <SparklesIcon className="h-4 w-4 animate-heartbeat" />
         )}
       </ToolbarButton>
       </div>

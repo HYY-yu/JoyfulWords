@@ -38,6 +38,7 @@ import {
 } from "@/components/article/article-dialogs"
 import { articlesClient } from "@/lib/api/articles/client"
 import { useToast } from "@/hooks/use-toast"
+import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
 
 export default function ArticlesPage() {
   const { t } = useTranslation()
@@ -45,6 +46,7 @@ export default function ArticlesPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [profileOpen, setProfileOpen] = useState(false)
+  const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
 
   const {
     articles,
@@ -96,6 +98,10 @@ export default function ArticlesPage() {
       })
       throw new Error(result.error)
     }
+  }
+
+  const handleAIArticleCreated = () => {
+    handleRefresh()
   }
 
   if (authLoading) {
@@ -206,17 +212,7 @@ export default function ArticlesPage() {
                 />
               </Button>
               <Button
-                onClick={() => {
-                  localStorage.setItem(
-                    "joyfulwords-active-tab",
-                    "joyfulwords-content-writing"
-                  )
-                  localStorage.setItem(
-                    "joyfulwords-content-writing-tab",
-                    "article-writing"
-                  )
-                  router.push("/dashboard")
-                }}
+                onClick={() => setAiHelpDialogOpen(true)}
                 className="gap-2"
               >
                 <PlusIcon className="w-4 h-4" />
@@ -385,6 +381,13 @@ export default function ArticlesPage() {
 
       {/* Profile Dialog */}
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+
+      <ArticleAIHelpDialog
+        open={aiHelpDialogOpen}
+        onOpenChange={setAiHelpDialogOpen}
+        onArticleCreated={handleAIArticleCreated}
+        variant="feature-compact"
+      />
     </div>
   )
 }

@@ -14,6 +14,7 @@ import {
   Loader2Icon,
   CheckIcon,
   ClockIcon,
+  XIcon,
 } from "lucide-react";
 import {
   Select,
@@ -283,18 +284,35 @@ export function AIRewriteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <SparklesIcon className="h-5 w-5 text-primary" />
-            {t("aiRewrite.title")}
-          </DialogTitle>
-          <DialogDescription>
-            {t("aiRewrite.description")}
-          </DialogDescription>
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-auto max-h-[min(760px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-none flex-col gap-0 overflow-hidden bg-background p-0 shadow-xl sm:w-[calc(100vw-3rem)] sm:max-w-none lg:w-[92vw] lg:max-w-none xl:w-[88vw] xl:max-w-none 2xl:w-[1840px] 2xl:max-w-none"
+      >
+        <DialogHeader className="shrink-0 border-b bg-background px-4 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+                <SparklesIcon className="h-5 w-5 text-primary" />
+                {t("aiRewrite.title")}
+              </DialogTitle>
+              <DialogDescription className="mt-2">
+                {t("aiRewrite.description")}
+              </DialogDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="shrink-0 rounded-full"
+            >
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-4">
           {/* 等待中提示横条 */}
           {isWaiting && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
@@ -460,7 +478,7 @@ export function AIRewriteDialog({
                     <div>
                       <Label className="mb-2 block">{t("aiRewrite.style.selectStyle")}</Label>
                       <Select value={selectedStyle} onValueChange={(value) => setSelectedStyle(value as StyleType)}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-14 px-3 py-6">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -562,6 +580,7 @@ export function AIRewriteDialog({
                 {t("aiRewrite.confirmApply")}
               </Button>
             </div>
+          </div>
           </div>
         </div>
       </DialogContent>

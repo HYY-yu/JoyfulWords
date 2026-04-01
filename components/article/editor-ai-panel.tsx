@@ -1,11 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
+import { useState, useEffect, type ReactNode } from "react"
 import {
   PencilIcon,
   ImageIcon,
-  FileTextIcon,
   RefreshCwIcon,
   PaletteIcon,
   ClipboardListIcon,
@@ -13,7 +11,6 @@ import {
   LoaderIcon,
 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-import { ArticleAIHelpDialog } from "./article-ai-help-dialog"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
 import { taskCenterClient } from "@/lib/api/taskcenter/client"
@@ -29,7 +26,6 @@ import { StyleMode } from "@/components/image-generator/modes/style-mode"
 type ActiveDialog =
   | "ai-edit"
   | "create-image"
-  | "ai-generate"
   | "reversal-mode"
   | "image-style"
   | null
@@ -39,7 +35,6 @@ interface FeatureButton {
   labelKey: string
   icon: React.ElementType
   bgColor: string
-  colSpan?: boolean
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
@@ -56,12 +51,6 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     bgColor: "bg-indigo-50",
   },
   {
-    id: "ai-generate",
-    labelKey: "tiptapEditor.aiPanel.aiGenerate",
-    icon: FileTextIcon,
-    bgColor: "bg-green-50",
-  },
-  {
     id: "reversal-mode",
     labelKey: "tiptapEditor.aiPanel.reversalMode",
     icon: RefreshCwIcon,
@@ -72,7 +61,6 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     labelKey: "tiptapEditor.aiPanel.imageStyle",
     icon: PaletteIcon,
     bgColor: "bg-amber-50",
-    colSpan: true,
   },
 ]
 
@@ -305,8 +293,9 @@ export function EditorAIPanel({
   }
 
   function handleOpenDialog(id: ActiveDialog) {
-    // 对于图片相关的功能，使用滑入窗口
-    if (id === 'create-image') {
+    if (id === 'ai-edit') {
+      window.dispatchEvent(new CustomEvent('joyfulwords-open-ai-edit'))
+    } else if (id === 'create-image') {
       setIsCreateImageOpen(true)
     } else if (id === 'reversal-mode') {
       setIsReversalModeOpen(true)
@@ -322,16 +311,38 @@ export function EditorAIPanel({
     setActiveDialog(null)
   }
 
-  function handleCloseCreateImage() {
-    setIsCreateImageOpen(false)
-  }
-
-  function handleCloseReversalMode() {
-    setIsReversalModeOpen(false)
-  }
-
-  function handleCloseImageStyle() {
-    setIsImageStyleOpen(false)
+  function renderImageFeatureDialog(
+    open: boolean,
+    onOpenChange: (nextOpen: boolean) => void,
+    title: string,
+    content: ReactNode
+  ) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          showCloseButton={false}
+          overlayClassName="bg-black/75"
+          className="flex h-screen w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none sm:h-[calc(100vh-1rem)] sm:w-[calc(100vw-1rem)] sm:max-w-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl"
+        >
+          <div className="flex h-full min-h-0 flex-col bg-background">
+            <div className="flex items-center justify-between border-b bg-background px-4 py-4">
+              <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
+              <button
+                type="button"
+                onClick={() => onOpenChange(false)}
+                className="rounded-full p-1.5 transition-colors hover:bg-muted"
+                title="关闭"
+              >
+                <XIcon className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto bg-background">
+              {content}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
@@ -345,7 +356,7 @@ export function EditorAIPanel({
 
       {/* Feature Buttons */}
       <div className="px-3 py-3">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 auto-rows-fr gap-2">
           {FEATURE_BUTTONS.map((btn) => {
             const Icon = btn.icon
             return (
@@ -353,11 +364,10 @@ export function EditorAIPanel({
                 key={btn.id}
                 onClick={() => handleOpenDialog(btn.id)}
                 className={`
-                  flex flex-col items-center justify-center gap-1.5 p-3
-                  bg-white rounded-lg shadow-sm
+                  flex min-h-24 h-full w-full flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3
+                  shadow-sm
                   hover:shadow-md hover:bg-blue-50/50
                   transition-all duration-150 cursor-pointer
-                  ${btn.colSpan ? "col-span-2" : ""}
                 `}
               >
                 <span className={`p-1.5 rounded-md ${btn.bgColor}`}>
@@ -400,17 +410,6 @@ export function EditorAIPanel({
           />
         </div>
       </div>
-
-      {/* AI Generate Article Dialog */}
-      <ArticleAIHelpDialog
-        open={activeDialog === "ai-generate"}
-        onOpenChange={(open) => {
-          if (!open) handleCloseDialog()
-        }}
-        onArticleCreated={() => {
-          handleCloseDialog()
-        }}
-      />
 
       {/* Task Detail Dialog */}
       <Dialog open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
@@ -621,82 +620,25 @@ export function EditorAIPanel({
         </DialogContent>
       </Dialog>
 
-      {/* 创作图片弹窗 */}
-      {createPortal(
-        <div className={`fixed top-0 right-0 h-full bg-background/95 shadow-2xl z-500 transition-transform duration-300 ease-in-out ${isCreateImageOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '80vw', maxWidth: '1200px' }}>
-          <div className="flex flex-col h-full">
-            {/* 头部 */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-sm font-semibold">{t('tiptapEditor.aiPanel.createImage')}</h3>
-              <button
-                type="button"
-                onClick={handleCloseCreateImage}
-                className="p-1.5 rounded-full hover:bg-muted transition-colors"
-                title="关闭"
-              >
-                <XIcon className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {/* 内容区域 */}
-            <div className="flex-1 p-0 overflow-hidden">
-              <CreatorMode />
-            </div>
-          </div>
-        </div>,
-        document.body
+      {renderImageFeatureDialog(
+        isCreateImageOpen,
+        setIsCreateImageOpen,
+        t('tiptapEditor.aiPanel.createImage'),
+        <CreatorMode />
       )}
 
-      {/* 反向模式弹窗 */}
-      {createPortal(
-        <div className={`fixed top-0 right-0 h-full bg-background/95 shadow-2xl z-500 transition-transform duration-300 ease-in-out ${isReversalModeOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '80vw', maxWidth: '1200px' }}>
-          <div className="flex flex-col h-full">
-            {/* 头部 */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-sm font-semibold">{t('tiptapEditor.aiPanel.reversalMode')}</h3>
-              <button
-                type="button"
-                onClick={handleCloseReversalMode}
-                className="p-1.5 rounded-full hover:bg-muted transition-colors"
-                title="关闭"
-              >
-                <XIcon className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {/* 内容区域 */}
-            <div className="flex-1 p-0 overflow-hidden">
-              <InversionMode />
-            </div>
-          </div>
-        </div>,
-        document.body
+      {renderImageFeatureDialog(
+        isReversalModeOpen,
+        setIsReversalModeOpen,
+        t('tiptapEditor.aiPanel.reversalMode'),
+        <InversionMode />
       )}
 
-      {/* 图片风格弹窗 */}
-      {createPortal(
-        <div className={`fixed top-0 right-0 h-full bg-background/95 shadow-2xl z-500 transition-transform duration-300 ease-in-out ${isImageStyleOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '80vw', maxWidth: '1200px' }}>
-          <div className="flex flex-col h-full">
-            {/* 头部 */}
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-sm font-semibold">{t('tiptapEditor.aiPanel.imageStyle')}</h3>
-              <button
-                type="button"
-                onClick={handleCloseImageStyle}
-                className="p-1.5 rounded-full hover:bg-muted transition-colors"
-                title="关闭"
-              >
-                <XIcon className="w-4 h-4" />
-              </button>
-            </div>
-            
-            {/* 内容区域 */}
-            <div className="flex-1 p-0 overflow-hidden">
-              <StyleMode />
-            </div>
-          </div>
-        </div>,
-        document.body
+      {renderImageFeatureDialog(
+        isImageStyleOpen,
+        setIsImageStyleOpen,
+        t('tiptapEditor.aiPanel.imageStyle'),
+        <StyleMode />
       )}
     </div>
   )
