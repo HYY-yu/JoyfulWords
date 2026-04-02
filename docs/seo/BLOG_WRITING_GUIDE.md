@@ -29,6 +29,15 @@ JoyfulWords 博客服务于以下目标：
 
 新文章必须优先归入这 5 类之一。若确实出现新的稳定主题，再评估是否扩展导航。
 
+当前归类规则不是 frontmatter，也不是关键词匹配，而是目录 + `DEFI.md`：
+
+- `blog/ai-writing/` 下的文章自动进入 `AI 写作`
+- `blog/seo-content/` 下的文章自动进入 `SEO 内容优化`
+- `blog/content-workflow/` 下的文章自动进入 `内容创作工作流`
+- `blog/ai-visuals/` 下的文章自动进入 `AI 配图`
+- `blog/materials/` 下的文章自动进入 `素材管理与复用`
+- 每个 topic 的名称、描述、顺序、空状态文案，都来自对应目录下的 `DEFI.md`
+
 ## 3. 选题判断标准
 
 一篇文章值得写，至少应满足以下 3 条中的 2 条：
@@ -147,7 +156,39 @@ CTA 必须和搜索意图匹配。
 - SEO 类：用 JoyfulWords 产出更适合正式发布的内容
 - 素材类：用 JoyfulWords 管理素材并复用到后续创作
 
-## 9. Frontmatter 规范
+## 9. 目录与 Frontmatter 规范
+
+每篇博客必须放在对应 topic 目录下。目录结构示例：
+
+```text
+blog/
+  ai-writing/
+    DEFI.md
+    ai-writing-workflow.zh.md
+    ai-writing-workflow.en.md
+  seo-content/
+    DEFI.md
+    seo-checklist.zh.md
+    seo-checklist.en.md
+```
+
+目录名就是文章所属 topic，不再额外使用 `category` 字段。`DEFI.md` 负责定义这个 topic 在博客页上的展示方式。
+
+`DEFI.md` 的建议格式：
+
+```md
+---
+order: "10"
+label_zh: "AI 写作"
+label_en: "AI Writing"
+description_zh: "这个主题讲什么"
+description_en: "What this topic covers"
+audience_hint_zh: "适合谁看"
+audience_hint_en: "Who this topic is for"
+empty_state_zh: "这个主题还没文章时显示什么"
+empty_state_en: "What to show when this topic is empty"
+---
+```
 
 当前最少需要：
 
@@ -160,7 +201,7 @@ locale: "zh"
 ---
 ```
 
-建议后续开始使用的扩展字段：
+建议后续可扩展字段：
 
 ```yaml
 ---
@@ -168,20 +209,11 @@ title: "文章标题"
 date: "2026-03-31"
 summary: "文章摘要"
 locale: "zh"
-category: "content-workflow"
 keywords: "AI写作工作流,博客写作流程,正式发布内容"
 author: "JoyfulWords Team"
 draft: "false"
 ---
 ```
-
-`category` 建议只使用这几个值：
-
-- `ai-writing`
-- `seo-content`
-- `content-workflow`
-- `ai-visuals`
-- `materials`
 
 ## 10. 发布前 Checklist
 

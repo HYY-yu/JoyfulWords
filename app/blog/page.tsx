@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowLeft, ArrowRight, Compass, Library, Sparkles } from "lucide-react"
+import { ArrowLeft, ArrowRight, Compass, Sparkles } from "lucide-react"
 import { BlogLanguageToggle } from "@/components/blog/blog-language-toggle"
 import { getBlogList } from "@/lib/blog"
 import { getServerDictionary, getServerLocale } from "@/lib/i18n/server"
@@ -35,39 +35,30 @@ export default async function BlogPage() {
   const locale = await getServerLocale()
   const dict = getServerDictionary(locale)
   const posts = await getBlogList(locale)
-  const topicSections = getBlogTopics(locale, posts)
+  const topicSections = await getBlogTopics(locale, posts)
   const starterPosts = posts.slice(0, 3)
   const intro = locale === "zh"
     ? {
         eyebrow: "Content Navigation",
         title: "按主题进入 JoyfulWords 博客",
-        description: "这里不只是文章列表。你可以按主题找到 AI 写作、SEO 内容优化、内容工作流、AI 配图和素材管理相关内容。",
         starterTitle: "新手先看",
         starterDescription: "如果你是第一次来到 JoyfulWords 博客，先从这些文章开始理解产品和内容方向。",
         featuredTitle: "推荐阅读",
-        featuredDescription: "优先展示与产品定位最接近、最适合建立整体理解的文章。",
         topicNavTitle: "热门主题",
-        topicNavDescription: "按问题进入，而不是按发布日期翻找。",
-        topicLinkLabel: "进入主题",
+        topicNavDescription: "按主题浏览",
         postsCount: (count: number) => `${count} 篇`,
-        latestTitle: "最新文章",
-        latestDescription: "按时间查看最新发布内容。",
         emptySectionTitle: "即将补充",
       }
     : {
         eyebrow: "Content Navigation",
         title: "Explore the JoyfulWords Blog by Topic",
-        description: "This page is more than a reverse-chronological feed. Use it to jump into AI writing, SEO content, creation workflows, AI visuals, and material management.",
         starterTitle: "Start Here",
         starterDescription: "If you are new to JoyfulWords, begin with these articles to understand the product and content direction.",
         featuredTitle: "Recommended Reads",
-        featuredDescription: "High-priority pieces that explain the product, workflow, and editorial direction.",
+        featuredDescription: "Selected posts to help you get started quickly.",
         topicNavTitle: "Hot Topics",
-        topicNavDescription: "Navigate by problem space instead of publication date.",
-        topicLinkLabel: "Open Topic",
+        topicNavDescription: "Browse by topic",
         postsCount: (count: number) => `${count} posts`,
-        latestTitle: "Latest Posts",
-        latestDescription: "Browse the newest published content in chronological order.",
         emptySectionTitle: "Coming Soon",
       }
 
@@ -99,9 +90,6 @@ export default async function BlogPage() {
             <p className="mt-4 text-base leading-7 text-muted-foreground">
               {dict.blog.list.subtitle}
             </p>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-muted-foreground">
-              {intro.description}
-            </p>
           </div>
         </header>
 
@@ -114,10 +102,6 @@ export default async function BlogPage() {
             <h2 className="mt-4 font-serif text-3xl tracking-tight text-foreground">
               {intro.featuredTitle}
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-              {intro.featuredDescription}
-            </p>
-
             <div className="mt-8 grid gap-4">
               {starterPosts.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border p-6 text-sm text-muted-foreground">
@@ -158,12 +142,6 @@ export default async function BlogPage() {
             <h2 className="mt-4 font-serif text-3xl tracking-tight text-foreground">
               {intro.topicNavDescription}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              {locale === "zh"
-                ? "每个主题都会沉淀成一个内容集群。即使现在文章数量还少，也先把结构搭好。"
-                : "Each topic is designed to become a content cluster. The structure is in place before the archive gets large."}
-            </p>
-
             <div className="mt-8 grid gap-3">
               {topicSections.map((topic) => (
                 <a
@@ -264,66 +242,6 @@ export default async function BlogPage() {
           ))}
         </section>
 
-        {posts.length === 0 ? (
-          <section className="rounded-[2rem] border border-dashed border-border bg-background/90 p-12 text-center text-muted-foreground">
-            {dict.blog.common.noPosts}
-          </section>
-        ) : (
-          <section className="rounded-[2rem] border border-border/70 bg-background/95 p-8 shadow-[0_16px_60px_rgba(15,23,42,0.05)]">
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <Library className="h-4 w-4" />
-              <span>{intro.latestTitle}</span>
-            </div>
-            <h2 className="mt-4 font-serif text-3xl tracking-tight text-foreground">
-              {intro.latestDescription}
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              {locale === "zh"
-                ? "保留按时间查看的入口，但它不再是博客页唯一结构。"
-                : "Chronological browsing still exists, but it is no longer the only structure on the page."}
-            </p>
-
-            <div className="mt-8 grid gap-6">
-            {posts.map((post) => (
-              <article
-                key={`${post.slug}-${post.locale}`}
-                className="rounded-[2rem] border border-border/70 bg-background/95 p-8 shadow-[0_16px_60px_rgba(15,23,42,0.05)] transition-transform duration-200 hover:-translate-y-0.5"
-              >
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <time dateTime={post.date}>{formatDate(post.date, locale)}</time>
-                  <span className="h-1 w-1 rounded-full bg-border" />
-                  <span>{post.locale.toUpperCase()}</span>
-                  {post.isFallback ? (
-                    <>
-                      <span className="h-1 w-1 rounded-full bg-border" />
-                      <span>{dict.blog.common.fallbackNotice.replace("{locale}", post.locale.toUpperCase())}</span>
-                    </>
-                  ) : null}
-                </div>
-
-                <h2 className="mt-5 font-serif text-3xl tracking-tight text-foreground">
-                  <Link href={`/blog/${post.slug}`} className="transition-colors hover:text-primary">
-                    {post.title}
-                  </Link>
-                </h2>
-                <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
-                  {post.summary}
-                </p>
-
-                <div className="mt-8">
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
-                  >
-                    {dict.blog.common.readMore}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </article>
-            ))}
-            </div>
-          </section>
-        )}
       </div>
     </main>
   )

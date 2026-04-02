@@ -3,6 +3,7 @@ import "server-only"
 import { cache } from "react"
 import { promises as fs } from "node:fs"
 import path from "node:path"
+import { getAllowedBlogTopics } from "@/lib/blog-topics"
 import { markdownToHTML } from "@/lib/tiptap-utils"
 import type { Locale } from "@/lib/i18n/shared"
 
@@ -18,11 +19,13 @@ interface BlogFrontmatter {
 
 interface RawBlogPost extends BlogFrontmatter {
   slug: string
+  topic: string
   content: string
 }
 
 export interface BlogListItem extends BlogFrontmatter {
   slug: string
+  topic: string
   availableLocales: Locale[]
   isFallback: boolean
 }
@@ -93,10 +96,11 @@ function validateFrontmatter(
 }
 
 const getRawBlogPosts = cache(async (): Promise<RawBlogPost[]> => {
-  let fileNames: string[] = []
+  let fileEntries: string[] = []
+  const allowedTopics = await getAllowedBlogTopics()
 
   try {
-    fileNames = await fs.readdir(BLOG_DIRECTORY)
+    fileEntries = await collectBlogFiles(BLOG_DIRECTORY)
   } catch (error) {
     console.warn("[blog] Failed to read blog directory:", error)
     // TODO(observability): increment blog directory read failure metric.
@@ -105,17 +109,27 @@ const getRawBlogPosts = cache(async (): Promise<RawBlogPost[]> => {
 
   const posts = new Map<string, RawBlogPost>()
 
-  for (const fileName of fileNames) {
+  for (const relativePath of fileEntries) {
+    const normalizedPath = relativePath.split(path.sep).join("/")
+    const directoryName = path.dirname(normalizedPath)
+    const fileName = path.basename(normalizedPath)
     const matched = fileName.match(BLOG_FILE_PATTERN)
     if (!matched) continue
+    if (fileName === "DEFI.md") continue
+    if (directoryName === "." || !allowedTopics.has(directoryName)) {
+      console.warn(`[blog] Skipping ${normalizedPath}: files must live under blog/<topic>/.`)
+      // TODO(observability): record blog files outside topic directories.
+      continue
+    }
 
     const [, slug, localeValue] = matched
     const locale = localeValue as Locale
     const dedupeKey = `${slug}:${locale}`
-    const filePath = path.join(BLOG_DIRECTORY, fileName)
+    const topic = directoryName
+    const filePath = path.join(BLOG_DIRECTORY, relativePath)
 
     if (posts.has(dedupeKey)) {
-      console.warn(`[blog] Duplicate blog entry detected for ${dedupeKey}, skipping ${fileName}.`)
+      console.warn(`[blog] Duplicate blog entry detected for ${dedupeKey}, skipping ${normalizedPath}.`)
       // TODO(observability): record duplicate slug-locale pairs.
       continue
     }
@@ -131,11 +145,12 @@ const getRawBlogPosts = cache(async (): Promise<RawBlogPost[]> => {
 
       posts.set(dedupeKey, {
         slug,
+        topic,
         content,
         ...validatedFrontmatter,
       })
     } catch (error) {
-      console.warn(`[blog] Failed to load ${fileName}:`, error)
+      console.warn(`[blog] Failed to load ${normalizedPath}:`, error)
       // TODO(observability): record per-file load failures for markdown ingestion.
     }
   }
@@ -144,6 +159,27 @@ const getRawBlogPosts = cache(async (): Promise<RawBlogPost[]> => {
     return new Date(right.date).getTime() - new Date(left.date).getTime()
   })
 })
+
+async function collectBlogFiles(rootDirectory: string, relativeDirectory = ""): Promise<string[]> {
+  const currentDirectory = path.join(rootDirectory, relativeDirectory)
+  const entries = await fs.readdir(currentDirectory, { withFileTypes: true })
+  const files: string[] = []
+
+  for (const entry of entries) {
+    const relativePath = path.join(relativeDirectory, entry.name)
+
+    if (entry.isDirectory()) {
+      files.push(...await collectBlogFiles(rootDirectory, relativePath))
+      continue
+    }
+
+    if (entry.isFile()) {
+      files.push(relativePath)
+    }
+  }
+
+  return files
+}
 
 function buildLocaleMap(posts: RawBlogPost[]) {
   const localeMap = new Map<string, Partial<Record<Locale, RawBlogPost>>>()
@@ -176,6 +212,7 @@ export const getBlogList = cache(async (locale: Locale): Promise<BlogListItem[]>
 
       return {
         slug,
+        topic: selectedPost.topic,
         title: selectedPost.title,
         date: selectedPost.date,
         summary: selectedPost.summary,
@@ -209,6 +246,7 @@ export const getBlogPostBySlug = cache(async (
 
   return {
     slug,
+    topic: selectedPost.topic,
     title: selectedPost.title,
     date: selectedPost.date,
     summary: selectedPost.summary,
