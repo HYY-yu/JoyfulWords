@@ -20,7 +20,7 @@ const publicPages = [
 ]
 
 // Exact match public routes (cannot use startsWith for '/')
-const exactPublicRoutes = ['/']
+const exactPublicRoutes = ['/', '/sitemap.xml', '/robots.txt']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -49,6 +49,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
+    '/((?!api/|_next/static|_next/image|favicon.ico|sitemap\\.xml|robots\\.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js)$).*)',
   ],
 }
