@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -43,12 +43,43 @@ import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog
 import { ArticleCreateModeDialog } from "@/components/article/article-create-mode-dialog"
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
 
+function BillingDialogQuerySync({
+  onOpenBillingDialog,
+}: {
+  onOpenBillingDialog: () => void
+}) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab === "billing") {
+      console.info("[ArticlesPage] Opening billing dialog from query param")
+      onOpenBillingDialog()
+      router.replace("/articles")
+      return
+    }
+
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const activeTab = localStorage.getItem("joyfulwords-active-tab")
+    if (activeTab === "billing") {
+      console.info("[ArticlesPage] Opening billing dialog from localStorage flag")
+      onOpenBillingDialog()
+      localStorage.removeItem("joyfulwords-active-tab")
+    }
+  }, [searchParams, router, onOpenBillingDialog])
+
+  return null
+}
+
 export default function ArticlesPage() {
   const { t, locale, setLocale } = useTranslation()
   const { user, loading: authLoading, signOut } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [profileOpen, setProfileOpen] = useState(false)
   const [createModeDialogOpen, setCreateModeDialogOpen] = useState(false)
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
@@ -75,27 +106,6 @@ export default function ArticlesPage() {
       router.push("/auth/login")
     }
   }, [user, authLoading, router])
-
-  useEffect(() => {
-    const tab = searchParams.get("tab")
-    if (tab === "billing") {
-      console.info("[ArticlesPage] Opening billing dialog from query param")
-      setBillingDialogOpen(true)
-      router.replace("/articles")
-      return
-    }
-
-    if (typeof window === "undefined") {
-      return
-    }
-
-    const activeTab = localStorage.getItem("joyfulwords-active-tab")
-    if (activeTab === "billing") {
-      console.info("[ArticlesPage] Opening billing dialog from localStorage flag")
-      setBillingDialogOpen(true)
-      localStorage.removeItem("joyfulwords-active-tab")
-    }
-  }, [searchParams, router])
 
   const handleEditArticle = (article: Article) => {
     router.push(`/articles/${article.id}/edit`)
@@ -197,6 +207,10 @@ export default function ArticlesPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
+      <Suspense fallback={null}>
+        <BillingDialogQuerySync onOpenBillingDialog={() => setBillingDialogOpen(true)} />
+      </Suspense>
+
       {/* Top Navigation Bar */}
       <header className="shrink-0 border-b border-border bg-background">
         <div className="flex items-center justify-between h-14 px-6">
