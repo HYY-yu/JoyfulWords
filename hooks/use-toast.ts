@@ -6,7 +6,9 @@ import * as React from 'react'
 import type { ToastActionElement, ToastProps } from '@/components/ui/custom/toast'
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 1000
+const TOAST_SUCCESS_DURATION = 3000
+const TOAST_ERROR_DURATION = 6000
 
 type ToasterToast = ToastProps & {
   id: string
@@ -141,6 +143,11 @@ type Toast = Omit<ToasterToast, 'id'>
 
 function toast({ ...props }: Toast) {
   const id = genId()
+  const resolvedDuration =
+    props.duration ??
+    (props.variant === 'destructive'
+      ? TOAST_ERROR_DURATION
+      : TOAST_SUCCESS_DURATION)
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -153,6 +160,7 @@ function toast({ ...props }: Toast) {
     type: 'ADD_TOAST',
     toast: {
       ...props,
+      duration: resolvedDuration,
       id,
       open: true,
       onOpenChange: (open) => {
