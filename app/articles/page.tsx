@@ -215,6 +215,17 @@ export default function ArticlesPage() {
               <TallyFeedbackButton className="w-auto py-0 h-8 text-sm text-muted-foreground hover:text-foreground hover:bg-accent" />
             </FeedbackErrorBoundary>
 
+            {/* Language */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-sm text-muted-foreground hover:text-foreground h-8"
+              onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            >
+              <Globe className="w-4 h-4" />
+              {locale === "zh" ? "English" : "中文"}
+            </Button>
+
             {/* Billing */}
             <Button
               variant="ghost"
@@ -249,14 +260,6 @@ export default function ArticlesPage() {
                 >
                   <UserCircleIcon className="mr-2 h-4 w-4" />
                   {t("auth.profile")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onSelect={() => setLocale(locale === "zh" ? "en" : "zh")}
-                >
-                  <Globe className="mr-2 h-4 w-4" />
-                  {locale === "zh" ? "English" : "中文"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
