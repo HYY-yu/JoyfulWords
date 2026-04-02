@@ -117,10 +117,10 @@ export function HomePageContent() {
           {t("landing.nav.blog")}
         </Link>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/dashboard">{t("landing.nav.myArticles")}</Link>
+          <Link href="/articles">{t("landing.nav.myArticles")}</Link>
         </Button>
         <Button size="sm" asChild>
-          <Link href="/dashboard">{t("landing.nav.startCreating")}</Link>
+          <Link href="/articles">{t("landing.nav.startCreating")}</Link>
         </Button>
       </header>
 
@@ -141,12 +141,12 @@ export function HomePageContent() {
 
         <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3">
           <Button size="lg" asChild>
-            <Link href="/dashboard">
+            <Link href="/articles">
               <span>✦</span> {t("landing.cta")}
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
-            <Link href="/dashboard">{t("landing.viewArticles")}</Link>
+            <Link href="/articles">{t("landing.viewArticles")}</Link>
           </Button>
         </div>
 
@@ -259,7 +259,7 @@ export function HomePageContent() {
             className="bg-white text-foreground hover:bg-white/90"
             asChild
           >
-            <Link href="/dashboard">{t("landing.ctaCta")}</Link>
+            <Link href="/articles">{t("landing.ctaCta")}</Link>
           </Button>
         </div>
       </section>

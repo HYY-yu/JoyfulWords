@@ -32,7 +32,7 @@ export function LoginForm() {
         title: t("auth.loginSuccess"),
         description: t("auth.redirecting"),
       })
-      router.push("/dashboard")
+      router.push("/articles")
     } catch (error: any) {
       // Toast is already shown in the auth context
     } finally {
@@ -43,7 +43,7 @@ export function LoginForm() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     try {
-      await signInWithGoogle('/')
+      await signInWithGoogle('/articles')
     } catch (error: any) {
       // Toast is already shown
     } finally {

@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Store state for callback verification
     sessionStorage.setItem('oauth_state', result.state)
-    sessionStorage.setItem('oauth_redirect', redirectUrl || '/dashboard')
+    sessionStorage.setItem('oauth_redirect', redirectUrl || '/articles')
 
     // Redirect to Google authorization page
     window.location.href = result.auth_url

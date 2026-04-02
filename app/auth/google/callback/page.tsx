@@ -74,14 +74,16 @@ export default function GoogleCallbackPage() {
         _setUser(data.user)
         _setSession(tokens)
 
+        // Resolve redirect target first
+        const redirect = sessionStorage.getItem('oauth_redirect') || '/articles'
+
         // Clear session storage
         sessionStorage.removeItem('oauth_state')
         sessionStorage.removeItem('oauth_redirect')
 
         setStatus('success')
 
-        // Redirect to home page or stored redirect
-        const redirect = sessionStorage.getItem('oauth_redirect') || '/dashboard'
+        // Redirect to stored target or articles page
         setTimeout(() => {
           router.push(redirect)
         }, 500)

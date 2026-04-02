@@ -7,9 +7,9 @@ export default function TaskCenterPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // 重定向到 dashboard 页面，并设置 activeTab 为 taskcenter
-    router.push("/dashboard")
-    // 设置 localStorage 以便 dashboard 页面能正确显示任务中心
+    // 重定向到 articles 页面，并透传任务中心参数能力
+    router.push("/articles?tab=taskcenter")
+    // 保留 localStorage 标记，便于后续页面消费该状态
     if (typeof window !== "undefined") {
       localStorage.setItem("joyfulwords-active-tab", "taskcenter")
     }

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const REFRESH_TOKEN_KEY = 'refresh_token'
 
-// Auth routes: redirect authenticated users to dashboard
+// Auth routes: redirect authenticated users to articles
 const authRoutes = [
   '/auth/login',
   '/auth/signup',
@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages (but NOT public pages)
   // if (isAuthenticated && isAuthRoute) {
-  //   return NextResponse.redirect(new URL('/dashboard', request.url))
+  //   return NextResponse.redirect(new URL('/articles', request.url))
   // }
 
   // Redirect unauthenticated users to login for protected routes

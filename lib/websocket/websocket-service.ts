@@ -186,7 +186,7 @@ class WebSocketService {
           // 跳转到任务详情页面
           console.log('点击任务完成通知，跳转到任务详情')
           // 先导航到任务中心页面，然后触发任务详情查看
-          window.location.href = `/dashboard?tab=taskcenter&taskId=${payload.task_id}&taskType=${payload.task_type}`
+          window.location.href = `/articles?tab=taskcenter&taskId=${payload.task_id}&taskType=${payload.task_type}`
         }
       })
     } else {
@@ -217,7 +217,7 @@ class WebSocketService {
           // 跳转到任务详情页面
           console.log('点击任务失败通知，跳转到任务详情')
           // 先导航到任务中心页面，然后触发任务详情查看
-          window.location.href = `/dashboard?tab=taskcenter&taskId=${payload.task_id}&taskType=${payload.task_type}`
+          window.location.href = `/articles?tab=taskcenter&taskId=${payload.task_id}&taskType=${payload.task_type}`
         }
       })
     } else {

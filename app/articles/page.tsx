@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useArticles } from "@/lib/hooks/use-articles"
@@ -26,6 +26,7 @@ import {
   RefreshCw,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Globe,
 } from "lucide-react"
 import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
@@ -40,15 +41,18 @@ import { articlesClient } from "@/lib/api/articles/client"
 import { useToast } from "@/hooks/use-toast"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
 import { ArticleCreateModeDialog } from "@/components/article/article-create-mode-dialog"
+import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
 
 export default function ArticlesPage() {
-  const { t } = useTranslation()
+  const { t, locale, setLocale } = useTranslation()
   const { user, loading: authLoading, signOut } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [profileOpen, setProfileOpen] = useState(false)
   const [createModeDialogOpen, setCreateModeDialogOpen] = useState(false)
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
+  const [billingDialogOpen, setBillingDialogOpen] = useState(false)
   const [isCreatingArticle, setIsCreatingArticle] = useState(false)
 
   const {
@@ -71,6 +75,27 @@ export default function ArticlesPage() {
       router.push("/auth/login")
     }
   }, [user, authLoading, router])
+
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab === "billing") {
+      console.info("[ArticlesPage] Opening billing dialog from query param")
+      setBillingDialogOpen(true)
+      router.replace("/articles")
+      return
+    }
+
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const activeTab = localStorage.getItem("joyfulwords-active-tab")
+    if (activeTab === "billing") {
+      console.info("[ArticlesPage] Opening billing dialog from localStorage flag")
+      setBillingDialogOpen(true)
+      localStorage.removeItem("joyfulwords-active-tab")
+    }
+  }, [searchParams, router])
 
   const handleEditArticle = (article: Article) => {
     router.push(`/articles/${article.id}/edit`)
@@ -175,9 +200,9 @@ export default function ArticlesPage() {
       {/* Top Navigation Bar */}
       <header className="shrink-0 border-b border-border bg-background">
         <div className="flex items-center justify-between h-14 px-6">
-          {/* Left - Logo / Back to dashboard */}
+          {/* Left - Logo / Stay on articles */}
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/articles")}
             className="text-base font-semibold text-foreground hover:text-foreground/80 transition-colors"
           >
             {t("sidebar.title")}
@@ -195,10 +220,7 @@ export default function ArticlesPage() {
               variant="ghost"
               size="sm"
               className="gap-2 text-sm text-muted-foreground hover:text-foreground h-8"
-              onClick={() => {
-                localStorage.setItem("joyfulwords-active-tab", "billing")
-                router.push("/dashboard")
-              }}
+              onClick={() => setBillingDialogOpen(true)}
             >
               <Wallet className="w-4 h-4" />
               {t("sidebar.billing")}
@@ -227,6 +249,14 @@ export default function ArticlesPage() {
                 >
                   <UserCircleIcon className="mr-2 h-4 w-4" />
                   {t("auth.profile")}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={() => setLocale(locale === "zh" ? "en" : "zh")}
+                >
+                  <Globe className="mr-2 h-4 w-4" />
+                  {locale === "zh" ? "English" : "中文"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -446,6 +476,11 @@ export default function ArticlesPage() {
         onOpenChange={setAiHelpDialogOpen}
         onArticleCreated={handleAIArticleCreated}
         variant="feature-compact"
+      />
+
+      <BillingFullscreenDialog
+        open={billingDialogOpen}
+        onOpenChange={setBillingDialogOpen}
       />
     </div>
   )
