@@ -28,7 +28,11 @@ type LayerImage = {
 
 type SplitStatus = "idle" | "uploading" | "splitting" | "completed" | "error"
 
-export function InversionMode() {
+interface InversionModeProps {
+  articleId?: number | null
+}
+
+export function InversionMode({ articleId }: InversionModeProps) {
   const { t, locale } = useTranslation()
   const { toast } = useToast()
 
@@ -297,6 +301,7 @@ export function InversionMode() {
         image_url: uploadedImageUrl,
         num_layers: numLayers,
         prompt: prompt || undefined,
+        article_id: articleId ?? undefined,
       })
 
       if ('error' in result) {
@@ -324,7 +329,7 @@ export function InversionMode() {
         title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [uploadedImageUrl, numLayers, prompt, t, toast])
+  }, [articleId, uploadedImageUrl, numLayers, prompt, t, toast])
 
   const handleToggleLayer = (layerId: string) => {
     setSelectedLayers(prev => {

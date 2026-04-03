@@ -493,6 +493,7 @@ export default function ArticleEditPage() {
 
   const rightPanel = (
     <EditorAIPanel
+      articleId={article.id}
       aiEditTasks={aiEditTasks}
       activeExecId={activeExecId}
       onSetActiveExecId={handleSetActiveExecId}

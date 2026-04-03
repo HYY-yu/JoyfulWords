@@ -3,6 +3,7 @@
 import { useState, useEffect, type ReactNode } from "react"
 import {
   PencilIcon,
+  NetworkIcon,
   ImageIcon,
   RefreshCwIcon,
   PaletteIcon,
@@ -19,12 +20,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/base/badge"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Spinner } from "@/components/ui/custom/spinner"
+import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { CreatorMode } from "@/components/image-generator/creator-mode"
 import { InversionMode } from "@/components/image-generator/modes/inversion-mode"
 import { StyleMode } from "@/components/image-generator/modes/style-mode"
 
 type ActiveDialog =
   | "ai-edit"
+  | "mindmap"
   | "create-image"
   | "reversal-mode"
   | "image-style"
@@ -43,6 +46,12 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     labelKey: "tiptapEditor.aiPanel.aiEdit",
     icon: PencilIcon,
     bgColor: "bg-blue-50",
+  },
+  {
+    id: "mindmap",
+    labelKey: "tiptapEditor.aiPanel.mindmap",
+    icon: NetworkIcon,
+    bgColor: "bg-emerald-50",
   },
   {
     id: "create-image",
@@ -65,6 +74,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
 ]
 
 interface EditorAIPanelProps {
+  articleId?: number | null
   aiEditTasks: Map<string, AIEditState>
   activeExecId: string | null
   onSetActiveExecId: (execId: string | null) => void
@@ -73,6 +83,7 @@ interface EditorAIPanelProps {
 }
 
 export function EditorAIPanel({
+  articleId,
   aiEditTasks,
   activeExecId,
   onSetActiveExecId,
@@ -261,29 +272,20 @@ export function EditorAIPanel({
       setCopyingToMaterials(true)
       setCopyToMaterialsError(null)
       setCopyToMaterialsSuccess(null)
-      
-      const token = localStorage.getItem('access_token')
-      if (!token) {
-        throw new Error('未登录或token过期')
-      }
 
       const taskId = selectedTask.taskCenterData.id
-      const response = await fetch(`http://localhost:8080/image-generation/logs/${taskId}/copy-to-materials`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      })
-
-      if (!response.ok) {
-        throw new Error('加入素材库失败')
+      const result = await imageGenerationClient.copyToMaterials(taskId, articleId ?? undefined)
+      if ('error' in result) {
+        throw new Error(String(result.error))
       }
 
-      const data = await response.json()
       setCopyToMaterialsSuccess('成功加入素材库')
-      console.log('加入素材库成功:', data)
+      console.log('加入素材库成功:', {
+        taskId,
+        articleId,
+        count: result.count,
+        materialIds: result.material_ids,
+      })
     } catch (error) {
       setCopyToMaterialsError('加入素材库失败，请稍后重试')
       console.error('加入素材库失败:', error)
@@ -295,6 +297,8 @@ export function EditorAIPanel({
   function handleOpenDialog(id: ActiveDialog) {
     if (id === 'ai-edit') {
       window.dispatchEvent(new CustomEvent('joyfulwords-open-ai-edit'))
+    } else if (id === 'mindmap') {
+      window.dispatchEvent(new CustomEvent('joyfulwords-open-ai-mindmap'))
     } else if (id === 'create-image') {
       setIsCreateImageOpen(true)
     } else if (id === 'reversal-mode') {
@@ -624,21 +628,21 @@ export function EditorAIPanel({
         isCreateImageOpen,
         setIsCreateImageOpen,
         t('tiptapEditor.aiPanel.createImage'),
-        <CreatorMode />
+        <CreatorMode articleId={articleId} />
       )}
 
       {renderImageFeatureDialog(
         isReversalModeOpen,
         setIsReversalModeOpen,
         t('tiptapEditor.aiPanel.reversalMode'),
-        <InversionMode />
+        <InversionMode articleId={articleId} />
       )}
 
       {renderImageFeatureDialog(
         isImageStyleOpen,
         setIsImageStyleOpen,
         t('tiptapEditor.aiPanel.imageStyle'),
-        <StyleMode />
+        <StyleMode articleId={articleId} />
       )}
     </div>
   )

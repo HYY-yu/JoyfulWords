@@ -25,6 +25,7 @@ export interface CreateGenerationTaskRequest {
   config?: CreatorConfig
   prompt?: string
   model_name?: string
+  article_id?: number
   material_ids?: number[]
   reference_images?: string[]
 }
@@ -239,6 +240,11 @@ export interface CreateSplitTaskRequest {
   image_url: string
   num_layers?: number
   prompt?: string
+  article_id?: number
+}
+
+export interface CopyToMaterialsRequest {
+  article_id?: number
 }
 
 /**

@@ -85,7 +85,11 @@ function StyleCard({
   )
 }
 
-export function StyleMode() {
+interface StyleModeProps {
+  articleId?: number | null
+}
+
+export function StyleMode({ articleId }: StyleModeProps) {
   const { t, locale } = useTranslation()
   const { toast } = useToast()
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
@@ -415,6 +419,7 @@ export function StyleMode() {
         gen_mode: 'style',
         prompt: selectedStyle.full_prompt || selectedStyle.name,
         model_name: selectedModel,
+        article_id: articleId ?? undefined,
         reference_images: [uploadedImageUrl],
       })
 
@@ -465,7 +470,10 @@ export function StyleMode() {
     setIsSavingToMaterials(true)
 
     try {
-      const result = await imageGenerationClient.copyToMaterials(currentGenerationLogId)
+      const result = await imageGenerationClient.copyToMaterials(
+        currentGenerationLogId,
+        articleId ?? undefined
+      )
 
       if ('error' in result) {
         console.error('[StyleMode] Copy to materials failed:', result.error)

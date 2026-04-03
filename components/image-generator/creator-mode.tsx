@@ -34,7 +34,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/base/alert-dialog"
 
-export function CreatorMode() {
+interface CreatorModeProps {
+  articleId?: number | null
+}
+
+export function CreatorMode({ articleId }: CreatorModeProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
 
@@ -460,6 +464,7 @@ export function CreatorMode() {
         gen_mode: 'creator', // 创作模式
         prompt,
         model_name: selectedModel,  // 新增
+        article_id: articleId ?? undefined,
       })
 
       if ('error' in result) {
@@ -531,6 +536,7 @@ export function CreatorMode() {
         gen_mode: 'creator', // 创作模式
         config: creatorConfig,
         model_name: selectedModel,  // 新增
+        article_id: articleId ?? undefined,
       })
 
       if ('error' in result) {
@@ -599,7 +605,10 @@ export function CreatorMode() {
     console.info('[ImageGeneration] Copying to materials:', { logId: currentGenerationLogId })
 
     try {
-      const result = await imageGenerationClient.copyToMaterials(currentGenerationLogId)
+      const result = await imageGenerationClient.copyToMaterials(
+        currentGenerationLogId,
+        articleId ?? undefined
+      )
 
       if ('error' in result) {
         console.error('[ImageGeneration] Copy to materials failed:', result.error)

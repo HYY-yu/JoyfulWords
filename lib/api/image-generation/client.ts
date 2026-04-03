@@ -9,6 +9,7 @@ import type {
   GetGenerationLogsRequest,
   GetGenerationLogsResponse,
   CopyToMaterialsResponse,
+  CopyToMaterialsRequest,
   GetStyleExamplesResponse,
   CreateSplitTaskRequest,
   CreateSplitTaskResponse,
@@ -84,6 +85,7 @@ export const imageGenerationClient = {
       hasPrompt: !!request.prompt,
       hasConfig: !!request.config,
       modelName: request.model_name,
+      articleId: request.article_id,
       materialIds: request.material_ids,
       referenceImageCount: request.reference_images?.length || 0,
     })
@@ -214,10 +216,15 @@ export const imageGenerationClient = {
    *   console.log(`已复制 ${result.count} 张图片到素材库`)
    * }
    */
-  async copyToMaterials(logId: number) {
+  async copyToMaterials(logId: number, articleId?: number) {
     const token = localStorage.getItem('access_token')
+    const requestBody: CopyToMaterialsRequest | undefined =
+      typeof articleId === 'number' ? { article_id: articleId } : undefined
 
-    console.info('[ImageGeneration] Copying log to materials:', { logId })
+    console.info('[ImageGeneration] Copying log to materials:', {
+      logId,
+      articleId: requestBody?.article_id ?? null,
+    })
 
     return apiRequest<CopyToMaterialsResponse>(
       `/image-generation/logs/${logId}/copy-to-materials`,
@@ -226,6 +233,7 @@ export const imageGenerationClient = {
         headers: {
           Authorization: token ? `Bearer ${token}` : '',
         },
+        body: requestBody ? JSON.stringify(requestBody) : undefined,
       }
     )
   },
@@ -282,6 +290,7 @@ export const imageGenerationClient = {
       hasImageUrl: !!request.image_url,
       numLayers: request.num_layers || 4,
       hasPrompt: !!request.prompt,
+      articleId: request.article_id,
     })
 
     return apiRequest<CreateSplitTaskResponse>('/image-generation/split', {
