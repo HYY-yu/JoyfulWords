@@ -185,6 +185,9 @@ importers:
       marked:
         specifier: ^17.0.1
         version: 17.0.3
+      mind-elixir:
+        specifier: 5.10.0
+        version: 5.10.0
       next:
         specifier: 16.0.10
         version: 16.0.10(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -4111,6 +4114,9 @@ packages:
   mimic-function@5.0.1:
     resolution: {integrity: sha512-VP79XUPxV2CigYP3jWwAUFSku2aKqBH7uTAapFWCBqutsbmDo96KY5o8uh6U+/YSIn5OxJnXp73beVkpqMIGhA==}
     engines: {node: '>=18'}
+
+  mind-elixir@5.10.0:
+    resolution: {integrity: sha512-AY/tDXz8stMbx0MIutdn63Dz0uwY1VVMKIxCqOOA2hg5WGdCGm2qqEZF498deLDxoZbL+hDf1SwBWzvWADBoPA==}
 
   minimatch@10.2.4:
     resolution: {integrity: sha512-oRjTw/97aTBN0RHbYCdtF1MQfvusSIBQM0IZEgzl6426+8jSC0nF1a/GmnVLpfB9yyr6g6FTqWqiZVbxrtaCIg==}
@@ -9517,6 +9523,8 @@ snapshots:
   mimic-fn@2.1.0: {}
 
   mimic-function@5.0.1: {}
+
+  mind-elixir@5.10.0: {}
 
   minimatch@10.2.4:
     dependencies:

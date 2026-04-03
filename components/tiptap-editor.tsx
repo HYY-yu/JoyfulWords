@@ -10,6 +10,7 @@ import { CustomImage, CustomHighlight, CustomTextAlign, CustomLink, AIPendingBlo
 import { ImageMenu } from "./ui/editor/image-menu";
 import { LinkMenu } from "./ui/editor/link-menu";
 import { AIRewriteDialog } from "./ui/ai/ai-rewrite-dialog";
+import { AIMindMapDialog } from "./ui/ai/ai-mindmap-dialog";
 import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
@@ -64,6 +65,7 @@ export function TiptapEditor({
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [dialogExecId, setDialogExecId] = useState<string | null>(null); // null = 新请求，有值 = 查看已有任务
   const [selectedTextForAI, setSelectedTextForAI] = useState("");
+  const [isMindMapDialogOpen, setIsMindMapDialogOpen] = useState(false);
 
   // 添加国际化支持
   const { t } = useTranslation();
@@ -351,6 +353,39 @@ export function TiptapEditor({
     setIsAIDialogOpen(true);
   }, [editor, toast, mode, t]);
 
+  const handleOpenMindMap = useCallback(() => {
+    if (mode === "create") {
+      toast({
+        variant: "destructive",
+        title: t("aiMindmap.toast.articleRequired"),
+        description: t("aiMindmap.toast.articleRequiredDesc"),
+      });
+      return;
+    }
+
+    if (!editor || !articleId) {
+      toast({
+        variant: "destructive",
+        title: t("aiMindmap.toast.articleRequired"),
+        description: t("aiMindmap.toast.articleRequiredDesc"),
+      });
+      return;
+    }
+
+    const sourceText = editor.getText();
+
+    if (!sourceText.trim()) {
+      toast({
+        variant: "destructive",
+        title: t("aiMindmap.toast.emptyArticle"),
+        description: t("aiMindmap.toast.emptyArticleDesc"),
+      });
+      return;
+    }
+
+    setIsMindMapDialogOpen(true);
+  }, [articleId, editor, mode, t, toast]);
+
   // Expose editor methods and set up global click handler
   useEffect(() => {
     if (editor) {
@@ -398,8 +433,14 @@ export function TiptapEditor({
         handleAIRewrite();
       };
 
+      const handleOpenAIMindMap = () => {
+        console.debug("[TiptapEditor] Received external AI mindmap trigger");
+        handleOpenMindMap();
+      };
+
       window.addEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
       window.addEventListener('joyfulwords-open-ai-edit', handleOpenAIEdit as EventListener);
+      window.addEventListener('joyfulwords-open-ai-mindmap', handleOpenAIMindMap as EventListener);
 
       console.log('[TiptapEditor] Global click handler registered');
       console.log('[TiptapEditor] window.handleAIPendingBlockClick:', typeof (window as any).handleAIPendingBlockClick);
@@ -410,9 +451,10 @@ export function TiptapEditor({
         delete (window as any).handleAIPendingBlockClick;
         window.removeEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
         window.removeEventListener('joyfulwords-open-ai-edit', handleOpenAIEdit as EventListener);
+        window.removeEventListener('joyfulwords-open-ai-mindmap', handleOpenAIMindMap as EventListener);
       };
     }
-  }, [editor, onAIPendingBlockClick, handleAIRewrite]);
+  }, [editor, onAIPendingBlockClick, handleAIRewrite, handleOpenMindMap]);
 
   // Handle image upload using presigned URL
   const handleImageUpload = useCallback(async (file: File): Promise<string> => {
@@ -627,6 +669,12 @@ export function TiptapEditor({
         waitingState={activeTask}
         initialRewrittenText={aiEditResult || undefined}
         userId={userId}
+      />
+      <AIMindMapDialog
+        open={isMindMapDialogOpen}
+        onOpenChange={setIsMindMapDialogOpen}
+        articleId={articleId || 0}
+        articleText={editor?.getText() || ""}
       />
     </div>
   );

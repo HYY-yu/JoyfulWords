@@ -2,6 +2,7 @@ import "server-only"
 
 import { cache } from "react"
 import { promises as fs } from "node:fs"
+import type { Dirent } from "node:fs"
 import path from "node:path"
 import type { BlogListItem } from "@/lib/blog"
 import type { Locale } from "@/lib/i18n/shared"
@@ -58,7 +59,7 @@ export const getAllowedBlogTopics = cache(async (): Promise<Set<string>> => {
 })
 
 const getTopicDefinitions = cache(async (): Promise<TopicDefinition[]> => {
-  let entries: Awaited<ReturnType<typeof fs.readdir>> = []
+  let entries: Dirent[] = []
 
   try {
     entries = await fs.readdir(BLOG_DIRECTORY, { withFileTypes: true })
@@ -146,4 +147,3 @@ function requireField(frontmatter: Record<string, string>, key: string, topicId:
 
   return value
 }
-

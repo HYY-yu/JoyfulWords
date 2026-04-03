@@ -208,6 +208,7 @@ curl http://localhost:8080/image-generation/style-examples
   "config": { /* Creator 配置（可选）*/ },
   "prompt": "A beautiful landscape with mountains",
   "model_name": "mock-model-v1",
+  "article_id": 1001,
   "material_ids": [1, 2, 3],
   "reference_images": ["https://example.com/ref1.jpg"]
 }
@@ -221,6 +222,7 @@ curl http://localhost:8080/image-generation/style-examples
 | `config` | object | 否 | Creator 配置对象 |
 | `prompt` | string | 否 | 直接使用的提示词 |
 | `model_name` | string | 否 | 指定使用的模型名（如 qwen-image-2.0-pro） |
+| `article_id` | int | 否 | 关联文章 ID（可选，不传默认 `0`） |
 | `material_ids` | array | 否 | 关联的素材 ID 列表 |
 | `reference_images` | array | 否 | 额外的参考图片 URL 列表 |
 
@@ -263,7 +265,8 @@ curl http://localhost:8080/image-generation/style-examples
 {
   "image_url": "https://example.com/image.png",
   "num_layers": 4,
-  "prompt": "a landscape with mountains"
+  "prompt": "a landscape with mountains",
+  "article_id": 1001
 }
 ```
 
@@ -274,6 +277,7 @@ curl http://localhost:8080/image-generation/style-examples
 | `image_url` | string | 是 | - | 输入图片 URL（必需） |
 | `num_layers` | int | 否 | 4 | 拆分图层数量（1-8） |
 | `prompt` | string | 否 | "" | 描述场景的文本提示（可选） |
+| `article_id` | int | 否 | 0 | 关联文章 ID（可选） |
 
 **响应（202 Accepted）：**
 
@@ -430,6 +434,7 @@ curl -X POST http://localhost:8080/image-generation/split \
 | `status` | string | 否 | - | 状态过滤：pending、processing、success、failed |
 | `gen_mode` | string | 否 | - | 生成模式过滤：creator、style、split_images |
 | `model_name` | string | 否 | - | 模型名称模糊匹配 |
+| `article_id` | int | 否 | - | 文章 ID 精确过滤 |
 
 **响应（200 OK）：**
 
@@ -461,6 +466,7 @@ curl -X POST http://localhost:8080/image-generation/split \
       "image_urls": "[\"https://r2.example.com/image.png\"]",
       "model_name": "qwen-image-2.0-pro",
       "model_reference_id": "ref_abc123",
+      "article_id": 1001,
       "created_at": "2026-03-09T10:00:00Z",
       "completed_at": "2026-03-09T10:01:30Z"
     }
@@ -474,6 +480,7 @@ curl -X POST http://localhost:8080/image-generation/split \
 |------|------|------|
 | `total` | int64 | 总记录数 |
 | `list` | array | 日志列表 |
+| `list[].article_id` | int | 关联文章 ID（未关联时为 0） |
 | `list[].referenced_material_ids` | array | 引用的素材 ID 数组 |
 | `list[].referenced_materials` | array | 引用的素材详情（仅包含 ID、Title、MaterialType） |
 
@@ -604,7 +611,8 @@ curl -X POST http://localhost:8080/image-generation/generate \
   -H "Content-Type: application/json" \
   -d '{
     "gen_mode": "creator",
-    "prompt": "A beautiful landscape with mountains at sunset"
+    "prompt": "A beautiful landscape with mountains at sunset",
+    "article_id": 1001
   }'
 ```
 
@@ -617,7 +625,8 @@ curl -X POST http://localhost:8080/image-generation/split \
   -d '{
     "image_url": "https://example.com/image.png",
     "num_layers": 4,
-    "prompt": "a landscape with mountains"
+    "prompt": "a landscape with mountains",
+    "article_id": 1001
   }'
 ```
 
@@ -635,7 +644,7 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20" \
   -H "Authorization: Bearer YOUR_TOKEN"
 
 # 带过滤条件
-curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=success&gen_mode=creator" \
+curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=success&gen_mode=creator&article_id=1001" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
@@ -652,6 +661,20 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=suc
 **路径参数：**
 
 - `id`: 图片生成记录 ID
+
+**请求体（可选）：**
+
+```json
+{
+  "article_id": 1001
+}
+```
+
+**请求参数说明：**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `article_id` | int | 否 | 复制后写入 `materials.article_id`；不传时使用原日志的 `article_id`（默认 0） |
 
 **响应（200 OK）：**
 
@@ -688,10 +711,15 @@ curl "http://localhost:8080/image-generation/logs?page=1&page_size=20&status=suc
 - 素材的 `Title` 格式：`from-image-{gen_mode}-{时间戳}`（例如：`from-image-creator-2026-03-10T14:30:00`）
 - 素材的 `Content` 字段存储图片 URL
 - `MaterialType` 固定为 `image`
+- 素材的 `article_id` 支持通过请求体覆盖，不传则沿用图片生成日志中的 `article_id`
 
 **示例 cURL：**
 
 ```bash
 curl -X POST http://localhost:8080/image-generation/logs/123/copy-to-materials \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "article_id": 1001
+  }'
 ```

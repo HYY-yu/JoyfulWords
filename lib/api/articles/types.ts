@@ -162,6 +162,80 @@ export interface StructEditData {
 }
 
 /**
+ * 思维导图节点
+ */
+export interface MindMapNode {
+  id: string
+  text: string
+  children: MindMapNode[]
+  collapsed?: boolean
+  meta?: {
+    color?: string
+    note?: string
+    side?: 'left' | 'right'
+  }
+}
+
+/**
+ * 思维导图文档（每篇文章仅一份）
+ */
+export interface MindMapDocument {
+  article_id: number
+  title: string
+  root: MindMapNode
+  source: {
+    mode: 'full_article'
+    text_snapshot: string
+    generated_at: string
+  }
+  revision: number
+  updated_at: string
+  created_at: string
+}
+
+/**
+ * 生成思维导图请求
+ */
+export interface GenerateMindMapRequest {
+  article_id: number
+  article_text: string
+}
+
+/**
+ * 生成思维导图响应
+ */
+export interface GenerateMindMapResponse {
+  data: {
+    mindmap: MindMapDocument
+  }
+}
+
+/**
+ * 读取思维导图响应
+ */
+export interface GetMindMapResponse {
+  data: {
+    mindmap: MindMapDocument
+  }
+}
+
+/**
+ * 保存思维导图请求
+ */
+export interface SaveMindMapRequest {
+  mindmap: MindMapDocument
+}
+
+/**
+ * 保存思维导图响应
+ */
+export interface SaveMindMapResponse {
+  data: {
+    mindmap: MindMapDocument
+  }
+}
+
+/**
  * 风格类型枚举
  */
 export type StyleType =

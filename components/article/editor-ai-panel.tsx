@@ -243,16 +243,17 @@ export function EditorAIPanel({
       setCopyToMaterialsSuccess(null)
       // 使用taskCenterData中的原始id，而不是修改后的id
       const data = await taskCenterClient.getTaskDetail(task.taskCenterData.type, task.taskCenterData.id)
+      const imageTaskDetail = "gen_mode" in data && "image_urls" in data ? data : null
       // 打印任务详情数据结构，以便调试
       console.log('任务详情数据:', {
         type: task.taskCenterData.type,
         id: task.taskCenterData.id,
-        hasImageUrls: !!data.image_urls,
-        imageUrlsType: typeof data.image_urls,
-        imageUrlsValue: data.image_urls,
-        hasReferenceImageUrls: !!data.reference_image_urls,
-        referenceImageUrlsType: typeof data.reference_image_urls,
-        referenceImageUrlsValue: data.reference_image_urls
+        hasImageUrls: !!imageTaskDetail?.image_urls,
+        imageUrlsType: typeof imageTaskDetail?.image_urls,
+        imageUrlsValue: imageTaskDetail?.image_urls,
+        hasReferenceImageUrls: !!imageTaskDetail?.reference_image_urls,
+        referenceImageUrlsType: typeof imageTaskDetail?.reference_image_urls,
+        referenceImageUrlsValue: imageTaskDetail?.reference_image_urls
       });
       setTaskDetail(data)
       setIsTaskDetailOpen(true)
