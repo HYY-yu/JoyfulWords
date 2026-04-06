@@ -1,3 +1,4 @@
+import { apiRequest } from "@/lib/api/client"
 import type {
   ErrorResponse,
   GenerateMindMapRequest,
@@ -7,66 +8,66 @@ import type {
   SaveMindMapResponse,
 } from "./types"
 
-async function parseResponse<T>(response: Response): Promise<T | ErrorResponse> {
-  const text = await response.text()
-  let payload: any
+function normalizeMindMapError(error: string): string {
+  switch (error) {
+    case "Session expired":
+      return "MINDMAP_UNAUTHORIZED"
+    case "Request failed":
+      return "MINDMAP_REQUEST_FAILED"
+    default:
+      return error
+  }
+}
 
-  try {
-    payload = text ? JSON.parse(text) : {}
-  } catch (error) {
-    console.warn("[MindMap API] Invalid JSON response", error)
-    return { error: `Invalid response format (status ${response.status})` }
+function normalizeResult<T>(result: T | ErrorResponse): T | ErrorResponse {
+  if ("error" in result) {
+    return {
+      error: normalizeMindMapError(result.error),
+    }
   }
 
-  if (!response.ok) {
-    return { error: payload?.error || `Request failed (status ${response.status})` }
-  }
+  return result
+}
 
-  return payload as T
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem("access_token")
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 export const mindMapClient = {
   async generate(
     request: GenerateMindMapRequest
   ): Promise<GenerateMindMapResponse | ErrorResponse> {
-    const token = localStorage.getItem("access_token")
-    const response = await fetch("/api/article/mindmap/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(request),
-    })
+    const result = await apiRequest<GenerateMindMapResponse | ErrorResponse>(
+      `/article/${request.articleId}/mindmap/generate`,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+      }
+    )
 
-    return parseResponse<GenerateMindMapResponse>(response)
+    return normalizeResult(result)
   },
 
   async getByArticleId(articleId: number): Promise<GetMindMapResponse | ErrorResponse> {
-    const token = localStorage.getItem("access_token")
-    const response = await fetch(`/api/article/${articleId}/mindmap`, {
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+    const result = await apiRequest<GetMindMapResponse | ErrorResponse>(`/article/${articleId}/mindmap`, {
+      method: "GET",
+      headers: getAuthHeaders(),
     })
 
-    return parseResponse<GetMindMapResponse>(response)
+    return normalizeResult(result)
   },
 
   async saveByArticleId(
     articleId: number,
     request: SaveMindMapRequest
   ): Promise<SaveMindMapResponse | ErrorResponse> {
-    const token = localStorage.getItem("access_token")
-    const response = await fetch(`/api/article/${articleId}/mindmap`, {
+    const result = await apiRequest<SaveMindMapResponse | ErrorResponse>(`/article/${articleId}/mindmap`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(request),
     })
 
-    return parseResponse<SaveMindMapResponse>(response)
+    return normalizeResult(result)
   },
 }

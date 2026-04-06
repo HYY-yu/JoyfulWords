@@ -34,10 +34,7 @@ interface AIMindMapDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   articleId: number
-  articleText: string
 }
-
-type MindMapSourceMode = "history" | "full_article"
 
 const JOYFUL_MINDMAP_THEME: Theme = {
   name: "JoyfulWords",
@@ -93,11 +90,31 @@ function logOperation(operation: Operation) {
   console.debug("[MindMap] Operation applied", { operation: operation.name })
 }
 
+function resolveMindMapErrorMessage(error: string): string {
+  switch (error) {
+    case "MINDMAP_UNAUTHORIZED":
+      return "Unauthorized"
+    case "ARTICLE_NOT_FOUND":
+    case "MINDMAP_ARTICLE_NOT_FOUND":
+    case "MINDMAP_NOT_FOUND":
+      return "Article not found"
+    case "MINDMAP_GENERATE_INVALID_PARAMS":
+    case "MINDMAP_INVALID_STRUCTURE":
+      return "Invalid mind map payload"
+    case "MINDMAP_GENERATE_FAILED":
+    case "MINDMAP_LOAD_FAILED":
+    case "MINDMAP_SAVE_FAILED":
+    case "MINDMAP_REQUEST_FAILED":
+      return "Mind map request failed"
+    default:
+      return error
+  }
+}
+
 export function AIMindMapDialog({
   open,
   onOpenChange,
   articleId,
-  articleText,
 }: AIMindMapDialogProps) {
   const { t, locale } = useTranslation()
   const { toast } = useToast()
@@ -105,9 +122,7 @@ export function AIMindMapDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [mindmap, setMindmap] = useState<MindMapDocument | null>(null)
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
-  const [viewSourceMode, setViewSourceMode] = useState<MindMapSourceMode>("history")
   const [canvasVersion, setCanvasVersion] = useState(0)
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
@@ -141,14 +156,9 @@ export function AIMindMapDialog({
     })
   }, [articleId])
 
-  const applyExternalMindmap = useCallback((
-    nextMindmap: MindMapDocument,
-    sourceMode: MindMapSourceMode
-  ) => {
+  const applyExternalMindmap = useCallback((nextMindmap: MindMapDocument) => {
     mindmapRef.current = nextMindmap
     setMindmap(nextMindmap)
-    setSelectedNodeId(nextMindmap.root.id)
-    setViewSourceMode(sourceMode)
     setIsDirty(false)
     setCanvasVersion((current) => current + 1)
   }, [])
@@ -157,37 +167,36 @@ export function AIMindMapDialog({
     const result = await mindMapClient.getByArticleId(articleId)
 
     if ("error" in result) {
-      if (result.error === "MINDMAP_NOT_FOUND") {
-        console.debug("[MindMap] No existing map found", { articleId })
-        return null
-      }
-
       console.warn("[MindMap] Load failed", { articleId, error: result.error })
-      throw new Error(result.error)
+      throw new Error(resolveMindMapErrorMessage(result.error))
     }
 
-    return result.data.mindmap
+    if (!result.exists) {
+      console.debug("[MindMap] No existing map found", {
+        articleId,
+        message: result.message,
+      })
+      return null
+    }
+
+    return result.data
   }, [articleId])
 
   const generateMindMap = useCallback(async () => {
     console.info("[MindMap] Generate started", {
       articleId,
-      articleLength: articleText.length,
     })
 
     // TODO(observability): add trace span for client-side mindmap generation request.
-    const result = await mindMapClient.generate({
-      article_id: articleId,
-      article_text: articleText,
-    })
+    const result = await mindMapClient.generate({ articleId })
 
     if ("error" in result) {
       console.warn("[MindMap] Generate failed", { articleId, error: result.error })
-      throw new Error(result.error)
+      throw new Error(resolveMindMapErrorMessage(result.error))
     }
 
-    return result.data.mindmap
-  }, [articleId, articleText])
+    return result
+  }, [articleId])
 
   const initializeDialog = useCallback(async () => {
     setIsLoading(true)
@@ -196,18 +205,17 @@ export function AIMindMapDialog({
       const existing = await loadExisting()
 
       if (existing) {
-        applyExternalMindmap(existing, "history")
+        applyExternalMindmap(existing)
         return
       }
 
       const generated = await generateMindMap()
 
-      applyExternalMindmap(generated, "full_article")
+      applyExternalMindmap(generated)
       toast({ title: t("aiMindmap.toast.generated") })
     } catch (error) {
       console.error("[MindMap] Initialize failed", error)
       setMindmap(null)
-      setSelectedNodeId(null)
       toast({
         variant: "destructive",
         title: t("aiMindmap.toast.loadFailed"),
@@ -276,11 +284,11 @@ export function AIMindMapDialog({
 
       const handleSelection = (nodeObjs: Array<{ id: string }>) => {
         const nextId = nodeObjs[0]?.id || null
-        setSelectedNodeId(nextId)
+        console.debug("[MindMap] Node selected", { nodeId: nextId })
       }
 
       const handleSelectNewNode = (nodeObj: { id: string }) => {
-        setSelectedNodeId(nodeObj.id)
+        console.debug("[MindMap] New node selected", { nodeId: nodeObj.id })
       }
 
       const handleExpand = (nodeObj: { id: string }) => {
@@ -340,7 +348,7 @@ export function AIMindMapDialog({
 
     try {
       const generated = await generateMindMap()
-      applyExternalMindmap(generated, "full_article")
+      applyExternalMindmap(generated)
       toast({ title: t("aiMindmap.toast.generated") })
     } catch (error) {
       console.error("[MindMap] Regenerate failed", error)
@@ -365,24 +373,18 @@ export function AIMindMapDialog({
 
     try {
       // TODO(observability): add trace span for client-side mindmap save request.
-      const result = await mindMapClient.saveByArticleId(articleId, { mindmap: currentMindmap })
+      const result = await mindMapClient.saveByArticleId(articleId, {
+        title: currentMindmap.title,
+        root: currentMindmap.root,
+      })
       if ("error" in result) {
-        if (result.error === "MINDMAP_REVISION_CONFLICT") {
-          toast({
-            variant: "destructive",
-            title: t("aiMindmap.toast.revisionConflict"),
-            description: t("aiMindmap.toast.revisionConflictDesc"),
-          })
-          return
-        }
-
-        throw new Error(result.error)
+        throw new Error(resolveMindMapErrorMessage(result.error))
       }
 
-      applyExternalMindmap(result.data.mindmap, viewSourceMode)
+      applyExternalMindmap(result)
       console.info("[MindMap] Saved", {
         articleId,
-        revision: result.data.mindmap.revision,
+        revision: result.revision,
       })
       toast({ title: t("aiMindmap.toast.saveSuccess") })
     } catch (error) {
@@ -395,7 +397,7 @@ export function AIMindMapDialog({
     } finally {
       setIsSaving(false)
     }
-  }, [applyExternalMindmap, articleId, t, toast, viewSourceMode])
+  }, [applyExternalMindmap, articleId, t, toast])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -462,7 +464,7 @@ export function AIMindMapDialog({
                     size="sm"
                     className={styles.floatingPrimary}
                     onClick={() => void handleSave()}
-                    disabled={isLoading || isSaving || !mindmap}
+                    disabled={isLoading || isSaving || !mindmap || !isDirty}
                   >
                     {isSaving ? (
                       <Loader2Icon className="mr-1 h-4 w-4 animate-spin" />

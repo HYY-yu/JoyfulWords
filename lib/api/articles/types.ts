@@ -197,43 +197,39 @@ export interface MindMapDocument {
  * 生成思维导图请求
  */
 export interface GenerateMindMapRequest {
-  article_id: number
-  article_text: string
+  articleId: number
 }
 
 /**
  * 生成思维导图响应
  */
-export interface GenerateMindMapResponse {
-  data: {
-    mindmap: MindMapDocument
-  }
-}
+export type GenerateMindMapResponse = MindMapDocument
 
 /**
  * 读取思维导图响应
  */
-export interface GetMindMapResponse {
-  data: {
-    mindmap: MindMapDocument
-  }
-}
+export type GetMindMapResponse =
+  | {
+      exists: true
+      data: MindMapDocument
+    }
+  | {
+      exists: false
+      message: string
+    }
 
 /**
  * 保存思维导图请求
  */
 export interface SaveMindMapRequest {
-  mindmap: MindMapDocument
+  title: string
+  root: MindMapNode
 }
 
 /**
  * 保存思维导图响应
  */
-export interface SaveMindMapResponse {
-  data: {
-    mindmap: MindMapDocument
-  }
-}
+export type SaveMindMapResponse = MindMapDocument
 
 /**
  * 风格类型枚举

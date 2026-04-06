@@ -674,7 +674,6 @@ export function TiptapEditor({
         open={isMindMapDialogOpen}
         onOpenChange={setIsMindMapDialogOpen}
         articleId={articleId || 0}
-        articleText={editor?.getText() || ""}
       />
     </div>
   );
