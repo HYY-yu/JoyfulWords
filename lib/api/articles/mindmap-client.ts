@@ -19,7 +19,7 @@ function normalizeMindMapError(error: string): string {
   }
 }
 
-function normalizeResult<T>(result: T | ErrorResponse): T | ErrorResponse {
+function normalizeResult<T extends object>(result: T | ErrorResponse): T | ErrorResponse {
   if ("error" in result) {
     return {
       error: normalizeMindMapError(result.error),
