@@ -1263,8 +1263,91 @@ export const zh = {
             reversalMode: "拆分图片图层",
             reverseMode: "拆分图片图层",
             imageStyle: "风格化图片",
+            infographic: "信息图",
             taskProgress: "任务进度",
         },
+    },
+    infographicDialog: {
+        title: "生成信息图",
+        description: "基于当前选中文本，快速生成一张适合传播的信息图。",
+        selectedTextLabel: "当前选中内容",
+        selectedTextHint: "信息图会基于这段选中文本生成，若要更换内容，请先回到编辑器重新选中。",
+        styleLabel: "视觉风格",
+        orientationLabel: "画面方向",
+        languageLabel: "语言",
+        decorationLabel: "装饰密度",
+        customLabel: "补充要求",
+        customPlaceholder: "例如：强调步骤关系、突出关键词、增加数据对比",
+        resultTitle: "生成结果",
+        resultHint: "选择参数后开始生成，结果会显示在这里。",
+        resultEmptyTitle: "等待生成",
+        resultEmptyDesc: "生成成功后，会在这里展示信息图图片。",
+        resultImageAlt: "信息图结果",
+        generate: "生成信息图",
+        generating: "生成中...",
+        generatingHint: "正在轮询生成结果，请稍候。",
+        addToMaterials: "Add To Materials",
+        addToMaterialsLoading: "加入素材中...",
+        close: "关闭",
+        status: {
+            pending: "任务已创建，等待后端提交生图任务。",
+            processing: "信息图生成中，正在持续查询结果。",
+            success: "信息图生成完成。",
+            failed: "信息图生成失败。"
+        },
+        styles: {
+            professional: {
+                title: "专业",
+                description: "规整、可信、干净，适合知识表达。"
+            },
+            rustic: {
+                title: "古朴",
+                description: "沉静、雅致，适合人文与历史主题。"
+            },
+            academic: {
+                title: "学术",
+                description: "严谨清楚，带图解与论文摘要感。"
+            },
+            handdrawn: {
+                title: "手绘",
+                description: "像学习笔记，轻松但不随意。"
+            },
+            magazine: {
+                title: "杂志",
+                description: "有专题页气质，视觉冲击更强。"
+            },
+            minimal: {
+                title: "极简",
+                description: "克制留白，适合高级感表达。"
+            },
+            fresh: {
+                title: "清新",
+                description: "轻松亲和，适合大众传播。"
+            }
+        },
+        orientations: {
+            landscape: "横向",
+            portrait: "竖向",
+            square: "方形"
+        },
+        languages: {
+            zh: "中文",
+            en: "英文"
+        },
+        decorations: {
+            simple: "简洁",
+            moderate: "适中",
+            rich: "丰富"
+        },
+        toast: {
+            selectTextFirst: "请先选中文本",
+            selectTextFirstDesc: "信息图只能基于当前选中的编辑器内容生成。",
+            created: "信息图任务已创建",
+            createFailed: "信息图创建失败",
+            copySuccess: "已成功加入 {count} 个素材",
+            copyFailed: "加入素材失败",
+            pollingTimeout: "信息图生成超时，请稍后重试"
+        }
     },
     aiRewrite: {
         title: "AI 智能改写",

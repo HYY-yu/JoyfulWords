@@ -12,6 +12,7 @@ import {
   LoaderIcon,
 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
 import { taskCenterClient } from "@/lib/api/taskcenter/client"
@@ -24,6 +25,7 @@ import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { CreatorMode } from "@/components/image-generator/creator-mode"
 import { InversionMode } from "@/components/image-generator/modes/inversion-mode"
 import { StyleMode } from "@/components/image-generator/modes/style-mode"
+import { InfographicDialog } from "./infographic-dialog"
 
 type ActiveDialog =
   | "ai-edit"
@@ -31,6 +33,7 @@ type ActiveDialog =
   | "create-image"
   | "reversal-mode"
   | "image-style"
+  | "infographic"
   | null
 
 interface FeatureButton {
@@ -71,6 +74,12 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     icon: PaletteIcon,
     bgColor: "bg-amber-50",
   },
+  {
+    id: "infographic",
+    labelKey: "tiptapEditor.aiPanel.infographic",
+    icon: ClipboardListIcon,
+    bgColor: "bg-cyan-50",
+  },
 ]
 
 interface EditorAIPanelProps {
@@ -91,6 +100,7 @@ export function EditorAIPanel({
   onRemoveTask,
 }: EditorAIPanelProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null)
   const [taskCenterTasks, setTaskCenterTasks] = useState<TaskItem[]>([])
   const [loadingTaskCenter, setLoadingTaskCenter] = useState(false)
@@ -105,6 +115,27 @@ export function EditorAIPanel({
   const [isCreateImageOpen, setIsCreateImageOpen] = useState(false)
   const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
   const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
+  const [isInfographicOpen, setIsInfographicOpen] = useState(false)
+  const [selectedInfographicText, setSelectedInfographicText] = useState("")
+
+  const getSelectedEditorText = () => {
+    if (typeof window === "undefined") return ""
+
+    const selectionGetter = (window as typeof window & {
+      getJoyfulWordsSelectedText?: () => string
+    }).getJoyfulWordsSelectedText
+
+    if (typeof selectionGetter !== "function") {
+      return ""
+    }
+
+    try {
+      return selectionGetter()
+    } catch (error) {
+      console.warn("[EditorAIPanel] Failed to read editor selection:", error)
+      return ""
+    }
+  }
 
   // 获取任务中心任务
   const fetchTaskCenterTasks = async () => {
@@ -306,6 +337,20 @@ export function EditorAIPanel({
       setIsReversalModeOpen(true)
     } else if (id === 'image-style') {
       setIsImageStyleOpen(true)
+    } else if (id === "infographic") {
+      const selectedText = getSelectedEditorText().trim()
+
+      if (!selectedText) {
+        toast({
+          variant: "destructive",
+          title: t("infographicDialog.toast.selectTextFirst"),
+          description: t("infographicDialog.toast.selectTextFirstDesc"),
+        })
+        return
+      }
+
+      setSelectedInfographicText(selectedText)
+      setIsInfographicOpen(true)
     } else {
       // 其他功能使用普通对话框
       setActiveDialog(id)
@@ -645,6 +690,13 @@ export function EditorAIPanel({
         t('tiptapEditor.aiPanel.imageStyle'),
         <StyleMode articleId={articleId} />
       )}
+
+      <InfographicDialog
+        open={isInfographicOpen}
+        onOpenChange={setIsInfographicOpen}
+        articleId={articleId}
+        selectedText={selectedInfographicText}
+      />
     </div>
   )
 }

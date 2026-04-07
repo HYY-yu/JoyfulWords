@@ -391,6 +391,10 @@ export function TiptapEditor({
     if (editor) {
       // Make editor available globally for external access
       (window as any).tiptapEditor = editor;
+      (window as any).getJoyfulWordsSelectedText = () => {
+        const { from, to } = editor.state.selection;
+        return editor.state.doc.textBetween(from, to, " ");
+      };
 
       // 设置全局点击处理函数
       (window as any).handleAIPendingBlockClick = (execId: string) => {
@@ -449,6 +453,7 @@ export function TiptapEditor({
       return () => {
         console.log('[TiptapEditor] Cleaning up global handler');
         delete (window as any).handleAIPendingBlockClick;
+        delete (window as any).getJoyfulWordsSelectedText;
         window.removeEventListener('ai-edit-task-submitted', handleTaskSubmitted as EventListener);
         window.removeEventListener('joyfulwords-open-ai-edit', handleOpenAIEdit as EventListener);
         window.removeEventListener('joyfulwords-open-ai-mindmap', handleOpenAIMindMap as EventListener);

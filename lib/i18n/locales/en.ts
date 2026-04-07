@@ -1263,8 +1263,91 @@ export const en = {
             reversalMode: "Split Image Layers",
             reverseMode: "Split Image Layers",
             imageStyle: "Stylize Image",
+            infographic: "Infographic",
             taskProgress: "Task Progress",
         },
+    },
+    infographicDialog: {
+        title: "Generate Infographic",
+        description: "Turn the selected text into a single infographic image.",
+        selectedTextLabel: "Selected Content",
+        selectedTextHint: "This infographic uses the current editor selection. Re-select content in the editor if needed.",
+        styleLabel: "Visual Style",
+        orientationLabel: "Orientation",
+        languageLabel: "Language",
+        decorationLabel: "Decoration Density",
+        customLabel: "Additional Requirements",
+        customPlaceholder: "For example: emphasize step relationships, highlight keywords, show stronger contrasts",
+        resultTitle: "Result",
+        resultHint: "Choose the options and start generating. The image will appear here.",
+        resultEmptyTitle: "Waiting to Generate",
+        resultEmptyDesc: "The generated infographic image will appear here after success.",
+        resultImageAlt: "Generated infographic",
+        generate: "Generate Infographic",
+        generating: "Generating...",
+        generatingHint: "Polling the generation result. Please wait.",
+        addToMaterials: "Add To Materials",
+        addToMaterialsLoading: "Adding to materials...",
+        close: "Close",
+        status: {
+            pending: "Task created. Waiting for backend image submission.",
+            processing: "Infographic is generating. Polling for updates.",
+            success: "Infographic generation completed.",
+            failed: "Infographic generation failed."
+        },
+        styles: {
+            professional: {
+                title: "Professional",
+                description: "Clean, credible, and structured for knowledge-heavy topics."
+            },
+            rustic: {
+                title: "Rustic",
+                description: "Calm and elegant, suitable for cultural or historical topics."
+            },
+            academic: {
+                title: "Academic",
+                description: "Precise and diagram-like, with a scholarly tone."
+            },
+            handdrawn: {
+                title: "Handdrawn",
+                description: "Looks like study notes, relaxed but still organized."
+            },
+            magazine: {
+                title: "Magazine",
+                description: "Editorial and bold, with stronger visual impact."
+            },
+            minimal: {
+                title: "Minimal",
+                description: "Restrained and spacious, with a premium feel."
+            },
+            fresh: {
+                title: "Fresh",
+                description: "Light and friendly, suitable for wider sharing."
+            }
+        },
+        orientations: {
+            landscape: "Landscape",
+            portrait: "Portrait",
+            square: "Square"
+        },
+        languages: {
+            zh: "Chinese",
+            en: "English"
+        },
+        decorations: {
+            simple: "Simple",
+            moderate: "Moderate",
+            rich: "Rich"
+        },
+        toast: {
+            selectTextFirst: "Please select text first",
+            selectTextFirstDesc: "Infographics can only be generated from the current editor selection.",
+            created: "Infographic task created",
+            createFailed: "Failed to create infographic",
+            copySuccess: "Successfully added {count} material(s)",
+            copyFailed: "Failed to add to materials",
+            pollingTimeout: "Infographic generation timed out. Please try again."
+        }
     },
     aiRewrite: {
         title: "AI Smart Rewrite",
