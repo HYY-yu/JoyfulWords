@@ -21,7 +21,8 @@ const taskTypeLabels: Record<string, string> = {
   [TaskType.ARTICLE]: '文章',
   [TaskType.IMAGE]: '图片',
   [TaskType.MATERIAL]: '素材',
-  [TaskType.POST_CRAWL]: '社交帖子'
+  [TaskType.POST_CRAWL]: '社交帖子',
+  [TaskType.MINDMAP]: '思维导图'
 }
 
 // 任务状态显示文本和样式
@@ -117,10 +118,17 @@ export function TaskCenterContent() {
   // 解析成本信息
   const getCost = (costString: string) => {
     try {
+      // 尝试解析为JSON对象
       const cost = JSON.parse(costString)
-      return cost.total || 0
-    } catch {
+      // 检查是否有 total 字段
+      if (cost.total) {
+        return cost.total
+      }
+      // 如果是复杂JSON对象，返回0
       return 0
+    } catch {
+      // 如果解析失败，直接返回原始值（可能是字符串数字）
+      return parseInt(costString) || 0
     }
   }
 
@@ -156,7 +164,7 @@ export function TaskCenterContent() {
               <SelectItem value={TaskType.ARTICLE}>文章</SelectItem>
               <SelectItem value={TaskType.IMAGE}>图片</SelectItem>
               <SelectItem value={TaskType.MATERIAL}>素材</SelectItem>
-              <SelectItem value={TaskType.POST_CRAWL}>社交帖子</SelectItem>
+              <SelectItem value={TaskType.MINDMAP}>思维导图</SelectItem>
             </SelectContent>
           </Select>
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -210,7 +218,6 @@ export function TaskCenterContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>任务ID</TableHead>
                   <TableHead>任务类型</TableHead>
                   <TableHead>状态</TableHead>
                   <TableHead>创建时间</TableHead>
@@ -223,7 +230,6 @@ export function TaskCenterContent() {
                   const statusConfig = taskStatusConfig[task.status] || { label: task.status, variant: 'default' }
                   return (
                     <TableRow key={task.id}>
-                      <TableCell className="font-medium">{task.id}</TableCell>
                       <TableCell>
                         <Badge variant="outline">{taskTypeLabels[task.type]}</Badge>
                       </TableCell>
@@ -258,7 +264,7 @@ export function TaskCenterContent() {
           <DialogHeader>
             <DialogTitle>任务详情</DialogTitle>
             <DialogDescription>
-              {currentTask ? `${taskTypeLabels[currentTask.type]}任务 - ID: ${currentTask.id}` : ''}
+              {currentTask ? `${taskTypeLabels[currentTask.type]}任务` : ''}
             </DialogDescription>
           </DialogHeader>
           {taskDetailLoading ? (
@@ -284,22 +290,153 @@ export function TaskCenterContent() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">创建时间</p>
-                  <p>{taskDetail.created_at ? formatDate(taskDetail.created_at) : ''}</p>
+                  {currentTask?.type === TaskType.ARTICLE && 'log' in taskDetail ? (
+                    <p>{taskDetail.log.created_at ? formatDate(taskDetail.log.created_at) : ''}</p>
+                  ) : currentTask?.type === TaskType.MINDMAP && 'log' in taskDetail ? (
+                    <p>{taskDetail.log.created_at ? formatDate(taskDetail.log.created_at) : ''}</p>
+                  ) : (
+                    <p>{taskDetail.created_at ? formatDate(taskDetail.created_at) : ''}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">成本</p>
-                  <p>{getCost(taskDetail.cost)} 积分</p>
+                  {currentTask?.type === TaskType.ARTICLE && 'log' in taskDetail ? (
+                    <p>{taskDetail.log.cost} 积分</p>
+                  ) : (
+                    <p>{typeof taskDetail.cost === 'string' ? taskDetail.cost : getCost(taskDetail.cost)} 积分</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">结算状态</p>
-                  <p>{taskDetail.is_settle ? '已结算' : '未结算'}</p>
+                  {currentTask?.type === TaskType.ARTICLE && 'log' in taskDetail ? (
+                    <p>{taskDetail.log.is_settle ? '已结算' : '未结算'}</p>
+                  ) : 'is_settle' in taskDetail ? (
+                    <p>{taskDetail.is_settle ? '已结算' : '未结算'}</p>
+                  ) : (
+                    <p>未知</p>
+                  )}
                 </div>
               </div>
               <div className="border-t border-border pt-4">
                 <p className="text-sm font-medium text-muted-foreground mb-2">详细信息</p>
-                <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm">
-                  {JSON.stringify(taskDetail, null, 2)}
-                </pre>
+                {currentTask?.type === TaskType.ARTICLE && 'log' in taskDetail && 'article' in taskDetail ? (
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">文章信息</p>
+                      <div className="mt-2 space-y-2">
+                        <div>
+                          <p className="text-xs text-muted-foreground">标题</p>
+                          <p>{taskDetail.article.title}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">状态</p>
+                          <p>{taskDetail.article.status}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">分类</p>
+                          <p>{taskDetail.article.category}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">标签</p>
+                          <p>{taskDetail.article.tags.join(', ')}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">内容</p>
+                          <div className="mt-1 p-3 bg-muted rounded-md max-h-40 overflow-auto">
+                            <p>{taskDetail.article.content}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">操作日志</p>
+                      <div className="mt-2 space-y-2">
+                        <div>
+                          <p className="text-xs text-muted-foreground">操作类型</p>
+                          <p>{taskDetail.log.operate_type}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">执行ID</p>
+                          <p>{taskDetail.log.exec_id}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">更新时间</p>
+                          <p>{taskDetail.log.updated_at ? formatDate(taskDetail.log.updated_at) : ''}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : currentTask?.type === TaskType.MINDMAP && 'log' in taskDetail ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">卡片数量</p>
+                      <p>{taskDetail.log.card_count}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">语言</p>
+                      <p>{taskDetail.log.language}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">卡片样式</p>
+                      <p>{taskDetail.log.card_style}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">卡片布局</p>
+                      <p>{taskDetail.log.card_layout}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">额外要求</p>
+                      <p>{taskDetail.log.extra_requirements}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">思维导图图片</p>
+                      <div className="mt-2">
+                        <img 
+                          src={taskDetail.log.card_url} 
+                          alt="思维导图" 
+                          className="max-w-full h-auto rounded-lg border" 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">更新时间</p>
+                      <p>{taskDetail.log.updated_at ? formatDate(taskDetail.log.updated_at) : ''}</p>
+                    </div>
+                  </div>
+                ) : currentTask?.type === TaskType.IMAGE ? (
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">提示词</p>
+                      <p>{taskDetail.prompt}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">模型名称</p>
+                      <p>{taskDetail.model_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">生成图片</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {taskDetail.image_urls && Array.isArray(taskDetail.image_urls) && taskDetail.image_urls.map((url, index) => (
+                          <div key={index}>
+                            <img 
+                              src={url} 
+                              alt={`生成图片 ${index + 1}`} 
+                              className="w-full h-auto rounded-lg border" 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">完成时间</p>
+                      <p>{taskDetail.completed_at ? formatDate(taskDetail.completed_at) : ''}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <pre className="bg-muted p-4 rounded-lg overflow-auto text-sm">
+                    {JSON.stringify(taskDetail, null, 2)}
+                  </pre>
+                )}
               </div>
             </div>
           ) : null}

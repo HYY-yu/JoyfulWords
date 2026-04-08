@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, WandSparklesIcon, ImageIcon, ClipboardListIcon } from "lucide-react"
+import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, WandSparklesIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, NetworkIcon, PencilIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
@@ -19,6 +19,7 @@ export interface TaskItem {
     description: string
     startedAt: number
     taskCenterData?: any // 存储任务中心任务的原始数据
+    originalType?: string // 存储原始任务类型（image, mindmap, article）
 }
 
 interface EditorTaskProgressProps {
@@ -43,7 +44,18 @@ function getTimeAgo(timestampMs: number): string {
         return `${minutes}分钟前`
     }
     const hours = Math.floor(minutes / 60)
-    return `${hours}小时前`
+    if (hours < 24) {
+        return `${hours}小时前`
+    }
+    // 超过24小时，显示具体日期
+    const date = new Date(timestampMs)
+    return date.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
 }
 
 function aiEditStateToTaskItem(execId: string, state: AIEditState): TaskItem {
@@ -80,13 +92,33 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
     const isDone = task.status === "completed" || task.status === "failed"
     const isPending = task.status === "pending"
 
+    // 调试日志
+    console.log('Task data:', {
+      taskType: task.type,
+      originalType: task.originalType,
+      taskCenterData: task.taskCenterData,
+      taskCenterDataType: task.taskCenterData?.type
+    });
+
     const typeIcon =
         task.type === "ai-edit" ? (
-            <WandSparklesIcon className="w-4 h-4 shrink-0" />
+            <PencilIcon className="w-4 h-4 shrink-0" />
         ) : task.type === "image-generation" ? (
             <ImageIcon className="w-4 h-4 shrink-0" />
-        ) : task.type === "task-center" && task.taskCenterData?.type === "image" ? (
-            <ImageIcon className="w-4 h-4 shrink-0" />
+        ) : task.type === "task-center" && task.originalType === "image" ? (
+            task.taskCenterData?.details?.gen_mode === 'split_images' || task.taskCenterData?.detail?.gen_mode === 'split_images' || task.taskCenterData?.gen_mode === 'split_images' ? (
+                <RefreshCwIcon className="w-4 h-4 shrink-0" />
+            ) : task.taskCenterData?.details?.gen_mode === 'creator' || task.taskCenterData?.detail?.gen_mode === 'creator' || task.taskCenterData?.gen_mode === 'creator' ? (
+                <ImageIcon className="w-4 h-4 shrink-0" />
+            ) : task.taskCenterData?.details?.gen_mode === 'style' || task.taskCenterData?.detail?.gen_mode === 'style' || task.taskCenterData?.gen_mode === 'style' ? (
+                <PaletteIcon className="w-4 h-4 shrink-0" />
+            ) : (
+                <ImageIcon className="w-4 h-4 shrink-0" />
+            )
+        ) : task.type === "task-center" && task.originalType === "mindmap" ? (
+            <NetworkIcon className="w-4 h-4 shrink-0" />
+        ) : task.type === "task-center" && task.originalType === "article" ? (
+            <PencilIcon className="w-4 h-4 shrink-0" />
         ) : (
             <ClipboardListIcon className="w-4 h-4 shrink-0" />
         )
@@ -112,7 +144,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 
     // 获取参考图片的第一张
   const getFirstReferenceImage = () => {
-    if (task.type === "task-center" && task.taskCenterData?.type === "image") {
+    if (task.type === "task-center" && task.originalType === "image") {
       // 尝试从不同位置获取reference_image_urls
       let referenceImages: string | undefined;
       if (task.taskCenterData.details?.reference_image_urls) {
@@ -163,29 +195,16 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         >
             {/* Header row */}
             <div className="flex items-center gap-2">
-                {/* Type icon or image preview */}
-                {firstReferenceImage ? (
-                    <div className="relative w-8 h-8 rounded-md overflow-hidden border border-border flex-shrink-0">
-                        <img 
-                            src={firstReferenceImage} 
-                            alt="参考图片" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder.jpg';
-                            }}
-                        />
-                    </div>
-                ) : (
-                    <span
-                        className={cn(
-                            task.status === "pending" && "text-blue-500",
-                            task.status === "completed" && "text-green-500",
-                            task.status === "failed" && "text-red-500"
-                        )}
-                    >
-                        {typeIcon}
-                    </span>
-                )}
+                {/* Type icon */}
+                <span
+                    className={cn(
+                        task.status === "pending" && "text-blue-500",
+                        task.status === "completed" && "text-green-500",
+                        task.status === "failed" && "text-red-500"
+                    )}
+                >
+                    {typeIcon}
+                </span>
 
                 {/* Label */}
                 <span className="text-xs font-semibold flex-1 truncate">
