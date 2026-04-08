@@ -23,6 +23,8 @@ import { AI_WRITE_STYLE_OPTIONS } from "@/lib/api/articles/enums"
 import { materialsClient } from "@/lib/api/materials/client"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
+import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { TaskType } from "@/lib/api/taskcenter/types"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -263,6 +265,20 @@ export function ArticleAIHelpDialog({
 
       // Add Info log for success
       console.log('[AI Help] Article created successfully:', result.id)
+
+      // 生成成功后，检查是否有任务ID，如果有则打开任务详情
+      if (result.task_id) {
+        console.info('[AI Help] Task created', { taskId: result.task_id })
+        // 延迟打开任务详情，确保任务已创建
+        setTimeout(async () => {
+          try {
+            const taskDetail = await taskCenterClient.getTaskDetail(TaskType.ARTICLE, result.task_id)
+            console.info('[AI Help] Task detail fetched', taskDetail)
+          } catch (error) {
+            console.warn('[AI Help] Failed to fetch task detail', error)
+          }
+        }, 1000)
+      }
 
       // AI 写作启动成功
       toast({

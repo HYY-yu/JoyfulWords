@@ -29,6 +29,8 @@ import { mindMapClient } from "@/lib/api/articles/mindmap-client"
 import type { MindMapDocument } from "@/lib/api/articles/types"
 import { fromMindElixirData, toMindElixirData } from "@/lib/mindmap/mind-elixir-adapter"
 import styles from "./ai-mindmap-dialog.module.css"
+import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { TaskType } from "@/lib/api/taskcenter/types"
 
 interface AIMindMapDialogProps {
   open: boolean
@@ -172,7 +174,7 @@ export function AIMindMapDialog({
   const generateMindMap = useCallback(async () => {
     console.info("[MindMap] Generate started", {
       articleId,
-      articleLength: articleText.length,
+      articleText: articleText.length,
     })
 
     // TODO(observability): add trace span for client-side mindmap generation request.
@@ -184,6 +186,20 @@ export function AIMindMapDialog({
     if ("error" in result) {
       console.warn("[MindMap] Generate failed", { articleId, error: result.error })
       throw new Error(result.error)
+    }
+
+    // 生成成功后，检查是否有任务ID，如果有则打开任务详情
+    if (result.data.task_id) {
+      console.info("[MindMap] Task created", { taskId: result.data.task_id })
+      // 延迟打开任务详情，确保任务已创建
+      setTimeout(async () => {
+        try {
+          const taskDetail = await taskCenterClient.getTaskDetail(TaskType.ARTICLE, result.data.task_id)
+          console.info("[MindMap] Task detail fetched", taskDetail)
+        } catch (error) {
+          console.warn("[MindMap] Failed to fetch task detail", error)
+        }
+      }, 1000)
     }
 
     return result.data.mindmap
