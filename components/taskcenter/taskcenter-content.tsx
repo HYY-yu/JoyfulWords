@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/base/button'
 import { Alert, AlertDescription } from '@/components/ui/base/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/base/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/base/dialog'
+import { XIcon } from 'lucide-react'
 import { TaskDetailResponse } from '@/lib/api/taskcenter/types'
 
 type TaskDetailTrigger = Pick<TaskListItem, 'id' | 'type' | 'status'>
@@ -22,7 +23,8 @@ const taskTypeLabels: Record<string, string> = {
   [TaskType.IMAGE]: '图片',
   [TaskType.MATERIAL]: '素材',
   [TaskType.POST_CRAWL]: '社交帖子',
-  [TaskType.MINDMAP]: '思维导图'
+  [TaskType.MINDMAP]: '思维导图',
+  [TaskType.INFOGRAPHIC]: '信息图'
 }
 
 // 任务状态显示文本和样式
@@ -149,6 +151,18 @@ export function TaskCenterContent() {
     }
   }
 
+  // 删除任务
+  const deleteTask = async (task: TaskListItem) => {
+    try {
+      await taskCenterClient.deleteTask(task.type, task.id)
+      // 删除成功后刷新任务列表
+      fetchTasks()
+    } catch (err) {
+      setError('删除任务失败，请稍后重试')
+      console.error('Error deleting task:', err)
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -165,6 +179,7 @@ export function TaskCenterContent() {
               <SelectItem value={TaskType.IMAGE}>图片</SelectItem>
               <SelectItem value={TaskType.MATERIAL}>素材</SelectItem>
               <SelectItem value={TaskType.MINDMAP}>思维导图</SelectItem>
+              <SelectItem value={TaskType.INFOGRAPHIC}>信息图</SelectItem>
             </SelectContent>
           </Select>
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -241,13 +256,23 @@ export function TaskCenterContent() {
                       <TableCell>{formatDate(task.created_at)}</TableCell>
                       <TableCell>{getCost(task.cost)} 积分</TableCell>
                       <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => fetchTaskDetail(task)}
-                        >
-                          查看
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => fetchTaskDetail(task)}
+                          >
+                            查看
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                            onClick={() => deleteTask(task)}
+                          >
+                            <XIcon className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )

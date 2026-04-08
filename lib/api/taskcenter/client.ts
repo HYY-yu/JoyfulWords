@@ -103,4 +103,38 @@ export const taskCenterClient = {
 
     return data
   },
+
+  /**
+   * 删除任务
+   * DELETE /api/taskcenter/task/:type/:id
+   *
+   * 删除指定类型和ID的任务
+   *
+   * @param type - 任务类型
+   * @param id - 任务ID
+   * @returns Promise<{ success: boolean }>
+   *
+   * @example
+   * const result = await taskCenterClient.deleteTask('image', 1)
+   */
+  async deleteTask(type: TaskType, id: number): Promise<{ success: boolean }> {
+    const token = localStorage.getItem('access_token')
+    const cacheKey = `task_detail_${type}_${id}`
+    
+    console.log(`[TaskCenter] Deleting task ${type} ${id}`)
+    
+    // 发送删除请求
+    const data = await apiRequest<{ success: boolean }>(`/api/taskcenter/task/${type}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+      },
+    })
+    
+    // 清除缓存
+    localStorage.removeItem(cacheKey)
+    console.log(`[TaskCenter] Deleted task ${type} ${id} and cleared cache`)
+    
+    return data
+  },
 }

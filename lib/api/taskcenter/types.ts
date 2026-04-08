@@ -3,7 +3,8 @@ export enum TaskType {
   ARTICLE = 'article',
   IMAGE = 'image',
   MATERIAL = 'material',
-  MINDMAP = 'mindmap'
+  MINDMAP = 'mindmap',
+  INFOGRAPHIC = 'infographic'
 }
 
 // 任务状态枚举

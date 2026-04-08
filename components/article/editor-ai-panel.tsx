@@ -191,6 +191,8 @@ export function EditorAIPanel({
           }
         } else if (task.type === 'mindmap') {
           label = '思维导图任务';
+        } else if (task.type === 'infographic') {
+          label = '信息图任务';
         }
         
         // 处理任务状态
@@ -461,8 +463,20 @@ export function EditorAIPanel({
             onRemoveTask={(id: string, type: TaskType) => {
               if (type === "ai-edit") {
                 onRemoveTask(id)
+              } else if (type === "task-center") {
+                // 处理任务中心任务的删除
+                const task = taskCenterTasks.find(t => t.id === id)
+                if (task && task.taskCenterData) {
+                  taskCenterClient.deleteTask(task.taskCenterData.type, task.taskCenterData.id)
+                    .then(() => {
+                      // 删除成功后刷新任务列表
+                      fetchTaskCenterTasks()
+                    })
+                    .catch(error => {
+                      console.error('删除任务失败:', error)
+                    })
+                }
               }
-              // 任务中心任务不支持删除
             }}
             onClickTask={(task: TaskItem) => {
               if (task.type === "ai-edit") {

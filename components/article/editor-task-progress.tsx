@@ -119,6 +119,8 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
             <NetworkIcon className="w-4 h-4 shrink-0" />
         ) : task.type === "task-center" && task.originalType === "article" ? (
             <PencilIcon className="w-4 h-4 shrink-0" />
+        ) : task.type === "task-center" && task.originalType === "infographic" ? (
+            <ClipboardListIcon className="w-4 h-4 shrink-0" />
         ) : (
             <ClipboardListIcon className="w-4 h-4 shrink-0" />
         )
