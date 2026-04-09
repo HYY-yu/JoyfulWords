@@ -297,12 +297,8 @@ export function ImageGeneration() {
     }
   }
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleCanvasClick = (x: number, y: number) => {
     if (selectedTool === "rectangle") {
-      const rect = e.currentTarget.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
-
       const newLayer: Layer = {
         id: Date.now().toString(),
         type: "rectangle",

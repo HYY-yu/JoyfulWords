@@ -19,7 +19,7 @@ interface CanvasProps {
   showGeneratedImage: boolean
   isGenerating: boolean
   generatingMessage: string
-  onCanvasClick: (e: React.MouseEvent<HTMLDivElement>) => void
+  onCanvasClick: (x: number, y: number) => void
   onLayerClick: (e: React.MouseEvent, layer: Layer) => void
   onLayerPositionChange: (layerId: string, x: number, y: number) => void
   onLayerSizeChange: (layerId: string, x: number, y: number, width: number, height: number) => void
@@ -61,6 +61,7 @@ export function Canvas({
   const [showImageMenu, setShowImageMenu] = useState(false)
   const imageMenuRef = useRef<HTMLDivElement>(null)
 
+
   const getToolHint = () => {
     if (selectedTool === "select") return t("imageGeneration.canvas.toolHints.select")
     if (selectedTool === "rectangle") return t("imageGeneration.canvas.toolHints.rectangle")
@@ -77,11 +78,14 @@ export function Canvas({
     dragLayerRef.current = layer
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+    const canvas = document.getElementById("canvas-container")
+    const canvasRect = canvas?.getBoundingClientRect()
+    const s = canvasRect && canvasRect.width > 0 ? canvasRect.width / metaSettings.width : 1
     setDragOffset({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) / s,
+      y: (e.clientY - rect.top) / s,
     })
-  }, [selectedTool])
+  }, [selectedTool, metaSettings.width])
 
   // 开始调整大小
   const handleResizeStart = useCallback((e: React.MouseEvent, layer: Layer, handle: ResizeHandle) => {
@@ -108,8 +112,11 @@ export function Canvas({
     if (isResizing && dragLayerRef.current && resizeHandle) {
       // 调整大小逻辑
       const layer = dragLayerRef.current
-      const deltaX = e.clientX - initialResize.mouseX
-      const deltaY = e.clientY - initialResize.mouseY
+      const canvasEl = document.getElementById("canvas-container")
+      const canvasElRect = canvasEl?.getBoundingClientRect()
+      const s = canvasElRect && canvasElRect.width > 0 ? canvasElRect.width / metaSettings.width : 1
+      const deltaX = (e.clientX - initialResize.mouseX) / s
+      const deltaY = (e.clientY - initialResize.mouseY) / s
 
       let newX = initialResize.x
       let newY = initialResize.y
@@ -149,8 +156,9 @@ export function Canvas({
       if (!canvas) return
 
       const canvasRect = canvas.getBoundingClientRect()
-      const newX = e.clientX - canvasRect.left - dragOffset.x
-      const newY = e.clientY - canvasRect.top - dragOffset.y
+      const s = canvasRect.width > 0 ? canvasRect.width / metaSettings.width : 1
+      const newX = (e.clientX - canvasRect.left) / s - dragOffset.x
+      const newY = (e.clientY - canvasRect.top) / s - dragOffset.y
 
       // 确保不拖出画布边界
       const layer = dragLayerRef.current
@@ -198,7 +206,7 @@ export function Canvas({
   }, [showImageMenu])
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex-1 flex flex-col overflow-hidden min-w-0">
       {/* Action Bar */}
       <div className="h-14 border-b border-border bg-background flex items-center justify-between px-6">
         <div className="text-sm text-muted-foreground">
@@ -239,19 +247,23 @@ export function Canvas({
       </div>
 
       {/* Canvas Area */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-6 overflow-hidden flex items-center justify-center min-h-0 min-w-0">
         <div
           id="canvas-container"
-          className="relative bg-card border-2 border-dashed border-border rounded-xl overflow-auto mx-auto"
-          onClick={onCanvasClick}
+          className="relative bg-card border-2 border-dashed border-border rounded-xl overflow-hidden max-w-full max-h-full"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const s = rect.width > 0 ? rect.width / metaSettings.width : 1
+            onCanvasClick((e.clientX - rect.left) / s, (e.clientY - rect.top) / s)
+          }}
           style={{
             width: `${metaSettings.width}px`,
-            height: `${metaSettings.high}px`,
+            aspectRatio: `${metaSettings.width} / ${metaSettings.high}`,
             backgroundImage: `
               linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
               linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
             `,
-            backgroundSize: "20px 20px",
+            backgroundSize: `${(20 / metaSettings.width) * 100}% ${(20 / metaSettings.high) * 100}%`,
           }}
         >
           {/* 生成的图片覆盖层 */}
@@ -329,10 +341,10 @@ export function Canvas({
                   : "border-primary/50 hover:border-primary hover:shadow-md"
               )}
               style={{
-                left: `${layer.x}px`,
-                top: `${layer.y}px`,
-                width: `${layer.width}px`,
-                height: `${layer.height}px`,
+                left: `${(layer.x / metaSettings.width) * 100}%`,
+                top: `${(layer.y / metaSettings.high) * 100}%`,
+                width: `${(layer.width / metaSettings.width) * 100}%`,
+                height: `${(layer.height / metaSettings.high) * 100}%`,
                 zIndex: layer.zIndex,
                 backgroundColor: selectedLayer?.id === layer.id
                   ? "hsl(var(--primary) / 0.1)"

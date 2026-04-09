@@ -283,7 +283,7 @@ export function AIRewriteDialog({
       onOpenChange={onOpenChange}
       title={t("aiRewrite.title")}
       description={t("aiRewrite.description")}
-      size="large"
+      size="compact"
       footer={
         <>
           <Button

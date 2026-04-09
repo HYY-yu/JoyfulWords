@@ -16,7 +16,7 @@ export type AIFeatureDialogSize = "compact" | "large" | "fullscreen"
 
 const SIZE_CLASSES: Record<AIFeatureDialogSize, string> = {
   compact:
-    "flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-5xl",
+    "flex h-[min(900px,calc(100vh-2rem))] flex-col overflow-hidden p-0 sm:max-w-5xl",
   large:
     "flex h-auto max-h-[min(900px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-none flex-col overflow-hidden p-0 sm:max-w-[1200px] lg:max-w-[1400px] xl:max-w-[1600px]",
   fullscreen:
