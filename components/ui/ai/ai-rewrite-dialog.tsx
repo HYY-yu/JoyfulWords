@@ -288,7 +288,7 @@ export function AIRewriteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="flex h-auto max-h-[min(760px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-none flex-col gap-0 overflow-hidden bg-background p-0 shadow-xl sm:w-[calc(100vw-3rem)] sm:max-w-none lg:w-[92vw] lg:max-w-none xl:w-[88vw] xl:max-w-none 2xl:w-[1840px] 2xl:max-w-none"
+        className="flex h-auto max-h-[min(760px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-none flex-col gap-0 overflow-hidden bg-background p-0 shadow-xl sm:w-[calc(100vw-3rem)] sm:max-w-none lg:w-[92vw] lg:max-w-none xl:w-[88vw] xl:max-w-none 2xl:w-[min(1840px,calc(100vw-3rem))] 2xl:max-w-none"
       >
         <DialogHeader className="shrink-0 border-b bg-background px-4 py-4">
           <div className="flex items-center justify-between gap-4">
