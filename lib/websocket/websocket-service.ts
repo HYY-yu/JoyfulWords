@@ -1,311 +1,572 @@
 "use client"
 
-import { useToast } from '@/hooks/use-toast'
+import { API_BASE_URL } from "@/lib/config"
+import type { TaskCenterTaskType } from "@/lib/api/taskcenter/types"
 
-// WebSocket 消息类型
 export enum WebSocketMessageType {
-  PING = 'ping',
-  WELCOME = 'welcome',
-  PONG = 'pong',
-  TASK_UPDATE = 'task_update',
-  TASK_COMPLETE = 'task_complete',
-  TASK_FAILED = 'task_failed',
-  TASK_CREATE = 'task_create'
+  PING = "ping",
+  WELCOME = "welcome",
+  PONG = "pong",
+  TASK_UPDATE = "task_update",
+  TASK_COMPLETE = "task_complete",
+  TASK_FAILED = "task_failed",
 }
 
-// WebSocket 消息接口
 export interface WebSocketMessage {
-  type: WebSocketMessageType
-  payload: any
+  type: WebSocketMessageType | string
+  payload: unknown
 }
 
-// 任务状态更新接口
 export interface TaskUpdatePayload {
   task_id: number
-  task_type: string
+  task_type: TaskCenterTaskType
+  article_id?: number
   status: string
-  outputs: string[] | null
-  error: string
+  outputs?: Record<string, unknown> | null
+  error?: string
+}
+
+export interface TaskSocketEvent {
+  connectionKey: string
+  messageType:
+    | WebSocketMessageType.TASK_UPDATE
+    | WebSocketMessageType.TASK_COMPLETE
+    | WebSocketMessageType.TASK_FAILED
+  payload: TaskUpdatePayload
+}
+
+type EventCallback = (data: any) => void
+
+interface SocketChannel {
+  key: string
+  token: string
+  articleId?: number
+  ws: WebSocket | null
+  reconnectAttempts: number
+  reconnectTimer: ReturnType<typeof setTimeout> | null
+  heartbeatTimer: ReturnType<typeof setInterval> | null
+  refCount: number
+  hasOpenedOnce: boolean
+  manuallyClosed: boolean
+}
+
+const HEARTBEAT_INTERVAL_MS = 25_000
+const INITIAL_RECONNECT_DELAY_MS = 1_000
+const MAX_RECONNECT_DELAY_MS = 30_000
+const TASK_EVENT_DEDUPE_WINDOW_MS = 1_500
+
+function buildWebSocketUrl(token: string, articleId?: number): string {
+  const url = new URL(API_BASE_URL)
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
+  url.pathname = "/ws/connect"
+  url.search = ""
+  url.searchParams.set("token", token)
+
+  if (typeof articleId === "number") {
+    url.searchParams.set("article_id", String(articleId))
+  }
+
+  return url.toString()
+}
+
+function isTaskMessageType(
+  type: string
+): type is
+  | WebSocketMessageType.TASK_UPDATE
+  | WebSocketMessageType.TASK_COMPLETE
+  | WebSocketMessageType.TASK_FAILED {
+  return (
+    type === WebSocketMessageType.TASK_UPDATE ||
+    type === WebSocketMessageType.TASK_COMPLETE ||
+    type === WebSocketMessageType.TASK_FAILED
+  )
 }
 
 class WebSocketService {
-  private ws: WebSocket | null = null
-  private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  private reconnectDelay = 1000 // 1 second
+  private channels = new Map<string, SocketChannel>()
+  private eventListeners = new Map<string, Set<EventCallback>>()
   private toast: ((props: any) => any) | null = null
-  private notificationSound: HTMLAudioElement | null = null
-  private eventListeners: Map<string, ((data: any) => void)[]> = new Map()
+  private recentTaskEvents = new Map<string, number>()
 
-  // 初始化 WebSocket 服务
-  init(token: string, toastInstance: any) {
-    console.log('初始化 WebSocket 服务，token:', token.substring(0, 20) + '...')
-    this.toast = toastInstance
-    console.log('Toast 实例:', !!toastInstance)
-    console.log('Toast 实例类型:', typeof toastInstance)
-    this.initNotificationSound()
-    // 暂时不自动连接，等待明确调用 connect 方法
-    console.log('WebSocket 服务已初始化，等待连接')
+  init(toastInstance?: ((props: any) => any) | null) {
+    this.toast = toastInstance ?? null
   }
 
-  // 手动连接 WebSocket
   connectWebSocket(token: string) {
-    this.connect(token)
+    this.ensureGlobalConnection(token)
   }
 
-  // 初始化通知声音
-  private initNotificationSound() {
-    try {
-      this.notificationSound = new Audio('https://cdn.joyword.link/audio/tips.mp3')
-      console.log('通知声音初始化成功')
-    } catch (error) {
-      console.error('初始化通知声音失败:', error)
-      this.notificationSound = null
-    }
+  ensureGlobalConnection(token: string) {
+    this.ensureConnection("global", token)
   }
 
-  // 播放通知声音
-  private playNotificationSound() {
-    if (this.notificationSound) {
-      try {
-        this.notificationSound.currentTime = 0 // 重置音频
-        this.notificationSound.play().catch(error => {
-          // 忽略用户交互错误，这是浏览器的自动播放限制
-          if (error.name !== 'NotAllowedError') {
-            console.error('播放通知声音失败:', error)
-          }
-        })
-      } catch (error) {
-        console.error('播放通知声音失败:', error)
-      }
-    }
+  closeGlobalConnection() {
+    this.releaseConnection("global")
   }
 
-  // 连接 WebSocket
-  private connect(token: string) {
-    try {
-      const wsUrl = `ws://localhost:8080/ws/connect?token=${token}`
-      this.ws = new WebSocket(wsUrl)
-
-      this.ws.onopen = () => {
-        console.log('WebSocket 连接成功')
-        this.reconnectAttempts = 0
-      }
-
-      this.ws.onmessage = (event) => {
-        this.handleMessage(event)
-      }
-
-      this.ws.onerror = (error) => {
-        // 检查 error 是否是浏览器的信任事件对象，如果是则忽略
-        if (error && typeof error === 'object' && error.isTrusted) {
-          return // 忽略浏览器信任的事件对象
-        }
-        
-        // 检查 error 是否是空对象或无意义的对象
-        let errorMessage = '未知错误'
-        if (error) {
-          if (error instanceof Error && error.message) {
-            errorMessage = error.message
-          } else if (typeof error === 'string') {
-            errorMessage = error
-          } else {
-            // 尝试将对象转换为字符串，检查是否为空对象
-            const errorStr = JSON.stringify(error)
-            if (errorStr !== '{}') {
-              errorMessage = errorStr
-            }
-          }
-        }
-        console.error('WebSocket 错误:', errorMessage)
-      }
-
-      this.ws.onclose = () => {
-        console.log('WebSocket 连接关闭')
-      }
-    } catch (error) {
-      // 检查 error 是否是空对象
-      const isEmptyObject = error && typeof error === 'object' && Object.keys(error).length === 0
-      console.error('WebSocket 连接失败:', error instanceof Error ? error.message : (isEmptyObject ? '未知错误' : String(error)) || '未知错误')
-      this.reconnect()
-    }
+  ensureArticleConnection(articleId: number, token: string) {
+    this.ensureConnection(this.getArticleChannelKey(articleId), token, articleId)
   }
 
-  // 处理接收到的消息
-  private handleMessage(event: MessageEvent) {
-    console.log('收到 WebSocket 消息事件:', event)
-    try {
-      const message: WebSocketMessage = JSON.parse(event.data)
-      console.log('解析后的 WebSocket 消息:', message)
-
-      switch (message.type) {
-        case WebSocketMessageType.TASK_COMPLETE:
-          console.log('处理任务完成消息')
-          this.handleTaskComplete(message.payload)
-          break
-        case WebSocketMessageType.TASK_FAILED:
-          console.log('处理任务失败消息')
-          this.handleTaskFailed(message.payload)
-          break
-        case WebSocketMessageType.TASK_UPDATE:
-          console.log('处理任务更新消息')
-          this.handleTaskUpdate(message.payload)
-          break
-        case WebSocketMessageType.TASK_CREATE:
-          console.log('处理任务创建消息')
-          this.handleTaskCreate(message.payload)
-          break
-        case WebSocketMessageType.WELCOME:
-          console.log('欢迎消息:', message.payload)
-          break
-        case WebSocketMessageType.PONG:
-          console.log('心跳响应')
-          break
-        default:
-          console.log('未知消息类型:', message.type)
-      }
-    } catch (error) {
-      // 检查 error 是否是空对象
-      const isEmptyObject = error && typeof error === 'object' && Object.keys(error).length === 0
-      console.error('解析 WebSocket 消息失败:', error instanceof Error ? error.message : (isEmptyObject ? '未知错误' : String(error)) || '未知错误')
-    }
+  releaseArticleConnection(articleId: number) {
+    this.releaseConnection(this.getArticleChannelKey(articleId))
   }
 
-  // 处理任务完成通知
-  private handleTaskComplete(payload: TaskUpdatePayload) {
-    console.log('收到任务完成通知:', payload)
-    console.log('Toast 实例可用:', !!this.toast)
-    if (this.toast && typeof this.toast === 'function') {
-      console.log('触发任务完成弹窗')
-      this.playNotificationSound()
-      this.toast({
-        title: '任务完成',
-        description: `任务 ${payload.task_id} 已成功完成`,
-        variant: 'default',
-        onClick: () => {
-          // 跳转到任务详情页面
-          console.log('点击任务完成通知，跳转到任务详情')
-          // 先导航到任务中心页面，然后触发任务详情查看
-          window.location.href = `/articles?tab=taskcenter&taskId=${payload.task_id}&taskType=${payload.task_type}`
-        }
-      })
-    } else {
-      console.error('Toast 实例不可用或不是函数')
-    }
-    // 触发任务完成事件
-    this.emit('task:complete', payload)
-    // 触发任务更新事件
-    this.emit('task:update', payload)
-    // 触发图片生成任务完成事件，以便图片生成组件可以监听
-    if (payload.task_type === 'image') {
-      this.emit('image:task:complete', payload)
-    }
-  }
-
-  // 处理任务失败通知
-  private handleTaskFailed(payload: TaskUpdatePayload) {
-    console.log('收到任务失败通知:', payload)
-    console.log('Toast 实例可用:', !!this.toast)
-    if (this.toast && typeof this.toast === 'function') {
-      console.log('触发任务失败弹窗')
-      this.playNotificationSound()
-      this.toast({
-        title: '任务失败',
-        description: `任务 ${payload.task_id} 失败: ${payload.error}`,
-        variant: 'destructive',
-        onClick: () => {
-          // 跳转到任务详情页面
-          console.log('点击任务失败通知，跳转到任务详情')
-          // 先导航到任务中心页面，然后触发任务详情查看
-          window.location.href = `/articles?tab=taskcenter&taskId=${payload.task_id}&taskType=${payload.task_type}`
-        }
-      })
-    } else {
-      console.error('Toast 实例不可用或不是函数')
-    }
-    // 触发任务失败事件
-    this.emit('task:failed', payload)
-    // 触发任务更新事件
-    this.emit('task:update', payload)
-    // 触发图片生成任务失败事件，以便图片生成组件可以监听
-    if (payload.task_type === 'image') {
-      this.emit('image:task:failed', payload)
-    }
-  }
-
-  // 处理任务状态更新
-  private handleTaskUpdate(payload: TaskUpdatePayload) {
-    // 可以在这里添加任务状态更新的逻辑
-    console.log('任务状态更新:', payload)
-    // 触发任务更新事件
-    this.emit('task:update', payload)
-    // 触发图片生成任务更新事件，以便图片生成组件可以监听
-    if (payload.task_type === 'image') {
-      this.emit('image:task:update', payload)
-    }
-  }
-
-  // 处理任务创建通知
-  private handleTaskCreate(payload: TaskUpdatePayload) {
-    console.log('收到任务创建通知:', payload)
-    // 触发任务创建事件
-    this.emit('task:create', payload)
-    // 触发任务更新事件，以便任务列表可以刷新
-    this.emit('task:update', payload)
-    // 触发图片生成任务创建事件，以便图片生成组件可以监听
-    if (payload.task_type === 'image') {
-      this.emit('image:task:create', payload)
-    }
-  }
-
-  // 重新连接方法（已禁用）
-  private reconnect() {
-    console.log('WebSocket 重连已禁用')
-  }
-
-  // 发送消息
-  send(message: WebSocketMessage) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message))
-    }
-  }
-
-  // 监听事件
-  on(event: string, callback: (data: any) => void) {
+  on(event: string, callback: EventCallback) {
     if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, [])
+      this.eventListeners.set(event, new Set())
     }
-    this.eventListeners.get(event)?.push(callback)
+
+    this.eventListeners.get(event)?.add(callback)
   }
 
-  // 取消监听
-  off(event: string, callback: (data: any) => void) {
+  off(event: string, callback: EventCallback) {
     const listeners = this.eventListeners.get(event)
-    if (listeners) {
-      this.eventListeners.set(event, listeners.filter(cb => cb !== callback))
+    if (!listeners) return
+
+    listeners.delete(callback)
+    if (listeners.size === 0) {
+      this.eventListeners.delete(event)
     }
   }
 
-  // 触发事件
-  private emit(event: string, data: any) {
-    const listeners = this.eventListeners.get(event)
-    listeners?.forEach(callback => {
-      try {
-        callback(data)
-      } catch (error) {
-        console.error('触发事件失败:', error)
-      }
+  close() {
+    Array.from(this.channels.keys()).forEach((key) => {
+      this.closeChannel(key)
     })
   }
 
-  // 关闭连接
-  close() {
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
+  private getArticleChannelKey(articleId: number): string {
+    return `article:${articleId}`
+  }
+
+  private ensureConnection(key: string, token: string, articleId?: number) {
+    const existing = this.channels.get(key)
+    if (existing) {
+      existing.refCount += 1
+      existing.token = token
+      existing.manuallyClosed = false
+
+      if (
+        existing.ws &&
+        (existing.ws.readyState === WebSocket.OPEN ||
+          existing.ws.readyState === WebSocket.CONNECTING)
+      ) {
+        return
+      }
+
+      this.openChannel(existing)
+      return
     }
+
+    const channel: SocketChannel = {
+      key,
+      token,
+      articleId,
+      ws: null,
+      reconnectAttempts: 0,
+      reconnectTimer: null,
+      heartbeatTimer: null,
+      refCount: 1,
+      hasOpenedOnce: false,
+      manuallyClosed: false,
+    }
+
+    this.channels.set(key, channel)
+    this.openChannel(channel)
+  }
+
+  private releaseConnection(key: string) {
+    const channel = this.channels.get(key)
+    if (!channel) return
+
+    channel.refCount = Math.max(0, channel.refCount - 1)
+    if (channel.refCount === 0) {
+      this.closeChannel(key)
+    }
+  }
+
+  private openChannel(channel: SocketChannel) {
+    if (
+      channel.ws &&
+      (channel.ws.readyState === WebSocket.OPEN ||
+        channel.ws.readyState === WebSocket.CONNECTING)
+    ) {
+      return
+    }
+
+    if (channel.reconnectTimer) {
+      clearTimeout(channel.reconnectTimer)
+      channel.reconnectTimer = null
+    }
+
+    const wsUrl = buildWebSocketUrl(channel.token, channel.articleId)
+    console.info("[WebSocket] Connecting", {
+      key: channel.key,
+      articleId: channel.articleId ?? null,
+      url: wsUrl.replace(channel.token, "***"),
+    })
+
+    try {
+      const ws = new WebSocket(wsUrl)
+      channel.ws = ws
+
+      ws.onopen = () => {
+        const isReconnect = channel.hasOpenedOnce
+        channel.hasOpenedOnce = true
+        channel.reconnectAttempts = 0
+        this.startHeartbeat(channel)
+
+        console.info("[WebSocket] Connected", {
+          key: channel.key,
+          articleId: channel.articleId ?? null,
+          reconnect: isReconnect,
+        })
+
+        this.sendPing(channel)
+
+        if (isReconnect) {
+          this.emit("connection:reconnected", { key: channel.key, articleId: channel.articleId ?? null })
+          if (typeof channel.articleId === "number") {
+            this.emit(`connection:reconnected:article:${channel.articleId}`, {
+              key: channel.key,
+              articleId: channel.articleId,
+            })
+          }
+          // TODO(observability): add websocket reconnect success metric here.
+        }
+      }
+
+      ws.onmessage = (event) => {
+        this.handleMessage(channel, event)
+      }
+
+      ws.onerror = (event) => {
+        console.warn("[WebSocket] Socket error", {
+          key: channel.key,
+          articleId: channel.articleId ?? null,
+          event,
+        })
+      }
+
+      ws.onclose = (event) => {
+        console.info("[WebSocket] Closed", {
+          key: channel.key,
+          articleId: channel.articleId ?? null,
+          code: event.code,
+          reason: event.reason || null,
+          wasClean: event.wasClean,
+          manuallyClosed: channel.manuallyClosed,
+        })
+
+        channel.ws = null
+        this.stopHeartbeat(channel)
+
+        if (channel.manuallyClosed || channel.refCount === 0) {
+          return
+        }
+
+        this.scheduleReconnect(channel)
+      }
+    } catch (error) {
+      console.error("[WebSocket] Failed to connect", {
+        key: channel.key,
+        articleId: channel.articleId ?? null,
+        error,
+      })
+      this.scheduleReconnect(channel)
+    }
+  }
+
+  private scheduleReconnect(channel: SocketChannel) {
+    if (channel.refCount === 0) return
+    if (channel.reconnectTimer) return
+
+    const delay = Math.min(
+      INITIAL_RECONNECT_DELAY_MS * 2 ** channel.reconnectAttempts,
+      MAX_RECONNECT_DELAY_MS
+    )
+    channel.reconnectAttempts += 1
+
+    console.warn("[WebSocket] Scheduling reconnect", {
+      key: channel.key,
+      articleId: channel.articleId ?? null,
+      delay,
+      attempt: channel.reconnectAttempts,
+    })
+
+    // TODO(observability): add websocket reconnect attempt metric here.
+    channel.reconnectTimer = setTimeout(() => {
+      channel.reconnectTimer = null
+      this.openChannel(channel)
+    }, delay)
+  }
+
+  private closeChannel(key: string) {
+    const channel = this.channels.get(key)
+    if (!channel) return
+
+    channel.manuallyClosed = true
+    channel.refCount = 0
+
+    if (channel.reconnectTimer) {
+      clearTimeout(channel.reconnectTimer)
+      channel.reconnectTimer = null
+    }
+
+    this.stopHeartbeat(channel)
+
+    if (channel.ws) {
+      channel.ws.close()
+      channel.ws = null
+    }
+
+    this.channels.delete(key)
+  }
+
+  private startHeartbeat(channel: SocketChannel) {
+    this.stopHeartbeat(channel)
+
+    channel.heartbeatTimer = setInterval(() => {
+      this.sendPing(channel)
+    }, HEARTBEAT_INTERVAL_MS)
+  }
+
+  private stopHeartbeat(channel: SocketChannel) {
+    if (!channel.heartbeatTimer) return
+
+    clearInterval(channel.heartbeatTimer)
+    channel.heartbeatTimer = null
+  }
+
+  private sendPing(channel: SocketChannel) {
+    if (channel.ws?.readyState !== WebSocket.OPEN) return
+
+    channel.ws.send(
+      JSON.stringify({
+        type: WebSocketMessageType.PING,
+        payload: {},
+      } satisfies WebSocketMessage)
+    )
+  }
+
+  private handleMessage(channel: SocketChannel, event: MessageEvent) {
+    try {
+      const message = JSON.parse(event.data) as WebSocketMessage
+
+      if (message.type === WebSocketMessageType.WELCOME) {
+        console.debug("[WebSocket] Welcome received", {
+          key: channel.key,
+          articleId: channel.articleId ?? null,
+          payload: message.payload,
+        })
+        return
+      }
+
+      if (message.type === WebSocketMessageType.PONG) {
+        console.debug("[WebSocket] Pong received", {
+          key: channel.key,
+          articleId: channel.articleId ?? null,
+          payload: message.payload,
+        })
+        return
+      }
+
+      if (!isTaskMessageType(message.type)) {
+        console.warn("[WebSocket] Unknown message type", {
+          key: channel.key,
+          type: message.type,
+        })
+        return
+      }
+
+      const payload = message.payload as TaskUpdatePayload
+      if (!payload || typeof payload.task_id !== "number" || !payload.task_type) {
+        console.warn("[WebSocket] Invalid task payload", {
+          key: channel.key,
+          messageType: message.type,
+          payload: message.payload,
+        })
+        return
+      }
+
+      if (!this.shouldProcessTaskEvent(message.type, payload)) {
+        return
+      }
+
+      const taskEvent: TaskSocketEvent = {
+        connectionKey: channel.key,
+        messageType: message.type,
+        payload,
+      }
+
+      this.emitTaskEvent(taskEvent)
+
+      if (message.type === WebSocketMessageType.TASK_COMPLETE) {
+        this.showTaskToast("success", payload)
+      }
+
+      if (message.type === WebSocketMessageType.TASK_FAILED) {
+        this.showTaskToast("error", payload)
+      }
+    } catch (error) {
+      console.error("[WebSocket] Failed to parse message", {
+        key: channel.key,
+        articleId: channel.articleId ?? null,
+        error,
+        raw: event.data,
+      })
+    }
+  }
+
+  private shouldProcessTaskEvent(
+    messageType: TaskSocketEvent["messageType"],
+    payload: TaskUpdatePayload
+  ): boolean {
+    const now = Date.now()
+
+    for (const [key, timestamp] of this.recentTaskEvents.entries()) {
+      if (now - timestamp > TASK_EVENT_DEDUPE_WINDOW_MS) {
+        this.recentTaskEvents.delete(key)
+      }
+    }
+
+    const dedupeKey = [
+      messageType,
+      payload.task_type,
+      payload.task_id,
+      payload.status,
+      payload.article_id ?? "none",
+    ].join(":")
+
+    const previousTimestamp = this.recentTaskEvents.get(dedupeKey)
+    if (previousTimestamp && now - previousTimestamp <= TASK_EVENT_DEDUPE_WINDOW_MS) {
+      console.debug("[WebSocket] Deduped task event", { dedupeKey })
+      return false
+    }
+
+    this.recentTaskEvents.set(dedupeKey, now)
+    return true
+  }
+
+  private emitTaskEvent(taskEvent: TaskSocketEvent) {
+    const { messageType, payload } = taskEvent
+
+    this.emit("task:event", taskEvent)
+
+    if (messageType === WebSocketMessageType.TASK_UPDATE) {
+      this.emit("task:update", payload)
+    }
+
+    if (messageType === WebSocketMessageType.TASK_COMPLETE) {
+      this.emit("task:complete", payload)
+    }
+
+    if (messageType === WebSocketMessageType.TASK_FAILED) {
+      this.emit("task:failed", payload)
+    }
+
+    if (typeof payload.article_id === "number") {
+      this.emit(`task:event:article:${payload.article_id}`, taskEvent)
+
+      if (messageType === WebSocketMessageType.TASK_UPDATE) {
+        this.emit(`task:update:article:${payload.article_id}`, payload)
+      }
+
+      if (messageType === WebSocketMessageType.TASK_COMPLETE) {
+        this.emit(`task:complete:article:${payload.article_id}`, payload)
+      }
+
+      if (messageType === WebSocketMessageType.TASK_FAILED) {
+        this.emit(`task:failed:article:${payload.article_id}`, payload)
+      }
+    }
+
+    if (payload.task_type === "image") {
+      if (messageType === WebSocketMessageType.TASK_UPDATE) {
+        this.emit("image:task:update", payload)
+      }
+
+      if (messageType === WebSocketMessageType.TASK_COMPLETE) {
+        this.emit("image:task:complete", payload)
+      }
+
+      if (messageType === WebSocketMessageType.TASK_FAILED) {
+        this.emit("image:task:failed", payload)
+      }
+    }
+  }
+
+  private showTaskToast(kind: "success" | "error", payload: TaskUpdatePayload) {
+    if (!this.toast) return
+
+    const locale = this.getLocale()
+    const taskTypeLabel = this.getTaskTypeLabel(payload.task_type, locale)
+    const title =
+      kind === "success"
+        ? locale === "zh"
+          ? "任务完成"
+          : "Task completed"
+        : locale === "zh"
+        ? "任务失败"
+        : "Task failed"
+    const description =
+      kind === "success"
+        ? locale === "zh"
+          ? `#${payload.task_id} ${taskTypeLabel}`
+          : `#${payload.task_id} ${taskTypeLabel}`
+        : payload.error ||
+          (locale === "zh"
+            ? `#${payload.task_id} ${taskTypeLabel}`
+            : `#${payload.task_id} ${taskTypeLabel}`)
+
+    this.toast({
+      title,
+      description,
+      variant: kind === "success" ? "default" : "destructive",
+      onClick: () => {
+        window.location.href = `/articles?taskCenter=1&taskId=${payload.task_id}&taskType=${payload.task_type}`
+      },
+    })
+  }
+
+  private getLocale(): "zh" | "en" {
+    if (typeof window === "undefined") return "en"
+
+    const locale = localStorage.getItem("locale") || navigator.language || "en"
+    return locale.toLowerCase().startsWith("zh") ? "zh" : "en"
+  }
+
+  private getTaskTypeLabel(taskType: TaskCenterTaskType, locale: "zh" | "en"): string {
+    const labels = {
+      zh: {
+        article: "文章任务",
+        image: "图片任务",
+        infographic: "信息图任务",
+      },
+      en: {
+        article: "article job",
+        image: "image job",
+        infographic: "infographic job",
+      },
+    } as const
+
+    return labels[locale][taskType]
+  }
+
+  private emit(event: string, data: unknown) {
+    const listeners = this.eventListeners.get(event)
+    listeners?.forEach((callback) => {
+      try {
+        callback(data)
+      } catch (error) {
+        console.error("[WebSocket] Event listener failed", {
+          event,
+          error,
+        })
+      }
+    })
   }
 }
 
-// 导出单例
 export const webSocketService = new WebSocketService()

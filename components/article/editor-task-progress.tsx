@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, WandSparklesIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, NetworkIcon, PencilIcon } from "lucide-react"
+import { useEffect, useState } from "react"
+import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, PencilIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
@@ -18,8 +18,9 @@ export interface TaskItem {
     label: string
     description: string
     startedAt: number
+    removable?: boolean
     taskCenterData?: any // 存储任务中心任务的原始数据
-    originalType?: string // 存储原始任务类型（image, mindmap, article）
+    originalType?: string // 存储原始任务类型（image, article, infographic）
 }
 
 interface EditorTaskProgressProps {
@@ -90,16 +91,6 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
     const [hovered, setHovered] = useState(false)
 
     const isDone = task.status === "completed" || task.status === "failed"
-    const isPending = task.status === "pending"
-
-    // 调试日志
-    console.log('Task data:', {
-      taskType: task.type,
-      originalType: task.originalType,
-      taskCenterData: task.taskCenterData,
-      taskCenterDataType: task.taskCenterData?.type
-    });
-
     const typeIcon =
         task.type === "ai-edit" ? (
             <PencilIcon className="w-4 h-4 shrink-0" />
@@ -115,8 +106,6 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
             ) : (
                 <ImageIcon className="w-4 h-4 shrink-0" />
             )
-        ) : task.type === "task-center" && task.originalType === "mindmap" ? (
-            <NetworkIcon className="w-4 h-4 shrink-0" />
         ) : task.type === "task-center" && task.originalType === "article" ? (
             <PencilIcon className="w-4 h-4 shrink-0" />
         ) : task.type === "task-center" && task.originalType === "infographic" ? (
@@ -144,50 +133,6 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         task.status === "failed" && "border-red-200 bg-red-50/50 hover:bg-red-50"
     )
 
-    // 获取参考图片的第一张
-  const getFirstReferenceImage = () => {
-    if (task.type === "task-center" && task.originalType === "image") {
-      // 尝试从不同位置获取reference_image_urls
-      let referenceImages: string | undefined;
-      if (task.taskCenterData.details?.reference_image_urls) {
-        referenceImages = task.taskCenterData.details.reference_image_urls;
-      } else if (task.taskCenterData.detail?.reference_image_urls) {
-        referenceImages = task.taskCenterData.detail.reference_image_urls;
-      } else if (task.taskCenterData.reference_image_urls) {
-        referenceImages = task.taskCenterData.reference_image_urls;
-      }
-      
-      if (referenceImages) {
-        let urls: string[] = [];
-        try {
-          // 尝试解析JSON字符串
-          const parsed = JSON.parse(referenceImages);
-          if (Array.isArray(parsed)) {
-            urls = parsed;
-          } else if (typeof parsed === 'string') {
-            urls = [parsed];
-          }
-        } catch (e) {
-          // 如果解析失败，尝试按逗号拆分
-          urls = referenceImages.split(',');
-        }
-        
-        // 清理URL并取第一张
-        const firstUrl = urls[0];
-        if (firstUrl) {
-          // 清理URL：去除反引号、空格和可能的引号
-          const cleanedUrl = firstUrl.trim()
-            .replace(/[`"']/g, '') // 去除反引号和引号
-            .trim();
-          return cleanedUrl || null;
-        }
-      }
-    }
-    return null;
-  };
-
-  const firstReferenceImage = getFirstReferenceImage();
-
   return (
         <div
             className={borderClass}
@@ -214,7 +159,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
                 </span>
 
                 {/* Right side: status icon or delete button */}
-                {isDone && hovered ? (
+                {isDone && hovered && task.removable !== false ? (
                     <button
                         type="button"
                         className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"

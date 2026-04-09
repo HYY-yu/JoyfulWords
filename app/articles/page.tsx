@@ -19,6 +19,7 @@ import {
   UserCircleIcon,
   LogOutIcon,
   Wallet,
+  CheckSquareIcon,
   LoaderIcon,
   PlusIcon,
   EditIcon,
@@ -42,6 +43,8 @@ import { useToast } from "@/hooks/use-toast"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
 import { ArticleCreateModeDialog } from "@/components/article/article-create-mode-dialog"
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
+import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
+import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
 
 function BillingDialogQuerySync({
   onOpenBillingDialog,
@@ -75,6 +78,40 @@ function BillingDialogQuerySync({
   return null
 }
 
+function TaskCenterDialogQuerySync({
+  onOpenTaskCenterDialog,
+}: {
+  onOpenTaskCenterDialog: (taskRef: TaskCenterTaskReference | null) => void
+}) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const shouldOpenTaskCenter = searchParams.get("taskCenter") === "1"
+    const taskId = searchParams.get("taskId")
+    const taskType = searchParams.get("taskType")
+
+    if (!shouldOpenTaskCenter && (!taskId || !taskType)) {
+      return
+    }
+
+    const nextTaskRef =
+      taskId && taskType
+        ? {
+            id: Number(taskId),
+            type: taskType as TaskCenterTaskType,
+          }
+        : null
+
+    onOpenTaskCenterDialog(
+      nextTaskRef && Number.isFinite(nextTaskRef.id) ? nextTaskRef : null
+    )
+    router.replace("/articles")
+  }, [onOpenTaskCenterDialog, router, searchParams])
+
+  return null
+}
+
 export default function ArticlesPage() {
   const { t, locale, setLocale } = useTranslation()
   const { user, loading: authLoading, signOut } = useAuth()
@@ -84,6 +121,9 @@ export default function ArticlesPage() {
   const [createModeDialogOpen, setCreateModeDialogOpen] = useState(false)
   const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
+  const [taskCenterOpen, setTaskCenterOpen] = useState(false)
+  const [taskCenterDeepLink, setTaskCenterDeepLink] =
+    useState<TaskCenterTaskReference | null>(null)
   const [isCreatingArticle, setIsCreatingArticle] = useState(false)
 
   const {
@@ -190,6 +230,11 @@ export default function ArticlesPage() {
     }, 0)
   }
 
+  const handleOpenTaskCenterDialog = (taskRef: TaskCenterTaskReference | null) => {
+    setTaskCenterDeepLink(taskRef)
+    setTaskCenterOpen(true)
+  }
+
   if (authLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -210,6 +255,9 @@ export default function ArticlesPage() {
       <Suspense fallback={null}>
         <BillingDialogQuerySync onOpenBillingDialog={() => setBillingDialogOpen(true)} />
       </Suspense>
+      <Suspense fallback={null}>
+        <TaskCenterDialogQuerySync onOpenTaskCenterDialog={handleOpenTaskCenterDialog} />
+      </Suspense>
 
       {/* Top Navigation Bar */}
       <header className="shrink-0 border-b border-border bg-background">
@@ -224,6 +272,16 @@ export default function ArticlesPage() {
 
           {/* Right - Actions */}
           <div className="flex items-center gap-3 h-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-sm text-muted-foreground hover:text-foreground h-8"
+              onClick={() => setTaskCenterOpen(true)}
+            >
+              <CheckSquareIcon className="w-4 h-4" />
+              {t("contentWriting.taskCenter.title")}
+            </Button>
+
             {/* Feedback */}
             <FeedbackErrorBoundary>
               <TallyFeedbackButton className="w-auto py-0 h-8 text-sm text-muted-foreground hover:text-foreground hover:bg-accent" />
@@ -498,6 +556,12 @@ export default function ArticlesPage() {
       <BillingFullscreenDialog
         open={billingDialogOpen}
         onOpenChange={setBillingDialogOpen}
+      />
+      <TaskCenterDialog
+        open={taskCenterOpen}
+        onOpenChange={setTaskCenterOpen}
+        initialTaskRef={taskCenterDeepLink}
+        onInitialTaskHandled={() => setTaskCenterDeepLink(null)}
       />
     </div>
   )

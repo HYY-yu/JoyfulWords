@@ -26,7 +26,6 @@ import { materialsClient } from "@/lib/api/materials/client"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
 import { taskCenterClient } from "@/lib/api/taskcenter/client"
-import { TaskType } from "@/lib/api/taskcenter/types"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -269,12 +268,13 @@ export function ArticleAIHelpDialog({
       console.log('[AI Help] Article created successfully:', result.id)
 
       // 生成成功后，检查是否有任务ID，如果有则打开任务详情
-      if (result.task_id) {
-        console.info('[AI Help] Task created', { taskId: result.task_id })
+      const taskId = result.task_id
+      if (typeof taskId === "number") {
+        console.info('[AI Help] Task created', { taskId })
         // 延迟打开任务详情，确保任务已创建
         setTimeout(async () => {
           try {
-            const taskDetail = await taskCenterClient.getTaskDetail(TaskType.ARTICLE, result.task_id)
+            const taskDetail = await taskCenterClient.getTaskDetail("article", taskId)
             console.info('[AI Help] Task detail fetched', taskDetail)
           } catch (error) {
             console.warn('[AI Help] Failed to fetch task detail', error)
