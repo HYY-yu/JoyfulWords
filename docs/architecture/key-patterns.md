@@ -34,7 +34,6 @@ The application uses a two-level tab system:
 
 **Nested tabs within content-writing:**
 - `material-search`
-- `competitor-tracking`
 - `article-writing`
 - `article-manager`
 

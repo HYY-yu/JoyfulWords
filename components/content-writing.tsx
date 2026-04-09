@@ -1,15 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { SearchIcon, TrendingUpIcon, PenToolIcon, NotebookTabs, FileTextIcon, DatabaseIcon } from "lucide-react"
+import { SearchIcon, PenToolIcon, NotebookTabs, FileTextIcon, DatabaseIcon } from "lucide-react"
 import { MaterialSearchTab } from "./materials/material-search-tab"
 import { MaterialLibraryTab } from "./materials/material-library-tab"
-import { CompetitorTracking } from "./competitors/competitor-tracking"
 import { ArticleWriting } from "./article/article-writing"
 import { ArticleManager } from "./article/article-manager"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
 const CONTENT_TAB_STORAGE_KEY = 'joyfulwords-content-writing-tab'
+const CONTENT_TAB_IDS = ["article-writing", "article-manager", "search", "material-library"] as const
 
 export function ContentWriting() {
   const { t } = useTranslation()
@@ -21,13 +21,15 @@ export function ContentWriting() {
     { id: "article-manager", label: t("contentWriting.tabs.articleManager"), icon: NotebookTabs },
     { id: "search", label: t("contentWriting.tabs.search"), icon: SearchIcon },
     { id: "material-library", label: t("contentWriting.tabs.materialLibrary"), icon: DatabaseIcon },
-    { id: "competitor-tracking", label: t("contentWriting.tabs.competitorTracking"), icon: TrendingUpIcon },
   ]
 
   // 从 localStorage 读取上次的子 tab，如果没有则默认为 "article-writing"
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem(CONTENT_TAB_STORAGE_KEY) || "article-writing"
+      const savedTab = localStorage.getItem(CONTENT_TAB_STORAGE_KEY)
+      return savedTab && CONTENT_TAB_IDS.includes(savedTab as (typeof CONTENT_TAB_IDS)[number])
+        ? savedTab
+        : "article-writing"
     }
     return "article-writing"
   })
@@ -36,6 +38,12 @@ export function ContentWriting() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(CONTENT_TAB_STORAGE_KEY, activeTab)
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (!CONTENT_TAB_IDS.includes(activeTab as (typeof CONTENT_TAB_IDS)[number])) {
+      setActiveTab("article-writing")
     }
   }, [activeTab])
 
@@ -93,7 +101,7 @@ export function ContentWriting() {
     setEditTrigger(prev => prev + 1)
   }
 
-  const activeTabConfig = tabs.find((tab) => tab.id === activeTab)!
+  const activeTabConfig = tabs.find((tab) => tab.id === activeTab) ?? tabs[0]
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
@@ -146,8 +154,6 @@ export function ContentWriting() {
           <MaterialSearchTab />
         ) : activeTab === "material-library" ? (
           <MaterialLibraryTab />
-        ) : activeTab === "competitor-tracking" ? (
-          <CompetitorTracking />
         ) : activeTab === "article-writing" ? (
           <ArticleWriting key={currentArticleId || 'new'} articleId={currentArticleId} />
         ) : activeTab === "article-manager" ? (

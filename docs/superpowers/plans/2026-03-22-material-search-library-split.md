@@ -414,7 +414,6 @@ const tabs = [
   { id: "article-manager", label: t("contentWriting.tabs.articleManager"), icon: NotebookTabs },
   { id: "search", label: t("contentWriting.tabs.search"), icon: SearchIcon },
   { id: "material-library", label: t("contentWriting.tabs.materialLibrary"), icon: DatabaseIcon },
-  { id: "competitor-tracking", label: t("contentWriting.tabs.competitorTracking"), icon: TrendingUpIcon },
 ]
 ```
 
@@ -427,8 +426,6 @@ const tabs = [
   <MaterialSearchTab />
 ) : activeTab === "material-library" ? (
   <MaterialLibraryTab />
-) : activeTab === "competitor-tracking" ? (
-  <CompetitorTracking />
 ) : activeTab === "article-writing" ? (
   <ArticleWriting key={currentArticleId || 'new'} articleId={currentArticleId} />
 ) : activeTab === "article-manager" ? (
