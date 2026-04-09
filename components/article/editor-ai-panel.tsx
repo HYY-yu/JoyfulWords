@@ -141,8 +141,8 @@ export function EditorAIPanel({
   const fetchTaskCenterTasks = async () => {
     try {
       setLoadingTaskCenter(true)
-      // 获取所有类型的任务
-      const taskTypes = Object.values(TaskCenterTaskType)
+      // 获取所有类型的任务，过滤掉material类型
+      const taskTypes = Object.values(TaskCenterTaskType).filter(type => type !== 'material')
       const allTasks: any[] = []
 
       for (const type of taskTypes) {
@@ -160,16 +160,6 @@ export function EditorAIPanel({
         if (task.type === 'image') {
           // 尝试从任务数据中获取gen_mode
           let genMode: string | undefined;
-          // 打印任务数据结构，以便调试
-          console.log('图片任务数据:', {
-            taskId: task.id,
-            hasDetails: !!task.details,
-            hasDetail: !!task.detail,
-            hasGenMode: !!task.gen_mode,
-            detailsGenMode: task.details?.gen_mode,
-            detailGenMode: task.detail?.gen_mode,
-            genMode: task.gen_mode
-          });
           if (task.details?.gen_mode) {
             genMode = task.details.gen_mode;
           } else if (task.detail?.gen_mode) {
@@ -177,31 +167,58 @@ export function EditorAIPanel({
           } else if (task.gen_mode) {
             genMode = task.gen_mode;
           }
-          console.log('获取到的genMode:', genMode);
           switch (genMode) {
             case 'split_images':
-              label = '反向模式';
+              label = '拆分图片图层任务';
               break;
             case 'creator':
-              label = '创作模式';
+              label = '创作图片任务';
               break;
             case 'style':
-              label = '风格模式';
+              label = '风格化图片任务';
               break;
             default:
               label = '图片任务';
           }
+        } else if (task.type === 'article') {
+          // 处理文章任务的特殊标签
+          if (task.status === 'init') {
+            label = 'AI执行中';
+          } else if (task.status === 'draft') {
+            label = 'AI已完成';
+          } else {
+            label = '文章任务';
+          }
+        } else if (task.type === 'mindmap') {
+          label = '思维导图任务';
+        } else if (task.type === 'infographic') {
+          label = '信息图任务';
         }
         
+        // 处理任务状态
+        let taskStatus: TaskStatus = "pending";
+        if (task.type === 'article') {
+          if (task.status === 'draft') {
+            taskStatus = "completed";
+          } else if (task.status === 'failed') {
+            taskStatus = "failed";
+          } else {
+            taskStatus = "pending";
+          }
+        } else {
+          taskStatus = task.status === "completed" || task.status === "success" || task.status === "done" ? "completed" : 
+                     task.status === "failed" ? "failed" : "pending";
+        }
+
         return {
           id: `${task.type}-${task.id.toString()}`,
           type: "task-center" as TaskType,
-          status: task.status === "completed" || task.status === "success" ? "completed" : 
-                 task.status === "failed" ? "failed" : "pending",
+          status: taskStatus,
           label,
-          description: `任务 ID: ${task.id}`,
+          description: '',
           startedAt: new Date(task.created_at).getTime(),
-          taskCenterData: task
+          taskCenterData: task,
+          originalType: task.type
         };
       })
 
@@ -446,8 +463,20 @@ export function EditorAIPanel({
             onRemoveTask={(id: string, type: TaskType) => {
               if (type === "ai-edit") {
                 onRemoveTask(id)
+              } else if (type === "task-center") {
+                // 处理任务中心任务的删除
+                const task = taskCenterTasks.find(t => t.id === id)
+                if (task && task.taskCenterData) {
+                  taskCenterClient.deleteTask(task.taskCenterData.type, task.taskCenterData.id)
+                    .then(() => {
+                      // 删除成功后刷新任务列表
+                      fetchTaskCenterTasks()
+                    })
+                    .catch(error => {
+                      console.error('删除任务失败:', error)
+                    })
+                }
               }
-              // 任务中心任务不支持删除
             }}
             onClickTask={(task: TaskItem) => {
               if (task.type === "ai-edit") {
@@ -467,7 +496,7 @@ export function EditorAIPanel({
           <DialogHeader>
             <DialogTitle>任务详情</DialogTitle>
             <DialogDescription>
-              {selectedTask ? `${selectedTask.label} - ID: ${selectedTask.id}` : ''}
+              {selectedTask ? selectedTask.label : ''}
             </DialogDescription>
           </DialogHeader>
           {loadingTaskDetail ? (
@@ -625,13 +654,7 @@ export function EditorAIPanel({
                     </div>
                   ) : null}
                   
-                  {/* 检查是否有其他重要信息 */}
-                  {taskDetail.cost && typeof taskDetail.cost === 'string' ? (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-muted-foreground">成本信息</p>
-                      <p className="mt-1 text-sm">{taskDetail.cost}</p>
-                    </div>
-                  ) : null}
+
                 </div>
               </div>
               
