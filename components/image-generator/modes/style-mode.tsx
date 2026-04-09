@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, Copy } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"

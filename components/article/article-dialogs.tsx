@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { Fragment, useState, useEffect } from "react"
 import {
   Dialog,

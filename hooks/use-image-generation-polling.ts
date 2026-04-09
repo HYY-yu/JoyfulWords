@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react'
 import { imageGenerationClient } from '@/lib/api/image-generation/client'
 import type {
   TaskResultResponse,
@@ -163,10 +163,10 @@ export function useImageGenerationPolling(
   } = params
 
   // 合并默认配置
-  const config: PollingConfig = {
+  const config = useMemo<PollingConfig>(() => ({
     ...DEFAULT_POLLING_CONFIG,
     ...customConfig,
-  }
+  }), [customConfig])
 
   // 使用 useState 而不是 useRef 以提供响应式状态
   const [isPolling, setIsPolling] = useState(false)
@@ -362,7 +362,6 @@ export function useImageGenerationPolling(
         })
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [config, onProgress, onSuccess, onError, onTimeout, isPolling]
   )
 

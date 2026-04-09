@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useEffect, useRef } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import {

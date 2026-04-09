@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, Split, Download, CheckCircle2, Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -57,7 +59,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // 处理任务完成
-  const handleTaskComplete = (data: any) => {
+  const handleTaskComplete = useCallback((data: any) => {
     if (data.task_id === currentTaskId) {
       console.info('[InversionMode] Split completed successfully')
 
@@ -96,10 +98,10 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
       toast({ title: t("imageGeneration.inversionMode.splitCompleted") })
     }
-  }
+  }, [currentTaskId, locale, t, toast])
 
   // 处理任务失败
-  const handleTaskFailed = (data: any) => {
+  const handleTaskFailed = useCallback((data: any) => {
     if (data.task_id === currentTaskId) {
       console.error('[InversionMode] Split failed:', data.error_message)
       setSplitStatus("error")
@@ -108,7 +110,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
         title: data.error_message || t("imageGeneration.toast.generationFailed"),
       })
     }
-  }
+  }, [currentTaskId, t, toast])
 
   // 轮询任务状态
   useEffect(() => {
@@ -159,7 +161,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, t, toast, locale])
+  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, toast])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {

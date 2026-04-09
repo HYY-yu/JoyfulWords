@@ -68,7 +68,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // 处理任务完成
-  const handleTaskComplete = (data: any) => {
+  const handleTaskComplete = useCallback((data: any) => {
     if (data.task_id === currentTaskId) {
       // INFO: 任务完成
       console.info('[ImageGeneration] Task completed successfully:', {
@@ -117,10 +117,10 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         description: t("imageGeneration.generating.description"),
       })
     }
-  }
+  }, [currentTaskId, t, toast])
 
   // 处理任务失败
-  const handleTaskFailed = (data: any) => {
+  const handleTaskFailed = useCallback((data: any) => {
     if (data.task_id === currentTaskId) {
       // ERROR: 任务失败
       console.error('[ImageGeneration] Task failed:', {
@@ -138,7 +138,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         description: data.error_message || t("imageGeneration.toast.generationFailed"),
       })
     }
-  }
+  }, [currentTaskId, t, toast])
 
   // 轮询任务状态
   useEffect(() => {
@@ -192,7 +192,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, t, toast])
+  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, toast])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
@@ -708,12 +708,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   }
 
   // Memoize config to prevent infinite loop in JsonPreviewDialog
-  const memoizedConfig = useMemo(() => buildCreatorConfig(), [
-    layers,
-    metaSettings,
-    globalStyleSettings,
-    compositionSettings,
-  ])
+  const memoizedConfig = useMemo(() => buildCreatorConfig(), [buildCreatorConfig])
 
   return (
     <div className="flex-1 flex overflow-hidden">

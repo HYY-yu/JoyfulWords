@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useEffect, useCallback } from "react"
 import { ChevronLeftIcon, ChevronRightIcon, FileJson, Download, Copy, Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"

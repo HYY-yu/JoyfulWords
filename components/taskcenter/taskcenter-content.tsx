@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { TaskType, type TaskListItem } from '@/lib/api/taskcenter/types'

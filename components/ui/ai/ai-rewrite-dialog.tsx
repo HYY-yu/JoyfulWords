@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -78,7 +80,7 @@ export function AIRewriteDialog({
 
   // 素材扩充状态
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
-  const [materialsScrollPosition, setMaterialsScrollPosition] = useState(0);
+  const materialsScrollPositionRef = useRef(0);
   const materialsScrollRef = useRef<HTMLDivElement>(null);
 
   // 风格调整状态
@@ -116,7 +118,7 @@ export function AIRewriteDialog({
 
     if (open) {
       setCustomText("");
-      setMaterialsScrollPosition(0);
+      materialsScrollPositionRef.current = 0;
       // 自动填充轮询结果（result arrives 时父组件重新打开此 dialog）
       if (initialRewrittenText) {
         console.log('[AI Rewrite Dialog] Setting rewrittenText from initialRewrittenText:', initialRewrittenText)
@@ -134,10 +136,10 @@ export function AIRewriteDialog({
 
   // 保持素材列表滚动位置（只在对话框打开时恢复）
   useEffect(() => {
-    if (open && materialsScrollPosition > 0 && materialsScrollRef.current) {
+    if (open && materialsScrollPositionRef.current > 0 && materialsScrollRef.current) {
       setTimeout(() => {
         if (materialsScrollRef.current) {
-          materialsScrollRef.current.scrollTop = materialsScrollPosition;
+          materialsScrollRef.current.scrollTop = materialsScrollPositionRef.current;
         }
       }, 0);
     }
@@ -145,7 +147,7 @@ export function AIRewriteDialog({
 
   const handleMaterialsScroll = () => {
     if (materialsScrollRef.current) {
-      setMaterialsScrollPosition(materialsScrollRef.current.scrollTop);
+      materialsScrollPositionRef.current = materialsScrollRef.current.scrollTop;
     }
   };
 

@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import type { Layer, MetaSettings, GlobalStyleSettings, CompositionSettings, LayerProps } from "../types"
 import { Image as ImageIcon, Palette, Camera, Lightbulb, Layers, Cpu } from "lucide-react"
 import { Input } from "@/components/ui/base/input"

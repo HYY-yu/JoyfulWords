@@ -253,7 +253,7 @@ export function useInfiniteScroll<T>({
       hasInitializedRef.current = true
       loadMore()
     }
-  }, [enabled, items.length, isLoading]) // 移除 loadMore 依赖，避免重复触发
+  }, [enabled, items.length, isLoading, loadMore])
 
   // ==================== 返回值 ====================
 

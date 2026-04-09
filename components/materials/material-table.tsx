@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import { SearchIcon, LoaderIcon, UploadIcon, PencilIcon, TrashIcon, LinkIcon, ExternalLinkIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/base/button"

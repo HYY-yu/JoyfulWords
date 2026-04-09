@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useRef, useCallback, useEffect } from "react"
 import type { Layer, ToolType, ResizeHandle } from "../types"
 import type { MetaSettings } from "../types"

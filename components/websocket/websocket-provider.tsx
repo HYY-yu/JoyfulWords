@@ -44,7 +44,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
         hasConnected.current = false
       }
     }
-  }, [user, loading])
+  }, [user, loading, toast])
 
   return <>{children}</>
 }

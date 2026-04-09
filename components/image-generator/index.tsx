@@ -72,7 +72,7 @@ export function ImageGeneration() {
   const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
   // 处理任务完成事件
-  const handleTaskComplete = (payload: any) => {
+  const handleTaskComplete = useCallback((payload: any) => {
     if (payload.task_id === currentTaskId) {
       // INFO: 任务完成 - WebSocket 通知
       console.info('[ImageGeneration] Task completed successfully via WebSocket:', {
@@ -121,10 +121,10 @@ export function ImageGeneration() {
         description: t("imageGeneration.generating.description"),
       })
     }
-  }
+  }, [currentTaskId, t, toast])
 
   // 处理任务失败事件
-  const handleTaskFailed = (payload: any) => {
+  const handleTaskFailed = useCallback((payload: any) => {
     if (payload.task_id === currentTaskId) {
       // ERROR: 任务失败 - WebSocket 通知
       console.error('[ImageGeneration] Task failed via WebSocket:', {
@@ -142,10 +142,10 @@ export function ImageGeneration() {
         description: payload.error || t("imageGeneration.toast.generationFailed"),
       })
     }
-  }
+  }, [currentTaskId, t, toast])
 
   // 处理任务更新事件
-  const handleTaskUpdate = (payload: any) => {
+  const handleTaskUpdate = useCallback((payload: any) => {
     if (payload.task_id === currentTaskId) {
       // DEBUG: 任务进度 - WebSocket 通知
       console.debug('[ImageGeneration] Task status updated via WebSocket:', {
@@ -161,7 +161,7 @@ export function ImageGeneration() {
         )
       }
     }
-  }
+  }, [currentTaskId, t])
 
   // 监听 WebSocket 事件
   useEffect(() => {
@@ -178,7 +178,7 @@ export function ImageGeneration() {
       webSocketService.off('image:task:failed', handleTaskFailed)
       webSocketService.off('image:task:update', handleTaskUpdate)
     }
-  }, [currentTaskId, t, toast])
+  }, [handleTaskComplete, handleTaskFailed, handleTaskUpdate])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
@@ -683,12 +683,7 @@ export function ImageGeneration() {
   }
 
   // Memoize config to prevent infinite loop in JsonPreviewDialog
-  const memoizedConfig = useMemo(() => buildCreatorConfig(), [
-    layers,
-    metaSettings,
-    globalStyleSettings,
-    compositionSettings,
-  ])
+  const memoizedConfig = useMemo(() => buildCreatorConfig(), [buildCreatorConfig])
 
   return (
     <main className="flex-1 overflow-auto flex flex-col bg-background">

@@ -1,9 +1,11 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/base/dialog"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Loader2, Image as ImageIcon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 
 interface ImageMaterial {
   id: number
@@ -38,13 +40,12 @@ export function MaterialSelectorDialog({
 
   // 滚动容器引用
   const scrollContainerRef = useRef<HTMLDivElement>(null)
-  // 保存滚动位置
-  const [scrollPosition, setScrollPosition] = useState(0)
+  const scrollPositionRef = useRef(0)
 
   // 对话框打开时，重置到顶部
   useEffect(() => {
     if (open) {
-      setScrollPosition(0)
+      scrollPositionRef.current = 0
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = 0
       }
@@ -53,11 +54,11 @@ export function MaterialSelectorDialog({
 
   // 数据更新后，恢复滚动位置（只在对话框打开时恢复）
   useEffect(() => {
-    if (open && scrollPosition > 0 && scrollContainerRef.current) {
+    if (open && scrollPositionRef.current > 0 && scrollContainerRef.current) {
       // 使用 setTimeout 确保在 DOM 更新后恢复滚动位置
       setTimeout(() => {
         if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTop = scrollPosition
+          scrollContainerRef.current.scrollTop = scrollPositionRef.current
         }
       }, 0)
     }
@@ -66,7 +67,7 @@ export function MaterialSelectorDialog({
   // 保存滚动位置的函数
   const handleScroll = () => {
     if (scrollContainerRef.current) {
-      setScrollPosition(scrollContainerRef.current.scrollTop)
+      scrollPositionRef.current = scrollContainerRef.current.scrollTop
     }
   }
 

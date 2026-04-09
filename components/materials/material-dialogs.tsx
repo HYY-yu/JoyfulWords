@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import type React from "react"
 import { UploadIcon, ImageIcon, XIcon } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
