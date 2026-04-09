@@ -15,14 +15,13 @@ import type {
   Operation,
   Theme,
 } from "mind-elixir"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/base/dialog"
 import { Button } from "@/components/ui/base/button"
 import {
   Loader2Icon,
   SaveIcon,
   SparklesIcon,
-  XIcon,
 } from "lucide-react"
+import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { mindMapClient } from "@/lib/api/articles/mindmap-client"
@@ -400,89 +399,64 @@ export function AIMindMapDialog({
   }, [applyExternalMindmap, articleId, t, toast])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        overlayClassName="bg-black/75"
-        className="flex h-screen w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none sm:h-[calc(100vh-1rem)] sm:w-[calc(100vw-1rem)] sm:max-w-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl"
-      >
-        <DialogHeader className="border-b bg-background px-4 py-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0">
-              <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
-                <SparklesIcon className="h-5 w-5 text-primary" />
-                {t("aiMindmap.title")}
-              </DialogTitle>
-              <DialogDescription className="mt-1">
-                {t("aiMindmap.canvas.hint")}
-              </DialogDescription>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                className="rounded-full p-1.5 transition-colors hover:bg-muted"
-                title="关闭"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
+    <AIFeatureDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("aiMindmap.title")}
+      description={t("aiMindmap.canvas.hint")}
+      size="compact"
+    >
+      <div className="min-h-0 flex-1">
+        {isLoading ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+              {t("aiMindmap.loading")}
             </div>
           </div>
-        </DialogHeader>
+        ) : !mindmap ? (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            {t("aiMindmap.empty")}
+          </div>
+        ) : (
+          <div className="h-full">
+            <div className={`${styles.workspaceShell} h-full w-full`}>
+              <div className="absolute right-5 top-5 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap items-center justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={styles.floatingAction}
+                  onClick={() => void handleRegenerate()}
+                  disabled={isLoading}
+                >
+                  <SparklesIcon className="mr-1 h-4 w-4" />
+                  {t("aiMindmap.actions.regenerateFull")}
+                </Button>
 
-        <div className="min-h-0 flex-1">
-          {isLoading ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-                {t("aiMindmap.loading")}
+                <Button
+                  type="button"
+                  size="sm"
+                  className={styles.floatingPrimary}
+                  onClick={() => void handleSave()}
+                  disabled={isLoading || isSaving || !mindmap || !isDirty}
+                >
+                  {isSaving ? (
+                    <Loader2Icon className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <SaveIcon className="mr-1 h-4 w-4" />
+                  )}
+                  {t("aiMindmap.actions.saveDirty")}
+                </Button>
+              </div>
+
+              <div className={`${styles.workspaceSurface} h-full min-h-full w-full`}>
+                <div ref={canvasRef} className="h-full min-h-full w-full" />
               </div>
             </div>
-          ) : !mindmap ? (
-            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              {t("aiMindmap.empty")}
-            </div>
-          ) : (
-            <div className="h-full">
-              <div className={`${styles.workspaceShell} h-full w-full`}>
-                <div className="absolute right-5 top-5 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap items-center justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={styles.floatingAction}
-                    onClick={() => void handleRegenerate()}
-                    disabled={isLoading}
-                  >
-                    <SparklesIcon className="mr-1 h-4 w-4" />
-                    {t("aiMindmap.actions.regenerateFull")}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    className={styles.floatingPrimary}
-                    onClick={() => void handleSave()}
-                    disabled={isLoading || isSaving || !mindmap || !isDirty}
-                  >
-                    {isSaving ? (
-                      <Loader2Icon className="mr-1 h-4 w-4 animate-spin" />
-                    ) : (
-                      <SaveIcon className="mr-1 h-4 w-4" />
-                    )}
-                    {t("aiMindmap.actions.saveDirty")}
-                  </Button>
-                </div>
-
-                <div className={`${styles.workspaceSurface} h-full min-h-full w-full`}>
-                  <div ref={canvasRef} className="h-full min-h-full w-full" />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+          </div>
+        )}
+      </div>
+    </AIFeatureDialogShell>
   )
 }

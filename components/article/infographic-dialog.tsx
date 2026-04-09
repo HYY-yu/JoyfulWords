@@ -3,14 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AlertCircleIcon, CheckCircle2Icon, Loader2Icon, SparklesIcon } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/base/dialog"
+import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { Button } from "@/components/ui/base/button"
 import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
@@ -257,17 +250,50 @@ export function InfographicDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[88vh] flex-col overflow-hidden p-0 sm:max-w-5xl">
-        <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle className="flex items-center gap-2">
-            <SparklesIcon className="h-5 w-5 text-primary" />
-            {t("infographicDialog.title")}
-          </DialogTitle>
-          <DialogDescription>{t("infographicDialog.description")}</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[1.1fr_0.9fr]">
+    <AIFeatureDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("infographicDialog.title")}
+      description={t("infographicDialog.description")}
+      size="compact"
+      footer={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("infographicDialog.close")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCopyToMaterials}
+            disabled={!canCopyToMaterials}
+          >
+            {copyingToMaterials ? (
+              <>
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+                {t("infographicDialog.addToMaterialsLoading")}
+              </>
+            ) : (
+              t("infographicDialog.addToMaterials")
+            )}
+          </Button>
+          <Button type="button" onClick={handleGenerate} disabled={isGenerating}>
+            {isGenerating ? (
+              <>
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+                {t("infographicDialog.generating")}
+              </>
+            ) : (
+              t("infographicDialog.generate")
+            )}
+          </Button>
+        </>
+      }
+    >
+      <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[1.1fr_0.9fr]">
           <ScrollArea className="min-h-0 border-b lg:border-r lg:border-b-0">
             <div className="space-y-6 p-6">
               <div className="space-y-2">
@@ -510,42 +536,6 @@ export function InfographicDialog({
             </div>
           </div>
         </div>
-
-        <DialogFooter className="border-t px-6 py-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            {t("infographicDialog.close")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCopyToMaterials}
-            disabled={!canCopyToMaterials}
-          >
-            {copyingToMaterials ? (
-              <>
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-                {t("infographicDialog.addToMaterialsLoading")}
-              </>
-            ) : (
-              t("infographicDialog.addToMaterials")
-            )}
-          </Button>
-          <Button type="button" onClick={handleGenerate} disabled={isGenerating}>
-            {isGenerating ? (
-              <>
-                <Loader2Icon className="h-4 w-4 animate-spin" />
-                {t("infographicDialog.generating")}
-              </>
-            ) : (
-              t("infographicDialog.generate")
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </AIFeatureDialogShell>
   )
 }

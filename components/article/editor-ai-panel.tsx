@@ -9,8 +9,8 @@ import {
   PaletteIcon,
   PencilIcon,
   RefreshCwIcon,
-  XIcon,
 } from "lucide-react"
+import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
@@ -316,28 +316,14 @@ export function EditorAIPanel({
     content: ReactNode
   ) {
     return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          showCloseButton={false}
-          overlayClassName="bg-black/75"
-          className="flex h-screen w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 shadow-none sm:h-[calc(100vh-1rem)] sm:w-[calc(100vw-1rem)] sm:max-w-none sm:rounded-xl sm:border sm:border-border sm:shadow-2xl"
-        >
-          <div className="flex h-full min-h-0 flex-col bg-background">
-            <div className="flex items-center justify-between border-b bg-background px-4 py-4">
-              <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
-              <button
-                type="button"
-                onClick={() => onOpenChange(false)}
-                className="rounded-full p-1.5 transition-colors hover:bg-muted"
-                title="关闭"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-auto bg-background">{content}</div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AIFeatureDialogShell
+        open={open}
+        onOpenChange={onOpenChange}
+        title={title}
+        size="compact"
+      >
+        {content}
+      </AIFeatureDialogShell>
     )
   }
 

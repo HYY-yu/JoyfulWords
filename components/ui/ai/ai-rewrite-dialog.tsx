@@ -3,21 +3,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, useRef } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "../base/dialog";
 import { Button } from "../base/button";
 import {
   SparklesIcon,
   Loader2Icon,
   CheckIcon,
   ClockIcon,
-  XIcon,
 } from "lucide-react";
+import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell";
 import {
   Select,
   SelectContent,
@@ -285,36 +278,65 @@ export function AIRewriteDialog({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="flex h-auto max-h-[min(760px,calc(100vh-2rem))] w-[calc(100vw-2rem)] max-w-none flex-col gap-0 overflow-hidden bg-background p-0 shadow-xl sm:w-[calc(100vw-3rem)] sm:max-w-none lg:w-[92vw] lg:max-w-none xl:w-[88vw] xl:max-w-none 2xl:w-[min(1840px,calc(100vw-3rem))] 2xl:max-w-none"
-      >
-        <DialogHeader className="shrink-0 border-b bg-background px-4 py-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
-                <SparklesIcon className="h-5 w-5 text-primary" />
-                {t("aiRewrite.title")}
-              </DialogTitle>
-              <DialogDescription className="mt-2">
-                {t("aiRewrite.description")}
-              </DialogDescription>
-            </div>
+    <AIFeatureDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("aiRewrite.title")}
+      description={t("aiRewrite.description")}
+      size="large"
+      footer={
+        <>
+          <Button
+            variant="outline"
+            onClick={() => {
+              // 如果有 waitingState，说明是查看已完成的结果，点击 Cancel 恢复原始文本
+              if (waitingState && waitingState.status === 'idle') {
+                onCancel?.()
+              }
+              // 否则只是普通的取消，关闭对话框
+              onOpenChange(false)
+            }}
+          >
+            {waitingState && waitingState.status === 'idle'
+              ? (t("aiRewrite.restoreOriginal") || "恢复原文")
+              : t("aiRewrite.cancel")}
+          </Button>
+          <div className="flex gap-2">
             <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              className="shrink-0 rounded-full"
+              onClick={handleGenerate}
+              disabled={isGenerateDisabled() || !selectedText.trim()}
+              variant="secondary"
             >
-              <XIcon className="h-4 w-4" />
+              {isSubmitting ? (
+                <>
+                  <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
+                  {t("aiRewrite.submitting") || "提交中…"}
+                </>
+              ) : isWaiting ? (
+                <>
+                  <ClockIcon className="h-4 w-4 mr-2" />
+                  {t("aiRewrite.waiting") || "改写中…"}
+                </>
+              ) : (
+                <>
+                  <SparklesIcon className="h-4 w-4 mr-2" />
+                  {t("aiRewrite.generate")}
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={handleConfirm}
+              disabled={!rewrittenText.trim()}
+            >
+              <CheckIcon className="h-4 w-4 mr-2" />
+              {t("aiRewrite.confirmApply")}
             </Button>
           </div>
-        </DialogHeader>
-
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
+        </>
+      }
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <div className="space-y-4">
           {/* 等待中提示横条 */}
           {isWaiting && (
             <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
@@ -534,58 +556,8 @@ export function AIRewriteDialog({
             )}
           </div>
 
-          {/* 操作按钮 */}
-          <div className="flex justify-between items-center pt-2 border-t">
-            <Button
-              variant="outline"
-              onClick={() => {
-                // 如果有 waitingState，说明是查看已完成的结果，点击 Cancel 恢复原始文本
-                if (waitingState && waitingState.status === 'idle') {
-                  onCancel?.()
-                }
-                // 否则只是普通的取消，关闭对话框
-                onOpenChange(false)
-              }}
-            >
-              {waitingState && waitingState.status === 'idle'
-                ? (t("aiRewrite.restoreOriginal") || "恢复原文")
-                : t("aiRewrite.cancel")}
-            </Button>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerateDisabled() || !selectedText.trim()}
-                variant="secondary"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2Icon className="h-4 w-4 mr-2 animate-spin" />
-                    {t("aiRewrite.submitting") || "提交中…"}
-                  </>
-                ) : isWaiting ? (
-                  <>
-                    <ClockIcon className="h-4 w-4 mr-2" />
-                    {t("aiRewrite.waiting") || "改写中…"}
-                  </>
-                ) : (
-                  <>
-                    <SparklesIcon className="h-4 w-4 mr-2" />
-                    {t("aiRewrite.generate")}
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleConfirm}
-                disabled={!rewrittenText.trim()}
-              >
-                <CheckIcon className="h-4 w-4 mr-2" />
-                {t("aiRewrite.confirmApply")}
-              </Button>
-            </div>
-          </div>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </AIFeatureDialogShell>
   );
 }
