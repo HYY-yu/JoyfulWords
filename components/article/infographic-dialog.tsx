@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { useToast } from "@/hooks/use-toast"
+import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import {
@@ -83,6 +84,7 @@ export function InfographicDialog({
 }: InfographicDialogProps) {
   const { locale, t } = useTranslation()
   const { toast } = useToast()
+  const taskToast = useAsyncTaskToast()
   const {
     currentLogId,
     detail,
@@ -99,6 +101,11 @@ export function InfographicDialog({
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
+  const taskLabel = t("tiptapEditor.aiPanel.infographic")
+  const submittingToastTitle = t("asyncTaskToast.submittingTitle", { task: taskLabel })
+  const submittingToastDescription = t("asyncTaskToast.submittingDescription", { task: taskLabel })
+  const pollingToastTitle = t("asyncTaskToast.pollingTitle", { task: taskLabel })
+  const pollingToastDescription = t("asyncTaskToast.pollingDescription", { task: taskLabel })
 
   useEffect(() => {
     if (!open) {
@@ -149,6 +156,21 @@ export function InfographicDialog({
       ? t("infographicDialog.toast.pollingTimeout")
       : pollingErrorMessage)
 
+  useEffect(() => {
+    if (pollingState === "success") {
+      taskToast.showSuccess({
+        title: t("infographicDialog.status.success"),
+      })
+      return
+    }
+
+    if (pollingState === "failed") {
+      taskToast.showFailure({
+        title: t("infographicDialog.status.failed"),
+      })
+    }
+  }, [pollingState, t, taskToast])
+
   const handleGenerate = async () => {
     if (!selectedTextPreview) {
       toast({
@@ -171,6 +193,10 @@ export function InfographicDialog({
 
     setRequestErrorMessage(null)
     markSubmitting()
+    taskToast.showSubmitting({
+      title: submittingToastTitle,
+      description: submittingToastDescription,
+    })
 
     try {
       const result = await infographicsClient.generate(request)
@@ -181,15 +207,15 @@ export function InfographicDialog({
         })
         reset()
         setRequestErrorMessage(String(result.error))
-        toast({
-          variant: "destructive",
+        taskToast.showFailure({
           title: t("infographicDialog.toast.createFailed"),
         })
         return
       }
 
-      toast({
-        title: t("infographicDialog.toast.created"),
+      taskToast.showPolling({
+        title: pollingToastTitle,
+        description: pollingToastDescription,
       })
 
       await startPolling(result.log_id)
@@ -200,8 +226,7 @@ export function InfographicDialog({
       })
       reset()
       setRequestErrorMessage(message)
-      toast({
-        variant: "destructive",
+      taskToast.showFailure({
         title: t("infographicDialog.toast.createFailed"),
       })
     }

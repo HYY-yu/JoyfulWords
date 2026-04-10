@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, Split, Download, CheckCircle2, Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
@@ -37,6 +38,7 @@ interface InversionModeProps {
 export function InversionMode({ articleId }: InversionModeProps) {
   const { t, locale } = useTranslation()
   const { toast } = useToast()
+  const taskToast = useAsyncTaskToast()
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
@@ -51,6 +53,11 @@ export function InversionMode({ articleId }: InversionModeProps) {
   // 新增状态
   const [numLayers, setNumLayers] = useState(4)
   const [prompt, setPrompt] = useState("")
+  const taskLabel = t("tiptapEditor.aiPanel.reversalMode")
+  const submittingToastTitle = t("asyncTaskToast.submittingTitle", { task: taskLabel })
+  const submittingToastDescription = t("asyncTaskToast.submittingDescription", { task: taskLabel })
+  const pollingToastTitle = t("asyncTaskToast.pollingTitle", { task: taskLabel })
+  const pollingToastDescription = t("asyncTaskToast.pollingDescription", { task: taskLabel })
 
   // 图片生成相关状态
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
@@ -96,21 +103,20 @@ export function InversionMode({ articleId }: InversionModeProps) {
       setCurrentGenerationLogId(Number(data.task_id))
       console.info('[InversionMode] Saved generation log ID:', data.task_id)
 
-      toast({ title: t("imageGeneration.inversionMode.splitCompleted") })
+      taskToast.showSuccess({ title: t("imageGeneration.inversionMode.splitCompleted") })
     }
-  }, [currentTaskId, locale, t, toast])
+  }, [currentTaskId, locale, t, taskToast])
 
   // 处理任务失败
   const handleTaskFailed = useCallback((data: any) => {
     if (data.task_id === currentTaskId) {
       console.error('[InversionMode] Split failed:', data.error_message)
       setSplitStatus("error")
-      toast({
-        variant: "destructive",
-        title: data.error_message || t("imageGeneration.toast.generationFailed"),
+      taskToast.showFailure({
+        title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [currentTaskId, t, toast])
+  }, [currentTaskId, t, taskToast])
 
   // 轮询任务状态
   useEffect(() => {
@@ -124,8 +130,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
           console.error('[InversionMode] Failed to get task status:', result.error)
           setSplitStatus("error")
           setIsProcessing(false)
-          toast({
-            variant: "destructive",
+          taskToast.showFailure({
             title: t("imageGeneration.toast.generationFailed"),
           })
           return
@@ -161,7 +166,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, toast])
+  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
@@ -296,6 +301,10 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
     setSplitStatus("splitting")
     setIsProcessing(true)
+    taskToast.showSubmitting({
+      title: submittingToastTitle,
+      description: submittingToastDescription,
+    })
 
     try {
       // 调用真实 API
@@ -310,8 +319,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
         console.error('[InversionMode] Failed to create split task:', result.error)
         setSplitStatus("error")
         setIsProcessing(false)
-        toast({
-          variant: "destructive",
+        taskToast.showFailure({
           title: t("imageGeneration.toast.generationFailed"),
         })
         return
@@ -319,6 +327,10 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
       // 保存任务状态
       setCurrentTaskId(result.task_id)
+      taskToast.showPolling({
+        title: pollingToastTitle,
+        description: pollingToastDescription,
+      })
       
       // 发送事件通知主页面刷新任务列表
       window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
@@ -326,12 +338,11 @@ export function InversionMode({ articleId }: InversionModeProps) {
       console.error('[InversionMode] Unexpected error:', error)
       setSplitStatus("error")
       setIsProcessing(false)
-      toast({
-        variant: "destructive",
+      taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [articleId, uploadedImageUrl, numLayers, prompt, t, toast])
+  }, [articleId, numLayers, pollingToastDescription, pollingToastTitle, prompt, submittingToastDescription, submittingToastTitle, t, taskToast, toast, uploadedImageUrl])
 
   const handleToggleLayer = (layerId: string) => {
     setSelectedLayers(prev => {

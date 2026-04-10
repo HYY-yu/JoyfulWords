@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { Upload, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, Copy } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 import { ModelSelector } from "@/components/image-generator/ui/model-selector"
@@ -94,6 +95,7 @@ interface StyleModeProps {
 export function StyleMode({ articleId }: StyleModeProps) {
   const { t, locale } = useTranslation()
   const { toast } = useToast()
+  const taskToast = useAsyncTaskToast()
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<StyleItem | null>(null)
@@ -118,6 +120,11 @@ export function StyleMode({ articleId }: StyleModeProps) {
   // 自定义风格对话框状态
   const [showCustomDialog, setShowCustomDialog] = useState(false)
   const [customPrompt, setCustomPrompt] = useState("")
+  const taskLabel = t("tiptapEditor.aiPanel.imageStyle")
+  const submittingToastTitle = t("asyncTaskToast.submittingTitle", { task: taskLabel })
+  const submittingToastDescription = t("asyncTaskToast.submittingDescription", { task: taskLabel })
+  const pollingToastTitle = t("asyncTaskToast.pollingTitle", { task: taskLabel })
+  const pollingToastDescription = t("asyncTaskToast.pollingDescription", { task: taskLabel })
 
   // 获取风格列表
   useEffect(() => {
@@ -247,15 +254,14 @@ export function StyleMode({ articleId }: StyleModeProps) {
           setCurrentGenerationLogId(currentTaskId)
           setCurrentTaskId(null)
 
-          toast({ title: t("imageGeneration.toast.generationSuccess") })
+          taskToast.showSuccess({ title: t("imageGeneration.toast.generationSuccess") })
         } else if (result.status === 'failed') {
           console.error('[StyleMode] Task failed:', result.error_message)
           setRenderStatus("error")
           setCurrentTaskId(null)
 
-          toast({
-            variant: "destructive",
-            title: result.error_message || t("imageGeneration.toast.generationFailed"),
+          taskToast.showFailure({
+            title: t("imageGeneration.toast.generationFailed"),
           })
         }
       } catch (error) {
@@ -274,7 +280,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, t, toast])
+  }, [currentTaskId, t, taskToast, toast])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsUploading(true)
@@ -414,6 +420,10 @@ export function StyleMode({ articleId }: StyleModeProps) {
     })
 
     setRenderStatus("generating")
+    taskToast.showSubmitting({
+      title: submittingToastTitle,
+      description: submittingToastDescription,
+    })
 
     try {
       // 调用真实 API
@@ -428,8 +438,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
       if ('error' in result) {
         console.error('[StyleMode] Failed to create generation task:', result.error)
         setRenderStatus("error")
-        toast({
-          variant: "destructive",
+        taskToast.showFailure({
           title: t("imageGeneration.toast.taskCreateFailed"),
         })
         return
@@ -440,6 +449,10 @@ export function StyleMode({ articleId }: StyleModeProps) {
         status: result.status,
         estimatedEta: result.estimated_eta
       })
+      taskToast.showPolling({
+        title: pollingToastTitle,
+        description: pollingToastDescription,
+      })
 
       // 设置当前任务ID
       setCurrentTaskId(Number(result.task_id))
@@ -449,8 +462,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
     } catch (error) {
       console.error('[StyleMode] Generation error:', error)
       setRenderStatus("error")
-      toast({
-        variant: "destructive",
+      taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
       })
     }

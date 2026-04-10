@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { ImageIcon, RefreshCwIcon, SaveIcon, EyeIcon, EyeOffIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
@@ -41,6 +42,7 @@ interface CreatorModeProps {
 export function CreatorMode({ articleId }: CreatorModeProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const taskToast = useAsyncTaskToast()
 
   const [selectedTool, setSelectedTool] = useState<ToolType>("select")
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
@@ -62,7 +64,11 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
-
+  const taskLabel = t("tiptapEditor.aiPanel.createImage")
+  const submittingToastTitle = t("asyncTaskToast.submittingTitle", { task: taskLabel })
+  const submittingToastDescription = t("asyncTaskToast.submittingDescription", { task: taskLabel })
+  const pollingToastTitle = t("asyncTaskToast.pollingTitle", { task: taskLabel })
+  const pollingToastDescription = t("asyncTaskToast.pollingDescription", { task: taskLabel })
 
   // 轮询任务状态
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -112,12 +118,12 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       setCurrentGenerationLogId(Number(data.task_id))
       console.info('[ImageGeneration] Saved generation log ID:', data.task_id)
 
-      toast({
+      taskToast.showSuccess({
         title: t("imageGeneration.toast.generationSuccess"),
         description: t("imageGeneration.generating.description"),
       })
     }
-  }, [currentTaskId, t, toast])
+  }, [currentTaskId, t, taskToast])
 
   // 处理任务失败
   const handleTaskFailed = useCallback((data: any) => {
@@ -132,13 +138,11 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       setGeneratingMessage("")
       setCurrentTaskId(null)
 
-      toast({
-        variant: "destructive",
+      taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
-        description: data.error_message || t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [currentTaskId, t, toast])
+  }, [currentTaskId, t, taskToast])
 
   // 轮询任务状态
   useEffect(() => {
@@ -153,8 +157,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
           setIsGenerating(false)
           setGeneratingMessage("")
           setCurrentTaskId(null)
-          toast({
-            variant: "destructive",
+          taskToast.showFailure({
             title: t("imageGeneration.toast.generationFailed"),
           })
           return
@@ -192,7 +195,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, toast])
+  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
@@ -444,7 +447,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
     return creatorConfig
   }, [layers, metaSettings, globalStyleSettings, compositionSettings])
 
-  const handleGenerateImageFromPrompt = async (prompt: string) => {
+  const handleGenerateImageFromPrompt = useCallback(async (prompt: string) => {
     // TRACE: 生成入口 - 使用专业提示词生成图片
     console.debug('[ImageGeneration] Generating image from prompt:', {
       promptLength: prompt.length,
@@ -454,6 +457,10 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       // 设置生成状态
       setIsGenerating(true)
       setGeneratingMessage(t("imageGeneration.generating.initiating"))
+      taskToast.showSubmitting({
+        title: submittingToastTitle,
+        description: submittingToastDescription,
+      })
 
       // 调用 API 创建生成任务
       const result = await imageGenerationClient.createGenerationTask({
@@ -469,10 +476,8 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         setIsGenerating(false)
         setGeneratingMessage("")
 
-        toast({
-          variant: "destructive",
+        taskToast.showFailure({
           title: t("imageGeneration.toast.taskCreateFailed"),
-          description: String(result.error),
         })
         return
       }
@@ -483,9 +488,9 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         estimatedEta: result.estimated_eta,
       })
 
-      toast({
-        title: t("imageGeneration.toast.taskCreated"),
-        description: t("imageGeneration.generating.started"),
+      taskToast.showPolling({
+        title: pollingToastTitle,
+        description: pollingToastDescription,
       })
 
       // 保存任务状态
@@ -503,13 +508,11 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       setIsGenerating(false)
       setGeneratingMessage("")
 
-      toast({
-        variant: "destructive",
+      taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
-        description: errorMessage,
       })
     }
-  }
+  }, [articleId, pollingToastDescription, pollingToastTitle, selectedModel, submittingToastDescription, submittingToastTitle, t, taskToast])
 
   const handleGenerateImage = async () => {
     const creatorConfig = buildCreatorConfig()
@@ -525,6 +528,10 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       // 设置生成状态
       setIsGenerating(true)
       setGeneratingMessage(t("imageGeneration.generating.initiating"))
+      taskToast.showSubmitting({
+        title: submittingToastTitle,
+        description: submittingToastDescription,
+      })
 
       // INFO: 直接使用 config 创建生成任务（API 支持直接传 config）
       console.debug('[ImageGeneration] Creating task with config...')
@@ -541,10 +548,8 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         setIsGenerating(false)
         setGeneratingMessage("")
 
-        toast({
-          variant: "destructive",
+        taskToast.showFailure({
           title: t("imageGeneration.toast.taskCreateFailed"),
-          description: result.error as string,
         })
         return
       }
@@ -555,9 +560,9 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         estimatedEta: result.estimated_eta,
       })
 
-      toast({
-        title: t("imageGeneration.toast.taskCreated"),
-        description: t("imageGeneration.generating.started"),
+      taskToast.showPolling({
+        title: pollingToastTitle,
+        description: pollingToastDescription,
       })
 
       // 保存任务状态
@@ -575,10 +580,8 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       setIsGenerating(false)
       setGeneratingMessage("")
 
-      toast({
-        variant: "destructive",
+      taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
-        description: errorMessage,
       })
     }
   }

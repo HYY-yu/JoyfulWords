@@ -1323,6 +1323,12 @@ export const en = {
             pollingTimeout: "Infographic generation timed out. Please try again."
         }
     },
+    asyncTaskToast: {
+        submittingTitle: "Submitting {task}",
+        submittingDescription: "Creating the {task} task. Please do not leave this page yet.",
+        pollingTitle: "{task} In Progress",
+        pollingDescription: "The {task} task has been created. You can leave now and check progress in Task Center."
+    },
     aiRewrite: {
         title: "AI Smart Rewrite",
         description: "Select a rewrite method, AI will optimize your content",

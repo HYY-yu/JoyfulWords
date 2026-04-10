@@ -965,15 +965,18 @@ function FavoriteEmptyState() {
 
 function LibraryTab({
   articleId,
+  activeCategory,
+  onActiveCategoryChange,
   onFavorite,
   onDelete,
 }: {
   articleId: number | null
+  activeCategory: MaterialType
+  onActiveCategoryChange: (category: MaterialType) => void
   onFavorite: (material: Material) => void
   onDelete: (material: Material) => void
 }) {
   const { t } = useTranslation()
-  const [activeCategory, setActiveCategory] = useState<MaterialType>("info")
   const { materials: allMaterials, isLoading, hasMore, observerTarget } = useInfiniteMaterials({
     articleId: articleId ?? undefined,
     type: activeCategory,
@@ -994,7 +997,7 @@ function LibraryTab({
             <button
               key={tab.id}
               type="button"
-              onClick={() => setActiveCategory(tab.id)}
+              onClick={() => onActiveCategoryChange(tab.id)}
               className={cn(
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
                 isActive
@@ -1423,6 +1426,7 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
   const { toast } = useToast()
   const [showUpload, setShowUpload] = useState(false)
   const [activeView, setActiveView] = useState<"search" | "library" | "favorites">("search")
+  const [libraryActiveCategory, setLibraryActiveCategory] = useState<MaterialType>("info")
   // Incrementing key forces LibraryTab to remount and refetch after upload
   const [libraryKey, setLibraryKey] = useState(0)
   const [favoritesKey, setFavoritesKey] = useState(0)
@@ -1558,6 +1562,8 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
             <LibraryTab
               key={libraryKey}
               articleId={articleId}
+              activeCategory={libraryActiveCategory}
+              onActiveCategoryChange={setLibraryActiveCategory}
               onFavorite={(material) => void handleFavoriteMaterial(material)}
               onDelete={(material) => void handleDeleteMaterial(material)}
             />

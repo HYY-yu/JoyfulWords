@@ -1323,6 +1323,12 @@ export const zh = {
             pollingTimeout: "信息图生成超时，请稍后重试"
         }
     },
+    asyncTaskToast: {
+        submittingTitle: "{task}提交中",
+        submittingDescription: "正在提交 {task} 任务，请勿退出当前页面。",
+        pollingTitle: "{task}处理中",
+        pollingDescription: "{task}任务已创建。可以随时退出，并在任务中心查看进度。"
+    },
     aiRewrite: {
         title: "AI 智能改写",
         description: "选择改写方式，AI 将帮您优化内容",
