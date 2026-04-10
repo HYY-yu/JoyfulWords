@@ -216,7 +216,7 @@ interface PersistedMaterialSearchTask {
 interface SearchTabProps {
   articleId: number | null
   userId: number | null
-  onImportSuccess?: () => void
+  onImportSuccess?: (materialType: MaterialType) => void
 }
 
 function buildMaterialSearchStorageKey(userId: number, articleId: number) {
@@ -829,9 +829,10 @@ function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
       title: t("contentWriting.materialPanel.importSuccess"),
       description: t("contentWriting.materialPanel.importSuccessCount", { count: result.ids.length }),
     })
-    onImportSuccess?.()
+    onImportSuccess?.(activeTask.materialType)
+    clearSearchTask()
     setIsImporting(false)
-  }, [activeTask, onImportSuccess, selectedUrls, t, toast])
+  }, [activeTask, clearSearchTask, onImportSuccess, selectedUrls, t, toast])
 
   const isSearchLocked = Boolean(activeTask)
 
@@ -1436,6 +1437,16 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
     setLibraryKey((key) => key + 1)
   }, [])
 
+  const handleImportSuccess = useCallback((materialType: MaterialType) => {
+    console.info("[MaterialLibrary] syncing imported search results into library view", {
+      articleId,
+      materialType,
+    })
+    setLibraryActiveCategory(materialType)
+    setActiveView("library")
+    setLibraryKey((key) => key + 1)
+  }, [articleId])
+
   const handleFavoriteMaterial = useCallback(async (material: Material) => {
     console.info("[MaterialFavorites] toggling favorite", {
       materialId: material.id,
@@ -1552,7 +1563,7 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
             <SearchTab
               articleId={articleId}
               userId={userId}
-              onImportSuccess={() => setLibraryKey((k) => k + 1)}
+              onImportSuccess={handleImportSuccess}
             />
           </div>
         </TabsContent>
