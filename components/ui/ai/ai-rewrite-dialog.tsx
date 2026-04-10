@@ -2,26 +2,20 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Button } from "../base/button";
 import {
   SparklesIcon,
   Loader2Icon,
   CheckIcon,
   ClockIcon,
+  CheckCircle2Icon,
 } from "lucide-react";
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../base/select";
 import { Textarea } from "../base/textarea";
 import { Input } from "../base/input";
 import { Label } from "../base/label";
-import { RadioGroup, RadioGroupItem } from "../base/radio-group";
+import { Dialog, DialogContent, DialogTitle } from "../base/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { articlesClient } from "@/lib/api/articles/client";
@@ -34,6 +28,7 @@ import type {
 import type { Material } from "@/lib/api/materials/types";
 import type { AIEditState } from "@/lib/hooks/use-ai-edit-state";
 import { addAIEditTask } from "@/lib/hooks/use-ai-edit-state";
+import { cn } from "@/lib/utils";
 
 interface AIRewriteDialogProps {
   open: boolean;
@@ -54,6 +49,161 @@ interface AIRewriteDialogProps {
   userId?: number | string;
 }
 
+const STYLE_TYPE_OPTIONS: StyleType[] = [
+  "Professional",
+  "Concise",
+  "Friendly",
+  "Colloquial",
+  "Assertive",
+  "Restrained",
+  "Custom",
+];
+
+const STRUCT_TYPE_OPTIONS: StructType[] = [
+  "De-Redundancy",
+  "Information-Layering",
+  "Point-Form",
+  "Short-Sentencing",
+  "Data-Highlighting",
+];
+
+function RewriteSelectionCard({
+  title,
+  description,
+  selected,
+  onClick,
+  leading,
+  meta,
+}: {
+  title: string;
+  description?: string;
+  selected: boolean;
+  onClick: () => void;
+  leading?: ReactNode;
+  meta?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+        selected
+          ? "border-primary bg-primary/5 shadow-sm"
+          : "border-border bg-background hover:bg-muted/50"
+      )}
+    >
+      {leading ? <div className="shrink-0">{leading}</div> : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground">{title}</div>
+            {description ? (
+              <div className="mt-1 text-xs leading-5 text-muted-foreground">{description}</div>
+            ) : null}
+          </div>
+          <div
+            className={cn(
+              "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
+              selected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-muted-foreground/30 bg-background text-transparent"
+            )}
+            aria-hidden="true"
+          >
+            <CheckIcon className="h-3 w-3" />
+          </div>
+        </div>
+        {meta ? (
+          <div className="mt-2 text-xs text-muted-foreground">
+            {meta}
+          </div>
+        ) : null}
+      </div>
+    </button>
+  );
+}
+
+function MaterialSelectionCard({
+  material,
+  selected,
+  onToggleSelected,
+  onPreview,
+  typeLabel,
+}: {
+  material: Material;
+  selected: boolean;
+  onToggleSelected: () => void;
+  onPreview: () => void;
+  typeLabel: string;
+}) {
+  const isImage = material.material_type === "image";
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onPreview}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onPreview();
+        }
+      }}
+      className={cn(
+        "flex min-h-[124px] cursor-pointer items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+        selected
+          ? "border-primary bg-primary/5 shadow-sm"
+          : "border-border bg-background hover:bg-muted/50"
+      )}
+    >
+      {isImage && material.content ? (
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded border bg-muted/40">
+          <img src={material.content} alt={material.title} className="h-full w-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded border bg-muted/40">
+          <CheckCircle2Icon className="h-5 w-5 text-muted-foreground" />
+        </div>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-foreground">{material.title}</div>
+            <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/70">
+              {typeLabel}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleSelected();
+            }}
+            className={cn(
+              "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors",
+              selected
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-muted-foreground/30 bg-background text-transparent hover:border-primary/40"
+            )}
+            aria-pressed={selected}
+          >
+            <CheckIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {!isImage && material.content ? (
+          <div className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">
+            {material.content}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function AIRewriteDialog({
   open,
   onOpenChange,
@@ -70,6 +220,7 @@ export function AIRewriteDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rewrittenText, setRewrittenText] = useState("");
   const [rewriteType, setRewriteType] = useState<ArticleEditType>('style');
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
 
   // 素材扩充状态
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
@@ -269,13 +420,11 @@ export function AIRewriteDialog({
   };
 
   // 结构优化选项
-  const structOptions = [
-    { value: 'De-Redundancy' as const, label: t("aiRewrite.struct.structures.De-Redundancy"), description: t("aiRewrite.struct.descriptions.De-Redundancy") },
-    { value: 'Information-Layering' as const, label: t("aiRewrite.struct.structures.Information-Layering"), description: t("aiRewrite.struct.descriptions.Information-Layering") },
-    { value: 'Point-Form' as const, label: t("aiRewrite.struct.structures.Point-Form"), description: t("aiRewrite.struct.descriptions.Point-Form") },
-    { value: 'Short-Sentencing' as const, label: t("aiRewrite.struct.structures.Short-Sentencing"), description: t("aiRewrite.struct.descriptions.Short-Sentencing") },
-    { value: 'Data-Highlighting' as const, label: t("aiRewrite.struct.structures.Data-Highlighting"), description: t("aiRewrite.struct.descriptions.Data-Highlighting") },
-  ];
+  const structOptions = STRUCT_TYPE_OPTIONS.map((value) => ({
+    value,
+    label: t(`aiRewrite.struct.structures.${value}`),
+    description: t(`aiRewrite.struct.descriptions.${value}`),
+  }));
 
   return (
     <AIFeatureDialogShell
@@ -335,24 +484,26 @@ export function AIRewriteDialog({
         </>
       }
     >
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-        <div className="space-y-4">
+      <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
           {/* 等待中提示横条 */}
           {isWaiting && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+            <div className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
+              <div className="flex items-center gap-2">
               <Loader2Icon className="h-4 w-4 animate-spin text-blue-500 shrink-0" />
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 {t("aiRewrite.waitingHint") || "AI 正在改写中，请稍候…改写完成后将自动弹出结果"}
               </p>
+              </div>
             </div>
           )}
 
           {/* 两个 Textarea 编辑区域 */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid shrink-0 grid-cols-1 gap-4 xl:grid-cols-2">
             {/* 原始文本 */}
             <div className="flex flex-col">
               <Label className="mb-2">{t("aiRewrite.selectedText")}</Label>
-              <div className="min-h-[150px] p-3 border rounded-md bg-muted/30 text-sm whitespace-pre-wrap">
+              <div className="min-h-[180px] rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap lg:min-h-[220px]">
                 {/* 优先显示 waitingState 的 cut_text，否则用当前 selectedText */}
                 {isWaiting ? waitingState!.cut_text : selectedText}
               </div>
@@ -376,18 +527,18 @@ export function AIRewriteDialog({
                     ? (t("aiRewrite.waitingPlaceholder") || "AI 改写完成后将自动显示…")
                     : t("aiRewrite.rewrittenTextPlaceholder")
                 }
-                className="min-h-[150px] resize-none"
+                className="min-h-[180px] resize-none lg:min-h-[220px]"
                 disabled={isWaiting}
               />
             </div>
           </div>
 
           {/* 改写功能选择（三级菜单）*/}
-          <div className={`space-y-3 ${isWaiting ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className={`flex min-h-0 flex-1 flex-col gap-3 overflow-hidden ${isWaiting ? 'opacity-50 pointer-events-none' : ''}`}>
             {/* 一级菜单：改写类型 */}
-            <div>
+            <div className="shrink-0">
               <Label className="mb-2 block">{t("aiRewrite.rewriteType")}</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => setRewriteType('material')}
@@ -426,7 +577,7 @@ export function AIRewriteDialog({
 
             {/* 二级菜单：根据类型动态渲染 */}
             {isLoadingMaterials && materials.length === 0 && rewriteType === 'material' ? (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex min-h-[240px] flex-1 items-center justify-center rounded-md border">
                 <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground">{t("aiRewrite.material.loadingMaterials")}</span>
               </div>
@@ -434,55 +585,37 @@ export function AIRewriteDialog({
               <>
                 {/* 素材扩充配置 */}
                 {rewriteType === 'material' && (
-                  <div className="space-y-2">
+                  <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
                     <Label>{t("aiRewrite.material.selectMaterials")}</Label>
                     {materials.length === 0 && !isLoadingMaterials ? (
-                      <div className="text-center py-4 text-sm text-muted-foreground">
+                      <div className="flex min-h-[240px] flex-1 items-center justify-center rounded-md border text-sm text-muted-foreground">
                         {t("aiRewrite.material.noMaterials")}
                       </div>
                     ) : (
                       <div
                         ref={materialsScrollRef}
                         onScroll={handleMaterialsScroll}
-                        className="grid grid-cols-2 gap-2 max-h-[180px] overflow-y-auto p-2 border rounded-md"
+                        className="grid min-h-[260px] w-full flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2"
                       >
                         {materials.map((material) => (
-                          <label
+                          <MaterialSelectionCard
                             key={material.id}
-                            className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                              selectedMaterialIds.includes(material.id)
-                                ? "bg-primary/10 border border-primary/20"
-                                : "hover:bg-muted/50"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedMaterialIds.includes(material.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedMaterialIds([...selectedMaterialIds, material.id]);
-                                } else {
-                                  setSelectedMaterialIds(selectedMaterialIds.filter(id => id !== material.id));
-                                }
-                              }}
-                              className="rounded"
-                            />
-                            {material.material_type === 'image' && material.content ? (
-                              <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden border">
-                                <img src={material.content} alt={material.title} className="w-full h-full object-cover" />
-                              </div>
-                            ) : null}
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium truncate">{material.title}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {t(`aiRewrite.material.typeLabels.${material.material_type}`)}
-                              </div>
-                            </div>
-                          </label>
+                            material={material}
+                            selected={selectedMaterialIds.includes(material.id)}
+                            onToggleSelected={() => {
+                              if (selectedMaterialIds.includes(material.id)) {
+                                setSelectedMaterialIds(selectedMaterialIds.filter((id) => id !== material.id));
+                                return;
+                              }
+                              setSelectedMaterialIds([...selectedMaterialIds, material.id]);
+                            }}
+                            onPreview={() => setPreviewMaterial(material)}
+                            typeLabel={t(`aiRewrite.material.typeLabels.${material.material_type}`)}
+                          />
                         ))}
                         {/* 无限滚动 observer */}
                         {(hasMoreMaterials || isLoadingMaterials) && materials.length > 0 && (
-                          <div ref={materialsObserverTarget} className="col-span-2 flex justify-center py-2">
+                          <div ref={materialsObserverTarget} className="flex justify-center py-2 md:col-span-2">
                             <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" />
                           </div>
                         )}
@@ -498,26 +631,19 @@ export function AIRewriteDialog({
 
                 {/* 风格调整配置 */}
                 {rewriteType === 'style' && (
-                  <div className="space-y-3">
-                    <div>
-                      <Label className="mb-2 block">{t("aiRewrite.style.selectStyle")}</Label>
-                      <Select value={selectedStyle} onValueChange={(value) => setSelectedStyle(value as StyleType)}>
-                        <SelectTrigger className="h-14 px-3 py-6">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(t("aiRewrite.style.styles")) as StyleType[]).map((style) => (
-                            <SelectItem key={style} value={style}>
-                              <div className="flex flex-col items-start">
-                                <span className="font-medium">{t(`aiRewrite.style.styles.${style}`)}</span>
-                                <span className="text-xs text-muted-foreground">{t(`aiRewrite.style.descriptions.${style}`)}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+                    <Label>{t("aiRewrite.style.selectStyle")}</Label>
+                    <div className="grid min-h-[260px] w-full flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2">
+                      {STYLE_TYPE_OPTIONS.map((style) => (
+                        <RewriteSelectionCard
+                          key={style}
+                          title={t(`aiRewrite.style.styles.${style}`)}
+                          description={t(`aiRewrite.style.descriptions.${style}`)}
+                          selected={selectedStyle === style}
+                          onClick={() => setSelectedStyle(style)}
+                        />
+                      ))}
                     </div>
-
                     {selectedStyle === 'Custom' && (
                       <div>
                         <Label className="mb-2 block">{t("aiRewrite.style.customRequirement")}</Label>
@@ -537,19 +663,19 @@ export function AIRewriteDialog({
 
                 {/* 结构优化配置 */}
                 {rewriteType === 'struct' && (
-                  <div className="space-y-2">
+                  <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
                     <Label>{t("aiRewrite.struct.selectStructure")}</Label>
-                    <RadioGroup value={selectedStructType} onValueChange={(value) => setSelectedStructType(value as StructType)}>
+                    <div className="grid min-h-[260px] w-full flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2">
                       {structOptions.map((option) => (
-                        <div key={option.value} className="flex items-start space-x-2 p-2 rounded hover:bg-muted/50">
-                          <RadioGroupItem value={option.value} id={option.value} />
-                          <Label htmlFor={option.value} className="cursor-pointer flex-1">
-                            <div className="font-medium text-sm">{option.label}</div>
-                            <div className="text-xs text-muted-foreground">{option.description}</div>
-                          </Label>
-                        </div>
+                        <RewriteSelectionCard
+                          key={option.value}
+                          title={option.label}
+                          description={option.description}
+                          selected={selectedStructType === option.value}
+                          onClick={() => setSelectedStructType(option.value)}
+                        />
                       ))}
-                    </RadioGroup>
+                    </div>
                   </div>
                 )}
               </>
@@ -558,6 +684,55 @@ export function AIRewriteDialog({
 
         </div>
       </div>
+
+      <Dialog open={previewMaterial !== null} onOpenChange={(open) => !open && setPreviewMaterial(null)}>
+        {previewMaterial?.material_type === "image" && previewMaterial.content ? (
+          <DialogContent className="max-w-[min(96vw,1400px)] border-none bg-transparent p-2 shadow-none [&>button]:hidden">
+            <DialogTitle className="sr-only">{previewMaterial.title}</DialogTitle>
+            <div className="flex max-h-[90vh] flex-col gap-3">
+              <div className="overflow-hidden rounded-lg bg-black/90 p-2">
+                <img
+                  src={previewMaterial.content}
+                  alt={previewMaterial.title}
+                  className="max-h-[78vh] w-full rounded object-contain"
+                />
+              </div>
+              <div className="rounded-lg bg-background/95 px-4 py-3 backdrop-blur">
+                <div className="text-sm font-medium text-foreground">{previewMaterial.title}</div>
+              </div>
+            </div>
+          </DialogContent>
+        ) : previewMaterial ? (
+          <DialogContent className="flex max-h-[85vh] max-w-[min(92vw,1100px)] flex-col overflow-hidden">
+            <DialogTitle>{previewMaterial.title}</DialogTitle>
+            <div className="mt-2 flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                {t(`aiRewrite.material.typeLabels.${previewMaterial.material_type}`)}
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto rounded-md border p-4">
+                <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                  {previewMaterial.content}
+                </div>
+              </div>
+              {previewMaterial.source_url ? (
+                <div className="shrink-0 rounded-md border bg-muted/20 p-3">
+                  <div className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    {t("contentWriting.materialPanel.viewSource")}
+                  </div>
+                  <a
+                    href={previewMaterial.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-sm text-primary underline-offset-4 hover:underline"
+                  >
+                    {previewMaterial.source_url}
+                  </a>
+                </div>
+              ) : null}
+            </div>
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </AIFeatureDialogShell>
   );
 }
