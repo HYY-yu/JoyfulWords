@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client"
+import { authenticatedApiRequest } from "@/lib/api/client"
 import type { ErrorResponse } from "@/lib/api/types"
 import type {
   TaskCenterTaskDetailResponse,
@@ -24,7 +24,6 @@ export const taskCenterClient = {
   async getTasks(
     params: TaskCenterTasksQuery = {}
   ): Promise<TaskCenterTaskListItem[] | ErrorResponse> {
-    const token = localStorage.getItem("access_token")
     const searchParams = new URLSearchParams()
 
     if (params.type) searchParams.set("type", params.type)
@@ -42,10 +41,7 @@ export const taskCenterClient = {
       return inFlightRequest
     }
 
-    const requestPromise = apiRequest<TaskCenterTaskListItem[]>(endpoint, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
+    const requestPromise = authenticatedApiRequest<TaskCenterTaskListItem[]>(endpoint, {
       signal: params.signal,
     }).finally(() => {
       inFlightTaskListRequests.delete(requestKey)
@@ -60,12 +56,7 @@ export const taskCenterClient = {
     id: TaskCenterTaskReference["id"],
     signal?: AbortSignal
   ): Promise<TaskCenterTaskDetailResponse | ErrorResponse> {
-    const token = localStorage.getItem("access_token")
-
-    return apiRequest<TaskCenterTaskDetailResponse>(`/api/taskcenter/task/${type}/${id}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : "",
-      },
+    return authenticatedApiRequest<TaskCenterTaskDetailResponse>(`/api/taskcenter/task/${type}/${id}`, {
       signal,
     })
   },

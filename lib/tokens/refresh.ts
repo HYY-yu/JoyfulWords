@@ -1,42 +1,34 @@
-import { TokenManager } from './token-manager'
 import { apiClient } from '@/lib/api/client'
+import { tokenStore } from './token-store'
 
 let refreshPromise: Promise<boolean> | null = null
 
 /**
- * Refresh access token using refresh token
- * Uses a promise lock to prevent concurrent refresh attempts
+ * Refresh access token using the server-side HttpOnly refresh cookie.
+ * Uses a promise lock to prevent concurrent refresh attempts.
  */
 export async function refreshAccessToken(): Promise<boolean> {
-  // If a refresh is already in progress, return that promise
   if (refreshPromise) {
     return refreshPromise
   }
 
+  tokenStore.markRefreshStarted('refresh_access_token')
+
   refreshPromise = (async () => {
     try {
-      const refreshToken = TokenManager.getRefreshToken()
-
-      if (!refreshToken) {
-        throw new Error('No refresh token available')
-      }
-
-      const result = await apiClient.refreshToken(refreshToken)
+      const result = await apiClient.refreshToken()
 
       if ('error' in result) {
         throw new Error(result.error)
       }
 
-      // Update tokens in storage
-      TokenManager.updateTokens(result as any)
-
+      tokenStore.setAccessToken(result, 'refresh_access_token')
       return true
     } catch (error) {
-      // Clear all tokens on refresh failure
-      TokenManager.clearTokens()
+      tokenStore.markRefreshFailed('refresh_access_token')
+      tokenStore.clear('refresh_access_token_failed')
       console.error('Token refresh failed:', error)
-      return false     
-      
+      return false
     } finally {
       refreshPromise = null
     }
@@ -50,51 +42,40 @@ export async function refreshAccessToken(): Promise<boolean> {
  * Checks every minute if token needs refresh (1 minute before expiry)
  */
 export function setupTokenRefresh(): () => void {
-  // Check immediately on setup
   checkAndRefreshToken()
 
-  // Check every 60 seconds
   const intervalId = setInterval(() => {
     checkAndRefreshToken()
-  }, 60000)
+  }, 60_000)
 
-  // Return cleanup function
   return () => clearInterval(intervalId)
 }
 
-/**
- * Check if token needs refresh and refresh if necessary
- */
 function checkAndRefreshToken(): void {
-  const accessToken = TokenManager.getAccessToken()
+  const accessToken = tokenStore.getAccessToken()
 
   if (!accessToken) {
-    return // No token to refresh
+    return
   }
 
-  if (TokenManager.isTokenExpired()) {
-    // Token is about to expire or already expired, refresh it
-    refreshAccessToken()
+  if (tokenStore.isTokenExpired() && !tokenStore.isRefreshing()) {
+    void refreshAccessToken()
   }
 }
 
-/**
- * Ensure token is valid before making API calls
- * Refreshes if needed, then returns the access token
- */
 export async function getValidAccessToken(): Promise<string | null> {
-  const accessToken = TokenManager.getAccessToken()
+  const accessToken = tokenStore.getAccessToken()
 
   if (!accessToken) {
     return null
   }
 
-  if (TokenManager.isTokenExpired()) {
+  if (tokenStore.isTokenExpired()) {
     const refreshed = await refreshAccessToken()
     if (!refreshed) {
       return null
     }
   }
 
-  return TokenManager.getAccessToken()
+  return tokenStore.getAccessToken()
 }

@@ -47,7 +47,11 @@ export function SignupForm() {
         termsAgreed: true,
       })
 
-      await requestSignupCode(email)
+      const result = await requestSignupCode(email)
+      if (result !== "code_sent") {
+        return
+      }
+
       setStep("verify")
     } catch (error: any) {
       // Toast is already shown in the auth context
@@ -58,7 +62,12 @@ export function SignupForm() {
 
   const handleVerifySuccess = () => {
     // Redirect to login page after successful signup
-    window.location.href = "/auth/login?signup=success"
+    const searchParams = new URLSearchParams({
+      email,
+      notice: "signup_success",
+    })
+
+    window.location.href = `/auth/login?${searchParams.toString()}`
   }
 
   const handleBack = () => {

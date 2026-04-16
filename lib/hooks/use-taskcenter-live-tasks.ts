@@ -7,6 +7,7 @@ import type {
   TaskCenterTasksQuery,
 } from "@/lib/api/taskcenter/types"
 import { webSocketService, type TaskSocketEvent } from "@/lib/websocket/websocket-service"
+import { tokenStore } from "@/lib/tokens/token-store"
 
 interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "signal"> {
   enabled?: boolean
@@ -126,7 +127,7 @@ export function useTaskCenterLiveTasks({
   useEffect(() => {
     if (!enabled) return
 
-    const token = localStorage.getItem("access_token")
+    const token = tokenStore.getAccessToken()
     const articleId = typeof queryArticleId === "number" ? queryArticleId : null
     const eventName =
       realtimeScope === "article" && articleId

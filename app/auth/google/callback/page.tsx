@@ -8,14 +8,14 @@ import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
-import { TokenManager } from '@/lib/tokens/token-manager'
+import { tokenStore } from '@/lib/tokens/token-store'
 import { useAuth } from '@/lib/auth/auth-context'
 
 export default function GoogleCallbackPage() {
   const router = useRouter()
   const { t } = useTranslation()
   const { toast } = useToast()
-  const { _setUser, _setSession } = useAuth()
+  const { _setUser } = useAuth()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
   const isProcessed = useRef(false)
@@ -49,6 +49,7 @@ export default function GoogleCallbackPage() {
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
         const response = await fetch(`${API_BASE_URL}/auth/google/callback?code=${code}&state=${state}`, {
           method: 'GET',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -63,16 +64,13 @@ export default function GoogleCallbackPage() {
         // Store tokens
         const tokens = {
           access_token: data.access_token,
-          refresh_token: data.refresh_token,
           expires_in: data.expires_in,
-          user: data.user,
         }
 
-        TokenManager.setTokens(tokens)
+        tokenStore.setAccessToken(tokens, 'google_oauth_callback')
 
         // Update AuthContext state immediately
         _setUser(data.user)
-        _setSession(tokens)
 
         // Resolve redirect target first
         const redirect = sessionStorage.getItem('oauth_redirect') || '/articles'
@@ -105,7 +103,7 @@ export default function GoogleCallbackPage() {
     }
 
     handleCallback()
-  }, [router, toast, t, _setSession, _setUser])
+  }, [router, toast, t, _setUser])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

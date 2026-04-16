@@ -14,13 +14,9 @@ export interface SignupVerify {
   password: string
 }
 
-export interface RefreshTokenRequest {
-  refresh_token: string
-}
+export interface RefreshTokenRequest {}
 
-export interface LogoutRequest {
-  refresh_token: string
-}
+export interface LogoutRequest {}
 
 export interface PasswordResetRequest {
   email: string
@@ -49,7 +45,7 @@ export interface GoogleLoginResponse {
 // API Response Types
 export interface AuthResponse {
   access_token: string
-  refresh_token: string
+  refresh_token?: string
   expires_in: number
   user: User
 }
@@ -65,12 +61,16 @@ export interface MessageResponse {
 
 export interface ErrorResponse {
   error: string
+  status?: number
 }
 
-export interface Tokens {
+export interface AccessTokenSession {
   access_token: string
-  refresh_token: string
   expires_in: number
+}
+
+export interface Tokens extends AccessTokenSession {
+  refresh_token?: string
   user: User
 }
 

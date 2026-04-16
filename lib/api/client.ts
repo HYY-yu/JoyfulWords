@@ -1,12 +1,11 @@
 import { API_BASE_URL } from '@/lib/config'
 import { trace, context } from '@opentelemetry/api'
 import type { InsufficientCreditsData } from '@/components/credits/insufficient-credits-dialog'
+import { tokenStore } from '@/lib/tokens/token-store'
 import type {
   LoginRequest,
   SignupRequestCode,
   SignupVerify,
-  RefreshTokenRequest,
-  LogoutRequest,
   PasswordResetRequest,
   PasswordResetVerify,
   ChangePasswordRequest,
@@ -79,6 +78,18 @@ function injectTraceHeaders(): HeadersInit {
   return headers
 }
 
+function withAuthorizationHeader(headers: HeadersInit | undefined, token: string | null): HeadersInit {
+  const mergedHeaders = new Headers(headers)
+
+  if (token) {
+    mergedHeaders.set('Authorization', `Bearer ${token}`)
+  } else {
+    mergedHeaders.delete('Authorization')
+  }
+
+  return mergedHeaders
+}
+
 /**
  * Make API request with error handling
  * @param endpoint - API endpoint path
@@ -113,7 +124,10 @@ export async function apiRequest<T>(
       data = JSON.parse(text)
     } catch {
       console.error(`[API] Invalid JSON from ${endpoint}:`, text.slice(0, 200))
-      return { error: `Server returned invalid response (status ${response.status})` } as T
+      return {
+        error: `Server returned invalid response (status ${response.status})`,
+        status: response.status,
+      } as T
     }
 
     if (!response.ok) {
@@ -125,11 +139,8 @@ export async function apiRequest<T>(
 
         if (success) {
           // Retry the original request with new token
-          const newToken = localStorage.getItem('access_token')
-          const newHeaders: HeadersInit = {
-            ...headers,
-            ...(newToken ? { Authorization: `Bearer ${newToken}` } : {}),
-          }
+          const newToken = tokenStore.getAccessToken()
+          const newHeaders = withAuthorizationHeader(headers, newToken)
           const retryResponse = await fetch(url, {
             ...options,
             headers: newHeaders,
@@ -137,7 +148,10 @@ export async function apiRequest<T>(
           const retryData = await retryResponse.json()
 
           if (!retryResponse.ok) {
-            return { error: retryData.error || retryData.message || 'Request failed' } as T
+            return {
+              error: retryData.error || retryData.message || 'Request failed',
+              status: retryResponse.status,
+            } as T
           }
 
           return retryData as T
@@ -147,7 +161,7 @@ export async function apiRequest<T>(
         if (typeof window !== 'undefined') {
           window.location.href = '/auth/login?reason=token_expired'
         }
-        return { error: 'Session expired' } as T
+        return { error: 'Session expired', status: 401 } as T
       }
 
       // Handle 402 Payment Required - insufficient credits
@@ -163,11 +177,17 @@ export async function apiRequest<T>(
           console.warn('[API] Invalid insufficient credits payload:', data.data)
           // TODO(observability): count invalid insufficient credits payloads from API responses.
         }
-        return { error: data.error || 'Insufficient credits' } as T
+        return {
+          error: data.error || 'Insufficient credits',
+          status: response.status,
+        } as T
       }
 
       // Return error in standard format
-      return { error: data.error || data.message || 'Request failed' } as T
+      return {
+        error: data.error || data.message || 'Request failed',
+        status: response.status,
+      } as T
     }
 
     return data as T
@@ -175,6 +195,23 @@ export async function apiRequest<T>(
     // Network or parsing error
     return { error: error instanceof Error ? error.message : 'Network error' } as T
   }
+}
+
+export async function authenticatedApiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  skipAuthRefresh = false
+): Promise<T> {
+  const accessToken = tokenStore.getAccessToken()
+
+  return apiRequest<T>(
+    endpoint,
+    {
+      ...options,
+      headers: withAuthorizationHeader(options.headers, accessToken),
+    },
+    skipAuthRefresh
+  )
 }
 
 /**
@@ -189,6 +226,7 @@ export const apiClient = {
   async login(email: string, password: string) {
     return apiRequest<AuthResponse | ErrorResponse>('/auth/login', {
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ email, password } as LoginRequest),
     })
   },
@@ -219,15 +257,15 @@ export const apiClient = {
    * Refresh access token
    * POST /auth/token/refresh
    */
-  async refreshToken(refreshToken: string) {
-    const token = localStorage.getItem('access_token')
+  async refreshToken() {
+    const token = tokenStore.getAccessToken()
 
     return apiRequest<AuthResponse | ErrorResponse>(
       '/auth/token/refresh',
       {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: JSON.stringify({ refresh_token: refreshToken } as RefreshTokenRequest),
+        credentials: 'include',
+        headers: withAuthorizationHeader(undefined, token),
       },
       true // Skip 401 auto-refresh to avoid infinite loop
     )
@@ -237,13 +275,13 @@ export const apiClient = {
    * Logout
    * POST /auth/logout
    */
-  async logout(refreshToken: string) {
-    const token = localStorage.getItem('access_token')
+  async logout() {
+    const token = tokenStore.getAccessToken()
 
     return apiRequest<MessageResponse | ErrorResponse>('/auth/logout', {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: JSON.stringify({ refresh_token: refreshToken } as LogoutRequest),
+      credentials: 'include',
+      headers: withAuthorizationHeader(undefined, token),
     })
   },
 
@@ -280,11 +318,8 @@ export const apiClient = {
    * POST /auth/change_password
    */
   async changePassword(oldPassword: string, newPassword: string) {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse | ErrorResponse>('/auth/change_password', {
+    return authenticatedApiRequest<MessageResponse | ErrorResponse>('/auth/change_password', {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: JSON.stringify({
         old_password: oldPassword,
         new_password: newPassword,

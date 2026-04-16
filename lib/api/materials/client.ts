@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api/client'
+import { apiRequest, authenticatedApiRequest } from '@/lib/api/client'
 import type {
   SearchMaterialsRequest,
   GetMaterialsRequest,
@@ -49,13 +49,8 @@ export const materialsClient = {
     materialType: SearchMaterialsRequest['material_type'],
     searchText: SearchMaterialsRequest['search_text']
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>('/materials/search', {
+    return authenticatedApiRequest<MessageResponse>('/materials/search', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify({
         material_type: materialType,
         search_text: searchText,
@@ -73,13 +68,8 @@ export const materialsClient = {
     materialType: SearchMaterialsRequest['material_type'],
     searchText: SearchMaterialsRequest['search_text']
   ): Promise<TriggerMaterialSearchV2Response | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<TriggerMaterialSearchV2Response>('/materials/search-v2', {
+    return authenticatedApiRequest<TriggerMaterialSearchV2Response>('/materials/search-v2', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify({
         material_type: materialType,
         search_text: searchText,
@@ -107,8 +97,6 @@ export const materialsClient = {
   async getSearchLogs(
     params?: GetSearchLogsRequest
   ): Promise<MaterialLogListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     // 构建 URL 查询参数
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
@@ -119,11 +107,7 @@ export const materialsClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/materials/search-logs/list?${queryString}` : '/materials/search-logs/list'
 
-    return apiRequest<MaterialLogListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<MaterialLogListResponse>(url)
   },
 
   /**
@@ -133,13 +117,7 @@ export const materialsClient = {
   async getSearchLogDetail(
     id: number
   ): Promise<MaterialSearchDetailResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MaterialSearchDetailResponse>(`/materials/search-logs/${id}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<MaterialSearchDetailResponse>(`/materials/search-logs/${id}`)
   },
 
   /**
@@ -162,8 +140,6 @@ export const materialsClient = {
   async getMaterials(
     params?: GetMaterialsRequest
   ): Promise<MaterialListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     // 构建 URL 查询参数
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
@@ -175,11 +151,7 @@ export const materialsClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/materials/list?${queryString}` : '/materials/list'
 
-    return apiRequest<MaterialListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<MaterialListResponse>(url)
   },
 
   /**
@@ -189,8 +161,6 @@ export const materialsClient = {
   async getFavorites(
     params?: GetMaterialFavoritesRequest
   ): Promise<MaterialFavoriteListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
     if (params?.page_size) searchParams.append('page_size', String(params.page_size))
@@ -198,11 +168,7 @@ export const materialsClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/materials/favorites/list?${queryString}` : '/materials/favorites/list'
 
-    return apiRequest<MaterialFavoriteListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<MaterialFavoriteListResponse>(url)
   },
 
   /**
@@ -229,13 +195,8 @@ export const materialsClient = {
     filename: GetPresignedUrlRequest['filename'],
     contentType: GetPresignedUrlRequest['content_type']
   ): Promise<PresignedUrlResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<PresignedUrlResponse>('/materials/presigned-url', {
+    return authenticatedApiRequest<PresignedUrlResponse>('/materials/presigned-url', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify({
         filename,
         content_type: contentType,
@@ -262,13 +223,8 @@ export const materialsClient = {
   async createMaterial(
     data: CreateMaterialRequest
   ): Promise<CreateMaterialResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<CreateMaterialResponse>('/materials', {
+    return authenticatedApiRequest<CreateMaterialResponse>('/materials', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -280,13 +236,8 @@ export const materialsClient = {
   async createFavorite(
     data: CreateMaterialFavoriteRequest
   ): Promise<CreateMaterialFavoriteResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<CreateMaterialFavoriteResponse>('/materials/favorites', {
+    return authenticatedApiRequest<CreateMaterialFavoriteResponse>('/materials/favorites', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -298,13 +249,8 @@ export const materialsClient = {
   async addFromLog(
     data: AddMaterialsFromLogRequest
   ): Promise<AddMaterialsFromLogResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<AddMaterialsFromLogResponse>('/materials/add-from-log', {
+    return authenticatedApiRequest<AddMaterialsFromLogResponse>('/materials/add-from-log', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -316,13 +262,8 @@ export const materialsClient = {
   async pinFavorite(
     id: number
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/materials/favorites/${id}/pin`, {
+    return authenticatedApiRequest<MessageResponse>(`/materials/favorites/${id}/pin`, {
       method: 'PUT',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 
@@ -333,13 +274,8 @@ export const materialsClient = {
   async unpinFavorite(
     id: number
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/materials/favorites/${id}/unpin`, {
+    return authenticatedApiRequest<MessageResponse>(`/materials/favorites/${id}/unpin`, {
       method: 'PUT',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 
@@ -350,13 +286,8 @@ export const materialsClient = {
   async deleteFavorite(
     id: number
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/materials/favorites/${id}`, {
+    return authenticatedApiRequest<MessageResponse>(`/materials/favorites/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 
@@ -380,13 +311,8 @@ export const materialsClient = {
     id: number,
     data: UpdateMaterialRequest
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/materials/${id}`, {
+    return authenticatedApiRequest<MessageResponse>(`/materials/${id}`, {
       method: 'PUT',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -410,13 +336,8 @@ export const materialsClient = {
   async deleteMaterial(
     id: number
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/materials/${id}`, {
+    return authenticatedApiRequest<MessageResponse>(`/materials/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 }

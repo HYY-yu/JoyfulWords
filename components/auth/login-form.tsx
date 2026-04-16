@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -21,6 +21,55 @@ export function LoginForm() {
   const { toast } = useToast()
   const { t } = useTranslation()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const handledNoticeRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    const prefilledEmail = searchParams.get("email")
+
+    if (!prefilledEmail) {
+      return
+    }
+
+    setEmail(prefilledEmail)
+  }, [searchParams])
+
+  useEffect(() => {
+    const notice = searchParams.get("notice")
+    const prefilledEmail = searchParams.get("email")
+    const noticeKey = `${notice ?? ""}:${prefilledEmail ?? ""}`
+
+    if (!notice || handledNoticeRef.current === noticeKey) {
+      return
+    }
+
+    handledNoticeRef.current = noticeKey
+
+    if (notice === "signup_email_registered") {
+      toast({
+        title: t("auth.toast.emailAlreadyRegistered"),
+        description: t("auth.toast.redirectedToLoginWithEmail"),
+      })
+    } else if (notice === "signup_success") {
+      toast({
+        title: t("auth.toast.signupSuccess"),
+        description: t("auth.toast.loginWithCredentials"),
+      })
+    } else {
+      return
+    }
+
+    const nextSearchParams = new URLSearchParams()
+    if (prefilledEmail) {
+      nextSearchParams.set("email", prefilledEmail)
+    }
+
+    const nextUrl = nextSearchParams.toString()
+      ? `/auth/login?${nextSearchParams.toString()}`
+      : "/auth/login"
+
+    router.replace(nextUrl)
+  }, [router, searchParams, t, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

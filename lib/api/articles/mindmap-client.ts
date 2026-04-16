@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api/client"
+import { authenticatedApiRequest } from "@/lib/api/client"
 import type {
   ErrorResponse,
   GenerateMindMapRequest,
@@ -29,20 +29,14 @@ function normalizeResult<T extends object>(result: T | ErrorResponse): T | Error
   return result
 }
 
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem("access_token")
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 export const mindMapClient = {
   async generate(
     request: GenerateMindMapRequest
   ): Promise<GenerateMindMapResponse | ErrorResponse> {
-    const result = await apiRequest<GenerateMindMapResponse | ErrorResponse>(
+    const result = await authenticatedApiRequest<GenerateMindMapResponse | ErrorResponse>(
       `/article/${request.articleId}/mindmap/generate`,
       {
         method: "POST",
-        headers: getAuthHeaders(),
       }
     )
 
@@ -50,9 +44,8 @@ export const mindMapClient = {
   },
 
   async getByArticleId(articleId: number): Promise<GetMindMapResponse | ErrorResponse> {
-    const result = await apiRequest<GetMindMapResponse | ErrorResponse>(`/article/${articleId}/mindmap`, {
+    const result = await authenticatedApiRequest<GetMindMapResponse | ErrorResponse>(`/article/${articleId}/mindmap`, {
       method: "GET",
-      headers: getAuthHeaders(),
     })
 
     return normalizeResult(result)
@@ -62,9 +55,8 @@ export const mindMapClient = {
     articleId: number,
     request: SaveMindMapRequest
   ): Promise<SaveMindMapResponse | ErrorResponse> {
-    const result = await apiRequest<SaveMindMapResponse | ErrorResponse>(`/article/${articleId}/mindmap`, {
+    const result = await authenticatedApiRequest<SaveMindMapResponse | ErrorResponse>(`/article/${articleId}/mindmap`, {
       method: "PUT",
-      headers: getAuthHeaders(),
       body: JSON.stringify(request),
     })
 

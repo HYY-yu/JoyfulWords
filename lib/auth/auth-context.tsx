@@ -1,62 +1,106 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { apiClient } from '@/lib/api/client'
-import { TokenManager } from '@/lib/tokens/token-manager'
 import { setupTokenRefresh } from '@/lib/tokens/refresh'
-import type { User, Tokens } from '@/lib/api/types'
+import { tokenStore } from '@/lib/tokens/token-store'
+import { isSignupEmailAlreadyRegisteredError } from '@/lib/auth/auth-error-resolver'
+import type { User } from '@/lib/api/types'
+
+const USER_STORAGE_KEY = 'auth_user'
+type SignupCodeRequestResult = 'code_sent' | 'redirect_to_login'
 
 interface AuthContextType {
   user: User | null
-  session: Tokens | null
   loading: boolean
 
   // Authentication methods
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: (redirectUrl?: string) => Promise<void>
-  requestSignupCode: (email: string) => Promise<void>
+  requestSignupCode: (email: string) => Promise<SignupCodeRequestResult>
   verifySignupCode: (email: string, code: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
   verifyPasswordReset: (email: string, code: string, password: string) => Promise<void>
 
   // Internal methods (for OAuth callback etc.)
-  _setUser: (user: User) => void
-  _setSession: (session: Tokens) => void
+  _setUser: (user: User | null) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+function readStoredUser(): User | null {
+  if (typeof window === 'undefined') return null
+
+  const rawUser = localStorage.getItem(USER_STORAGE_KEY)
+  if (!rawUser) return null
+
+  try {
+    return JSON.parse(rawUser) as User
+  } catch {
+    return null
+  }
+}
+
+function persistUser(user: User | null): void {
+  if (typeof window === 'undefined') return
+
+  if (!user) {
+    localStorage.removeItem(USER_STORAGE_KEY)
+    return
+  }
+
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { t } = useTranslation()
   const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Tokens | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const setAuthenticatedUser = useCallback((nextUser: User | null) => {
+    setUser(nextUser)
+    persistUser(nextUser)
+  }, [])
+
   useEffect(() => {
-    // Restore session from localStorage on mount
-    const tokens = TokenManager.getTokens()
-    const storedUser = TokenManager.getUser()
+    const storedUser = readStoredUser()
+    const accessToken = tokenStore.getAccessToken()
 
-    if (tokens && storedUser) {
+    if (storedUser && accessToken) {
       setUser(storedUser)
-      setSession(tokens)
-      setLoading(false)
-
-      // Setup automatic token refresh
-      const cleanupRefresh = setupTokenRefresh()
-
-      return () => {
-        cleanupRefresh()
-      }
+    } else {
+      persistUser(null)
     }
 
     setLoading(false)
   }, [])
+
+  useEffect(() => {
+    const unsubscribe = tokenStore.subscribe((event) => {
+      if (event.type !== 'token:cleared') return
+
+      setAuthenticatedUser(null)
+      setLoading(false)
+    })
+
+    return unsubscribe
+  }, [setAuthenticatedUser])
+
+  useEffect(() => {
+    if (!user || !tokenStore.getAccessToken()) {
+      return
+    }
+
+    const cleanupRefresh = setupTokenRefresh()
+    return () => {
+      cleanupRefresh()
+    }
+  }, [user])
 
   const signInWithEmail = async (email: string, password: string) => {
     const result = await apiClient.login(email, password)
@@ -70,10 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(result.error)
     }
 
-    // Store tokens
-    TokenManager.setTokens(result as Tokens)
-    setUser(result.user)
-    setSession(result as Tokens)
+    tokenStore.setAccessToken(result, 'auth_login')
+    setAuthenticatedUser(result.user)
 
     toast({
       title: t('auth.toast.loginSuccess'),
@@ -92,11 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(result.error)
     }
 
-    // Store state for callback verification
     sessionStorage.setItem('oauth_state', result.state)
     sessionStorage.setItem('oauth_redirect', redirectUrl || '/articles')
-
-    // Redirect to Google authorization page
     window.location.href = result.auth_url
   }
 
@@ -104,6 +143,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const result = await apiClient.requestSignupCode(email)
 
     if ('error' in result) {
+      console.warn('[Auth] Signup code request failed', {
+        email,
+        status: result.status,
+        error: result.error,
+      })
+
+      if (isSignupEmailAlreadyRegisteredError(result)) {
+        const searchParams = new URLSearchParams({
+          email,
+          notice: 'signup_email_registered',
+        })
+
+        router.push(`/auth/login?${searchParams.toString()}`)
+        return 'redirect_to_login'
+      }
+
       toast({
         variant: 'destructive',
         title: t('auth.toast.sendFailed'),
@@ -116,6 +171,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       title: t('auth.toast.verificationCodeSent'),
       description: t('auth.toast.checkYourEmail'),
     })
+
+    return 'code_sent'
   }
 
   const verifySignupCode = async (email: string, code: string, password: string) => {
@@ -137,23 +194,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    const refreshToken = TokenManager.getRefreshToken()
+    try {
+      await apiClient.logout()
+    } finally {
+      tokenStore.clear('auth_sign_out')
+      setAuthenticatedUser(null)
 
-    if (refreshToken) {
-      await apiClient.logout(refreshToken)
+      toast({
+        title: t('auth.toast.logoutSuccess'),
+      })
+
+      router.push('/auth/login')
     }
-
-    // Clear all tokens
-    TokenManager.clearTokens()
-    setUser(null)
-    setSession(null)
-
-    toast({
-      title: t('auth.toast.logoutSuccess'),
-    })
-
-    // Redirect to login page
-    router.push('/auth/login')
   }
 
   const requestPasswordReset = async (email: string) => {
@@ -196,7 +248,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        session,
         loading,
         signInWithEmail,
         signInWithGoogle,
@@ -205,8 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signOut,
         requestPasswordReset,
         verifyPasswordReset,
-        _setUser: setUser,
-        _setSession: setSession,
+        _setUser: setAuthenticatedUser,
       }}
     >
       {children}

@@ -29,7 +29,7 @@
 
 ## 1. 发送验证码
 
-向邮箱发送 6 位数字验证码，用于后续注册验证。
+向未注册邮箱发送 6 位数字验证码，用于后续注册验证。
 
 ### 接口信息
 
@@ -69,8 +69,17 @@ curl -X POST http://localhost:8080/auth/signup/request \
 | 状态码 | 说明 |
 |--------|------|
 | 400 | 请求格式错误（邮箱格式不正确） |
+| 409 | 邮箱已被注册 |
 | 429 | 请求过于频繁（触发限流） |
 | 500 | 服务器内部错误 |
+
+**邮箱已注册 (409 Conflict)**
+
+```json
+{
+  "error": "该邮箱已注册"
+}
+```
 
 ---
 
@@ -600,24 +609,6 @@ window.location.href = auth_url;
 | 500 | 服务器内部错误 |
 
 ### 前端处理建议
-
-前端需要处理两种情况：
-
-**方式 1：直接在回调页面显示令牌**
-
-```javascript
-// 在 /auth/google/callback 页面
-const urlParams = new URLSearchParams(window.location.search);
-const code = urlParams.get('code');
-const state = urlParams.get('state');
-
-// 如果有 code 和 state，说明是 OAuth 回调
-if (code && state) {
-  // 后端已经处理完 OAuth，直接从响应中获取 token
-  // 或者前端可以再次调用 API 获取 token
-}
-```
-
 **方式 2：前端接收处理后跳转（推荐）**
 
 前端无需直接处理此接口，只需：
@@ -697,20 +688,6 @@ curl -X POST http://localhost:8080/auth/login \
 2. POST /auth/signup/verify   → 验证码 + 密码 → 完成注册
 3. POST /auth/login           → 使用邮箱和密码登录
 ```
-
-### Google OAuth 登录流程
-
-```
-1. POST /auth/google/login    → 获取 Google 授权 URL
-2. 重定向到 Google            → 用户完成授权
-3. GET /auth/google/callback  → Google 回调，返回 JWT 令牌
-```
-
-**特点：**
-- 无需密码，使用 Google 账号登录
-- 自动创建或关联用户账号
-- 返回标准 JWT 令牌，与其他登录方式统一
-- 支持账号关联（Google 邮箱与已注册邮箱自动绑定）
 
 ### 密码重置流程
 

@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api/client'
+import { authenticatedApiRequest } from '@/lib/api/client'
 import type {
   AIWriteRequest,
   GetArticlesRequest,
@@ -39,13 +39,8 @@ export const articlesClient = {
   async aiWrite(
     data: AIWriteRequest
   ): Promise<CreateArticleResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<CreateArticleResponse>('/article/ai-write', {
+    return authenticatedApiRequest<CreateArticleResponse>('/article/ai-write', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -69,8 +64,6 @@ export const articlesClient = {
   async getArticles(
     params?: GetArticlesRequest
   ): Promise<ArticleListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     // 构建 URL 查询参数
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
@@ -81,11 +74,7 @@ export const articlesClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/article?${queryString}` : '/article'
 
-    return apiRequest<ArticleListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<ArticleListResponse>(url)
   },
 
   /**
@@ -108,13 +97,8 @@ export const articlesClient = {
   async createArticle(
     data: CreateArticleRequest
   ): Promise<CreateArticleResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<CreateArticleResponse>('/article', {
+    return authenticatedApiRequest<CreateArticleResponse>('/article', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -147,13 +131,8 @@ export const articlesClient = {
     data: UpdateArticleContentRequest,
     options?: { signal?: AbortSignal }
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/article/${id}/content`, {
+    return authenticatedApiRequest<MessageResponse>(`/article/${id}/content`, {
       method: 'PUT',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
       signal: options?.signal, // 支持 AbortController 取消请求
     })
@@ -186,13 +165,8 @@ export const articlesClient = {
     id: number,
     data: UpdateArticleMetadataRequest
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/article/${id}`, {
+    return authenticatedApiRequest<MessageResponse>(`/article/${id}`, {
       method: 'PUT',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -212,13 +186,8 @@ export const articlesClient = {
   async deleteArticle(
     id: number
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/article/${id}`, {
+    return authenticatedApiRequest<MessageResponse>(`/article/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 
@@ -241,13 +210,8 @@ export const articlesClient = {
     id: number,
     data: UpdateArticleStatusRequest
   ): Promise<MessageResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<MessageResponse>(`/article/${id}/status`, {
+    return authenticatedApiRequest<MessageResponse>(`/article/${id}/status`, {
       method: 'PUT',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -284,13 +248,8 @@ export const articlesClient = {
   async editArticle(
     data: ArticleEditRequest
   ): Promise<ArticleEditResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<ArticleEditResponse>('/article/edit', {
+    return authenticatedApiRequest<ArticleEditResponse>('/article/edit', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(data),
     })
   },
@@ -307,12 +266,6 @@ export const articlesClient = {
   async getEditStatus(
     execId: string
   ): Promise<EditStatusResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<EditStatusResponse>(`/article/edit/status/${execId}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<EditStatusResponse>(`/article/edit/status/${execId}`)
   },
 }

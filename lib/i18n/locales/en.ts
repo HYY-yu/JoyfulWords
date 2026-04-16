@@ -1169,6 +1169,8 @@ export const en = {
             loginWithNewPassword: "Please login with your new password",
             loginWithCredentials: "Please login with your email and password",
             resetCodeSent: "If this email is registered, you will receive a password reset code",
+            emailAlreadyRegistered: "This email is already registered",
+            redirectedToLoginWithEmail: "You have been redirected to the login page, and your email has been filled in automatically.",
             pleaseTryAgain: "Please try again",
         },
         oauth: {

@@ -1169,6 +1169,8 @@ export const zh = {
             loginWithNewPassword: "请使用新密码登录",
             loginWithCredentials: "请使用您的邮箱和密码登录",
             resetCodeSent: "如果该邮箱已注册，您将收到密码重置验证码",
+            emailAlreadyRegistered: "该邮箱已注册",
+            redirectedToLoginWithEmail: "已自动跳转到登录页，并为您填入邮箱",
             pleaseTryAgain: "请重试",
         },
         oauth: {

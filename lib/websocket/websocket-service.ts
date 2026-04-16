@@ -2,6 +2,7 @@
 
 import { API_BASE_URL } from "@/lib/config"
 import type { TaskCenterTaskType } from "@/lib/api/taskcenter/types"
+import { tokenStore } from "@/lib/tokens/token-store"
 
 export enum WebSocketMessageType {
   PING = "ping",
@@ -87,6 +88,32 @@ class WebSocketService {
   private eventListeners = new Map<string, Set<EventCallback>>()
   private toast: ((props: any) => any) | null = null
   private recentTaskEvents = new Map<string, number>()
+
+  constructor() {
+    tokenStore.subscribe((event) => {
+      if (event.type === "token:updated") {
+        const nextToken = tokenStore.getAccessToken()
+        if (!nextToken) return
+
+        this.channels.forEach((channel) => {
+          channel.token = nextToken
+        })
+
+        console.info("[WebSocket] Updated channel tokens after refresh", {
+          channelCount: this.channels.size,
+          source: event.source,
+        })
+      }
+
+      if (event.type === "token:cleared") {
+        console.info("[WebSocket] Closing channels after token cleared", {
+          channelCount: this.channels.size,
+          source: event.source,
+        })
+        this.close()
+      }
+    })
+  }
 
   init(toastInstance?: ((props: any) => any) | null) {
     this.toast = toastInstance ?? null

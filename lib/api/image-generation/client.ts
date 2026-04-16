@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api/client'
+import { apiRequest, authenticatedApiRequest } from '@/lib/api/client'
 import type {
   ConvertPromptRequest,
   ConvertPromptResponse,
@@ -43,13 +43,8 @@ export const imageGenerationClient = {
     config: ConvertPromptRequest['config'],
     modelName?: ConvertPromptRequest['model_name']
   ) {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<ConvertPromptResponse>('/image-generation/convert-prompt', {
+    return authenticatedApiRequest<ConvertPromptResponse>('/image-generation/convert-prompt', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify({
         config,
         model_name: modelName,
@@ -78,8 +73,6 @@ export const imageGenerationClient = {
    * }
    */
   async createGenerationTask(request: CreateGenerationTaskRequest) {
-    const token = localStorage.getItem('access_token')
-
     // TRACE: 任务创建入口 - 记录请求参数
     console.debug('[ImageGeneration] Creating generation task:', {
       hasPrompt: !!request.prompt,
@@ -90,11 +83,8 @@ export const imageGenerationClient = {
       referenceImageCount: request.reference_images?.length || 0,
     })
 
-    return apiRequest<CreateGenerationTaskResponse>('/image-generation/generate', {
+    return authenticatedApiRequest<CreateGenerationTaskResponse>('/image-generation/generate', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(request),
     })
   },
@@ -118,16 +108,11 @@ export const imageGenerationClient = {
    * }
    */
   async getTaskResult(taskId: string, signal?: AbortSignal) {
-    const token = localStorage.getItem('access_token')
-
     // TRACE: 轮询节点 - 记录轮询尝试
     console.debug('[ImageGeneration] Polling task result:', taskId)
 
-    return apiRequest<TaskResultResponse>(`/image-generation/tasks/${taskId}`, {
+    return authenticatedApiRequest<TaskResultResponse>(`/image-generation/tasks/${taskId}`, {
       method: 'GET',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       signal,  // 传递 signal 以支持请求取消
     })
   },
@@ -147,13 +132,9 @@ export const imageGenerationClient = {
    * }
    */
   async getModels() {
-    const token = localStorage.getItem('access_token')
     console.debug('[ImageGeneration] Fetching available models...')
-    return apiRequest<GetModelsResponse>('/image-generation/models', {
+    return authenticatedApiRequest<GetModelsResponse>('/image-generation/models', {
       method: 'GET',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 
@@ -172,8 +153,6 @@ export const imageGenerationClient = {
    * })
    */
   async getGenerationLogs(request: GetGenerationLogsRequest) {
-    const token = localStorage.getItem('access_token')
-
     console.debug('[ImageGeneration] Fetching generation logs:', {
       page: request.page,
       pageSize: request.page_size,
@@ -190,13 +169,10 @@ export const imageGenerationClient = {
     if (request.gen_mode) params.append('gen_mode', request.gen_mode)
     if (request.model_name) params.append('model_name', request.model_name)
 
-    return apiRequest<GetGenerationLogsResponse>(
+    return authenticatedApiRequest<GetGenerationLogsResponse>(
       `/image-generation/logs?${params.toString()}`,
       {
         method: 'GET',
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-        },
       }
     )
   },
@@ -217,7 +193,6 @@ export const imageGenerationClient = {
    * }
    */
   async copyToMaterials(logId: number, articleId?: number) {
-    const token = localStorage.getItem('access_token')
     const requestBody: CopyToMaterialsRequest | undefined =
       typeof articleId === 'number' ? { article_id: articleId } : undefined
 
@@ -226,13 +201,10 @@ export const imageGenerationClient = {
       articleId: requestBody?.article_id ?? null,
     })
 
-    return apiRequest<CopyToMaterialsResponse>(
+    return authenticatedApiRequest<CopyToMaterialsResponse>(
       `/image-generation/logs/${logId}/copy-to-materials`,
       {
         method: 'POST',
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-        },
         body: requestBody ? JSON.stringify(requestBody) : undefined,
       }
     )
@@ -283,8 +255,6 @@ export const imageGenerationClient = {
    * }
    */
   async createSplitTask(request: CreateSplitTaskRequest) {
-    const token = localStorage.getItem('access_token')
-
     // TRACE: 任务创建入口 - 记录请求参数
     console.debug('[ImageGeneration] Creating split task:', {
       hasImageUrl: !!request.image_url,
@@ -293,11 +263,8 @@ export const imageGenerationClient = {
       articleId: request.article_id,
     })
 
-    return apiRequest<CreateSplitTaskResponse>('/image-generation/split', {
+    return authenticatedApiRequest<CreateSplitTaskResponse>('/image-generation/split', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
       body: JSON.stringify(request),
     })
   },

@@ -1,4 +1,4 @@
-import { apiRequest } from '@/lib/api/client'
+import { authenticatedApiRequest } from '@/lib/api/client'
 import type {
   BalanceResponse,
   TransactionListResponse,
@@ -21,13 +21,7 @@ export const billingClient = {
    * @returns Promise<BalanceResponse | ErrorResponse>
    */
   async getBalance(): Promise<BalanceResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<BalanceResponse>('/billing/balance', {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<BalanceResponse>('/billing/balance')
   },
 
   /**
@@ -37,13 +31,8 @@ export const billingClient = {
    * @returns Promise<BalanceResponse | ErrorResponse>
    */
   async refreshBalance(): Promise<BalanceResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<BalanceResponse>('/billing/balance/refresh', {
+    return authenticatedApiRequest<BalanceResponse>('/billing/balance/refresh', {
       method: 'POST',
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
     })
   },
 
@@ -57,8 +46,6 @@ export const billingClient = {
   async getRecharges(
     params?: GetTransactionsRequest
   ): Promise<TransactionListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     // 构建 URL 查询参数
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
@@ -70,11 +57,7 @@ export const billingClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/billing/recharges?${queryString}` : '/billing/recharges'
 
-    return apiRequest<TransactionListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<TransactionListResponse>(url)
   },
 
   /**
@@ -87,8 +70,6 @@ export const billingClient = {
   async getUsage(
     params?: GetTransactionsRequest
   ): Promise<TransactionListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     // 构建 URL 查询参数
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
@@ -100,11 +81,7 @@ export const billingClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/billing/usage?${queryString}` : '/billing/usage'
 
-    return apiRequest<TransactionListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<TransactionListResponse>(url)
   },
 
   /**
@@ -114,8 +91,6 @@ export const billingClient = {
   async getInvoices(
     params?: GetInvoicesRequest
   ): Promise<InvoiceListResponse | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
     if (params?.page_size) searchParams.append('page_size', String(params.page_size))
@@ -126,11 +101,7 @@ export const billingClient = {
     const queryString = searchParams.toString()
     const url = queryString ? `/billing/usage_v2?${queryString}` : '/billing/usage_v2'
 
-    return apiRequest<InvoiceListResponse>(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<InvoiceListResponse>(url)
   },
 
   /**
@@ -140,12 +111,6 @@ export const billingClient = {
   async getInvoiceDetail(
     lagoId: string
   ): Promise<InvoiceDetail | ErrorResponse> {
-    const token = localStorage.getItem('access_token')
-
-    return apiRequest<InvoiceDetail>(`/billing/usage/${lagoId}`, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : '',
-      },
-    })
+    return authenticatedApiRequest<InvoiceDetail>(`/billing/usage/${lagoId}`)
   },
 }
