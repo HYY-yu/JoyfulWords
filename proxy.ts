@@ -22,7 +22,7 @@ const publicPages = [
 // Exact match public routes (cannot use startsWith for '/')
 const exactPublicRoutes = ['/', '/sitemap.xml', '/robots.txt']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Get refresh token from cookies

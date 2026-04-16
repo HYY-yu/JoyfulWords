@@ -1,14 +1,14 @@
 "use client"
 
-import { useCallback, useMemo, useRef, type ReactNode } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 
 const SUBMITTING_TOAST_DURATION_MS = 60_000
 const POLLING_TOAST_DURATION_MS = 12_000
 
 interface AsyncTaskToastContent {
-  title: ReactNode
-  description?: ReactNode
+  title: string
+  description?: string
 }
 
 export function useAsyncTaskToast() {

@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { AuthCard } from "@/components/auth/auth-card"
 import { LoginForm } from "@/components/auth/login-form"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -12,7 +13,9 @@ export default function LoginPage() {
       title={t("auth.welcomeBack")}
       subtitle={t("auth.loginSubtitle")}
     >
-      <LoginForm />
+      <Suspense fallback={null}>
+        <LoginForm />
+      </Suspense>
     </AuthCard>
   )
 }
