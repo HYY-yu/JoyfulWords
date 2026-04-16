@@ -49,6 +49,7 @@ interface SocketChannel {
   refCount: number
   hasOpenedOnce: boolean
   manuallyClosed: boolean
+  reauthenticating: boolean
 }
 
 const HEARTBEAT_INTERVAL_MS = 25_000
@@ -97,6 +98,14 @@ class WebSocketService {
 
         this.channels.forEach((channel) => {
           channel.token = nextToken
+
+          if (
+            channel.ws &&
+            (channel.ws.readyState === WebSocket.OPEN ||
+              channel.ws.readyState === WebSocket.CONNECTING)
+          ) {
+            this.reauthenticateChannel(channel)
+          }
         })
 
         console.info("[WebSocket] Updated channel tokens after refresh", {
@@ -197,6 +206,7 @@ class WebSocketService {
       refCount: 1,
       hasOpenedOnce: false,
       manuallyClosed: false,
+      reauthenticating: false,
     }
 
     this.channels.set(key, channel)
@@ -277,6 +287,9 @@ class WebSocketService {
       }
 
       ws.onclose = (event) => {
+        const isReauthenticating = channel.reauthenticating
+        channel.reauthenticating = false
+
         console.info("[WebSocket] Closed", {
           key: channel.key,
           articleId: channel.articleId ?? null,
@@ -284,12 +297,18 @@ class WebSocketService {
           reason: event.reason || null,
           wasClean: event.wasClean,
           manuallyClosed: channel.manuallyClosed,
+          reauthenticating: isReauthenticating,
         })
 
         channel.ws = null
         this.stopHeartbeat(channel)
 
         if (channel.manuallyClosed || channel.refCount === 0) {
+          return
+        }
+
+        if (isReauthenticating) {
+          this.openChannel(channel)
           return
         }
 
@@ -329,11 +348,32 @@ class WebSocketService {
     }, delay)
   }
 
+  private reauthenticateChannel(channel: SocketChannel) {
+    if (!channel.ws) return
+
+    if (channel.reconnectTimer) {
+      clearTimeout(channel.reconnectTimer)
+      channel.reconnectTimer = null
+    }
+
+    channel.reauthenticating = true
+    channel.reconnectAttempts = 0
+    this.stopHeartbeat(channel)
+
+    console.info("[WebSocket] Reauthenticating channel after token update", {
+      key: channel.key,
+      articleId: channel.articleId ?? null,
+    })
+
+    channel.ws.close(4001, "token_updated")
+  }
+
   private closeChannel(key: string) {
     const channel = this.channels.get(key)
     if (!channel) return
 
     channel.manuallyClosed = true
+    channel.reauthenticating = false
     channel.refCount = 0
 
     if (channel.reconnectTimer) {

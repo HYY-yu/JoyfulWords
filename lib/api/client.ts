@@ -78,8 +78,23 @@ function injectTraceHeaders(): HeadersInit {
   return headers
 }
 
+function mergeHeaders(...headerSets: Array<HeadersInit | undefined>): Headers {
+  const mergedHeaders = new Headers()
+
+  headerSets.forEach((headerSet) => {
+    if (!headerSet) return
+
+    const nextHeaders = new Headers(headerSet)
+    nextHeaders.forEach((value, key) => {
+      mergedHeaders.set(key, value)
+    })
+  })
+
+  return mergedHeaders
+}
+
 function withAuthorizationHeader(headers: HeadersInit | undefined, token: string | null): HeadersInit {
-  const mergedHeaders = new Headers(headers)
+  const mergedHeaders = mergeHeaders(headers)
 
   if (token) {
     mergedHeaders.set('Authorization', `Bearer ${token}`)
@@ -103,12 +118,12 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`
 
-  const headers: HeadersInit = {
-    ...DEFAULT_HEADERS,
-    'Accept-Language': getLanguageHeader(),
-    ...injectTraceHeaders(), // Inject distributed tracing headers
-    ...options.headers,
-  }
+  const headers = mergeHeaders(
+    DEFAULT_HEADERS,
+    { 'Accept-Language': getLanguageHeader() },
+    injectTraceHeaders(), // Inject distributed tracing headers
+    options.headers
+  )
 
   try {
     // 支持 AbortController signal
