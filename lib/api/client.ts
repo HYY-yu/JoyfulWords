@@ -2,6 +2,7 @@ import { API_BASE_URL } from '@/lib/config'
 import { trace, context } from '@opentelemetry/api'
 import type { InsufficientCreditsData } from '@/components/credits/insufficient-credits-dialog'
 import { tokenStore } from '@/lib/tokens/token-store'
+import { shouldAttemptAuthRefresh } from '@/lib/auth/session-policy'
 import type {
   LoginRequest,
   SignupRequestCode,
@@ -124,6 +125,7 @@ export async function apiRequest<T>(
     injectTraceHeaders(), // Inject distributed tracing headers
     options.headers
   )
+  const hasAuthorizationHeader = headers.has('Authorization')
 
   try {
     // 支持 AbortController signal
@@ -146,8 +148,15 @@ export async function apiRequest<T>(
     }
 
     if (!response.ok) {
-      // Handle 401 Unauthorized - token expired
-      if (response.status === 401 && !skipAuthRefresh) {
+      // Only authenticated requests should enter the token refresh flow.
+      if (
+        response.status === 401 &&
+        shouldAttemptAuthRefresh({
+          endpoint,
+          hasAuthorizationHeader,
+          skipAuthRefresh,
+        })
+      ) {
         // Try to refresh the token
         const { refreshAccessToken } = await import('@/lib/tokens/refresh')
         const success = await refreshAccessToken()
@@ -174,6 +183,10 @@ export async function apiRequest<T>(
 
         // Refresh failed, redirect to login page
         if (typeof window !== 'undefined') {
+          console.warn('[API] Authenticated request failed after refresh attempt', {
+            endpoint,
+            status: response.status,
+          })
           window.location.href = '/auth/login?reason=token_expired'
         }
         return { error: 'Session expired', status: 401 } as T

@@ -169,7 +169,6 @@ curl -X POST http://localhost:8080/auth/login \
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "expires_in": 3600,
   "user": {
     "id": 1,
@@ -181,10 +180,16 @@ curl -X POST http://localhost:8080/auth/login \
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | access_token | string | 访问令牌（用于 API 认证） |
-| refresh_token | string | 刷新令牌（用于获取新的访问令牌） |
 | expires_in | number | 访问令牌过期时间（秒） |
 | user.id | number | 用户 ID |
 | user.email | string | 用户邮箱 |
+
+**Cookie**
+
+- 响应会通过 `Set-Cookie` 下发 `refresh_token` HttpOnly Cookie
+- 默认 `Path=/auth`
+- `APP_ENV=prod` 时启用 `Secure`
+- 默认 `SameSite=Lax`
 
 **错误响应**
 
@@ -205,24 +210,14 @@ curl -X POST http://localhost:8080/auth/login \
 
 - **URL:** `/auth/token/refresh`
 - **方法:** `POST`
-- **需要认证:** 是（需要有效的 access_token）
-
-### 请求参数
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| refresh_token | string | 是 | 刷新令牌 |
+- **需要认证:** 否（依赖浏览器自动携带 `refresh_token` Cookie）
 
 ### 请求示例
 
 ```bash
 curl -X POST http://localhost:8080/auth/token/refresh \
-  -H "Content-Type: application/json" \
   -H "Accept-Language: zh-CN" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NjY5OTM5MTMsIm5iZiI6MTc2Njk5MzAxMywiaWF0IjoxNzY2OTkzMDEzfQ.HNMLInJmtqrr-pzzAXfmU7J3vcWSrg1eQ12_2DDQqLo" \
-  -d '{
-    "refresh_token": "rt_eb1cb07ac9edf82225becf3b74d2ea9483a95b4f299f2692d0c52fa8d8f87f02"
-  }'
+  --cookie "refresh_token=rt_eb1cb07ac9edf82225becf3b74d2ea9483a95b4f299f2692d0c52fa8d8f87f02"
 ```
 
 ### 响应
@@ -232,7 +227,6 @@ curl -X POST http://localhost:8080/auth/token/refresh \
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "expires_in": 3600,
   "user": {
     "id": 1,
@@ -241,7 +235,7 @@ curl -X POST http://localhost:8080/auth/token/refresh \
 }
 ```
 
-**注意:** 刷新令牌会自动轮换（rotation），每次刷新都会返回新的 refresh_token。
+**注意:** 刷新令牌会自动轮换（rotation），每次刷新都会通过 `Set-Cookie` 写入新的 HttpOnly Cookie。
 
 **错误响应**
 
@@ -262,24 +256,15 @@ curl -X POST http://localhost:8080/auth/token/refresh \
 
 - **URL:** `/auth/logout`
 - **方法:** `POST`
-- **需要认证:** 是（需要有效的 access_token）
-
-### 请求参数
-
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| refresh_token | string | 是 | 要撤销的刷新令牌 |
+- **需要认证:** 是（需要有效的 access_token，并自动携带 `refresh_token` Cookie）
 
 ### 请求示例
 
 ```bash
 curl -X POST http://localhost:8080/auth/logout \
-  -H "Content-Type: application/json" \
   -H "Accept-Language: zh-CN" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NjY5OTQ1NzQsIm5iZiI6MTc2Njk5MzY3NCwiaWF0IjoxNzY2OTkzNjc0fQ.uYiqY2J2vESza-FvIDqhRpCAdOdjj4oq1PJeYP_cbJM" \
-  -d '{
-    "refresh_token": "rt_d9c05baa01b7c6dd4967c5aa433a664be4a8f737391c1c29c3a9bbc0ba705b6a"
-  }'
+  --cookie "refresh_token=rt_d9c05baa01b7c6dd4967c5aa433a664be4a8f737391c1c29c3a9bbc0ba705b6a"
 ```
 
 ### 响应
@@ -580,7 +565,6 @@ window.location.href = auth_url;
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refresh_token": "rt_...",
   "expires_in": 900,
   "user": {
     "id": 123,
@@ -592,10 +576,14 @@ window.location.href = auth_url;
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | access_token | string | JWT 访问令牌（15 分钟有效） |
-| refresh_token | string | 刷新令牌（30 天有效） |
 | expires_in | number | 访问令牌过期时间（秒） |
 | user.id | number | 用户 ID |
 | user.email | string | 用户 Google 邮箱 |
+
+**Cookie**
+
+- 响应会通过 `Set-Cookie` 下发 `refresh_token` HttpOnly Cookie
+- 前端无需手动写入 `document.cookie`
 
 **错误响应**
 
@@ -615,8 +603,8 @@ window.location.href = auth_url;
 
 1. 用户完成 Google 登录
 2. Google 重定向到 `/auth/google/callback?code=...&state=...`
-3. 后端返回 JSON 响应包含 JWT 令牌
-4. 前端解析响应并保存令牌
+3. 后端返回 JSON 响应并设置 `refresh_token` HttpOnly Cookie
+4. 前端只需保存 `access_token`
 5. 重定向到目标页面
 
 ### 完整登录流程示例
@@ -639,7 +627,7 @@ async function loginWithGoogle() {
 
 // 步骤 2: 处理回调（在回调页面）
 // 当用户被重定向回来时，后端会自动处理 OAuth 流程
-// 并返回包含 token 的 JSON 响应
+// 并返回包含 access_token 的 JSON 响应，同时写入 HttpOnly refresh cookie
 ```
 
 ### 账号关联逻辑
@@ -708,10 +696,10 @@ curl -X POST http://localhost:8080/auth/login \
 ### 登录后使用流程
 
 ```
-1. 获取 access_token 和 refresh_token
-2. 使用 access_token 调用需要认证的接口（在 Authorization header 中）
-3. access_token 过期前，使用 refresh_token 刷新
-4. 刷新后会获得新的 access_token 和 refresh_token
+1. 登录后获取 `access_token`，浏览器自动保存 `refresh_token` HttpOnly Cookie
+2. 使用 `access_token` 调用需要认证的接口（在 Authorization header 中）
+3. `access_token` 过期后，调用 `/auth/token/refresh` 并携带凭证
+4. 刷新后会获得新的 `access_token`，同时后端轮换 `refresh_token` Cookie
 ```
 
 ### Token 使用示例
@@ -741,14 +729,15 @@ curl -X GET http://localhost:8080/api/protected \
 1. **验证码有效期:** 验证码有过期时间（默认 15 分钟），超时需重新请求
 2. **验证码一次性:** 每个验证码只能使用一次
 3. **密码强度:** 密码至少 8 位字符
-4. **Token 过期:** access_token 有效期较短（15 分钟），refresh_token 有效期较长（30 天）
+4. **Token 过期:** access_token 有效期较短（15 分钟），refresh_token Cookie 有效期较长（30 天）
 5. **Token 轮换:** 刷新令牌时会自动轮换，旧的 refresh_token 会立即失效
-6. **密码修改影响:** 修改密码后会撤销所有现有会话，需要在所有设备重新登录
-7. **密码重置影响:** 密码重置后会撤销所有现有会话，需要在所有设备重新登录
-8. **会话管理:** 每次登录会创建新会话，登出会撤销对应会话
-9. **邮件速率限制:** 每个邮箱或 IP 地址每天最多发送 5 封验证邮件（包括注册和密码重置）
-10. **防枚举保护:** 为防止邮箱枚举攻击，密码重置请求即使用户不存在也返回成功
-11. **Google OAuth 环境变量:** Google OAuth 功能需要配置 `GOOGLE_OAUTH_CLIENT_ID`、`GOOGLE_OAUTH_CLIENT_SECRET` 和 `GOOGLE_OAUTH_REDIRECT_URL` 环境变量，未配置时相关接口不可用
-12. **OAuth State 有效期:** Google OAuth 的 state 参数有效期为 10 分钟，超时需重新发起登录
-13. **账号自动关联:** 如果 Google 邮箱已通过邮箱密码方式注册，使用 Google 登录会自动关联到现有账号
-14. **OAuth 用户无密码:** 通过 Google OAuth 创建的用户没有设置密码，无法使用邮箱密码登录，只能通过 Google 或重置密码后登录
+6. **Cookie 模式:** 前端必须在跨域请求中显式开启 `credentials: 'include'`
+7. **密码修改影响:** 修改密码后会撤销所有现有会话，需要在所有设备重新登录
+8. **密码重置影响:** 密码重置后会撤销所有现有会话，需要在所有设备重新登录
+9. **会话管理:** 每次登录会创建新会话，登出会撤销对应会话
+10. **邮件速率限制:** 每个邮箱或 IP 地址每天最多发送 5 封验证邮件（包括注册和密码重置）
+11. **防枚举保护:** 为防止邮箱枚举攻击，密码重置请求即使用户不存在也返回成功
+12. **Google OAuth 环境变量:** Google OAuth 功能需要配置 `GOOGLE_OAUTH_CLIENT_ID`、`GOOGLE_OAUTH_CLIENT_SECRET` 和 `GOOGLE_OAUTH_REDIRECT_URL` 环境变量，未配置时相关接口不可用
+13. **OAuth State 有效期:** Google OAuth 的 state 参数有效期为 10 分钟，超时需重新发起登录
+14. **账号自动关联:** 如果 Google 邮箱已通过邮箱密码方式注册，使用 Google 登录会自动关联到现有账号
+15. **OAuth 用户无密码:** 通过 Google OAuth 创建的用户没有设置密码，无法使用邮箱密码登录，只能通过 Google 或重置密码后登录
