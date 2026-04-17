@@ -15,7 +15,6 @@ export class TokenManager {
 
     localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY)
     localStorage.removeItem(LEGACY_USER_KEY)
-    document.cookie = `${LEGACY_REFRESH_TOKEN_KEY}=; path=/; max-age=0; sameSite=lax`
   }
 
   static setAccessToken(session: AccessTokenSession): number {
