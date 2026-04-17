@@ -16,6 +16,7 @@ interface ImageMaterial {
 interface MaterialSelectorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  title?: string
   materials: ImageMaterial[]
   isLoading: boolean
   hasMore: boolean
@@ -28,6 +29,7 @@ interface MaterialSelectorDialogProps {
 export function MaterialSelectorDialog({
   open,
   onOpenChange,
+  title,
   materials,
   isLoading,
   hasMore,
@@ -75,7 +77,9 @@ export function MaterialSelectorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>{t("imageGeneration.properties.selectReferenceImage")}</DialogTitle>
+          <DialogTitle>
+            {title ?? t("imageGeneration.properties.selectReferenceImage")}
+          </DialogTitle>
         </DialogHeader>
 
         {/* 使用原生 div 替代 ScrollArea，避免滚动位置重置 */}

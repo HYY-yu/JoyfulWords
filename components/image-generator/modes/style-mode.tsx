@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { Upload, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, Copy } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -10,9 +10,11 @@ import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 import { ModelSelector } from "@/components/image-generator/ui/model-selector"
+import { MaterialSelectorDialog } from "@/components/image-generator/ui/material-selector-dialog"
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
-import { Textarea } from "@/components/ui/base/textarea"
 import { Button } from "@/components/ui/base/button"
+import { Textarea } from "@/components/ui/base/textarea"
 
 // 风格项目接口
 interface StyleItem {
@@ -98,6 +100,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
   const taskToast = useAsyncTaskToast()
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [selectedMaterialUrl, setSelectedMaterialUrl] = useState<string | null>(null)
   const [selectedStyle, setSelectedStyle] = useState<StyleItem | null>(null)
   const [renderStatus, setRenderStatus] = useState<RenderStatus>("idle")
   const [renderedImage, setRenderedImage] = useState<string | null>(null)
@@ -106,6 +109,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
   const [currentGenerationLogId, setCurrentGenerationLogId] = useState<number | null>(null)
   const [isSavingToMaterials, setIsSavingToMaterials] = useState(false)
   const [currentTaskId, setCurrentTaskId] = useState<number | null>(null)
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false)
 
   // 风格列表相关状态
   const [styles, setStyles] = useState<StyleItem[]>([])
@@ -116,6 +120,26 @@ export function StyleMode({ articleId }: StyleModeProps) {
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState<string>("")
   const [isLoadingModels, setIsLoadingModels] = useState(true)
+
+  const {
+    materials,
+    isLoading: materialsLoading,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    type: "image",
+    enabled: showMaterialSelector,
+    pageSize: 20,
+  })
+
+  const selectedMaterial = useMemo(
+    () => materials.find((material) => material.content === selectedMaterialUrl) ?? null,
+    [materials, selectedMaterialUrl]
+  )
+
+  const baseImagePreview = uploadedImage ?? selectedMaterialUrl
+  const baseImageUrl = uploadedImageUrl ?? selectedMaterialUrl
 
   // 自定义风格对话框状态
   const [showCustomDialog, setShowCustomDialog] = useState(false)
@@ -299,6 +323,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
       console.info('[StyleMode] Image uploaded successfully:', { imageUrl })
 
       setUploadedImageUrl(imageUrl)
+      setSelectedMaterialUrl(null)
 
       // 保留本地预览
       const reader = new FileReader()
@@ -388,16 +413,26 @@ export function StyleMode({ articleId }: StyleModeProps) {
     console.info('[StyleMode] Custom style created:', { promptLength: customPrompt.length })
   }
 
+  const handleSelectMaterial = useCallback((materialUrl: string) => {
+    setUploadedImage(null)
+    setUploadedImageUrl(null)
+    setSelectedMaterialUrl(materialUrl)
+    setRenderedImage(null)
+    setRenderStatus("idle")
+    setCurrentGenerationLogId(null)
+    setCurrentTaskId(null)
+  }, [])
+
   const handleGenerate = async () => {
     // 验证输入
-    if (!uploadedImageUrl || !selectedStyle || !selectedModel) {
+    if (!baseImageUrl || !selectedStyle || !selectedModel) {
       console.warn('[StyleMode] Generation validation failed:', {
-        hasImage: !!uploadedImageUrl,
+        hasImage: !!baseImageUrl,
         hasStyle: !!selectedStyle,
         hasModel: !!selectedModel
       })
 
-      if (!uploadedImageUrl || !selectedStyle) {
+      if (!baseImageUrl || !selectedStyle) {
         toast({
           variant: "destructive",
           title: t("imageGeneration.styleMode.validation.missingInput"),
@@ -432,7 +467,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
         prompt: selectedStyle.full_prompt || selectedStyle.name,
         model_name: selectedModel,
         article_id: articleId ?? undefined,
-        reference_images: [uploadedImageUrl],
+        reference_images: [baseImageUrl],
       })
 
       if ('error' in result) {
@@ -535,10 +570,12 @@ export function StyleMode({ articleId }: StyleModeProps) {
   const handleReset = () => {
     setUploadedImage(null)
     setUploadedImageUrl(null)
+    setSelectedMaterialUrl(null)
     setRenderedImage(null)
     setSelectedStyle(null)
     setRenderStatus("idle")
     setCurrentTaskId(null)
+    setCurrentGenerationLogId(null)
   }
 
   const handleRetryFetchStyles = () => {
@@ -572,7 +609,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
 
         <div className="flex-1 p-4 space-y-4">
           {/* 上传区域 */}
-          {!uploadedImage ? (
+          {!baseImagePreview ? (
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -636,7 +673,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
             </div>
           ) : (
             <>
-              {/* 已上传图片的预览 */}
+              {/* 图片预览 */}
               <div
                 onClick={() => {
                   if (isUploading || currentTaskId) return
@@ -656,8 +693,8 @@ export function StyleMode({ articleId }: StyleModeProps) {
                 }`}
               >
                 <img
-                  src={uploadedImage}
-                  alt="Uploaded"
+                  src={baseImagePreview}
+                  alt={selectedMaterial?.title ?? "Uploaded"}
                   className="w-full h-full object-cover"
                 />
                 {isUploading && (
@@ -687,8 +724,31 @@ export function StyleMode({ articleId }: StyleModeProps) {
             </>
           )}
 
+          {/* 素材选择 */}
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => setShowMaterialSelector(true)}
+              disabled={isUploading || renderStatus === "generating" || !!currentTaskId}
+            >
+              <ImageIcon className="h-4 w-4" />
+              <span className="truncate">
+                {selectedMaterial?.title
+                  ? `${t("imageGeneration.properties.imageSelected")}${selectedMaterial.title}`
+                  : t("aiRewrite.material.selectMaterials")}
+              </span>
+            </Button>
+            {selectedMaterialUrl ? (
+              <p className="text-xs text-muted-foreground">
+                {t("imageGeneration.properties.selectImageFromMaterials")}
+              </p>
+            ) : null}
+          </div>
+
           {/* 功能提示 */}
-          {!uploadedImage && (
+          {!baseImagePreview && (
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
               <p className="text-xs text-muted-foreground text-center">
                 {locale === 'zh'
@@ -718,7 +778,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
               onClick={handleGenerate}
               disabled={
                 renderStatus !== "idle" ||
-                !uploadedImageUrl ||
+                !baseImageUrl ||
                 !selectedStyle ||
                 !selectedModel ||
                 !!currentTaskId ||
@@ -726,7 +786,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
               }
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                 renderStatus !== "idle" ||
-                !uploadedImageUrl ||
+                !baseImageUrl ||
                 !selectedStyle ||
                 !selectedModel ||
                 currentTaskId ||
@@ -734,7 +794,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-primary text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95"
               }`}
-              title={!uploadedImageUrl
+              title={!baseImageUrl
                 ? t("imageGeneration.styleMode.validation.missingImage")
                 : !selectedStyle
                 ? t("imageGeneration.styleMode.validation.missingStyle")
@@ -750,17 +810,17 @@ export function StyleMode({ articleId }: StyleModeProps) {
             {/* 状态提示 */}
             {!isUploading && !currentTaskId && renderStatus === "idle" && (
               <>
-                {!uploadedImageUrl && (
+                {!baseImageUrl && (
                   <span className="text-xs text-muted-foreground">
                     {t("imageGeneration.styleMode.validation.missingImage")}
                   </span>
                 )}
-                {uploadedImageUrl && !selectedStyle && (
+                {baseImageUrl && !selectedStyle && (
                   <span className="text-xs text-muted-foreground">
                     {t("imageGeneration.styleMode.validation.missingStyle")}
                   </span>
                 )}
-                {uploadedImageUrl && selectedStyle && !selectedModel && (
+                {baseImageUrl && selectedStyle && !selectedModel && (
                   <span className="text-xs text-muted-foreground">
                     {t("imageGeneration.styleMode.validation.missingModel")}
                   </span>
@@ -802,7 +862,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="relative w-full max-w-2xl aspect-square">
             {/* 空状态 */}
-            {!uploadedImage && !renderedImage && (
+            {!baseImagePreview && !renderedImage && (
               <div className="w-full h-full rounded-2xl border-2 border-dashed border-border/30 flex flex-col items-center justify-center bg-muted/20">
                 <div className="p-6 rounded-full bg-muted/50 mb-4">
                   <ImageIcon className="w-12 h-12 text-muted-foreground/50" />
@@ -814,10 +874,10 @@ export function StyleMode({ articleId }: StyleModeProps) {
             )}
 
             {/* 原图预览 */}
-            {uploadedImage && !renderedImage && (
+            {baseImagePreview && !renderedImage && (
               <div className="w-full h-full rounded-2xl overflow-hidden border-2 border-border/50 shadow-lg">
                 <img
-                  src={uploadedImage}
+                  src={baseImagePreview}
                   alt="Preview"
                   className="w-full h-full object-cover"
                 />
@@ -828,9 +888,9 @@ export function StyleMode({ articleId }: StyleModeProps) {
             {renderStatus === "generating" && (
               <div className="absolute inset-0 rounded-2xl overflow-hidden border-2 border-primary/50">
                 {/* 只有在有上传图片时才显示模糊背景 */}
-                {uploadedImage && (
+                {baseImagePreview && (
                   <img
-                    src={uploadedImage}
+                    src={baseImagePreview}
                     alt="Rendering"
                     className="w-full h-full object-cover opacity-50 blur-sm"
                   />
@@ -967,6 +1027,25 @@ export function StyleMode({ articleId }: StyleModeProps) {
           </div>
         </div>
       </div>
+
+      <MaterialSelectorDialog
+        open={showMaterialSelector}
+        onOpenChange={setShowMaterialSelector}
+        title={t("aiRewrite.material.selectMaterials")}
+        materials={materials
+          .filter((material) => material.material_type === "image" && material.content)
+          .map((material) => ({
+            id: material.id,
+            title: material.title,
+            source_url: material.content!,
+          }))}
+        isLoading={materialsLoading}
+        hasMore={hasMoreMaterials}
+        onLoadMore={loadMoreMaterials}
+        observerTarget={materialsObserverTarget}
+        onSelect={handleSelectMaterial}
+        currentUrl={selectedMaterialUrl ?? undefined}
+      />
 
       {/* 自定义风格对话框 */}
       <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>

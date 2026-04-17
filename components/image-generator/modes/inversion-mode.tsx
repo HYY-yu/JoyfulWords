@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { Upload, Split, Download, CheckCircle2, Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -10,6 +10,9 @@ import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import { MaterialSelectorDialog } from "@/components/image-generator/ui/material-selector-dialog"
+import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
+import { Button } from "@/components/ui/base/button"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Slider } from "@/components/ui/base/slider"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
@@ -42,6 +45,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null)
+  const [selectedMaterialUrl, setSelectedMaterialUrl] = useState<string | null>(null)
   const [splitStatus, setSplitStatus] = useState<SplitStatus>("idle")
   const [layerImages, setLayerImages] = useState<LayerImage[]>([])
   const [selectedLayers, setSelectedLayers] = useState<Set<string>>(new Set())
@@ -49,6 +53,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [currentGenerationLogId, setCurrentGenerationLogId] = useState<number | null>(null)
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false)
 
   // 新增状态
   const [numLayers, setNumLayers] = useState(4)
@@ -61,6 +66,26 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
   // 图片生成相关状态
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
+
+  const {
+    materials,
+    isLoading: materialsLoading,
+    hasMore: hasMoreMaterials,
+    loadMore: loadMoreMaterials,
+    observerTarget: materialsObserverTarget,
+  } = useInfiniteMaterials({
+    type: "image",
+    enabled: showMaterialSelector,
+    pageSize: 20,
+  })
+
+  const selectedMaterial = useMemo(
+    () => materials.find((material) => material.content === selectedMaterialUrl) ?? null,
+    [materials, selectedMaterialUrl]
+  )
+
+  const baseImagePreview = uploadedImage ?? selectedMaterialUrl
+  const baseImageUrl = uploadedImageUrl ?? selectedMaterialUrl
 
   // 轮询任务状态
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -203,6 +228,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
       console.info('[InversionMode] Image uploaded successfully:', { imageUrl })
 
       setUploadedImageUrl(imageUrl)
+      setSelectedMaterialUrl(null)
 
       // 保留本地预览
       const reader = new FileReader()
@@ -214,6 +240,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
           setSelectedLayers(new Set())
           setSplitStatus("idle")
           setCurrentGenerationLogId(null)
+          setCurrentTaskId(null)
 
           // DEBUG: 上传完成后检查状态
           console.debug('[InversionMode] Upload complete, current state:', {
@@ -272,9 +299,21 @@ export function InversionMode({ articleId }: InversionModeProps) {
     setIsDragging(false)
   }, [])
 
+  const handleSelectMaterial = useCallback((materialUrl: string) => {
+    setUploadedImage(null)
+    setUploadedImageUrl(null)
+    setSelectedMaterialUrl(materialUrl)
+    setLayerImages([])
+    setSelectedLayers(new Set())
+    setSplitStatus("idle")
+    setIsProcessing(false)
+    setCurrentGenerationLogId(null)
+    setCurrentTaskId(null)
+  }, [])
+
   const handleSplit = useCallback(async () => {
     // 验证输入
-    if (!uploadedImageUrl) {
+    if (!baseImageUrl) {
       console.warn('[InversionMode] Split validation failed: missing image')
 
       toast({
@@ -309,7 +348,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
     try {
       // 调用真实 API
       const result = await imageGenerationClient.createSplitTask({
-        image_url: uploadedImageUrl,
+        image_url: baseImageUrl,
         num_layers: numLayers,
         prompt: prompt || undefined,
         article_id: articleId ?? undefined,
@@ -342,7 +381,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
         title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [articleId, numLayers, pollingToastDescription, pollingToastTitle, prompt, submittingToastDescription, submittingToastTitle, t, taskToast, toast, uploadedImageUrl])
+  }, [articleId, baseImageUrl, numLayers, pollingToastDescription, pollingToastTitle, prompt, submittingToastDescription, submittingToastTitle, t, taskToast, toast])
 
   const handleToggleLayer = (layerId: string) => {
     setSelectedLayers(prev => {
@@ -383,10 +422,14 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
   const handleReset = () => {
     setUploadedImage(null)
+    setUploadedImageUrl(null)
+    setSelectedMaterialUrl(null)
     setLayerImages([])
     setSelectedLayers(new Set())
     setSplitStatus("idle")
     setIsProcessing(false)
+    setCurrentTaskId(null)
+    setCurrentGenerationLogId(null)
   }
 
   return (
@@ -425,17 +468,17 @@ export function InversionMode({ articleId }: InversionModeProps) {
               ${
                 isDragging
                   ? "border-primary bg-primary/5 scale-[1.02]"
-                  : uploadedImage
+                  : baseImagePreview
                   ? "border-transparent"
                   : "border-border/50 hover:border-primary/50 hover:bg-muted/50"
               }
               ${(isProcessing || isUploading) ? "cursor-not-allowed opacity-60" : ""}
             `}
           >
-            {uploadedImage ? (
+            {baseImagePreview ? (
               <img
-                src={uploadedImage}
-                alt="Uploaded"
+                src={baseImagePreview}
+                alt={selectedMaterial?.title ?? "Uploaded"}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -456,7 +499,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
             )}
 
             {/* 拖拽时的高亮效果 */}
-            {isDragging && !uploadedImage && (
+            {isDragging && !baseImagePreview && (
               <div className="absolute inset-0 bg-primary/10 animate-pulse pointer-events-none" />
             )}
           </div>
@@ -478,8 +521,31 @@ export function InversionMode({ articleId }: InversionModeProps) {
             </div>
           )}
 
+          {/* 素材选择 */}
+          <div className="mt-4 space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2"
+              onClick={() => setShowMaterialSelector(true)}
+              disabled={isProcessing || isUploading || !!currentTaskId}
+            >
+              <Layers className="h-4 w-4" />
+              <span className="truncate">
+                {selectedMaterial?.title
+                  ? `${t("imageGeneration.properties.imageSelected")}${selectedMaterial.title}`
+                  : t("aiRewrite.material.selectMaterials")}
+              </span>
+            </Button>
+            {selectedMaterialUrl ? (
+              <p className="text-xs text-muted-foreground">
+                {t("imageGeneration.properties.selectImageFromMaterials")}
+              </p>
+            ) : null}
+          </div>
+
           {/* 表单控件 */}
-          {uploadedImage && splitStatus === "idle" && (
+          {baseImagePreview && splitStatus === "idle" && (
             <div className="mt-4 space-y-4">
               {/* 图层数量选择器 */}
               <div className="space-y-2">
@@ -529,7 +595,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
           )}
 
           {/* 操作按钮 */}
-          {uploadedImage && splitStatus === "idle" && (
+          {baseImagePreview && splitStatus === "idle" && (
             <button
               onClick={handleSplit}
               disabled={isProcessing || isUploading}
@@ -588,7 +654,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
           )}
 
           {/* 重置按钮 */}
-          {uploadedImage && (
+          {baseImagePreview && (
             <button
               onClick={handleReset}
               disabled={isProcessing || isUploading}
@@ -795,6 +861,25 @@ export function InversionMode({ articleId }: InversionModeProps) {
           </div>
         )}
       </div>
+
+      <MaterialSelectorDialog
+        open={showMaterialSelector}
+        onOpenChange={setShowMaterialSelector}
+        title={t("aiRewrite.material.selectMaterials")}
+        materials={materials
+          .filter((material) => material.material_type === "image" && material.content)
+          .map((material) => ({
+            id: material.id,
+            title: material.title,
+            source_url: material.content!,
+          }))}
+        isLoading={materialsLoading}
+        hasMore={hasMoreMaterials}
+        onLoadMore={loadMoreMaterials}
+        observerTarget={materialsObserverTarget}
+        onSelect={handleSelectMaterial}
+        currentUrl={selectedMaterialUrl ?? undefined}
+      />
     </div>
   )
 }
