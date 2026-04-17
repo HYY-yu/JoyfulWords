@@ -237,6 +237,7 @@ export function AIRewriteDialog({
   const isWaiting = taskLoading || taskStatus === "pending" || taskStatus === "processing";
   const isTaskFailed = taskStatus === "failed";
   const isTaskSuccess = taskStatus === "success";
+  const isExpandedResultView = isTaskMode && isTaskSuccess;
 
   // 使用无限滚动素材 Hook
   const {
@@ -493,17 +494,27 @@ export function AIRewriteDialog({
           ) : null}
 
           {/* 两个 Textarea 编辑区域 */}
-          <div className="grid shrink-0 grid-cols-1 gap-3 xl:grid-cols-2">
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-3 xl:grid-cols-2",
+              isExpandedResultView ? "min-h-0 flex-1" : "shrink-0"
+            )}
+          >
             {/* 原始文本 */}
-            <div className="flex flex-col">
+            <div className={cn("flex flex-col", isExpandedResultView && "min-h-0 flex-1")}>
               <Label className="mb-2">{t("aiRewrite.selectedText")}</Label>
-              <div className="min-h-[96px] rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap lg:min-h-[112px]">
+              <div
+                className={cn(
+                  "overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap break-words",
+                  isExpandedResultView ? "h-full min-h-0" : "h-[128px] lg:h-[144px]"
+                )}
+              >
                 {selectedText}
               </div>
             </div>
 
             {/* 改写后的文本 */}
-            <div className="flex flex-col">
+            <div className={cn("flex flex-col", isExpandedResultView && "min-h-0 flex-1")}>
               <Label className="mb-2">
                 {t("aiRewrite.rewrittenText")}
                 {initialRewrittenText && (
@@ -520,7 +531,10 @@ export function AIRewriteDialog({
                     ? t("aiRewrite.waitingPlaceholder")
                     : t("aiRewrite.rewrittenTextPlaceholder")
                 }
-                className="min-h-[96px] resize-none lg:min-h-[112px]"
+                className={cn(
+                  "resize-none overflow-y-auto [field-sizing:fixed]",
+                  isExpandedResultView ? "h-full min-h-0" : "h-[128px] lg:h-[144px]"
+                )}
                 disabled={isWaiting || isTaskFailed}
               />
             </div>
