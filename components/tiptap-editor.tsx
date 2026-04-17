@@ -17,6 +17,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context";
 import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 import { markdownToHTML } from "@/lib/tiptap-utils";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
+import { getMaterialImageFromDataTransfer } from "@/lib/editor-drag-drop";
 import type {
   TaskCenterArticleTaskDetail,
   TaskCenterTaskReference,
@@ -182,6 +183,34 @@ export function TiptapEditor({
       attributes: {
         class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-6 prose-headings:font-bold prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300",
         placeholder,
+      },
+      handleDrop(view, event) {
+        if (!event.dataTransfer) {
+          return false;
+        }
+
+        const materialImageUrl = getMaterialImageFromDataTransfer(event.dataTransfer);
+
+        if (!materialImageUrl) {
+          return false;
+        }
+
+        event.preventDefault();
+
+        const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+        const imageNodeType = view.state.schema.nodes.customImage;
+
+        if (!dropPos || !imageNodeType) {
+          return true;
+        }
+
+        const imageNode = imageNodeType.create({ src: materialImageUrl, alt: "" });
+        const transaction = view.state.tr.insert(dropPos.pos, imageNode).scrollIntoView();
+
+        view.dispatch(transaction);
+        view.focus();
+
+        return true;
       },
     },
     onUpdate: ({ editor }) => {
@@ -590,16 +619,6 @@ export function TiptapEditor({
       />
       <div
         className="flex-1 overflow-y-auto min-h-0"
-        onDrop={(e) => {
-          const text = e.dataTransfer.getData("text/plain");
-          if (text && editor) {
-            e.preventDefault();
-            const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY });
-            if (pos) {
-              editor.chain().focus().insertContentAt(pos.pos, text).run();
-            }
-          }
-        }}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "copy";

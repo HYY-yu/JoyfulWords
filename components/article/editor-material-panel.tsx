@@ -20,6 +20,7 @@ import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/c
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
+import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
 
 // ==================== MaterialCard ====================
 
@@ -76,7 +77,7 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
     (e: React.DragEvent<HTMLDivElement>) => {
       e.dataTransfer.effectAllowed = "copy"
       if (isImage && imageUrl) {
-        e.dataTransfer.setData("text/plain", imageUrl)
+        e.dataTransfer.setData(MATERIAL_IMAGE_DATA_TRANSFER_TYPE, imageUrl)
       } else {
         e.dataTransfer.setData("text/plain", material.content || material.title)
       }
