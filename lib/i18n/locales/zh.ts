@@ -391,6 +391,7 @@ export const zh = {
             selectTaskTitle: "选择一个任务",
             selectTaskDescription: "点击左侧任务即可查看完整详情。",
             detailTitle: "任务详情",
+            detailLoading: "任务详情加载中…",
             detailLoadFailed: "获取任务详情失败，请稍后重试。",
             openArticle: "打开文章",
             copyToMaterials: "加入素材库",
@@ -408,8 +409,6 @@ export const zh = {
                 infographic: "信息图",
             },
             statuses: {
-                edit_doing: "编辑中",
-                edit: "编辑完成",
                 pending: "待处理",
                 processing: "处理中",
                 failed: "失败",
@@ -431,6 +430,8 @@ export const zh = {
                 genMode: "生成模式",
                 completedAt: "完成时间",
                 updatedAt: "更新时间",
+                sourceText: "原始文本",
+                resultText: "改写结果",
                 settlement: "结算状态",
                 error: "错误信息",
                 outputImages: "结果图片",
@@ -565,6 +566,8 @@ export const zh = {
             select: "选择",
             rectangle: "矩形",
             delete: "删除",
+            template: "模板",
+            templateHint: "快速加载常用图片结构",
             reset: "重置画布",
         },
         modeTabs: {
@@ -583,7 +586,7 @@ export const zh = {
         },
 
         canvas: {
-            previewJson: "预览 JSON",
+            advancedMode: "高级模式",
             addLayerFirst: "请先添加至少一个图层",
             toolHints: {
                 select: "点击选择图层，拖动移动位置",
@@ -598,7 +601,7 @@ export const zh = {
             showGeneratedImage: "显示生成的图片",
             emptyState: {
                 title: "画布空白",
-                description: "从左侧选择矩形工具开始创作",
+                description: "从左侧选择模板或矩形工具开始创作",
             },
             layerLabel: "图层 {number}",
         },
@@ -613,11 +616,17 @@ export const zh = {
             composition: "构图设置",
 
             // 元数据
+            sizePreset: "常用尺寸",
             width: "宽度",
             height: "高度",
             seed: "随机种子",
             seedHint: "设置为 -1 表示随机种子",
             model: "AI 模型",
+            sizePresets: {
+                landscape: "横版",
+                portrait: "竖版",
+                square: "方形",
+            },
 
             // 图层属性
             descriptionLabel: "描述",
@@ -732,13 +741,15 @@ export const zh = {
         },
         validation: {
             missingDescription: "图层描述不能为空",
-            missingDescriptionDesc: "有 {{count}} 个图层缺少描述，请先填写描述后再预览 JSON",
+            missingDescriptionDesc: "有 {{count}} 个图层缺少描述，请先填写描述后再进入高级模式",
         },
         jsonPreviewDialog: {
-            title: "配置预览",
-            description: "查看 JSON 配置并获取 AI 优化的提示词",
+            title: "高级模式",
+            description: "查看底层配置、微调随机种子，并获取 AI 优化后的提示词",
             jsonLabel: "Creator JSON",
             promptLabel: "专业提示词",
+            seedLabel: "随机种子",
+            seedHint: "默认值为 -1，表示每次直接生成都使用随机种子",
             convertButton: "转换提示词",
             convertingButton: "转换中...",
             copyButton: "复制",
@@ -748,6 +759,32 @@ export const zh = {
                 convertFailed: "提示词转换失败",
                 convertSuccess: "提示词转换成功",
                 copySuccess: "已复制到剪贴板",
+            },
+        },
+        templates: {
+            sideBySide: {
+                title: "并列矩形",
+                description: "适合左右分区，对比主体和补充信息",
+                layers: {
+                    primary: "主体视觉 / 产品主体",
+                    secondary: "补充信息 / 品牌文案",
+                },
+            },
+            nestedRectangles: {
+                title: "嵌套矩形",
+                description: "适合主画面里嵌一个重点局部或特写",
+                layers: {
+                    outer: "主画面 / 场景主体",
+                    inner: "重点特写 / 细节放大",
+                },
+            },
+            stackedRectangles: {
+                title: "上下矩形",
+                description: "适合上方主视觉、下方信息块的排版",
+                layers: {
+                    top: "上方主视觉 / 标题图",
+                    bottom: "下方信息块 / 说明文案",
+                },
             },
         },
         generating: {
@@ -1344,10 +1381,13 @@ export const zh = {
         cancel: "取消",
         restoreOriginal: "恢复原文",
         resultReady: "AI 改写完成",
-        waitingHint: "AI 正在改写中，请稍候…改写完成后将自动弹出结果",
+        waitingHint: "AI 正在改写中，请稍候…",
+        waitingTaskHint: "任务处理中，状态会在这里自动更新。",
         waitingPlaceholder: "AI 改写完成后将自动显示…",
         submitting: "提交中…",
         waiting: "改写中…",
+        failedTitle: "改写失败",
+        failedHint: "任务未成功完成，请稍后重试。",
         types: {
             material: "素材扩充",
             style: "风格调整",
@@ -1418,12 +1458,14 @@ export const zh = {
             generateSuccess: "生成成功",
             generateFailed: "生成失败",
             submitted: "AI 改写任务已提交",
-            submittedDesc: "改写完成后会自动弹出通知",
-            resultReady: "点击编辑器中的蓝色等待块查看结果",
+            submittedDesc: "可在任务面板中查看处理进度。",
+            resultReady: "可在任务面板中打开并查看改写结果",
             timeout: "AI 改写超时",
             timeoutDesc: "AI 改写任务超时，请重试",
             taskExpired: "AI 改写任务已过期",
             quotaExceeded: "存储空间不足，已自动清理旧任务",
+            applySourceChanged: "无法应用改写结果，原始文本已变化或找不到。",
+            missingSourceText: "找不到原始文本，无法应用改写结果。",
         },
     },
     aiMindmap: {

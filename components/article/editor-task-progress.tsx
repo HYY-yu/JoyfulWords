@@ -4,11 +4,10 @@ import { useEffect, useState } from "react"
 import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, PencilIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
 
 // ---- Types ----
 
-export type TaskType = "ai-edit" | "image-generation" | "task-center"
+export type TaskType = "image-generation" | "task-center"
 export type TaskStatus = "pending" | "completed" | "failed"
 
 export interface TaskItem {
@@ -24,7 +23,6 @@ export interface TaskItem {
 }
 
 interface EditorTaskProgressProps {
-    aiEditTasks: Map<string, AIEditState>
     imageGenerationTasks?: TaskItem[]
     taskCenterTasks?: TaskItem[]
     onRemoveTask: (id: string, type: TaskType) => void
@@ -59,27 +57,6 @@ function getTimeAgo(timestampMs: number): string {
     })
 }
 
-function aiEditStateToTaskItem(execId: string, state: AIEditState): TaskItem {
-    let status: TaskStatus = "pending"
-    if (state.status === "idle" && state.result_text !== undefined) {
-        status = "completed"
-    } else if (state.status === "idle" && state.result_text === undefined) {
-        // idle with no result — treat as failed (expired/errored)
-        status = "failed"
-    }
-
-    return {
-        id: execId,
-        type: "ai-edit",
-        status,
-        label: "AI 编辑",
-        description: state.cut_text,
-        startedAt: state.started_at,
-    }
-}
-
-// ---- Sub-components ----
-
 interface TaskCardProps {
     task: TaskItem
     onRemove: () => void
@@ -92,9 +69,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 
     const isDone = task.status === "completed" || task.status === "failed"
     const typeIcon =
-        task.type === "ai-edit" ? (
-            <PencilIcon className="w-4 h-4 shrink-0" />
-        ) : task.type === "image-generation" ? (
+        task.type === "image-generation" ? (
             <ImageIcon className="w-4 h-4 shrink-0" />
         ) : task.type === "task-center" && task.originalType === "image" ? (
             task.taskCenterData?.details?.gen_mode === 'split_images' || task.taskCenterData?.detail?.gen_mode === 'split_images' || task.taskCenterData?.gen_mode === 'split_images' ? (
@@ -196,16 +171,11 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 // ---- Main Component ----
 
 export function EditorTaskProgress(props: EditorTaskProgressProps) {
-    const { aiEditTasks, imageGenerationTasks = [], taskCenterTasks, onRemoveTask, onClickTask } = props
+    const { imageGenerationTasks = [], taskCenterTasks, onRemoveTask, onClickTask } = props
     const { t } = useTranslation()
 
-    // Convert AI edit tasks to unified TaskItem[]
-    const aiEditItems: TaskItem[] = Array.from(aiEditTasks.entries()).map(
-        ([execId, state]) => aiEditStateToTaskItem(execId, state)
-    )
-
     // Merge all tasks
-    const allTasks: TaskItem[] = [...aiEditItems, ...imageGenerationTasks, ...(taskCenterTasks || [])]
+    const allTasks: TaskItem[] = [...imageGenerationTasks, ...(taskCenterTasks || [])]
 
     // Sort newest first
     allTasks.sort((a, b) => b.startedAt - a.startedAt)
@@ -213,14 +183,10 @@ export function EditorTaskProgress(props: EditorTaskProgressProps) {
     // Re-render every second to keep time-ago fresh
     const [, setTick] = useState(0)
     // 用于触发任务列表更新的状态
-    const [taskUpdateTrigger, setTaskUpdateTrigger] = useState(0)
-    
     useEffect(() => {
         const interval = setInterval(() => setTick((n) => n + 1), 1000)
         return () => clearInterval(interval)
     }, [])
-    
-
 
     if (allTasks.length === 0) {
         return (

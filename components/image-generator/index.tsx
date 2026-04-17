@@ -11,6 +11,7 @@ import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
 import { webSocketService } from "@/lib/websocket/websocket-service"
 import type {
+  CanvasTemplateId,
   Layer,
   ToolType,
   MetaSettings,
@@ -20,6 +21,14 @@ import type {
   TabValue,
   CreatorConfig,
 } from "./types"
+import {
+  buildTemplateLayers,
+  DEFAULT_COMPOSITION_SETTINGS,
+  DEFAULT_GLOBAL_STYLE_SETTINGS,
+  DEFAULT_LAYER_PROPS,
+  DEFAULT_META_SETTINGS,
+  getCanvasTemplateOptions,
+} from "./presets"
 import { ModeTabs } from "./ui/mode-tabs"
 import { Toolbar } from "./ui/toolbar"
 import { Canvas } from "./ui/canvas"
@@ -44,6 +53,7 @@ const TAB_STORAGE_KEY = 'joyfulwords-image-generation-tab'
 export function ImageGeneration() {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const templateOptions = useMemo(() => getCanvasTemplateOptions(t), [t])
 
   const [selectedTool, setSelectedTool] = useState<ToolType>("select")
   const [selectedLayer, setSelectedLayer] = useState<Layer | null>(null)
@@ -252,46 +262,59 @@ export function ImageGeneration() {
   }, [])  // 只在 mount 时执行一次
 
   // 元数据参数
-  const [metaSettings, setMetaSettings] = useState<MetaSettings>({
-    width: 1024,
-    high: 1024,
-    seed: -1,
-  })
+  const [metaSettings, setMetaSettings] = useState<MetaSettings>(DEFAULT_META_SETTINGS)
 
   // 全局样式参数
-  const [globalStyleSettings, setGlobalStyleSettings] = useState<GlobalStyleSettings>({
-    medium: "Photography",
-    style: "Renaissance",
-    color_accent: "Cinematic Teal & Orange",
-  })
+  const [globalStyleSettings, setGlobalStyleSettings] =
+    useState<GlobalStyleSettings>(DEFAULT_GLOBAL_STYLE_SETTINGS)
 
   // 构图参数
-  const [compositionSettings, setCompositionSettings] = useState<CompositionSettings>({
-    camera: {
-      angle: "Eye Level",
-      focal_length: "50mm",
-      depth_of_field: "Deep",
-    },
-    lighting: {
-      type: "Natural Light",
-      source: "Front",
-      intensity: 0.8,
-    },
-  })
+  const [compositionSettings, setCompositionSettings] =
+    useState<CompositionSettings>(DEFAULT_COMPOSITION_SETTINGS)
 
   // 选中图层属性
-  const [layerProps, setLayerProps] = useState<LayerProps>({
-    description: "",
-    reference_image: undefined,
-    z_index: 0,
-  })
+  const [layerProps, setLayerProps] = useState<LayerProps>(DEFAULT_LAYER_PROPS)
 
   const handleToolClick = (tool: ToolType) => {
     setSelectedTool(tool)
   }
 
+  const handleMetaSettingsChange = useCallback((nextMetaSettings: MetaSettings) => {
+    if (
+      nextMetaSettings.width !== metaSettings.width ||
+      nextMetaSettings.high !== metaSettings.high
+    ) {
+      const scaleX = nextMetaSettings.width / metaSettings.width
+      const scaleY = nextMetaSettings.high / metaSettings.high
+
+      setLayers((currentLayers) =>
+        currentLayers.map((layer) => ({
+          ...layer,
+          x: Math.round(layer.x * scaleX),
+          y: Math.round(layer.y * scaleY),
+          width: Math.max(20, Math.round(layer.width * scaleX)),
+          height: Math.max(20, Math.round(layer.height * scaleY)),
+        }))
+      )
+
+      setSelectedLayer((currentSelectedLayer) =>
+        currentSelectedLayer
+          ? {
+              ...currentSelectedLayer,
+              x: Math.round(currentSelectedLayer.x * scaleX),
+              y: Math.round(currentSelectedLayer.y * scaleY),
+              width: Math.max(20, Math.round(currentSelectedLayer.width * scaleX)),
+              height: Math.max(20, Math.round(currentSelectedLayer.height * scaleY)),
+            }
+          : null
+      )
+    }
+
+    setMetaSettings(nextMetaSettings)
+  }, [metaSettings])
+
   const handleDeleteLayer = (layerId: string) => {
-    setLayers(layers.filter((l) => l.id !== layerId))
+    setLayers((currentLayers) => currentLayers.filter((layer) => layer.id !== layerId))
     if (selectedLayer?.id === layerId) {
       setSelectedLayer(null)
     }
@@ -312,16 +335,43 @@ export function ImageGeneration() {
         zIndex: layers.length,
       }
 
-      setLayers([...layers, newLayer])
+      setLayers((currentLayers) => [...currentLayers, newLayer])
       setSelectedLayer(newLayer)
       setLayerProps({
-        description: "",
-        reference_image: undefined,
+        ...DEFAULT_LAYER_PROPS,
         z_index: newLayer.zIndex,
       })
       setSelectedTool("select")
     }
   }
+
+  const handleApplyTemplate = useCallback((templateId: CanvasTemplateId) => {
+    const templateLayers = buildTemplateLayers(templateId, metaSettings, t)
+    const firstLayer = templateLayers[0] ?? null
+
+    console.info("[ImageGeneration] Applying canvas template", {
+      templateId,
+      layerCount: templateLayers.length,
+      width: metaSettings.width,
+      height: metaSettings.high,
+    })
+
+    setLayers(templateLayers)
+    setSelectedTool("select")
+    setSelectedLayer(firstLayer)
+    setLayerProps(
+      firstLayer
+        ? {
+            description: firstLayer.description,
+            reference_image: firstLayer.reference_image,
+            z_index: firstLayer.zIndex,
+          }
+        : DEFAULT_LAYER_PROPS
+    )
+    setGeneratedImageUrl(null)
+    setShowGeneratedImage(true)
+    setCurrentGenerationLogId(null)
+  }, [metaSettings, t])
 
   const handleLayerClick = (e: React.MouseEvent, layer: Layer) => {
     e.stopPropagation()
@@ -342,8 +392,8 @@ export function ImageGeneration() {
   const handleLayerPropsChange = (props: LayerProps) => {
     setLayerProps(props)
     if (selectedLayer) {
-      setLayers(
-        layers.map((l) =>
+      setLayers((currentLayers) =>
+        currentLayers.map((l) =>
           l.id === selectedLayer.id
             ? { ...l, description: props.description, reference_image: props.reference_image, zIndex: props.z_index }
             : l
@@ -353,16 +403,16 @@ export function ImageGeneration() {
   }
 
   const handleLayerPositionChange = (layerId: string, x: number, y: number) => {
-    setLayers(
-      layers.map((l) =>
+    setLayers((currentLayers) =>
+      currentLayers.map((l) =>
         l.id === layerId ? { ...l, x, y } : l
       )
     )
   }
 
   const handleLayerSizeChange = (layerId: string, x: number, y: number, width: number, height: number) => {
-    setLayers(
-      layers.map((l) =>
+    setLayers((currentLayers) =>
+      currentLayers.map((l) =>
         l.id === layerId ? { ...l, x, y, width, height } : l
       )
     )
@@ -635,39 +685,16 @@ export function ImageGeneration() {
     setShowResetDialog(false)
 
     // 重置元数据
-    setMetaSettings({
-      width: 1024,
-      high: 1024,
-      seed: -1,
-    })
+    setMetaSettings(DEFAULT_META_SETTINGS)
 
     // 重置全局样式
-    setGlobalStyleSettings({
-      medium: "Photography",
-      style: "Renaissance",
-      color_accent: "Cinematic Teal & Orange",
-    })
+    setGlobalStyleSettings(DEFAULT_GLOBAL_STYLE_SETTINGS)
 
     // 重置构图参数
-    setCompositionSettings({
-      camera: {
-        angle: "Eye Level",
-        focal_length: "50mm",
-        depth_of_field: "Deep",
-      },
-      lighting: {
-        type: "Natural Light",
-        source: "Front",
-        intensity: 0.8,
-      },
-    })
+    setCompositionSettings(DEFAULT_COMPOSITION_SETTINGS)
 
     // 重置选中图层属性
-    setLayerProps({
-      description: "",
-      reference_image: undefined,
-      z_index: 0,
-    })
+    setLayerProps(DEFAULT_LAYER_PROPS)
 
     toast({
       title: t("imageGeneration.reset.success"),
@@ -714,7 +741,13 @@ export function ImageGeneration() {
         /* Main Content - Three Columns */
         <div className="flex-1 flex overflow-hidden relative">
           {/* Left Column - Toolbar */}
-          <Toolbar selectedTool={selectedTool} onToolSelect={handleToolClick} onReset={handleResetClick} />
+          <Toolbar
+            selectedTool={selectedTool}
+            onToolSelect={handleToolClick}
+            templateOptions={templateOptions}
+            onApplyTemplate={(templateId) => handleApplyTemplate(templateId as CanvasTemplateId)}
+            onReset={handleResetClick}
+          />
 
           {/* Center Column - Canvas */}
           <Canvas
@@ -748,7 +781,7 @@ export function ImageGeneration() {
             selectedModel={selectedModel}
             availableModels={availableModels}
             isLoadingModels={isLoadingModels}
-            onMetaSettingsChange={setMetaSettings}
+            onMetaSettingsChange={handleMetaSettingsChange}
             onGlobalStyleSettingsChange={setGlobalStyleSettings}
             onCompositionSettingsChange={setCompositionSettings}
             onLayerPropsChange={handleLayerPropsChange}
@@ -763,6 +796,8 @@ export function ImageGeneration() {
         open={showJsonPreview}
         onOpenChange={setShowJsonPreview}
         config={memoizedConfig}
+        seed={metaSettings.seed}
+        onSeedChange={(seed) => handleMetaSettingsChange({ ...metaSettings, seed })}
         onGenerateImage={handleGenerateImageFromPrompt}
       />
 

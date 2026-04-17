@@ -391,6 +391,7 @@ export const en = {
             selectTaskTitle: "Select a task",
             selectTaskDescription: "Choose a task on the left to inspect its details.",
             detailTitle: "Task Details",
+            detailLoading: "Loading task details...",
             detailLoadFailed: "Failed to load task details. Please try again later.",
             openArticle: "Open Article",
             copyToMaterials: "Add to Materials",
@@ -408,8 +409,6 @@ export const en = {
                 infographic: "Infographic",
             },
             statuses: {
-                edit_doing: "Editing",
-                edit: "Completed",
                 pending: "Pending",
                 processing: "Processing",
                 failed: "Failed",
@@ -431,6 +430,8 @@ export const en = {
                 genMode: "Generation Mode",
                 completedAt: "Completed At",
                 updatedAt: "Updated At",
+                sourceText: "Source Text",
+                resultText: "Rewrite Result",
                 settlement: "Settlement",
                 error: "Error",
                 outputImages: "Output Images",
@@ -565,6 +566,8 @@ export const en = {
             select: "Select",
             rectangle: "Rectangle",
             delete: "Delete",
+            template: "Templates",
+            templateHint: "Load common layout structures quickly",
             reset: "Reset Canvas",
         },
         modeTabs: {
@@ -583,7 +586,7 @@ export const en = {
         },
 
         canvas: {
-            previewJson: "Preview JSON",
+            advancedMode: "Advanced Mode",
             addLayerFirst: "Please add at least one layer first",
             toolHints: {
                 select: "Click to select layer, drag to move position",
@@ -598,7 +601,7 @@ export const en = {
             showGeneratedImage: "Show Generated Image",
             emptyState: {
                 title: "Canvas Empty",
-                description: "Start creating by selecting the rectangle tool from the left",
+                description: "Start with a template or add rectangles from the left toolbar",
             },
             layerLabel: "Layer {number}",
         },
@@ -613,11 +616,17 @@ export const en = {
             composition: "Composition Settings",
 
             // 元数据
+            sizePreset: "Common Sizes",
             width: "Width",
             height: "Height",
             seed: "Random Seed",
             seedHint: "Set to -1 for random seed",
             model: "AI Model",
+            sizePresets: {
+                landscape: "Landscape",
+                portrait: "Portrait",
+                square: "Square",
+            },
 
             // 图层属性
             descriptionLabel: "Description",
@@ -732,13 +741,15 @@ export const en = {
         },
         validation: {
             missingDescription: "Layer description cannot be empty",
-            missingDescriptionDesc: "{{count}} layer(s) missing description, please fill in descriptions before previewing JSON",
+            missingDescriptionDesc: "{{count}} layer(s) missing description, please fill them in before entering Advanced Mode",
         },
         jsonPreviewDialog: {
-            title: "Configuration Preview",
-            description: "View JSON configuration and get AI-optimized prompts",
+            title: "Advanced Mode",
+            description: "Inspect raw config, fine-tune the random seed, and get the AI-optimized prompt",
             jsonLabel: "Creator JSON",
             promptLabel: "Professional Prompt",
+            seedLabel: "Random Seed",
+            seedHint: "The default is -1, which keeps direct generation randomized",
             convertButton: "Convert Prompt",
             convertingButton: "Converting...",
             copyButton: "Copy",
@@ -748,6 +759,32 @@ export const en = {
                 convertFailed: "Failed to convert prompt",
                 convertSuccess: "Prompt converted successfully",
                 copySuccess: "Copied to clipboard",
+            },
+        },
+        templates: {
+            sideBySide: {
+                title: "Side by Side",
+                description: "Best for two parallel areas such as hero visual and support content",
+                layers: {
+                    primary: "Primary visual / product focus",
+                    secondary: "Support copy / brand message",
+                },
+            },
+            nestedRectangles: {
+                title: "Nested Rectangles",
+                description: "Best for a main scene with a detail inset or highlighted area",
+                layers: {
+                    outer: "Main scene / primary subject",
+                    inner: "Detail inset / focused highlight",
+                },
+            },
+            stackedRectangles: {
+                title: "Stacked Rectangles",
+                description: "Best for a hero block on top with supporting information below",
+                layers: {
+                    top: "Top visual / headline image",
+                    bottom: "Bottom block / support copy",
+                },
             },
         },
         generating: {
@@ -1344,10 +1381,13 @@ export const en = {
         cancel: "Cancel",
         restoreOriginal: "Restore Original",
         resultReady: "AI Rewrite Complete",
-        waitingHint: "AI is rewriting, please wait... Results will appear automatically when ready",
+        waitingHint: "AI is rewriting, please wait...",
+        waitingTaskHint: "This task is still processing. Status updates will appear here automatically.",
         waitingPlaceholder: "AI rewrite results will appear automatically when ready...",
         submitting: "Submitting...",
         waiting: "Rewriting...",
+        failedTitle: "Rewrite Failed",
+        failedHint: "The task did not complete successfully. Please try again later.",
         types: {
             material: "Material Expansion",
             style: "Style Adjustment",
@@ -1418,12 +1458,14 @@ export const en = {
             generateSuccess: "Generation successful",
             generateFailed: "Generation failed",
             submitted: "AI rewrite task submitted",
-            submittedDesc: "You'll be notified when the rewrite is complete",
-            resultReady: "Click the blue waiting block in the editor to view results",
+            submittedDesc: "Track the progress from the task panel.",
+            resultReady: "Open the task from the task panel to review the rewrite result",
             timeout: "AI Rewrite Timeout",
             timeoutDesc: "The AI rewrite task timed out, please try again",
             taskExpired: "AI rewrite task expired",
             quotaExceeded: "Storage full, old tasks cleaned up",
+            applySourceChanged: "Unable to apply the rewrite because the source text changed or can no longer be found.",
+            missingSourceText: "Unable to apply the rewrite because the source text is missing.",
         },
     },
     aiMindmap: {

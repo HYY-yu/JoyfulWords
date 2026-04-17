@@ -20,8 +20,6 @@ const STATUS_VARIANTS: Record<
   TaskCenterTaskStatus,
   "default" | "secondary" | "destructive" | "outline"
 > = {
-  edit_doing: "secondary",
-  edit: "default",
   pending: "outline",
   processing: "secondary",
   success: "default",
@@ -66,7 +64,7 @@ export function getTaskCenterTaskTitle(
 
 export function getTaskCenterTaskSummary(task: TaskCenterTaskListItem): string {
   if (task.type === "article") {
-    return `${task.details.exec_id}`
+    return task.details.req_text || task.details.resp_text || task.details.exec_id
   }
 
   if (task.type === "image") {
@@ -149,12 +147,7 @@ export function TaskCenterTaskDetailView({
       ? parseTaskCenterImageUrls(detail.reference_image_urls)
       : []
   const articleId = "article_id" in detail ? detail.article_id : null
-  const status =
-    "operate_type" in detail
-      ? detail.operate_type
-      : "status" in detail
-      ? detail.status
-      : null
+  const status = "status" in detail ? detail.status : null
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -227,6 +220,20 @@ export function TaskCenterTaskDetailView({
           <DetailField
             label={t("contentWriting.taskCenter.fields.updatedAt")}
             value={formatTaskCenterTime(detail.updated_at)}
+          />
+        ) : null}
+        {"req_text" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.sourceText")}
+            value={detail.req_text || "-"}
+            className="sm:col-span-2"
+          />
+        ) : null}
+        {"resp_text" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.resultText")}
+            value={detail.resp_text || "-"}
+            className="sm:col-span-2"
           />
         ) : null}
         {"is_settle" in detail ? (

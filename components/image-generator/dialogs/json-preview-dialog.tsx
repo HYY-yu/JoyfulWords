@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/base/button"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Label } from "@/components/ui/base/label"
+import { Input } from "@/components/ui/base/input"
 import { Loader2Icon, CopyIcon, CheckIcon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -22,6 +23,8 @@ interface JsonPreviewDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   config: CreatorConfig
+  seed?: number
+  onSeedChange?: (seed: number) => void
   onGenerateImage?: (prompt: string) => void
 }
 
@@ -29,6 +32,8 @@ export function JsonPreviewDialog({
   open,
   onOpenChange,
   config,
+  seed,
+  onSeedChange,
   onGenerateImage,
 }: JsonPreviewDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
@@ -70,9 +75,10 @@ export function JsonPreviewDialog({
   // 弹框打开时自动转换提示词
   useEffect(() => {
     if (open) {
-      convertPrompt()
+      void convertPrompt()
     }
-  }, [open, convertPrompt])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   const handleCopy = async () => {
     try {
@@ -108,6 +114,21 @@ export function JsonPreviewDialog({
         <div className="grid grid-cols-2 gap-4">
           {/* 左侧：JSON 配置 */}
           <div className="flex flex-col">
+            <div className="mb-4 space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+              <Label htmlFor="advanced-seed">{t("imageGeneration.jsonPreviewDialog.seedLabel")}</Label>
+              <Input
+                id="advanced-seed"
+                type="number"
+                value={seed ?? config.meta.seed}
+                onChange={(e) => onSeedChange?.(Number(e.target.value))}
+                placeholder="-1"
+                className="h-9 bg-background"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("imageGeneration.jsonPreviewDialog.seedHint")}
+              </p>
+            </div>
+
             <Label className="mb-2">
               {t("imageGeneration.jsonPreviewDialog.jsonLabel")}
             </Label>

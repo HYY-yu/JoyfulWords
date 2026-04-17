@@ -71,6 +71,11 @@ export type TabValue = "creation" | "style" | "inversion" | "history" | "wavespe
 
 export type ToolType = "select" | "rectangle" | "delete"
 
+export type CanvasTemplateId =
+  | "sideBySide"
+  | "nestedRectangles"
+  | "stackedRectangles"
+
 // ============ UI Layer Type (for canvas display) ============
 export type Layer = {
   id: string

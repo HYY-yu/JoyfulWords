@@ -36,10 +36,18 @@ function mergeTaskFromSocketEvent(
         }
       : currentTask.details
 
+  const nextDetails =
+    event.payload.error && mergedDetails && typeof mergedDetails === "object"
+      ? {
+          ...mergedDetails,
+          error: event.payload.error,
+        }
+      : mergedDetails
+
   return {
     ...currentTask,
     status: event.payload.status as TaskCenterTaskListItem["status"],
-    details: mergedDetails as TaskCenterTaskListItem["details"],
+    details: nextDetails as TaskCenterTaskListItem["details"],
   } as TaskCenterTaskListItem
 }
 

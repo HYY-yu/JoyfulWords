@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   ClipboardListIcon,
   ImageIcon,
@@ -14,7 +14,6 @@ import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
-import type { AIEditState } from "@/lib/hooks/use-ai-edit-state"
 import { taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
   TaskCenterTaskDetailResponse,
@@ -100,11 +99,8 @@ const FEATURE_BUTTONS: FeatureButton[] = [
 
 interface EditorAIPanelProps {
   articleId?: number | null
-  aiEditTasks: Map<string, AIEditState>
-  activeExecId: string | null
-  onSetActiveExecId: (execId: string | null) => void
-  onAddTask: (task: AIEditState) => void
-  onRemoveTask: (execId: string) => void
+  submissionTick?: number
+  onOpenArticleEditTask: (taskRef: TaskCenterTaskReference) => void
 }
 
 function mapTaskCenterTaskToProgressItem(
@@ -112,7 +108,7 @@ function mapTaskCenterTaskToProgressItem(
   t: (key: string) => string
 ): TaskItem {
   const status =
-    task.status === "edit" || task.status === "success"
+    task.status === "success"
       ? "completed"
       : task.status === "failed"
       ? "failed"
@@ -133,9 +129,8 @@ function mapTaskCenterTaskToProgressItem(
 
 export function EditorAIPanel({
   articleId,
-  aiEditTasks,
-  onSetActiveExecId,
-  onRemoveTask,
+  submissionTick = 0,
+  onOpenArticleEditTask,
 }: EditorAIPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -153,28 +148,25 @@ export function EditorAIPanel({
   const [isInfographicOpen, setIsInfographicOpen] = useState(false)
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
 
-  const { tasks: liveTasks } = useTaskCenterLiveTasks({
+  const { tasks: liveTasks, refetch } = useTaskCenterLiveTasks({
     article_id: articleId ?? undefined,
     enabled: typeof articleId === "number",
     realtimeScope: "article",
   })
 
-  const activeAiEditExecIds = useMemo(() => new Set(aiEditTasks.keys()), [aiEditTasks])
-
   const taskCenterTasks = useMemo(
     () =>
       liveTasks
-        .filter((task) => {
-          if (task.type !== "article") return true
-
-          const execId = task.details.exec_id
-          return !activeAiEditExecIds.has(execId)
-        })
         .map((task) => mapTaskCenterTaskToProgressItem(task, t))
         .sort((left, right) => right.startedAt - left.startedAt)
         .slice(0, 10),
-    [activeAiEditExecIds, liveTasks, t]
+    [liveTasks, t]
   )
+
+  useEffect(() => {
+    if (submissionTick === 0) return
+    void refetch({ silent: true })
+  }, [refetch, submissionTick])
 
   const getSelectedEditorText = () => {
     if (typeof window === "undefined") return ""
@@ -365,16 +357,14 @@ export function EditorAIPanel({
         </div>
         <div className="flex-1 overflow-y-auto">
           <EditorTaskProgress
-            aiEditTasks={aiEditTasks}
             taskCenterTasks={taskCenterTasks}
-            onRemoveTask={(id: string, type: TaskType) => {
-              if (type === "ai-edit") {
-                onRemoveTask(id)
-              }
-            }}
+            onRemoveTask={(_id: string, _type: TaskType) => {}}
             onClickTask={(task: TaskItem) => {
-              if (task.type === "ai-edit") {
-                onSetActiveExecId(task.id)
+              if (task.type === "task-center" && task.originalType === "article") {
+                onOpenArticleEditTask({
+                  id: task.taskCenterData.id,
+                  type: task.taskCenterData.type,
+                })
               } else if (task.type === "task-center") {
                 void fetchTaskDetail(task)
               }

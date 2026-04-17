@@ -589,12 +589,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
             editable={true}
             articleId={currentArticle?.id}
             mode={isEditMode ? "edit" : "create"}
-            aiEditTasks={aiEditTasks}
-            activeExecId={activeExecId}
-            onAIPendingBlockClick={handleAIPendingBlockClick}
-            onTaskSubmitted={handleTaskSubmitted}
-            onAIEditResultConsumed={handleAIEditResultConsumed}
-            userId={user?.id}
           />
         </div>
       </div>

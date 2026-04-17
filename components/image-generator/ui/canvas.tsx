@@ -58,9 +58,26 @@ export function Canvas({
     x: 0, y: 0, width: 0, height: 0, mouseX: 0, mouseY: 0
   })
   const dragLayerRef = useRef<Layer | null>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
   const [showImageMenu, setShowImageMenu] = useState(false)
   const imageMenuRef = useRef<HTMLDivElement>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const pendingUpdateRef = useRef<(() => void) | null>(null)
 
+  const scheduleCanvasUpdate = useCallback((update: () => void) => {
+    pendingUpdateRef.current = update
+
+    if (animationFrameRef.current !== null) {
+      return
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(() => {
+      animationFrameRef.current = null
+      const nextUpdate = pendingUpdateRef.current
+      pendingUpdateRef.current = null
+      nextUpdate?.()
+    })
+  }, [])
 
   const getToolHint = () => {
     if (selectedTool === "select") return t("imageGeneration.canvas.toolHints.select")
@@ -78,8 +95,7 @@ export function Canvas({
     dragLayerRef.current = layer
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    const canvas = document.getElementById("canvas-container")
-    const canvasRect = canvas?.getBoundingClientRect()
+    const canvasRect = canvasRef.current?.getBoundingClientRect()
     const s = canvasRect && canvasRect.width > 0 ? canvasRect.width / metaSettings.width : 1
     setDragOffset({
       x: (e.clientX - rect.left) / s,
@@ -112,8 +128,7 @@ export function Canvas({
     if (isResizing && dragLayerRef.current && resizeHandle) {
       // 调整大小逻辑
       const layer = dragLayerRef.current
-      const canvasEl = document.getElementById("canvas-container")
-      const canvasElRect = canvasEl?.getBoundingClientRect()
+      const canvasElRect = canvasRef.current?.getBoundingClientRect()
       const s = canvasElRect && canvasElRect.width > 0 ? canvasElRect.width / metaSettings.width : 1
       const deltaX = (e.clientX - initialResize.mouseX) / s
       const deltaY = (e.clientY - initialResize.mouseY) / s
@@ -149,10 +164,10 @@ export function Canvas({
         newHeight = metaSettings.high - newY
       }
 
-      onLayerSizeChange(layer.id, newX, newY, newWidth, newHeight)
+      scheduleCanvasUpdate(() => onLayerSizeChange(layer.id, newX, newY, newWidth, newHeight))
     } else if (isDragging && !isResizing && dragLayerRef.current) {
       // 拖动移动逻辑
-      const canvas = document.getElementById("canvas-container")
+      const canvas = canvasRef.current
       if (!canvas) return
 
       const canvasRect = canvas.getBoundingClientRect()
@@ -165,9 +180,19 @@ export function Canvas({
       const clampedX = Math.max(0, Math.min(newX, metaSettings.width - layer.width))
       const clampedY = Math.max(0, Math.min(newY, metaSettings.high - layer.height))
 
-      onLayerPositionChange(layer.id, clampedX, clampedY)
+      scheduleCanvasUpdate(() => onLayerPositionChange(layer.id, clampedX, clampedY))
     }
-  }, [isDragging, isResizing, resizeHandle, dragOffset, initialResize, metaSettings, onLayerPositionChange, onLayerSizeChange])
+  }, [
+    dragOffset,
+    initialResize,
+    isDragging,
+    isResizing,
+    metaSettings,
+    onLayerPositionChange,
+    onLayerSizeChange,
+    resizeHandle,
+    scheduleCanvasUpdate,
+  ])
 
   // 结束拖动
   const handleMouseUp = useCallback(() => {
@@ -175,6 +200,15 @@ export function Canvas({
     setIsResizing(false)
     setResizeHandle(null)
     dragLayerRef.current = null
+
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
+
+    const nextUpdate = pendingUpdateRef.current
+    pendingUpdateRef.current = null
+    nextUpdate?.()
   }, [])
 
   // 注册全局鼠标事件
@@ -205,6 +239,14 @@ export function Canvas({
     }
   }, [showImageMenu])
 
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-w-0">
       {/* Action Bar */}
@@ -222,7 +264,7 @@ export function Canvas({
             title={layers.length === 0 ? t("imageGeneration.canvas.addLayerFirst") : undefined}
           >
             <Code className="w-4 h-4" />
-            {t("imageGeneration.canvas.previewJson")}
+            {t("imageGeneration.canvas.advancedMode")}
           </Button>
           <Button
             size="sm"
@@ -249,7 +291,7 @@ export function Canvas({
       {/* Canvas Area */}
       <div className="flex-1 p-6 overflow-hidden flex items-center justify-center min-h-0 min-w-0">
         <div
-          id="canvas-container"
+          ref={canvasRef}
           className="relative bg-card border-2 border-dashed border-border rounded-xl overflow-hidden max-w-full max-h-full"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect()
@@ -349,6 +391,7 @@ export function Canvas({
                 backgroundColor: selectedLayer?.id === layer.id
                   ? "hsl(var(--primary) / 0.1)"
                   : "hsl(var(--primary) / 0.05)",
+                willChange: isDragging || isResizing ? "left, top, width, height" : undefined,
               }}
               onClick={(e) => onLayerClick(e, layer)}
               onMouseDown={(e) => selectedTool === "select" && handleMouseDown(e, layer)}
@@ -357,6 +400,14 @@ export function Canvas({
               <div className="absolute -top-6 left-0 text-xs font-medium text-primary whitespace-nowrap">
                 {layer.label}
               </div>
+
+              {layer.description ? (
+                <div className="pointer-events-none flex h-full items-center justify-center p-3 text-center">
+                  <div className="max-h-full overflow-hidden break-words text-xs font-medium leading-5 text-primary/80">
+                    {layer.description}
+                  </div>
+                </div>
+              ) : null}
 
               {/* Resize Handles (only for selected and in select mode) */}
               {selectedLayer?.id === layer.id && selectedTool === "select" && (

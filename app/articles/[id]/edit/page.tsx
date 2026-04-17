@@ -7,19 +7,10 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { useEditorState } from "@/lib/editor-state"
 import { useAutoSave } from "@/lib/hooks/use-auto-save"
-import {
-  loadAIEditTasks,
-  saveAIEditTasks,
-  addAIEditTask,
-  removeAIEditTask,
-  clearAIEditTasks,
-  isAIEditExpired,
-  type AIEditState,
-} from "@/lib/hooks/use-ai-edit-state"
-import { useMultipleAIEditPollers } from "@/lib/hooks/use-multiple-ai-edit-pollers"
 import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/lib/tiptap-utils"
 import { articlesClient } from "@/lib/api/articles/client"
 import type { Article } from "@/lib/api/articles/types"
+import type { TaskCenterTaskReference } from "@/lib/api/taskcenter/types"
 import { ArticleEditorLayout } from "@/components/article/article-editor-layout"
 import { EditorTopBar } from "@/components/article/editor-top-bar"
 import { EditorMaterialPanel } from "@/components/article/editor-material-panel"
@@ -72,9 +63,9 @@ export default function ArticleEditPage() {
     },
   })
 
-  // ---- AI edit tasks state ----
-  const [aiEditTasks, setAiEditTasks] = useState<Map<string, AIEditState>>(new Map())
-  const [activeExecId, setActiveExecId] = useState<string | null>(null)
+  const [activeArticleEditTaskRef, setActiveArticleEditTaskRef] =
+    useState<TaskCenterTaskReference | null>(null)
+  const [articleEditSubmissionTick, setArticleEditSubmissionTick] = useState(0)
 
   // ==================== Auth guard ====================
 
@@ -103,7 +94,7 @@ export default function ArticleEditPage() {
           setLoadError(result.error)
           toast({
             variant: "destructive",
-            title: t("contentWriting.manager.loadFailed") || "Failed to load article",
+            title: t("contentWriting.manager.loadFailed"),
             description: result.error,
           })
           return
@@ -112,10 +103,10 @@ export default function ArticleEditPage() {
         const found = result.list.find((a) => a.id === articleId) ?? null
 
         if (!found) {
-          setLoadError("Article not found")
+          setLoadError(t("contentWriting.manager.articleNotFound"))
           toast({
             variant: "destructive",
-            title: t("contentWriting.manager.articleNotFound") || "Article not found",
+            title: t("contentWriting.manager.articleNotFound"),
           })
           return
         }
@@ -135,7 +126,7 @@ export default function ArticleEditPage() {
         setLoadError(message)
         toast({
           variant: "destructive",
-          title: t("contentWriting.manager.loadFailed") || "Failed to load article",
+          title: t("contentWriting.manager.loadFailed"),
           description: message,
         })
       } finally {
@@ -147,198 +138,13 @@ export default function ArticleEditPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, articleId])
 
-  // ==================== Restore AI tasks from localStorage ====================
-
-  useEffect(() => {
-    if (!user) return
-    const tasks = loadAIEditTasks(user.id)
-    if (tasks.size > 0) {
-      setAiEditTasks(tasks)
-    }
-  }, [user])
-
-  // ==================== AI edit polling callbacks ====================
-
-  const handleAIEditSuccess = useCallback(
-    (execId: string, responseText: string) => {
-      setAiEditTasks((prev) => {
-        const next = new Map(prev)
-        const task = next.get(execId)
-        if (task) {
-          next.set(execId, { ...task, status: "idle" as const, result_text: responseText })
-        }
-        return next
-      })
-
-      if (user) {
-        const tasks = loadAIEditTasks(user.id)
-        const task = tasks.get(execId)
-        if (task) {
-          tasks.set(execId, { ...task, status: "idle" as const, result_text: responseText })
-          saveAIEditTasks(user.id, tasks)
-        }
-      }
-
-      toast({
-        title: t("aiRewrite.toast.generateSuccess") || "AI 改写完成",
-        description: t("aiRewrite.toast.resultReady") || "点击编辑器中的蓝色等待块查看结果",
-      })
-    },
-    [user, toast, t]
-  )
-
-  const handleAIEditError = useCallback(
-    (execId: string, message: string) => {
-      setAiEditTasks((prev) => {
-        const next = new Map(prev)
-        next.delete(execId)
-        return next
-      })
-
-      if (user) {
-        const allTasks = Array.from(aiEditTasks.values())
-        const hasOtherWaiting = allTasks.some(
-          (t) => t.status === "waiting" && t.exec_id !== execId
-        )
-        if (!hasOtherWaiting) {
-          clearAIEditTasks(user.id)
-        } else {
-          removeAIEditTask(user.id, execId)
-        }
-      }
-
-      toast({
-        variant: "destructive",
-        title: t("aiRewrite.toast.generateFailed") || "AI 改写失败",
-        description: message,
-      })
-    },
-    [user, toast, t, aiEditTasks]
-  )
-
-  const handleAIEditExpired = useCallback(
-    (execId: string) => {
-      setAiEditTasks((prev) => {
-        const next = new Map(prev)
-        next.delete(execId)
-        return next
-      })
-
-      if (user) {
-        const allTasks = Array.from(aiEditTasks.values())
-        const hasOtherWaiting = allTasks.some(
-          (t) => t.status === "waiting" && t.exec_id !== execId
-        )
-        if (!hasOtherWaiting) {
-          clearAIEditTasks(user.id)
-        } else {
-          removeAIEditTask(user.id, execId)
-        }
-      }
-
-      toast({
-        variant: "destructive",
-        title: t("aiRewrite.toast.timeout") || "AI 改写超时",
-        description: t("aiRewrite.toast.timeoutDesc") || "AI 改写任务超时，请重试",
-      })
-    },
-    [user, toast, t, aiEditTasks]
-  )
-
-  useMultipleAIEditPollers({
-    tasks: aiEditTasks,
-    onSuccess: handleAIEditSuccess,
-    onError: handleAIEditError,
-    onExpired: handleAIEditExpired,
-  })
-
-  // ==================== AI task management callbacks ====================
-
-  const handleAIPendingBlockClick = useCallback(
-    (execId: string) => {
-      if (execId === "") {
-        setActiveExecId(null)
-        return
-      }
-
-      const task = aiEditTasks.get(execId)
-      if (!task) return
-
-      if (isAIEditExpired(task)) {
-        toast({
-          variant: "destructive",
-          title: t("aiRewrite.toast.taskExpired") || "AI 改写任务已过期",
-        })
-        if (user) {
-          removeAIEditTask(user.id, execId)
-          setAiEditTasks((prev) => {
-            const next = new Map(prev)
-            next.delete(execId)
-            return next
-          })
-        }
-        return
-      }
-
-      setActiveExecId(execId)
-    },
-    [aiEditTasks, user, toast, t]
-  )
-
-  const handleAIEditResultConsumed = useCallback(
-    (execId: string) => {
-      setAiEditTasks((prev) => {
-        const next = new Map(prev)
-        next.delete(execId)
-        return next
-      })
-      setActiveExecId(null)
-      if (user) {
-        removeAIEditTask(user.id, execId)
-      }
-    },
-    [user]
-  )
-
-  const handleTaskSubmitted = useCallback((task: AIEditState) => {
-    setAiEditTasks((prev) => {
-      const next = new Map(prev)
-      next.set(task.exec_id, task)
-      return next
-    })
+  const handleOpenArticleEditTask = useCallback((taskRef: TaskCenterTaskReference) => {
+    setActiveArticleEditTaskRef(taskRef)
   }, [])
 
-  const handleSetActiveExecId = useCallback((execId: string | null) => {
-    setActiveExecId(execId)
+  const handleArticleEditSubmitted = useCallback(() => {
+    setArticleEditSubmissionTick((current) => current + 1)
   }, [])
-
-  const handleAddTask = useCallback(
-    (task: AIEditState) => {
-      setAiEditTasks((prev) => {
-        const next = new Map(prev)
-        next.set(task.exec_id, task)
-        return next
-      })
-      if (user) {
-        addAIEditTask(user.id, task)
-      }
-    },
-    [user]
-  )
-
-  const handleRemoveTask = useCallback(
-    (execId: string) => {
-      setAiEditTasks((prev) => {
-        const next = new Map(prev)
-        next.delete(execId)
-        return next
-      })
-      if (user) {
-        removeAIEditTask(user.id, execId)
-      }
-    },
-    [user]
-  )
 
   // ==================== Editor change handler ====================
 
@@ -420,7 +226,7 @@ export default function ArticleEditPage() {
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
           <p className="text-sm text-muted-foreground">
-            {authLoading ? "Loading..." : t("contentWriting.manager.loading") || "Loading article..."}
+            {t("contentWriting.manager.loading")}
           </p>
         </div>
       </div>
@@ -436,14 +242,14 @@ export default function ArticleEditPage() {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <p className="text-lg font-semibold text-foreground">
-            {t("contentWriting.manager.articleNotFound") || "Article not found"}
+            {t("contentWriting.manager.articleNotFound")}
           </p>
           <p className="text-sm text-muted-foreground">{loadError}</p>
           <button
             onClick={() => router.push("/articles")}
             className="text-sm text-primary hover:underline"
           >
-            {t("common.back") || "Back to articles"}
+            {t("common.back")}
           </button>
         </div>
       </div>
@@ -481,12 +287,9 @@ export default function ArticleEditPage() {
         editable={true}
         articleId={article.id}
         mode="edit"
-        aiEditTasks={aiEditTasks}
-        activeExecId={activeExecId}
-        onAIPendingBlockClick={handleAIPendingBlockClick}
-        onTaskSubmitted={handleTaskSubmitted}
-        onAIEditResultConsumed={handleAIEditResultConsumed}
-        userId={user.id}
+        activeArticleEditTaskRef={activeArticleEditTaskRef}
+        onActiveArticleEditTaskRefChange={setActiveArticleEditTaskRef}
+        onArticleEditSubmitted={handleArticleEditSubmitted}
       />
     </div>
   )
@@ -494,11 +297,8 @@ export default function ArticleEditPage() {
   const rightPanel = (
     <EditorAIPanel
       articleId={article.id}
-      aiEditTasks={aiEditTasks}
-      activeExecId={activeExecId}
-      onSetActiveExecId={handleSetActiveExecId}
-      onAddTask={handleAddTask}
-      onRemoveTask={handleRemoveTask}
+      submissionTick={articleEditSubmissionTick}
+      onOpenArticleEditTask={handleOpenArticleEditTask}
     />
   )
 

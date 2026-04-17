@@ -4,7 +4,8 @@ export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic"] as con
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
 
-export type TaskCenterArticleStatus = "edit_doing" | "edit"
+export type TaskCenterArticleOperateType = "edit"
+export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
 
@@ -17,6 +18,10 @@ export interface TaskCenterArticleListDetails {
   article_id: number
   exec_id: string
   is_settle: boolean
+  status?: TaskCenterArticleStatus
+  req_text?: string
+  resp_text?: string
+  error?: string
 }
 
 export interface TaskCenterImageListDetails {
@@ -87,7 +92,11 @@ export interface TaskCenterArticleTaskDetail {
   id: number
   article_id: number
   exec_id: string
-  operate_type: TaskCenterArticleStatus
+  operate_type: TaskCenterArticleOperateType
+  status: TaskCenterArticleStatus
+  req_text: string
+  resp_text?: string
+  error?: string
   is_settle?: boolean
   created_at: string
   updated_at: string
@@ -185,5 +194,5 @@ export function getTaskCenterTaskArticleId(task: TaskCenterTaskListItem): number
 }
 
 export function isTaskCenterTerminalStatus(status: TaskCenterTaskStatus): boolean {
-  return status === "edit" || status === "success" || status === "failed"
+  return status === "success" || status === "failed"
 }
