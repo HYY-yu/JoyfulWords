@@ -1762,6 +1762,7 @@ export const en = {
     },
     landing: {
         nav: {
+            menu: "Menu",
             features: "Features",
             blog: "Blog",
             myArticles: "My Articles",
@@ -1823,6 +1824,7 @@ export const en = {
         ctaSubtitle: "Begin your content creation journey.",
         ctaCta: "Start Creating →",
         footer: {
+            more: "More",
             version: "Content Creation Tool · v1.0.0",
             privacyPolicy: "Privacy Policy",
             termsOfUse: "Terms of Use",

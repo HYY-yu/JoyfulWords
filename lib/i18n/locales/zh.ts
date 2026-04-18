@@ -1762,6 +1762,7 @@ export const zh = {
     },
     landing: {
         nav: {
+            menu: "菜单",
             features: "功能",
             blog: "博客",
             myArticles: "我的文章",
@@ -1823,6 +1824,7 @@ export const zh = {
         ctaSubtitle: "开始你的内容创作之旅。",
         ctaCta: "立即开始创作 →",
         footer: {
+            more: "更多",
             version: "内容创作与管理工具 · v1.0.0",
             privacyPolicy: "隐私政策",
             termsOfUse: "服务条款",

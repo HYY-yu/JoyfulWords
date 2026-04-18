@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Globe } from "lucide-react"
+import { Globe, MenuIcon } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/base/accordion"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/base/sheet"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 
@@ -35,7 +37,7 @@ const featureKeys = [
   },
 ] as const
 
-function Logo() {
+function Logo({ showWordmark = true }: { showWordmark?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <Image
@@ -45,9 +47,11 @@ function Logo() {
         height={32}
         className="h-8 w-8 shrink-0 rounded-sm object-cover"
       />
-      <span className="text-base font-semibold tracking-tight">
-        JoyfulWords
-      </span>
+      {showWordmark ? (
+        <span className="text-base font-semibold tracking-tight">
+          JoyfulWords
+        </span>
+      ) : null}
     </div>
   )
 }
@@ -55,6 +59,7 @@ function Logo() {
 export function HomePageContent() {
   const { t, locale, setLocale } = useTranslation()
   const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -94,34 +99,101 @@ export function HomePageContent() {
 
   return (
     <div className="overflow-x-hidden">
-      <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b bg-background/90 px-10 backdrop-blur-2xl">
+      <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur-2xl sm:px-6 md:px-10">
         <Logo />
         <div className="flex-1" />
-        <button
-          onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
-        >
-          <Globe className="h-4 w-4" />
-          {locale === "zh" ? "EN" : "中文"}
-        </button>
-        <a
-          href="#features"
-          className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
-        >
-          {t("landing.nav.features")}
-        </a>
-        <Link
-          href="/blog"
-          className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
-        >
-          {t("landing.nav.blog")}
-        </Link>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/articles">{t("landing.nav.myArticles")}</Link>
-        </Button>
-        <Button size="sm" asChild>
-          <Link href="/articles">{t("landing.nav.startCreating")}</Link>
-        </Button>
+
+        <div className="hidden items-center gap-3 md:flex">
+          <button
+            onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+          >
+            <Globe className="h-4 w-4" />
+            {locale === "zh" ? "EN" : "中文"}
+          </button>
+          <a
+            href="#features"
+            className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+          >
+            {t("landing.nav.features")}
+          </a>
+          <Link
+            href="/blog"
+            className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+          >
+            {t("landing.nav.blog")}
+          </Link>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/articles">{t("landing.nav.myArticles")}</Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link href="/articles">{t("landing.nav.startCreating")}</Link>
+          </Button>
+        </div>
+
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              aria-label={t("landing.nav.menu")}
+            >
+              <MenuIcon className="size-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="gap-0">
+            <SheetHeader className="pb-2">
+              <SheetTitle>{t("landing.nav.menu")}</SheetTitle>
+            </SheetHeader>
+
+            <nav className="flex flex-col gap-1 px-4 pb-6">
+              <button
+                onClick={() => {
+                  setLocale(locale === "zh" ? "en" : "zh")
+                  setMobileMenuOpen(false)
+                }}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                <Globe className="h-4 w-4" />
+                {locale === "zh" ? "EN" : "中文"}
+              </button>
+
+              <a
+                href="#features"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.features")}
+              </a>
+
+              <Link
+                href="/blog"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.blog")}
+              </Link>
+
+              <div className="my-2 h-px bg-border" />
+
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                asChild
+              >
+                <Link href="/articles" onClick={() => setMobileMenuOpen(false)}>
+                  {t("landing.nav.myArticles")}
+                </Link>
+              </Button>
+              <Button className="w-full justify-start" asChild>
+                <Link href="/articles" onClick={() => setMobileMenuOpen(false)}>
+                  {t("landing.nav.startCreating")}
+                </Link>
+              </Button>
+            </nav>
+          </SheetContent>
+        </Sheet>
       </header>
 
       <section className="flex min-h-screen flex-col items-center justify-center bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(37,99,235,.07)_0%,transparent_70%),radial-gradient(ellipse_60%_40%_at_85%_60%,rgba(124,58,237,.05)_0%,transparent_60%)] px-6 pt-14 pb-20 text-center">
@@ -150,20 +222,19 @@ export function HomePageContent() {
           </Button>
         </div>
 
-        <div className="animate-fade-up animate-delay-4 mt-16 flex overflow-hidden rounded-2xl border bg-white shadow-[0_4px_32px_rgba(0,0,0,.06)]">
-          {stats.map((stat, i) => (
-            <div
-              key={stat.label}
-              className={`px-11 py-6 text-center ${i < stats.length - 1 ? "border-r" : ""}`}
-            >
-              <div className="font-serif text-[28px] tracking-tight">
-                {stat.value}
+        <div className="animate-fade-up animate-delay-4 mt-14 w-full max-w-md overflow-hidden rounded-2xl border bg-white shadow-[0_4px_32px_rgba(0,0,0,.06)] sm:mt-16 sm:max-w-2xl md:max-w-3xl">
+          <div className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            {stats.map((stat) => (
+              <div key={stat.label} className="px-6 py-5 text-center sm:px-8 sm:py-6 md:px-11">
+                <div className="font-serif text-2xl tracking-tight sm:text-[28px]">
+                  {stat.value}
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {stat.label}
+                </div>
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {stat.label}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -264,18 +335,56 @@ export function HomePageContent() {
         </div>
       </section>
 
-      <footer className="flex items-center justify-between border-t px-10 py-6">
-        <Logo />
-        <div className="flex items-center gap-6">
-          <Link href="/privacy-policy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            {t("landing.footer.privacyPolicy")}
-          </Link>
-          <Link href="/terms-of-use" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
-            {t("landing.footer.termsOfUse")}
-          </Link>
-          <span className="text-xs text-muted-foreground">
-            {t("landing.footer.version")}
-          </span>
+      <footer className="border-t px-4 py-6 sm:px-6 md:px-10">
+        <div className="flex items-center justify-between gap-4">
+          <Logo showWordmark={false} />
+
+          <div className="hidden items-center gap-6 md:flex">
+            <Link
+              href="/privacy-policy"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("landing.footer.privacyPolicy")}
+            </Link>
+            <Link
+              href="/terms-of-use"
+              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {t("landing.footer.termsOfUse")}
+            </Link>
+            <span className="text-xs text-muted-foreground">
+              {t("landing.footer.version")}
+            </span>
+          </div>
+
+          <div className="md:hidden">
+            <Accordion type="single" collapsible>
+              <AccordionItem value="footer-links" className="border-b-0">
+                <AccordionTrigger className="py-2 text-sm font-medium no-underline hover:no-underline">
+                  {t("landing.footer.more")}
+                </AccordionTrigger>
+                <AccordionContent className="pb-0">
+                  <div className="flex flex-col items-end gap-3">
+                    <Link
+                      href="/privacy-policy"
+                      className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {t("landing.footer.privacyPolicy")}
+                    </Link>
+                    <Link
+                      href="/terms-of-use"
+                      className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      {t("landing.footer.termsOfUse")}
+                    </Link>
+                    <span className="text-xs text-muted-foreground">
+                      {t("landing.footer.version")}
+                    </span>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
         </div>
       </footer>
 
