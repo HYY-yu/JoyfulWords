@@ -267,7 +267,7 @@ export default function ArticlesPage() {
             onClick={() => router.push("/articles")}
             className="text-base font-semibold text-foreground hover:text-foreground/80 transition-colors"
           >
-            {t("sidebar.title")}
+            Joyful Words
           </button>
 
           {/* Right - Actions */}
