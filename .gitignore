@@ -12,6 +12,9 @@ tsconfig.tsbuildinfo
 
 .mcp.json
 
+# Local HTTPS certs (mkcert)
+certificates
+
 # Git worktrees
 .worktrees
 
