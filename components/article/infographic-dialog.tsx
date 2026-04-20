@@ -1,7 +1,7 @@
 "use client"
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { AlertCircleIcon, CheckCircle2Icon, Loader2Icon, SparklesIcon } from "lucide-react"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { Button } from "@/components/ui/base/button"
@@ -28,7 +28,10 @@ import {
   type InfographicLanguage,
   type InfographicScreenOrientation,
 } from "@/lib/api/infographics/types"
-import { useInfographicPolling } from "@/lib/hooks/use-infographic-polling"
+import {
+  useInfographicPolling,
+  type InfographicPollingState,
+} from "@/lib/hooks/use-infographic-polling"
 import { cn } from "@/lib/utils"
 
 interface InfographicDialogProps {
@@ -101,6 +104,7 @@ export function InfographicDialog({
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
+  const lastAnnouncedPollingStateRef = useRef<InfographicPollingState>("idle")
   const taskLabel = t("tiptapEditor.aiPanel.infographic")
   const submittingToastTitle = t("asyncTaskToast.submittingTitle", { task: taskLabel })
   const submittingToastDescription = t("asyncTaskToast.submittingDescription", { task: taskLabel })
@@ -157,6 +161,10 @@ export function InfographicDialog({
       : pollingErrorMessage)
 
   useEffect(() => {
+    if (pollingState === lastAnnouncedPollingStateRef.current) return
+
+    lastAnnouncedPollingStateRef.current = pollingState
+
     if (pollingState === "success") {
       taskToast.showSuccess({
         title: t("infographicDialog.status.success"),
