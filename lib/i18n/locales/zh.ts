@@ -1785,7 +1785,7 @@ export const zh = {
         featuresLabel: "全套工具",
         featuresHeading: "写作所需，",
         featuresHeadingAccent: "全部内置",
-        featuresSubheading: "把选题、写作、配图、素材沉淀、流量优化和竞品分析串成一个创作闭环。",
+        featuresSubheading: "把选题、写作、配图、素材沉淀、演讲展示串成一个创作闭环。",
         featuresBadgePrimary: "主打能力",
         featuresBadgeSupport: "协同能力",
         features: {
@@ -1800,9 +1800,9 @@ export const zh = {
                 desc: "写作过程中直接生成插图或补充视觉素材，让图文搭配自然完成，无需切换工作流。",
             },
             seoGeo: {
-                eyebrow: "流量放大",
-                title: "SEO / GEO 优化",
-                desc: "同步检查标题、关键词与内容结构，让文章既适配搜索引擎，也更容易进入 AI 回答结果。",
+                eyebrow: "演示输出",
+                title: "自动 PPT|PDF 生成",
+                desc: "一键生成可演示的 PPT 和 PDF，方便汇报、展示和交付。",
             },
             knowledgeCards: {
                 eyebrow: "内容提炼",
@@ -1815,9 +1815,9 @@ export const zh = {
                 desc: "把灵感、链接、图片和参考资料统一收集、整理、复用，让素材真正成为可积累的内容资产。",
             },
             competitors: {
-                eyebrow: "同题参考",
-                title: "竞品参考",
-                desc: "快速查看同题内容的结构、角度与关键词布局，帮助你判断切入点并拉开差异。",
+                eyebrow: "任务聚合",
+                title: "任务中心",
+                desc: "所有任务汇聚一处，进度、结果和状态都能直观查看。",
             },
         },
         ctaHeading: "开始你的第一篇文章",

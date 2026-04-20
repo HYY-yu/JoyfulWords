@@ -1785,7 +1785,7 @@ export const en = {
         featuresLabel: "FULL TOOLKIT",
         featuresHeading: "Everything You Need, ",
         featuresHeadingAccent: "Built In",
-        featuresSubheading: "Turn ideation, writing, imagery, source collection, discoverability, and competitive research into one connected content workflow.",
+        featuresSubheading: "Turn ideation, writing, imagery, material accumulation, and presentation into one connected content workflow.",
         featuresBadgePrimary: "Primary",
         featuresBadgeSupport: "Support",
         features: {
@@ -1800,9 +1800,9 @@ export const en = {
                 desc: "Generate illustrations or add supporting visuals while you write, without breaking your editing workflow.",
             },
             seoGeo: {
-                eyebrow: "Distribution",
-                title: "SEO / GEO Optimization",
-                desc: "Improve titles, keywords, and structure so your content performs in search engines and AI answers.",
+                eyebrow: "Presentation Output",
+                title: "Auto PPT|PDF Generation",
+                desc: "Generate presentation-ready PPT and PDF files in one click for demos, reports, and delivery.",
             },
             knowledgeCards: {
                 eyebrow: "Content Extraction",
@@ -1815,9 +1815,9 @@ export const en = {
                 desc: "Collect, organize, and reuse links, images, and references in one place so materials become lasting content assets.",
             },
             competitors: {
-                eyebrow: "Market Read",
-                title: "Competitor Reference",
-                desc: "Review similar content angles, structures, and keyword strategies quickly to find your strongest positioning.",
+                eyebrow: "Task Hub",
+                title: "Task Center",
+                desc: "Bring every task together in one place with clear progress, results, and status at a glance.",
             },
         },
         ctaHeading: "Start Your First Article",
