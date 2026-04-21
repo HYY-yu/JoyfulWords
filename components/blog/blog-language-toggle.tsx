@@ -1,19 +1,21 @@
 "use client"
 
 import { Globe } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useTranslation } from "@/lib/i18n/i18n-context"
+import { usePathname, useRouter } from "next/navigation"
+import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
+import { switchLocalePathname } from "@/lib/i18n/route-locale"
 import { cn } from "@/lib/utils"
 
 export function BlogLanguageToggle() {
   const router = useRouter()
-  const { locale, setLocale, t } = useTranslation()
+  const pathname = usePathname()
+  const { locale, t } = useTranslation()
 
   const handleLocaleChange = (nextLocale: "zh" | "en") => {
     if (nextLocale === locale) return
 
-    setLocale(nextLocale)
-    router.refresh()
+    persistLocalePreference(nextLocale)
+    router.replace(switchLocalePathname(pathname, nextLocale))
   }
 
   return (

@@ -4,14 +4,17 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { LanguageSwitcher } from "@/components/legal/language-switcher"
+import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 
 export function PrivacyPolicyPageContent() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [currentDate, setCurrentDate] = useState<string>("")
 
   useEffect(() => {
-    setCurrentDate(new Date().toLocaleDateString())
-  }, [])
+    setCurrentDate(
+      new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US").format(new Date())
+    )
+  }, [locale])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -150,7 +153,7 @@ export function PrivacyPolicyPageContent() {
             </h2>
             <p className="text-muted-foreground leading-relaxed">
               {t("privacyPolicy.cookies.description")}{" "}
-              <Link href="/cookie-policy" className="text-primary hover:underline">
+              <Link href={buildLocalizedPath(locale, "/cookie-policy")} className="text-primary hover:underline">
                 {t("privacyPolicy.cookies.cookiePolicyLink")}
               </Link>
             </p>
@@ -190,4 +193,3 @@ export function PrivacyPolicyPageContent() {
     </div>
   )
 }
-

@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { isAuthRoute, isPublicRoute } from '@/lib/auth/session-policy'
+import { DEFAULT_LOCALE, getLocaleFromPathname, parseAcceptLanguageLocale } from '@/lib/i18n/route-locale'
+import { isPublicRoute } from '@/lib/auth/session-policy'
 
 const REFRESH_TOKEN_KEY = 'refresh_token'
+const LOCALE_COOKIE_KEY = 'locale'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -9,8 +11,11 @@ export async function proxy(request: NextRequest) {
   // Get refresh token from cookies
   const refreshToken = request.cookies.get(REFRESH_TOKEN_KEY)?.value
   const isAuthenticated = !!refreshToken
-  const isAuthPage = isAuthRoute(pathname)
   const isPublic = isPublicRoute(pathname)
+  const pathLocale = getLocaleFromPathname(pathname)
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE_KEY)?.value
+  const acceptLanguageLocale = parseAcceptLanguageLocale(request.headers.get('accept-language'))
+  const requestLocale = pathLocale ?? (cookieLocale === 'en' || cookieLocale === 'zh' ? cookieLocale : null) ?? acceptLanguageLocale ?? DEFAULT_LOCALE
 
   // Redirect authenticated users away from auth pages (but NOT public pages)
   // if (isAuthenticated && isAuthPage) {
@@ -24,7 +29,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return NextResponse.next()
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-locale', requestLocale)
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
 }
 
 export const config = {

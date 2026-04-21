@@ -1,51 +1,53 @@
 import type { MetadataRoute } from "next"
 import { getBlogSlugs } from "@/lib/blog"
-import { APP_URL } from "@/lib/config"
+import { buildLocalizedPath, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
 import { buildCanonicalUrl } from "@/lib/seo"
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
   const blogSlugs = await getBlogSlugs()
 
-  const staticPages: MetadataRoute.Sitemap = [
+  const localizedStaticPages = SUPPORTED_LOCALES.flatMap((locale) => [
     {
-      url: APP_URL,
+      url: buildCanonicalUrl(buildLocalizedPath(locale)),
       lastModified: now,
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 1,
     },
     {
-      url: buildCanonicalUrl("/blog"),
+      url: buildCanonicalUrl(buildLocalizedPath(locale, "/blog")),
       lastModified: now,
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.8,
     },
     {
-      url: buildCanonicalUrl("/privacy-policy"),
+      url: buildCanonicalUrl(buildLocalizedPath(locale, "/privacy-policy")),
       lastModified: now,
-      changeFrequency: "yearly",
+      changeFrequency: "yearly" as const,
       priority: 0.2,
     },
     {
-      url: buildCanonicalUrl("/cookie-policy"),
+      url: buildCanonicalUrl(buildLocalizedPath(locale, "/cookie-policy")),
       lastModified: now,
-      changeFrequency: "yearly",
+      changeFrequency: "yearly" as const,
       priority: 0.2,
     },
     {
-      url: buildCanonicalUrl("/terms-of-use"),
+      url: buildCanonicalUrl(buildLocalizedPath(locale, "/terms-of-use")),
       lastModified: now,
-      changeFrequency: "yearly",
+      changeFrequency: "yearly" as const,
       priority: 0.2,
     },
-  ]
+  ])
 
-  const blogPages: MetadataRoute.Sitemap = blogSlugs.map((slug) => ({
-    url: buildCanonicalUrl(`/blog/${slug}`),
-    lastModified: now,
-    changeFrequency: "monthly",
-    priority: 0.7,
-  }))
+  const blogPages: MetadataRoute.Sitemap = SUPPORTED_LOCALES.flatMap((locale) =>
+    blogSlugs.map((slug) => ({
+      url: buildCanonicalUrl(buildLocalizedPath(locale, `/blog/${slug}`)),
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    }))
+  )
 
-  return [...staticPages, ...blogPages]
+  return [...localizedStaticPages, ...blogPages]
 }

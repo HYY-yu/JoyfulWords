@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
@@ -20,7 +21,9 @@ export function SignupForm() {
   const [termsError, setTermsError] = useState<string>("")
   const { requestSignupCode } = useAuth()
   const { toast } = useToast()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const termsOfUseHref = buildLocalizedPath(locale, "/terms-of-use")
+  const privacyPolicyHref = buildLocalizedPath(locale, "/privacy-policy")
 
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,7 +135,7 @@ export function SignupForm() {
         >
           {t("auth.agreeToTerms")}{" "}
           <Link
-            href="/terms-of-use"
+            href={termsOfUseHref}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline font-medium"
@@ -141,7 +144,7 @@ export function SignupForm() {
           </Link>
           {" "}{t("auth.and")}{" "}
           <Link
-            href="/privacy-policy"
+            href={privacyPolicyHref}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline font-medium"

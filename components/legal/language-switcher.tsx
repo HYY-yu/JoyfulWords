@@ -1,6 +1,8 @@
 "use client"
 
-import { useTranslation } from "@/lib/i18n/i18n-context"
+import { usePathname, useRouter } from "next/navigation"
+import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
+import { switchLocalePathname } from "@/lib/i18n/route-locale"
 import { cn } from "@/lib/utils"
 
 /**
@@ -15,13 +17,22 @@ import { cn } from "@/lib/utils"
  * - /app/privacy-policy/page.tsx
  */
 export function LanguageSwitcher() {
-  const { locale, setLocale, t } = useTranslation()
+  const router = useRouter()
+  const pathname = usePathname()
+  const { locale, t } = useTranslation()
+
+  const handleLocaleChange = (nextLocale: "zh" | "en") => {
+    if (nextLocale === locale) return
+
+    persistLocalePreference(nextLocale)
+    router.replace(switchLocalePathname(pathname, nextLocale))
+  }
 
   return (
     <div className="mt-6 flex justify-center">
       <div className="flex bg-accent/30 rounded-lg p-1 border border-border/50 shadow-sm">
         <button
-          onClick={() => setLocale("zh")}
+          onClick={() => handleLocaleChange("zh")}
           className={cn(
             "flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
             locale === "zh"
@@ -34,7 +45,7 @@ export function LanguageSwitcher() {
           <span className="hidden sm:inline">{t("common.zh")}</span>
         </button>
         <button
-          onClick={() => setLocale("en")}
+          onClick={() => handleLocaleChange("en")}
           className={cn(
             "flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
             locale === "en"

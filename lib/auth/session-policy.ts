@@ -1,3 +1,5 @@
+import { stripLocalePrefix } from "@/lib/i18n/route-locale"
+
 const AUTH_ROUTE_PREFIXES = [
   '/auth/login',
   '/auth/signup',
@@ -42,18 +44,19 @@ function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
 }
 
 export function isAuthRoute(pathname: string): boolean {
-  return matchesPrefix(pathname, AUTH_ROUTE_PREFIXES)
+  return matchesPrefix(stripLocalePrefix(pathname), AUTH_ROUTE_PREFIXES)
 }
 
 export function isPublicPage(pathname: string): boolean {
-  return matchesPrefix(pathname, PUBLIC_PAGE_PREFIXES)
+  return matchesPrefix(stripLocalePrefix(pathname), PUBLIC_PAGE_PREFIXES)
 }
 
 export function isPublicRoute(pathname: string): boolean {
+  const normalizedPathname = stripLocalePrefix(pathname)
   return (
-    isAuthRoute(pathname) ||
-    isPublicPage(pathname) ||
-    EXACT_PUBLIC_ROUTES.some((route) => route === pathname)
+    isAuthRoute(normalizedPathname) ||
+    isPublicPage(normalizedPathname) ||
+    EXACT_PUBLIC_ROUTES.some((route) => route === normalizedPathname)
   )
 }
 

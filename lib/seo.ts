@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 import { APP_URL } from "@/lib/config"
+import { getHreflang, getOpenGraphLocale } from "@/lib/i18n/route-locale"
+import type { Locale } from "@/lib/i18n/shared"
 
 export const SITE_NAME = "JoyfulWords"
 export const SITE_URL = APP_URL.startsWith("http") ? APP_URL : "https://joyword.link"
@@ -10,6 +12,8 @@ interface BuildMetadataOptions {
   title: string
   description: string
   path: string
+  locale: Locale
+  alternatePaths?: Partial<Record<Locale, string>>
   keywords?: string[]
   type?: "website" | "article"
   image?: string
@@ -19,12 +23,23 @@ export function buildMetadata({
   title,
   description,
   path,
+  locale,
+  alternatePaths,
   keywords,
   type = "website",
   image = DEFAULT_OG_IMAGE,
 }: BuildMetadataOptions): Metadata {
   const canonical = buildCanonicalUrl(path)
   const fullTitle = `${title} | ${SITE_NAME}`
+  const languageAlternates: Record<string, string> = {
+    [getHreflang(locale)]: canonical,
+  }
+
+  for (const [alternateLocale, alternatePath] of Object.entries(alternatePaths ?? {})) {
+    if (!alternatePath) continue
+    const localeKey = alternateLocale as Locale
+    languageAlternates[getHreflang(localeKey)] = buildCanonicalUrl(alternatePath)
+  }
 
   return {
     title: fullTitle,
@@ -32,6 +47,7 @@ export function buildMetadata({
     keywords,
     alternates: {
       canonical,
+      languages: languageAlternates,
     },
     openGraph: {
       title: fullTitle,
@@ -39,6 +55,7 @@ export function buildMetadata({
       url: canonical,
       siteName: SITE_NAME,
       type,
+      locale: getOpenGraphLocale(locale),
       images: [
         {
           url: image,
@@ -57,4 +74,3 @@ export function buildMetadata({
 export function buildCanonicalUrl(path: string): string {
   return new URL(path, SITE_ORIGIN).toString()
 }
-

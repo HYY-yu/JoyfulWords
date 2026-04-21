@@ -6,7 +6,18 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/blog", "/blog/", "/privacy-policy", "/cookie-policy", "/terms-of-use"],
+        allow: [
+          "/",
+          "/zh",
+          "/zh/",
+          "/en",
+          "/en/",
+          "/blog",
+          "/blog/",
+          "/privacy-policy",
+          "/cookie-policy",
+          "/terms-of-use",
+        ],
         disallow: ["/auth/", "/dashboard", "/articles", "/taskcenter", "/payment/"],
       },
     ],
@@ -14,4 +25,3 @@ export default function robots(): MetadataRoute.Robots {
     host: APP_URL,
   }
 }
-

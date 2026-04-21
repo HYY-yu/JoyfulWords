@@ -1,9 +1,11 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { headers } from "next/headers"
 import Script from "next/script"
 import "./globals.css"
 import { APP_URL } from "@/lib/config"
 import { SITE_NAME } from "@/lib/seo"
+import { getHtmlLang, isLocale } from "@/lib/i18n/route-locale"
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
@@ -14,13 +16,9 @@ export const metadata: Metadata = {
   description: "AI content creation workspace for writing, visuals, material management, and SEO optimization.",
   generator: "v0.app",
   applicationName: SITE_NAME,
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     siteName: SITE_NAME,
     type: "website",
-    locale: "zh_CN",
   },
   twitter: {
     card: "summary_large_image",
@@ -51,11 +49,14 @@ import { OpenTelemetryProvider } from "@/components/otel/client-tracing-provider
 import { InsufficientCreditsRoot } from "@/lib/credits/index"
 import { WebSocketProvider } from "@/components/websocket/websocket-provider"
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const requestHeaders = await headers()
+  const requestLocale = requestHeaders.get("x-locale")
+  const initialLocale = isLocale(requestLocale) ? requestLocale : "zh"
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -65,14 +66,14 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="zh-CN" className="h-full" suppressHydrationWarning>
+    <html lang={getHtmlLang(initialLocale)} className="h-full" suppressHydrationWarning>
       <body className="font-sans antialiased h-full">
         <Script
           id="joyfulwords-organization-schema"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        <I18nProvider>
+        <I18nProvider initialLocale={initialLocale}>
           <AuthProvider>
             <WebSocketProvider>
               <InsufficientCreditsRoot>

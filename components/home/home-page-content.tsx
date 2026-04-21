@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Globe, MenuIcon } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/base/accordion"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/base/sheet"
-import { useTranslation } from "@/lib/i18n/i18n-context"
+import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
+import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 
 const featureKeys = [
@@ -57,15 +59,19 @@ function Logo({ showWordmark = true }: { showWordmark?: boolean }) {
 }
 
 export function HomePageContent() {
-  const { t, locale, setLocale } = useTranslation()
+  const router = useRouter()
+  const { t, locale } = useTranslation()
   const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const blogHref = buildLocalizedPath(locale, "/blog")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
     { value: t("landing.stats.tools"), label: t("landing.stats.toolsLabel") },
     { value: t("landing.stats.seo"), label: t("landing.stats.seoLabel") },
   ]
+  const privacyPolicyHref = buildLocalizedPath(locale, "/privacy-policy")
+  const termsOfUseHref = buildLocalizedPath(locale, "/terms-of-use")
 
   useEffect(() => {
     const elements = document.querySelectorAll<HTMLElement>("[data-feature-key]")
@@ -105,7 +111,11 @@ export function HomePageContent() {
 
         <div className="hidden items-center gap-3 md:flex">
           <button
-            onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            onClick={() => {
+              const nextLocale = locale === "zh" ? "en" : "zh"
+              persistLocalePreference(nextLocale)
+              router.replace(buildLocalizedPath(nextLocale))
+            }}
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
           >
             <Globe className="h-4 w-4" />
@@ -118,7 +128,7 @@ export function HomePageContent() {
             {t("landing.nav.features")}
           </a>
           <Link
-            href="/blog"
+            href={blogHref}
             className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
           >
             {t("landing.nav.blog")}
@@ -150,7 +160,9 @@ export function HomePageContent() {
             <nav className="flex flex-col gap-1 px-4 pb-6">
               <button
                 onClick={() => {
-                  setLocale(locale === "zh" ? "en" : "zh")
+                  const nextLocale = locale === "zh" ? "en" : "zh"
+                  persistLocalePreference(nextLocale)
+                  router.replace(buildLocalizedPath(nextLocale))
                   setMobileMenuOpen(false)
                 }}
                 className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
@@ -168,7 +180,7 @@ export function HomePageContent() {
               </a>
 
               <Link
-                href="/blog"
+                href={blogHref}
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
               >
@@ -341,13 +353,13 @@ export function HomePageContent() {
 
           <div className="hidden items-center gap-6 md:flex">
             <Link
-              href="/privacy-policy"
+              href={privacyPolicyHref}
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("landing.footer.privacyPolicy")}
             </Link>
             <Link
-              href="/terms-of-use"
+              href={termsOfUseHref}
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               {t("landing.footer.termsOfUse")}
@@ -366,13 +378,13 @@ export function HomePageContent() {
                 <AccordionContent className="pb-0">
                   <div className="flex flex-col items-end gap-3">
                     <Link
-                      href="/privacy-policy"
+                      href={privacyPolicyHref}
                       className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {t("landing.footer.privacyPolicy")}
                     </Link>
                     <Link
-                      href="/terms-of-use"
+                      href={termsOfUseHref}
                       className="text-xs text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {t("landing.footer.termsOfUse")}

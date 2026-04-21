@@ -1,134 +1,99 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { zh } from './locales/zh';
-import { en } from './locales/en';
-import { LOCALE_COOKIE_NAME, type Locale } from './shared';
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { usePathname } from "next/navigation"
+import { zh } from "./locales/zh"
+import { en } from "./locales/en"
+import { DEFAULT_LOCALE, getLocaleFromPathname, getHtmlLang } from "./route-locale"
+import { LOCALE_COOKIE_NAME, type Locale } from "./shared"
 
 interface I18nContextType {
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
-  t: (key: string, params?: Record<string, any>) => any;
+  locale: Locale
+  setLocale: (locale: Locale) => void
+  t: (key: string, params?: Record<string, any>) => any
 }
 
-const I18nContext = createContext<I18nContextType | undefined>(undefined);
+const I18nContext = createContext<I18nContextType | undefined>(undefined)
 
-const dictionaries = { zh, en };
+const dictionaries = { zh, en }
 
-/**
- * 检测浏览器语言
- * - zh-CN, zh-TW, zh-HK 等 → zh
- * - en-US, en-GB, en-CA 等 → en
- * - 其他语言 → zh (默认)
- */
-function detectBrowserLocale(): Locale {
-  if (typeof window === 'undefined') return 'zh';
-
-  const browserLang = navigator.language || navigator.languages?.[0];
-  if (!browserLang) return 'zh';
-
-  // 提取语言代码的前两位 (如 zh-CN → zh)
-  const langCode = browserLang.toLowerCase().split('-')[0];
-
-  if (langCode === 'zh') return 'zh';
-  if (langCode === 'en') return 'en';
-
-  // 其他语言回退到默认中文
-  return 'zh';
+interface I18nProviderProps {
+  children: ReactNode
+  initialLocale?: Locale
 }
 
-function detectCookieLocale(): Locale | null {
-  if (typeof document === 'undefined') return null;
+export function persistLocalePreference(newLocale: Locale) {
+  if (typeof window === "undefined") {
+    return
+  }
 
-  const localeCookie = document.cookie
-    .split('; ')
-    .find((cookie) => cookie.startsWith(`${LOCALE_COOKIE_NAME}=`))
-    ?.split('=')[1];
-
-  return localeCookie === 'zh' || localeCookie === 'en' ? localeCookie : null;
+  localStorage.setItem("locale", newLocale)
+  document.cookie = `${LOCALE_COOKIE_NAME}=${newLocale}; path=/; max-age=31536000; samesite=lax`
+  document.documentElement.lang = getHtmlLang(newLocale)
 }
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  // Always start with default locale to avoid hydration mismatch
-  const [locale, setLocaleState] = useState<Locale>('zh');
+export function I18nProvider({ children, initialLocale = DEFAULT_LOCALE }: I18nProviderProps) {
+  const pathname = usePathname()
+  const [locale, setLocaleState] = useState<Locale>(initialLocale)
 
-  // 初始化语言：localStorage 优先 > 浏览器语言 > 默认 zh
   useEffect(() => {
-    // 1. 优先使用 localStorage 保存的用户选择
-    const savedLocale = localStorage.getItem('locale') as Locale;
-    if (savedLocale === 'zh' || savedLocale === 'en') {
-      setLocaleState(savedLocale);
-      return;
+    const routeLocale = getLocaleFromPathname(pathname)
+    if (routeLocale && routeLocale !== locale) {
+      setLocaleState(routeLocale)
     }
-
-    // 2. 兼容 SSR 读取的语言 cookie
-    const cookieLocale = detectCookieLocale();
-    if (cookieLocale) {
-      setLocaleState(cookieLocale);
-      return;
-    }
-
-    // 3. 检测浏览器语言（不持久化）
-    const detectedLocale = detectBrowserLocale();
-    setLocaleState(detectedLocale);
-  }, []);
+  }, [locale, pathname])
 
   const setLocale = (newLocale: Locale) => {
-    setLocaleState(newLocale);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('locale', newLocale);
-      document.cookie = `${LOCALE_COOKIE_NAME}=${newLocale}; path=/; max-age=31536000; samesite=lax`;
-    }
-  };
+    setLocaleState(newLocale)
+    persistLocalePreference(newLocale)
+  }
 
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = getHtmlLang(locale)
     }
-  }, [locale]);
+  }, [locale])
 
   const t = (key: string, params?: Record<string, any>): any => {
-    const keys = key.split('.');
-    let value: any = dictionaries[locale];
+    const keys = key.split(".")
+    let value: any = dictionaries[locale]
 
     for (const k of keys) {
       if (value && value[k] !== undefined) {
-        value = value[k];
+        value = value[k]
       } else {
-        // Fallback to zh if key missing in current locale
-        let fallback: any = dictionaries['zh'];
+        let fallback: any = dictionaries.zh
         for (const fk of keys) {
-            if (fallback && fallback[fk] !== undefined) {
-                fallback = fallback[fk];
-            } else {
-                return key;
-            }
+          if (fallback && fallback[fk] !== undefined) {
+            fallback = fallback[fk]
+          } else {
+            return key
+          }
         }
-        return fallback;
+        return fallback
       }
     }
 
-    // 如果有参数，替换字符串中的 {key} 占位符
-    if (params && typeof value === 'string') {
+    if (params && typeof value === "string") {
       return value.replace(/\{(\w+)\}/g, (match, paramKey) => {
-        return params[paramKey] !== undefined ? String(params[paramKey]) : match;
-      });
+        return params[paramKey] !== undefined ? String(params[paramKey]) : match
+      })
     }
 
-    return value !== undefined ? value : key;
-  };
+    return value !== undefined ? value : key
+  }
 
   return (
     <I18nContext.Provider value={{ locale, setLocale, t }}>
       {children}
     </I18nContext.Provider>
-  );
+  )
 }
 
 export function useTranslation() {
-  const context = useContext(I18nContext);
+  const context = useContext(I18nContext)
   if (context === undefined) {
-    throw new Error('useTranslation must be used within an I18nProvider');
+    throw new Error("useTranslation must be used within an I18nProvider")
   }
-  return context;
+  return context
 }

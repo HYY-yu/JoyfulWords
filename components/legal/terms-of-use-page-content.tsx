@@ -5,12 +5,14 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { LanguageSwitcher } from "@/components/legal/language-switcher"
 
 export function TermsOfUsePageContent() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [currentDate, setCurrentDate] = useState<string>("")
 
   useEffect(() => {
-    setCurrentDate(new Date().toLocaleDateString())
-  }, [])
+    setCurrentDate(
+      new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US").format(new Date())
+    )
+  }, [locale])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -142,4 +144,3 @@ export function TermsOfUsePageContent() {
     </div>
   )
 }
-
