@@ -146,9 +146,6 @@ export function PropertiesPanel({
                     <div className="text-sm font-medium text-foreground">
                       {t(preset.titleKey)}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {preset.width}:{preset.high}
-                    </div>
                   </button>
                 ))}
               </div>

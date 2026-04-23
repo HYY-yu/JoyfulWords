@@ -623,7 +623,7 @@ export const en = {
             seedHint: "Set to -1 for random seed",
             model: "AI Model",
             sizePresets: {
-                landscape: "Landscape",
+                landscape: "Wide",
                 portrait: "Portrait",
                 square: "Square",
             },

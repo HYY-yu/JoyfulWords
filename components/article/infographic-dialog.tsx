@@ -65,14 +65,14 @@ type InfographicFormState = {
 const DEFAULT_FORM_STATE_BY_LOCALE: Record<InfographicLanguage, InfographicFormState> = {
   zh: {
     cardStyle: "professional",
-    screenOrientation: "portrait",
+    screenOrientation: "square",
     language: "zh",
     decorationLevel: "moderate",
     userCustom: "",
   },
   en: {
     cardStyle: "professional",
-    screenOrientation: "portrait",
+    screenOrientation: "square",
     language: "en",
     decorationLevel: "moderate",
     userCustom: "",
@@ -402,14 +402,14 @@ export function InfographicDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="portrait">
-                        {t("infographicDialog.orientations.portrait")}
+                      <SelectItem value="square">
+                        {t("infographicDialog.orientations.square")}
                       </SelectItem>
                       <SelectItem value="landscape">
                         {t("infographicDialog.orientations.landscape")}
                       </SelectItem>
-                      <SelectItem value="square">
-                        {t("infographicDialog.orientations.square")}
+                      <SelectItem value="portrait">
+                        {t("infographicDialog.orientations.portrait")}
                       </SelectItem>
                     </SelectContent>
                   </Select>
