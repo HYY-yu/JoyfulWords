@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AlertCircleIcon, DownloadIcon, ExternalLinkIcon, Loader2Icon, RefreshCwIcon, SaveIcon } from "lucide-react"
+import { AlertCircleIcon, DownloadIcon, Loader2Icon, RefreshCwIcon, SaveIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
@@ -36,15 +36,6 @@ function parseJSONInput(input: string): PresentationStorycardDocument {
   }
 
   return parsed as PresentationStorycardDocument
-}
-
-function openExternalUrl(url: string) {
-  if (typeof window === "undefined") return
-
-  const blob = new Blob([url], { type: "text/html;charset=utf-8" })
-  const blobUrl = URL.createObjectURL(blob)
-  window.open(blobUrl, "_blank", "noopener,noreferrer")
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
 }
 
 function triggerDownload(url: string) {
@@ -352,6 +343,97 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
     }
   }, [detail.id, detail.ppt_url, hasPPTUrl, onSelectTask, t, toast])
 
+  if (detail.task_kind === "storycard_generate") {
+    return (
+      <div className="flex items-center justify-center rounded-2xl border bg-muted/20 px-6 py-8">
+        <div className="max-w-md text-center">
+          <p className="text-sm text-muted-foreground">
+            {t("presentation.detail.storycardGenerateHint")}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (detail.task_kind === "ppt_export") {
+    return (
+      <div className="flex items-center justify-center rounded-2xl border bg-muted/20 px-6 py-8">
+        <Button
+          type="button"
+          onClick={() => {
+            if (hasPPTUrl && detail.ppt_url) {
+              triggerDownload(detail.ppt_url)
+            }
+          }}
+          disabled={detail.status !== "success" || !hasPPTUrl}
+        >
+          <DownloadIcon className="h-4 w-4" />
+          {t("presentation.detail.preview.downloadPpt")}
+        </Button>
+      </div>
+    )
+  }
+
+  if (detail.task_kind === "layout_generate") {
+    return (
+      <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl border bg-background">
+        <div className="flex-1 overflow-y-auto">
+          {htmlError ? (
+            <Alert variant="destructive" className="m-4">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertDescription>{htmlError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {detail.status !== "success" ? (
+            <div className="px-4 py-8 text-sm text-muted-foreground">
+              {t("presentation.detail.preview.waiting")}
+            </div>
+          ) : htmlLoading ? (
+            <div className="flex items-center justify-center px-4 py-12">
+              <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : htmlContent ? (
+            <div className="w-full bg-muted/20 p-4">
+              <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+                <iframe
+                  title={`presentation-preview-${detail.id}`}
+                  srcDoc={htmlContent}
+                  className="absolute inset-0 h-full w-full rounded-xl border bg-white"
+                  sandbox="allow-same-origin allow-scripts allow-downloads"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="px-4 py-8 text-sm text-muted-foreground">
+              {t("presentation.detail.preview.empty")}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t px-4 py-3">
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => void handleExportPPT()}
+              disabled={exportingPPT || detail.status !== "success"}
+            >
+              {exportingPPT ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <DownloadIcon className="h-4 w-4" />
+              )}
+              {hasPPTUrl
+                ? t("presentation.detail.preview.downloadPpt")
+                : t("presentation.detail.preview.exportPpt")}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
@@ -543,17 +625,6 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
                 )}
                 {t("common.refresh")}
               </Button>
-              {htmlContent ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openExternalUrl(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`)}
-                >
-                  <ExternalLinkIcon className="h-4 w-4" />
-                  {t("presentation.detail.preview.openNewTab")}
-                </Button>
-              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -588,13 +659,15 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
               <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : htmlContent ? (
-            <div className="h-[820px] bg-muted/20 p-4">
-              <iframe
-                title={`presentation-preview-${detail.id}`}
-                srcDoc={htmlContent}
-                className="h-full w-full rounded-xl border bg-white"
-                sandbox="allow-same-origin allow-scripts allow-downloads"
-              />
+            <div className="w-full bg-muted/20 p-4">
+              <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+                <iframe
+                  title={`presentation-preview-${detail.id}`}
+                  srcDoc={htmlContent}
+                  className="absolute inset-0 h-full w-full rounded-xl border bg-white"
+                  sandbox="allow-same-origin allow-scripts allow-downloads"
+                />
+              </div>
             </div>
           ) : (
             <div className="px-4 py-8 text-sm text-muted-foreground">

@@ -1292,11 +1292,10 @@ export const en = {
     },
     presentation: {
         dialog: {
-            title: "Generate PPT / Reveal.js",
+            title: "Generate PPT",
             description: "Generate a storycard first, edit it, then confirm theme and transitions before handing the HTML / PPT flow to Task Center.",
             storycard: {
                 sectionTitle: "Source Storycard",
-                sectionDescription: "The dialog first checks whether this article already has a Storycard. Existing data is shown directly; otherwise you choose a language and generate one.",
                 checking: "Checking Storycard",
                 checkingTitle: "Checking for an existing Storycard",
                 generating: "Storycard is generating",
@@ -1323,8 +1322,7 @@ export const en = {
                 notes: "Speaker Notes",
             },
             layout: {
-                sectionTitle: "Layout / Metadata",
-                sectionDescription: "Confirm theme, image style, transition, and authoring metadata before starting the HTML / PPT generation flow.",
+                sectionTitle: "Theme / Metadata",
                 theme: "Theme",
                 imageStyle: "Image Style",
                 transition: "Transition",
@@ -1335,13 +1333,12 @@ export const en = {
                 selectImageStyle: "Select an image style",
                 selectTransition: "Select a transition",
                 missingOptions: "Please confirm both theme and image style first.",
-                generate: "Generate Layout",
+                generate: "Generate PPT",
                 submitSuccess: "Layout task submitted. The remaining flow is now handled in Task Center.",
-                handoffTitle: "The dialog will close after submit",
-                handoffDescription: "HTML rendering, websocket updates, and PPT export will continue in Task Progress / Task Detail.",
             },
         },
         detail: {
+            storycardGenerateHint: "Please use the Generate PPT feature to view the PPT outline.",
             storycard: {
                 title: "Source Storycard",
                 description: "This is the generated source data. You can keep editing it or regenerate it.",

@@ -1292,11 +1292,10 @@ export const zh = {
     },
     presentation: {
         dialog: {
-            title: "生成 PPT / Reveal.js",
+            title: "生成 PPT",
             description: "先生成 Storycard 并允许编辑，再确认主题与转场，把后续 HTML / PPT 流程交给任务中心。",
             storycard: {
                 sectionTitle: "Source Storycard",
-                sectionDescription: "打开弹窗后会先检查这篇文章是否已有 Storycard；已有则直接展示，没有再选择语言生成。",
                 checking: "正在检查 Storycard",
                 checkingTitle: "正在检查是否已有 Storycard",
                 generating: "Storycard 生成中",
@@ -1323,8 +1322,7 @@ export const zh = {
                 notes: "Speaker Notes",
             },
             layout: {
-                sectionTitle: "Layout / Metadata",
-                sectionDescription: "确认 theme、image style、transition 以及作者信息后，就可以提交生成 HTML / PPT 流程。",
+                sectionTitle: "Theme / Metadata",
                 theme: "Theme",
                 imageStyle: "Image Style",
                 transition: "Transition",
@@ -1335,13 +1333,12 @@ export const zh = {
                 selectImageStyle: "选择图片风格",
                 selectTransition: "选择转场",
                 missingOptions: "请先确认 theme 和 image style",
-                generate: "生成 Layout",
+                generate: "生成 PPT",
                 submitSuccess: "Layout 任务已提交，后续流程已转入任务中心",
-                handoffTitle: "提交后会关闭弹窗",
-                handoffDescription: "HTML 渲染、任务完成推送和 PPT 导出都会在 Task Progress / Task Detail 中继续。",
             },
         },
         detail: {
+            storycardGenerateHint: "请使用 Generate PPT 功能查看 PPT 大纲。",
             storycard: {
                 title: "Source Storycard",
                 description: "这里展示生成源数据。你可以继续编辑，也可以重新生成。",

@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/base/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { Textarea } from "@/components/ui/base/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -75,7 +74,6 @@ export function PresentationDialog({
   const [storycardRecord, setStorycardRecord] = useState<PresentationStorycardRecord | null>(null)
   const [storycardDraft, setStorycardDraft] = useState<PresentationStorycardDocument | null>(null)
   const [storycardText, setStorycardText] = useState("{}")
-  const [editorTab, setEditorTab] = useState("slides")
   const [storycardStatus, setStorycardStatus] = useState<
     "idle" | "checking" | "generating" | "ready" | "error"
   >("idle")
@@ -103,7 +101,6 @@ export function PresentationDialog({
     setStorycardRecord(null)
     setStorycardDraft(null)
     setStorycardText("{}")
-    setEditorTab("slides")
     setStorycardStatus("idle")
     setStorycardError(null)
     setLoadingOptions(false)
@@ -344,31 +341,10 @@ export function PresentationDialog({
     []
   )
 
-  const handleStorycardTextChange = useCallback((value: string) => {
-    setStorycardText(value)
-
-    try {
-      const parsed = parseStorycardText(value)
-      setStorycardDraft(parsed)
-      setStorycardError(null)
-    } catch {
-      // Keep invalid JSON local until submit.
-    }
-  }, [])
-
   const handleGenerateLayout = useCallback(async () => {
     if (!storycardRecord) return
 
-    let nextDraft = storycardDraft
-    if (editorTab === "json") {
-      try {
-        nextDraft = parseStorycardText(storycardText)
-      } catch {
-        setStorycardError(t("presentation.dialog.storycard.invalidJson"))
-        return
-      }
-    }
-
+    const nextDraft = storycardDraft
     if (!nextDraft) {
       setStorycardError(t("presentation.dialog.storycard.empty"))
       return
@@ -429,13 +405,11 @@ export function PresentationDialog({
     }
   }, [
     author,
-    editorTab,
     onOpenChange,
     onTaskSubmitted,
     selectedImageStyle,
     storycardDraft,
     storycardRecord,
-    storycardText,
     subtitle,
     t,
     theme,
@@ -451,7 +425,7 @@ export function PresentationDialog({
       title={t("presentation.dialog.title")}
       description={t("presentation.dialog.description")}
       icon={<FileTextIcon className="h-5 w-5 text-primary" />}
-      size="fullscreen"
+      size="compact"
       footer={
         <div className="flex w-full items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">
@@ -486,15 +460,12 @@ export function PresentationDialog({
       }
     >
       <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,420px)]">
-        <section className="min-h-0 overflow-hidden border-b lg:border-r lg:border-b-0">
-          <div className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4">
+        <section className="flex h-full min-h-0 flex-col overflow-hidden border-b lg:border-r lg:border-b-0">
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4 shrink-0">
             <div>
               <h3 className="text-sm font-semibold text-foreground">
                 {t("presentation.dialog.storycard.sectionTitle")}
               </h3>
-              <p className="text-sm text-muted-foreground">
-                {t("presentation.dialog.storycard.sectionDescription")}
-              </p>
             </div>
             <div className="flex items-center gap-2">
               <Select
@@ -532,157 +503,131 @@ export function PresentationDialog({
             </div>
           </div>
 
-          {storycardError ? (
-            <Alert variant="destructive" className="m-6">
-              <AlertCircleIcon className="h-4 w-4" />
-              <AlertDescription>{storycardError}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {storycardStatus === "checking" ? (
-            <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-4 px-6 text-center">
-              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
-              <div className="space-y-2">
-                <p className="text-base font-semibold text-foreground">
-                  {t("presentation.dialog.storycard.checkingTitle")}
-                </p>
-              </div>
-            </div>
-          ) : storycardStatus === "generating" ? (
-            <div className="flex h-full min-h-[420px] flex-col items-center justify-center gap-4 px-6 text-center">
-              <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
-              <div className="space-y-2">
-                <p className="text-base font-semibold text-foreground">
-                  {t("presentation.dialog.storycard.generatingTitle")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {t("presentation.dialog.storycard.generatingDescription")}
-                </p>
-              </div>
-            </div>
-          ) : storycardStatus === "ready" && storycardDraft ? (
-            <Tabs
-              value={editorTab}
-              onValueChange={setEditorTab}
-              className="flex h-full min-h-0 flex-col"
-            >
-              <div className="border-b px-6 py-4">
-                <TabsList className="w-full">
-                  <TabsTrigger value="slides">{t("presentation.dialog.storycard.slidesTab")}</TabsTrigger>
-                  <TabsTrigger value="json">{t("presentation.dialog.storycard.jsonTab")}</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="slides" className="min-h-0">
-                <ScrollArea className="h-[calc(100vh-17rem)]">
-                  <div className="space-y-5 p-6">
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        {t("presentation.dialog.storycard.storyTitle")}
-                      </p>
-                      <Input
-                        value={storycardDraft.title ?? ""}
-                        onChange={(event) =>
-                          handleStorycardFieldChange("title", event.target.value)
-                        }
-                      />
-                    </div>
-
-                    {slides.map((slide, index) => (
-                      <div
-                        key={slide.id || `slide-${index}`}
-                        className="space-y-3 rounded-2xl border bg-muted/20 p-4"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">
-                              {t("presentation.dialog.storycard.slideTitle", { index: index + 1 })}
-                            </p>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{slide.id}</span>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {storycardError ? (
+              <Alert variant="destructive" className="m-6">
+                <AlertCircleIcon className="h-4 w-4" />
+                <AlertDescription>{storycardError}</AlertDescription>
+              </Alert>
+            ) : storycardStatus === "checking" ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+                <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                <div className="space-y-2">
+                  <p className="text-base font-semibold text-foreground">
+                    {t("presentation.dialog.storycard.checkingTitle")}
+                  </p>
                 </div>
-
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {t("presentation.dialog.storycard.headline")}
-                          </p>
-                          <Input
-                            value={slide.headline ?? ""}
-                            onChange={(event) =>
-                              handleSlideChange(index, "headline", event.target.value)
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {t("presentation.dialog.storycard.subheadline")}
-                          </p>
-                          <Input
-                            value={slide.subheadline ?? ""}
-                            onChange={(event) =>
-                              handleSlideChange(index, "subheadline", event.target.value)
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {t("presentation.dialog.storycard.body")}
-                          </p>
-                          <Textarea
-                            className="min-h-28"
-                            value={Array.isArray(slide.body) ? slide.body.join("\n") : ""}
-                            onChange={(event) =>
-                              handleSlideChange(index, "body", event.target.value)
-                            }
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {t("presentation.dialog.storycard.notes")}
-                          </p>
-                          <Textarea
-                            className="min-h-24"
-                            value={slide.speaker_notes ?? ""}
-                            onChange={(event) =>
-                              handleSlideChange(index, "speaker_notes", event.target.value)
-                            }
-                          />
-                        </div>
-                      </div>
-                    ))}
+              </div>
+            ) : storycardStatus === "generating" ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+                <Loader2Icon className="h-8 w-8 animate-spin text-primary" />
+                <div className="space-y-2">
+                  <p className="text-base font-semibold text-foreground">
+                    {t("presentation.dialog.storycard.generatingTitle")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("presentation.dialog.storycard.generatingDescription")}
+                  </p>
+                </div>
+              </div>
+            ) : storycardStatus === "ready" && storycardDraft ? (
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="space-y-5 p-6">
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      {t("presentation.dialog.storycard.storyTitle")}
+                    </p>
+                    <Input
+                      value={storycardDraft.title ?? ""}
+                      onChange={(event) =>
+                        handleStorycardFieldChange("title", event.target.value)
+                      }
+                    />
                   </div>
-                </ScrollArea>
-              </TabsContent>
 
-              <TabsContent value="json" className="min-h-0 p-6">
-                <Textarea
-                  className="h-[calc(100vh-18rem)] min-h-[480px] font-mono text-xs"
-                  value={storycardText}
-                  onChange={(event) => handleStorycardTextChange(event.target.value)}
-                />
-              </TabsContent>
-            </Tabs>
+                  {slides.map((slide, index) => (
+                    <div
+                      key={slide.id || `slide-${index}`}
+                      className="space-y-3 rounded-2xl border bg-muted/20 p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            {t("presentation.dialog.storycard.slideTitle", { index: index + 1 })}
+                          </p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{slide.id}</span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("presentation.dialog.storycard.headline")}
+                        </p>
+                        <Input
+                          value={slide.headline ?? ""}
+                          onChange={(event) =>
+                            handleSlideChange(index, "headline", event.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("presentation.dialog.storycard.subheadline")}
+                        </p>
+                        <Input
+                          value={slide.subheadline ?? ""}
+                          onChange={(event) =>
+                            handleSlideChange(index, "subheadline", event.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("presentation.dialog.storycard.body")}
+                        </p>
+                        <Textarea
+                          className="min-h-28"
+                          value={Array.isArray(slide.body) ? slide.body.join("\n") : ""}
+                          onChange={(event) =>
+                            handleSlideChange(index, "body", event.target.value)
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          {t("presentation.dialog.storycard.notes")}
+                        </p>
+                        <Textarea
+                          className="min-h-24"
+                          value={slide.speaker_notes ?? ""}
+                          onChange={(event) =>
+                            handleSlideChange(index, "speaker_notes", event.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
           ) : (
-            <div className="flex h-full min-h-[420px] items-center justify-center px-6 text-sm text-muted-foreground">
+            <div className="flex flex-1 items-center justify-center px-6 text-sm text-muted-foreground">
               {t("presentation.dialog.storycard.empty")}
             </div>
           )}
+        </div>
         </section>
 
-        <section className="min-h-0 overflow-hidden bg-muted/20">
-          <div className="border-b px-6 py-4">
+        <section className="flex h-full min-h-0 flex-col overflow-hidden bg-muted/20">
+          <div className="border-b px-6 py-4 shrink-0">
             <h3 className="text-sm font-semibold text-foreground">
               {t("presentation.dialog.layout.sectionTitle")}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("presentation.dialog.layout.sectionDescription")}
-            </p>
           </div>
 
-          <ScrollArea className="h-[calc(100vh-12.5rem)]">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="space-y-5 p-6">
               <div className="space-y-2">
                 <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -713,7 +658,7 @@ export function PresentationDialog({
                   <SelectContent>
                     {imageStyles.map((style) => (
                       <SelectItem key={style.id} value={style.id}>
-                        {style.label}
+                        {locale === "en" ? style.id : style.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -765,16 +710,6 @@ export function PresentationDialog({
                   {t("presentation.dialog.layout.author")}
                 </p>
                 <Input value={author} onChange={(event) => setAuthor(event.target.value)} />
-              </div>
-
-              <div className="rounded-2xl border bg-background p-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2Icon className="mt-0.5 h-4 w-4 text-primary" />
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>{t("presentation.dialog.layout.handoffTitle")}</p>
-                    <p>{t("presentation.dialog.layout.handoffDescription")}</p>
-                  </div>
-                </div>
               </div>
             </div>
           </ScrollArea>
