@@ -610,11 +610,13 @@ class WebSocketService {
         article: "文章任务",
         image: "图片任务",
         infographic: "信息图任务",
+        presentation: "演示任务",
       },
       en: {
         article: "article job",
         image: "image job",
         infographic: "infographic job",
+        presentation: "presentation job",
       },
     } as const
 

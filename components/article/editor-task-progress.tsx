@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, PencilIcon } from "lucide-react"
+import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, PencilIcon, FileTextIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -85,6 +85,8 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
             <PencilIcon className="w-4 h-4 shrink-0" />
         ) : task.type === "task-center" && task.originalType === "infographic" ? (
             <ClipboardListIcon className="w-4 h-4 shrink-0" />
+        ) : task.type === "task-center" && task.originalType === "presentation" ? (
+            <FileTextIcon className="w-4 h-4 shrink-0" />
         ) : (
             <ClipboardListIcon className="w-4 h-4 shrink-0" />
         )

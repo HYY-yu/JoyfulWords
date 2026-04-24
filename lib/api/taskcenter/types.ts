@@ -1,6 +1,6 @@
 "use client"
 
-export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic"] as const
+export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "presentation"] as const
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
 
@@ -8,11 +8,13 @@ export type TaskCenterArticleOperateType = "edit"
 export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
+export type TaskCenterPresentationStatus = "pending" | "processing" | "success" | "failed"
 
 export type TaskCenterTaskStatus =
   | TaskCenterArticleStatus
   | TaskCenterImageStatus
   | TaskCenterInfographicStatus
+  | TaskCenterPresentationStatus
 
 export interface TaskCenterArticleListDetails {
   article_id: number
@@ -48,10 +50,24 @@ export interface TaskCenterInfographicListDetails {
   model_reference_id?: string
 }
 
+export interface TaskCenterPresentationListDetails {
+  article_id: number
+  storycard_id?: number
+  task_kind?: string
+  stage?: string
+  slide_count?: number
+  model_name?: string
+  completed_at?: string | null
+  ppt_url?: string
+  cached?: boolean
+  error?: string
+}
+
 export type TaskCenterTaskListDetails =
   | TaskCenterArticleListDetails
   | TaskCenterImageListDetails
   | TaskCenterInfographicListDetails
+  | TaskCenterPresentationListDetails
 
 interface TaskCenterTaskListItemBase<TType extends TaskCenterTaskType, TDetails> {
   id: number
@@ -76,10 +92,16 @@ export type TaskCenterInfographicTaskListItem = TaskCenterTaskListItemBase<
   TaskCenterInfographicListDetails
 >
 
+export type TaskCenterPresentationTaskListItem = TaskCenterTaskListItemBase<
+  "presentation",
+  TaskCenterPresentationListDetails
+>
+
 export type TaskCenterTaskListItem =
   | TaskCenterArticleTaskListItem
   | TaskCenterImageTaskListItem
   | TaskCenterInfographicTaskListItem
+  | TaskCenterPresentationTaskListItem
 
 export interface TaskCenterTasksQuery {
   type?: TaskCenterTaskType
@@ -138,10 +160,32 @@ export interface TaskCenterInfographicTaskDetail {
   updated_at: string
 }
 
+export interface TaskCenterPresentationTaskDetail {
+  id: number
+  article_id: number
+  storycard_id?: number
+  task_kind?: string
+  stage?: string
+  slide_count?: number
+  model_name?: string
+  status: TaskCenterPresentationStatus
+  error?: string
+  error_message?: string
+  cached?: boolean
+  layouts_json?: unknown
+  deck_model_json?: unknown
+  render_html?: string
+  ppt_url?: string
+  created_at: string
+  updated_at: string
+  completed_at?: string | null
+}
+
 export type TaskCenterTaskDetailResponse =
   | TaskCenterArticleTaskDetail
   | TaskCenterImageTaskDetail
   | TaskCenterInfographicTaskDetail
+  | TaskCenterPresentationTaskDetail
 
 export interface TaskCenterTaskReference {
   id: number

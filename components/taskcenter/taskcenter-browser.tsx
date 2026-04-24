@@ -36,7 +36,7 @@ import {
   getTaskCenterTypeIcon,
 } from "./taskcenter-presenters"
 
-const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = ["article", "image", "infographic"]
+const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = ["article", "image", "infographic", "presentation"]
 
 interface TaskCenterBrowserProps {
   articleId?: number
@@ -142,6 +142,14 @@ export function TaskCenterBrowser({
         : tasks[0] || null,
     [selectedTaskRef, tasks]
   )
+  const selectedTaskFingerprint = selectedTask
+    ? JSON.stringify({
+        id: selectedTask.id,
+        type: selectedTask.type,
+        status: selectedTask.status,
+        details: selectedTask.details,
+      })
+    : null
 
   const fetchTaskDetail = useCallback(async (taskRef: TaskCenterTaskReference) => {
     setTaskDetailLoading(true)
@@ -195,6 +203,11 @@ export function TaskCenterBrowser({
     if (!enabled || !selectedTaskRef) return
     void fetchTaskDetail(selectedTaskRef)
   }, [enabled, fetchTaskDetail, selectedTaskRef])
+
+  useEffect(() => {
+    if (!enabled || !selectedTaskRef || !selectedTaskFingerprint) return
+    void fetchTaskDetail(selectedTaskRef)
+  }, [enabled, fetchTaskDetail, selectedTaskFingerprint, selectedTaskRef])
 
   useEffect(() => {
     if (!enabled || !initialTaskRef) return
@@ -323,6 +336,7 @@ export function TaskCenterBrowser({
                 <TaskCenterTaskDetailView
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
+                  onSelectTask={(taskRef) => setSelectedTaskRef(taskRef)}
                   onOpenArticle={handleOpenArticle}
                 />
               ) : loading ? (
