@@ -18,7 +18,7 @@ export default function robots(): MetadataRoute.Robots {
           "/cookie-policy",
           "/terms-of-use",
         ],
-        disallow: ["/auth/", "/dashboard", "/articles", "/taskcenter", "/payment/"],
+        disallow: ["/auth/", "/articles", "/taskcenter", "/payment/"],
       },
     ],
     sitemap: `${APP_URL}/sitemap.xml`,
