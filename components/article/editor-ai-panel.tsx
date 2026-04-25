@@ -9,6 +9,7 @@ import {
   PaletteIcon,
   PencilIcon,
   RefreshCwIcon,
+  VideoIcon,
 } from "lucide-react"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -30,6 +31,11 @@ import {
 } from "@/components/ui/base/dialog"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/base/tooltip"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import { CreatorMode } from "@/components/image-generator/creator-mode"
@@ -51,6 +57,7 @@ type ActiveDialog =
   | "image-style"
   | "infographic"
   | "presentation"
+  | "video"
   | null
 
 interface FeatureButton {
@@ -58,6 +65,8 @@ interface FeatureButton {
   labelKey: string
   icon: React.ElementType
   bgColor: string
+  disabled?: boolean
+  tooltipKey?: string
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
@@ -102,6 +111,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     labelKey: "tiptapEditor.aiPanel.generatePpt",
     icon: ClipboardListIcon,
     bgColor: "bg-violet-50",
+  },
+  {
+    id: "video",
+    labelKey: "tiptapEditor.aiPanel.generateVideo",
+    icon: VideoIcon,
+    bgColor: "bg-slate-100",
+    disabled: true,
+    tooltipKey: "tiptapEditor.aiPanel.generateVideoComingSoon",
   },
 ]
 
@@ -383,19 +400,40 @@ export function EditorAIPanel({
         <div className="grid grid-cols-2 auto-rows-fr gap-2">
           {FEATURE_BUTTONS.map((btn) => {
             const Icon = btn.icon
-            return (
+            const featureButton = (
               <button
                 key={btn.id}
+                type="button"
                 onClick={() => handleOpenDialog(btn.id)}
-                className="flex h-full min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
+                disabled={btn.disabled}
+                className={
+                  btn.disabled
+                    ? "flex h-full min-h-24 w-full cursor-not-allowed flex-col items-center justify-center gap-1.5 rounded-lg bg-muted/40 p-3 opacity-55 shadow-sm"
+                    : "flex h-full min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
+                }
               >
                 <span className={`rounded-md p-1.5 ${btn.bgColor}`}>
-                  <Icon className="h-4 w-4 text-foreground/70" />
+                  <Icon className={btn.disabled ? "h-4 w-4 text-muted-foreground" : "h-4 w-4 text-foreground/70"} />
                 </span>
-                <span className="text-center text-xs leading-tight text-foreground/80">
+                <span className={btn.disabled ? "text-center text-xs leading-tight text-muted-foreground" : "text-center text-xs leading-tight text-foreground/80"}>
                   {t(btn.labelKey)}
                 </span>
               </button>
+            )
+
+            if (!btn.disabled) {
+              return featureButton
+            }
+
+            return (
+              <Tooltip key={btn.id}>
+                <TooltipTrigger asChild>
+                  <span className="block h-full">{featureButton}</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>{t(btn.tooltipKey ?? "tiptapEditor.aiPanel.generateVideoComingSoon")}</span>
+                </TooltipContent>
+              </Tooltip>
             )
           })}
         </div>
@@ -429,11 +467,11 @@ export function EditorAIPanel({
         <DialogContent
           className={
             selectedTaskRef?.type === "presentation"
-              ? "flex h-[92vh] w-[96vw] max-w-[1600px] flex-col"
+              ? "flex h-[calc(100vh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col overflow-hidden sm:max-w-none"
               : "flex max-h-[80vh] flex-col sm:max-w-[720px]"
           }
         >
-          <DialogHeader>
+          <DialogHeader className={selectedTaskRef?.type === "presentation" ? "shrink-0" : undefined}>
             <DialogTitle>{t("contentWriting.taskCenter.detailTitle")}</DialogTitle>
             <DialogDescription>
               {selectedTaskRef
@@ -452,7 +490,13 @@ export function EditorAIPanel({
             </Alert>
           ) : selectedTaskRef && taskDetail ? (
             <>
-              <div className="flex-1 overflow-y-auto pr-1">
+              <div
+                className={
+                  selectedTaskRef.type === "presentation"
+                    ? "min-h-0 flex-1 overflow-y-auto pr-1"
+                    : "min-h-0 max-h-[calc(80vh-8rem)] overflow-y-auto pr-1"
+                }
+              >
                 <TaskCenterTaskDetailView
                   taskRef={selectedTaskRef}
                   detail={taskDetail}

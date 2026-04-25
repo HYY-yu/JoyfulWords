@@ -67,7 +67,7 @@ export function PresentationDialog({
 }: PresentationDialogProps) {
   const { locale, t } = useTranslation()
   const { toast } = useToast()
-  const pollSequenceRef = useRef(0)
+  const requestSequenceRef = useRef(0)
   const [selectedLanguage, setSelectedLanguage] = useState<PresentationLanguage>(
     locale === "zh" ? "zh" : "en"
   )
@@ -97,7 +97,7 @@ export function PresentationDialog({
   }, [])
 
   const resetState = useCallback(() => {
-    pollSequenceRef.current += 1
+    requestSequenceRef.current += 1
     setStorycardRecord(null)
     setStorycardDraft(null)
     setStorycardText("{}")
@@ -115,47 +115,6 @@ export function PresentationDialog({
     setAuthor("")
     setSelectedLanguage(locale === "zh" ? "zh" : "en")
   }, [locale])
-
-  const pollStorycard = useCallback(
-    async (articleIdValue: number, sequence: number) => {
-      for (let attempt = 0; attempt < 40; attempt += 1) {
-        if (pollSequenceRef.current !== sequence) {
-          return
-        }
-
-        const result = await presentationsClient.getStorycard(articleIdValue)
-        if (!("error" in result)) {
-          if (result.status === "success") {
-            syncStorycardRecord(result)
-            setStorycardStatus("ready")
-            setStorycardError(null)
-            if (!title) {
-              setTitle(result.storycard_json?.title || result.title || "")
-            }
-            return
-          }
-
-          if (result.status === "failed") {
-            setStorycardStatus("error")
-            setStorycardError(result.error_message || t("presentation.dialog.storycard.generateFailed"))
-            return
-          }
-        } else if (result.status && result.status !== 404) {
-          setStorycardStatus("error")
-          setStorycardError(String(result.error))
-          return
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 1500))
-      }
-
-      if (pollSequenceRef.current === sequence) {
-        setStorycardStatus("error")
-        setStorycardError(t("presentation.dialog.storycard.generateTimeout"))
-      }
-    },
-    [syncStorycardRecord, t, title]
-  )
 
   const loadOptions = useCallback(async () => {
     setLoadingOptions(true)
@@ -185,7 +144,7 @@ export function PresentationDialog({
   const loadExistingStorycard = useCallback(async () => {
     if (typeof articleId !== "number") return
 
-    const sequence = ++pollSequenceRef.current
+    const sequence = ++requestSequenceRef.current
     setStorycardStatus("checking")
     setStorycardError(null)
     syncStorycardRecord(null)
@@ -193,7 +152,7 @@ export function PresentationDialog({
     try {
       const result = await presentationsClient.getStorycard(articleId)
 
-      if (pollSequenceRef.current !== sequence) {
+      if (requestSequenceRef.current !== sequence) {
         return
       }
 
@@ -221,7 +180,6 @@ export function PresentationDialog({
       }
 
       setStorycardStatus("generating")
-      await pollStorycard(articleId, sequence)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load storycard"
       console.error("[PresentationDialog] Failed to load existing storycard", {
@@ -231,40 +189,64 @@ export function PresentationDialog({
       setStorycardStatus("error")
       setStorycardError(message)
     }
-  }, [articleId, pollStorycard, syncStorycardRecord, t])
+  }, [articleId, syncStorycardRecord, t])
 
   const startFlow = useCallback(async (forceRegenerate = false) => {
     if (typeof articleId !== "number") return
 
-    const sequence = ++pollSequenceRef.current
+    const sequence = ++requestSequenceRef.current
     setStorycardStatus("generating")
     setStorycardError(null)
     syncStorycardRecord(null)
-    await loadOptions()
 
     try {
-      const result = await presentationsClient.refreshStorycard(
-        articleId,
-        selectedLanguage,
-        forceRegenerate
-      )
+      const result = await presentationsClient.generateStorycard({
+        article_id: articleId,
+        language: selectedLanguage,
+        force_regenerate: forceRegenerate,
+      })
 
       if ("error" in result) {
         throw new Error(String(result.error))
       }
 
-      if (pollSequenceRef.current !== sequence) {
+      if (requestSequenceRef.current !== sequence) {
         return
       }
 
-      if (result.storycard && result.storycard.status === "success") {
-        syncStorycardRecord(result.storycard)
+      if (result.status === "success" || result.status === "already_created") {
+        const storycard = await presentationsClient.getStorycard(articleId)
+        if ("error" in storycard) {
+          throw new Error(String(storycard.error))
+        }
+
+        if (requestSequenceRef.current !== sequence) {
+          return
+        }
+
+        syncStorycardRecord(storycard)
         setStorycardStatus("ready")
-        setTitle(result.storycard.storycard_json?.title || result.storycard.title || "")
+        setSelectedLanguage(storycard.language === "en" ? "en" : "zh")
+        setTitle(storycard.storycard_json?.title || storycard.title || "")
         return
       }
 
-      await pollStorycard(articleId, sequence)
+      if (typeof result.presentation_log_id === "number") {
+        onTaskSubmitted?.({
+          id: result.presentation_log_id,
+          type: "presentation",
+        })
+      } else {
+        console.warn("[PresentationDialog] Storycard task started without presentation_log_id", {
+          articleId,
+          status: result.status,
+        })
+      }
+
+      toast({
+        description: t("presentation.dialog.storycard.submitSuccess"),
+      })
+      onOpenChange(false)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate storycard"
       console.error("[PresentationDialog] Failed to start storycard flow", {
@@ -274,7 +256,7 @@ export function PresentationDialog({
       setStorycardStatus("error")
       setStorycardError(message)
     }
-  }, [articleId, loadOptions, pollStorycard, selectedLanguage, syncStorycardRecord])
+  }, [articleId, onOpenChange, onTaskSubmitted, selectedLanguage, syncStorycardRecord, t, toast])
 
   useEffect(() => {
     if (!open) {

@@ -376,8 +376,8 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
 
   if (detail.task_kind === "layout_generate") {
     return (
-      <div className="flex flex-col min-h-0 overflow-hidden rounded-2xl border bg-background">
-        <div className="flex-1 overflow-y-auto">
+      <div className="flex min-h-[calc(100vh-11rem)] flex-col overflow-hidden rounded-2xl border bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {htmlError ? (
             <Alert variant="destructive" className="m-4">
               <AlertCircleIcon className="h-4 w-4" />
@@ -394,8 +394,8 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
               <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : htmlContent ? (
-            <div className="w-full bg-muted/20 p-4">
-              <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
+            <div className="flex min-h-full w-full bg-muted/20 p-4">
+              <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
                 <iframe
                   title={`presentation-preview-${detail.id}`}
                   srcDoc={htmlContent}
@@ -507,7 +507,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
               </div>
 
               <TabsContent value="slides" className="min-h-0">
-                <ScrollArea className="h-[720px]">
+                <ScrollArea className="max-h-[60vh]">
                   <div className="space-y-5 p-4">
                     <div className="grid gap-4">
                       <div className="space-y-2">
@@ -591,7 +591,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
 
               <TabsContent value="json" className="min-h-0 p-4">
                 <Textarea
-                  className="h-[720px] min-h-[720px] font-mono text-xs"
+                  className="min-h-[320px] max-h-[60vh] overflow-y-auto font-mono text-xs"
                   value={storycardJSONText}
                   onChange={(event) => handleJSONChange(event.target.value)}
                 />
