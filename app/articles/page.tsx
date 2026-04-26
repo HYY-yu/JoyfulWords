@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -31,7 +31,6 @@ import {
 } from "lucide-react"
 import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
-import { useState } from "react"
 import { getStatusVariant, formatShortDate } from "@/components/article/article-types"
 import type { Article } from "@/lib/api/articles/types"
 import {
@@ -230,10 +229,18 @@ export default function ArticlesPage() {
     }, 0)
   }
 
-  const handleOpenTaskCenterDialog = (taskRef: TaskCenterTaskReference | null) => {
+  const handleOpenBillingDialog = useCallback(() => {
+    setBillingDialogOpen(true)
+  }, [])
+
+  const handleOpenTaskCenterDialog = useCallback((taskRef: TaskCenterTaskReference | null) => {
     setTaskCenterDeepLink(taskRef)
     setTaskCenterOpen(true)
-  }
+  }, [])
+
+  const handleTaskCenterInitialTaskHandled = useCallback(() => {
+    setTaskCenterDeepLink(null)
+  }, [])
 
   if (authLoading) {
     return (
@@ -253,7 +260,7 @@ export default function ArticlesPage() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <Suspense fallback={null}>
-        <BillingDialogQuerySync onOpenBillingDialog={() => setBillingDialogOpen(true)} />
+        <BillingDialogQuerySync onOpenBillingDialog={handleOpenBillingDialog} />
       </Suspense>
       <Suspense fallback={null}>
         <TaskCenterDialogQuerySync onOpenTaskCenterDialog={handleOpenTaskCenterDialog} />
@@ -561,7 +568,7 @@ export default function ArticlesPage() {
         open={taskCenterOpen}
         onOpenChange={setTaskCenterOpen}
         initialTaskRef={taskCenterDeepLink}
-        onInitialTaskHandled={() => setTaskCenterDeepLink(null)}
+        onInitialTaskHandled={handleTaskCenterInitialTaskHandled}
       />
     </div>
   )

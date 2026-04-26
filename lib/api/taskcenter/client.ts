@@ -20,6 +20,15 @@ function buildTaskListRequestKey(params: TaskCenterTasksQuery): string {
   })
 }
 
+export function isTaskCenterErrorResponse(result: unknown): result is ErrorResponse {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return false
+  }
+
+  const candidate = result as Record<string, unknown>
+  return typeof candidate.error === "string" && !("id" in candidate)
+}
+
 export const taskCenterClient = {
   async getTasks(
     params: TaskCenterTasksQuery = {}

@@ -4,8 +4,11 @@
 
 import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
+import { PresentationTaskDetail } from "@/components/taskcenter/presentation-task-detail"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
+  TaskCenterPresentationSlideSummary,
+  TaskCenterPresentationTaskDetail,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
@@ -43,6 +46,8 @@ export function getTaskCenterTypeIcon(type: TaskCenterTaskType) {
       return ImageIcon
     case "infographic":
       return LayoutTemplateIcon
+    case "presentation":
+      return FileTextIcon
     default:
       return FileTextIcon
   }
@@ -59,7 +64,20 @@ export function getTaskCenterTaskTitle(
   }
 
   if (task.type === "infographic") return "infographic"
+  if (task.type === "presentation") {
+    const taskKind = task.details.task_kind
+    if (taskKind === "storycard_generate") return "presentationStorycard"
+    if (taskKind === "ppt_export") return "presentationPptExport"
+    return "presentationLayout"
+  }
   return "articleEdit"
+}
+
+function getPresentationSlideSummaryStage(summary: TaskCenterPresentationSlideSummary): string {
+  if (summary.processing > 0) return "slides_processing"
+  if (summary.pending > 0) return "slides_pending"
+  if (summary.success >= summary.total && summary.total > 0) return "slides_success"
+  return "slides_processing"
 }
 
 export function getTaskCenterTaskSummary(task: TaskCenterTaskListItem): string {
@@ -69,6 +87,27 @@ export function getTaskCenterTaskSummary(task: TaskCenterTaskListItem): string {
 
   if (task.type === "image") {
     return task.details.prompt || task.details.model_name || "-"
+  }
+
+  if (task.type === "presentation") {
+    const slideSummary = task.details.slide_summary
+    if (slideSummary && slideSummary.total > 0) {
+      if (slideSummary.failed > 0) {
+        return `${slideSummary.failed} failed / ${slideSummary.total} slides`
+      }
+
+      return `${slideSummary.success}/${slideSummary.total} slides · ${getPresentationSlideSummaryStage(slideSummary)}`
+    }
+
+    const summaryParts = [
+      task.details.task_kind,
+      task.details.stage,
+      typeof task.details.slide_count === "number"
+        ? `${task.details.slide_count} slides`
+        : null,
+    ].filter(Boolean)
+
+    return summaryParts.join(" / ") || task.details.model_name || "-"
   }
 
   return task.details.card_name || task.details.card_type || "-"
@@ -132,11 +171,13 @@ export function TaskCenterTaskDetailView({
   taskRef,
   detail,
   onOpenArticle,
+  onSelectTask,
   className,
 }: {
   taskRef: TaskCenterTaskReference
   detail: TaskCenterTaskDetailResponse
   onOpenArticle?: (articleId: number) => void
+  onSelectTask?: (taskRef: TaskCenterTaskReference) => void
   className?: string
 }) {
   const { t } = useTranslation()
@@ -178,6 +219,32 @@ export function TaskCenterTaskDetailView({
       <div className="grid gap-4 sm:grid-cols-2">
         {"exec_id" in detail ? (
           <DetailField label={t("contentWriting.taskCenter.fields.execId")} value={detail.exec_id} />
+        ) : null}
+        {"task_kind" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.taskKind")}
+            value={detail.task_kind || "-"}
+          />
+        ) : null}
+        {"stage" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.stage")}
+            value={detail.stage || "-"}
+          />
+        ) : null}
+        {"storycard_id" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.storycardId")}
+            value={detail.storycard_id ? String(detail.storycard_id) : "-"}
+          />
+        ) : null}
+        {"slide_count" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.slideCount")}
+            value={
+              typeof detail.slide_count === "number" ? String(detail.slide_count) : "-"
+            }
+          />
         ) : null}
         {"model_name" in detail ? (
           <DetailField
@@ -246,15 +313,31 @@ export function TaskCenterTaskDetailView({
             }
           />
         ) : null}
+        {"ppt_url" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.pptUrl")}
+            value={detail.ppt_url || "-"}
+            className="sm:col-span-2"
+          />
+        ) : null}
       </div>
 
-      {"error" in detail && detail.error ? (
+      {("error" in detail && detail.error) || ("error_message" in detail && detail.error_message) ? (
         <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-4">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-destructive">
             {t("contentWriting.taskCenter.fields.error")}
           </p>
-          <p className="mt-2 text-sm leading-6 text-destructive">{detail.error}</p>
+          <p className="mt-2 text-sm leading-6 text-destructive">
+            {("error" in detail && detail.error) || ("error_message" in detail && detail.error_message)}
+          </p>
         </div>
+      ) : null}
+
+      {taskRef.type === "presentation" ? (
+        <PresentationTaskDetail
+          detail={detail as TaskCenterPresentationTaskDetail}
+          onSelectTask={onSelectTask}
+        />
       ) : null}
 
       {imageUrls.length > 0 ? (

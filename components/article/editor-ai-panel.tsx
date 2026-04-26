@@ -9,12 +9,13 @@ import {
   PaletteIcon,
   PencilIcon,
   RefreshCwIcon,
+  VideoIcon,
 } from "lucide-react"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
-import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
@@ -30,12 +31,18 @@ import {
 } from "@/components/ui/base/dialog"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/base/tooltip"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import { CreatorMode } from "@/components/image-generator/creator-mode"
 import { InversionMode } from "@/components/image-generator/modes/inversion-mode"
 import { StyleMode } from "@/components/image-generator/modes/style-mode"
 import { InfographicDialog } from "./infographic-dialog"
+import { PresentationDialog } from "./presentation-dialog"
 import {
   TaskCenterTaskDetailView,
   getTaskCenterTaskSummary,
@@ -49,6 +56,8 @@ type ActiveDialog =
   | "reversal-mode"
   | "image-style"
   | "infographic"
+  | "presentation"
+  | "video"
   | null
 
 interface FeatureButton {
@@ -56,6 +65,8 @@ interface FeatureButton {
   labelKey: string
   icon: React.ElementType
   bgColor: string
+  disabled?: boolean
+  tooltipKey?: string
 }
 
 const FEATURE_BUTTONS: FeatureButton[] = [
@@ -94,6 +105,20 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     labelKey: "tiptapEditor.aiPanel.infographic",
     icon: ClipboardListIcon,
     bgColor: "bg-cyan-50",
+  },
+  {
+    id: "presentation",
+    labelKey: "tiptapEditor.aiPanel.generatePpt",
+    icon: ClipboardListIcon,
+    bgColor: "bg-violet-50",
+  },
+  {
+    id: "video",
+    labelKey: "tiptapEditor.aiPanel.generateVideo",
+    icon: VideoIcon,
+    bgColor: "bg-slate-100",
+    disabled: true,
+    tooltipKey: "tiptapEditor.aiPanel.generateVideoComingSoon",
   },
 ]
 
@@ -146,6 +171,7 @@ export function EditorAIPanel({
   const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
   const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
   const [isInfographicOpen, setIsInfographicOpen] = useState(false)
+  const [isPresentationOpen, setIsPresentationOpen] = useState(false)
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
 
   const { tasks: liveTasks, refetch } = useTaskCenterLiveTasks({
@@ -162,6 +188,22 @@ export function EditorAIPanel({
         .slice(0, 10),
     [liveTasks, t]
   )
+  const selectedLiveTaskFingerprint = useMemo(() => {
+    if (!selectedTaskRef) return null
+
+    const matchedTask = liveTasks.find(
+      (task) => task.id === selectedTaskRef.id && task.type === selectedTaskRef.type
+    )
+
+    if (!matchedTask) return null
+
+    return JSON.stringify({
+      id: matchedTask.id,
+      type: matchedTask.type,
+      status: matchedTask.status,
+      details: matchedTask.details,
+    })
+  }, [liveTasks, selectedTaskRef])
 
   useEffect(() => {
     if (submissionTick === 0) return
@@ -197,13 +239,19 @@ export function EditorAIPanel({
 
     setLoadingTaskDetail(true)
     setTaskDetailError(null)
-    setSelectedTaskRef(taskRef)
+    setSelectedTaskRef((current) => {
+      if (current && current.id === taskRef.id && current.type === taskRef.type) {
+        return current
+      }
+
+      return taskRef
+    })
     setCopyToMaterialsError(null)
     setCopyToMaterialsSuccess(null)
 
     try {
       const result = await taskCenterClient.getTaskDetail(taskRef.type, taskRef.id)
-      if ("error" in result) {
+      if (isTaskCenterErrorResponse(result)) {
         throw new Error(String(result.error))
       }
 
@@ -223,6 +271,25 @@ export function EditorAIPanel({
       setLoadingTaskDetail(false)
     }
   }, [t])
+
+  useEffect(() => {
+    if (!isTaskDetailOpen || !selectedTaskRef || !selectedLiveTaskFingerprint) return
+
+    const matchedTask = liveTasks.find(
+      (task) => task.id === selectedTaskRef.id && task.type === selectedTaskRef.type
+    )
+
+    if (!matchedTask) return
+
+    void fetchTaskDetail(mapTaskCenterTaskToProgressItem(matchedTask, t))
+  }, [
+    fetchTaskDetail,
+    isTaskDetailOpen,
+    liveTasks,
+    selectedLiveTaskFingerprint,
+    selectedTaskRef,
+    t,
+  ])
 
   const copyToMaterials = async () => {
     if (!selectedTaskRef) return
@@ -298,6 +365,8 @@ export function EditorAIPanel({
 
       setSelectedInfographicText(selectedText)
       setIsInfographicOpen(true)
+    } else if (id === "presentation") {
+      setIsPresentationOpen(true)
     }
   }
 
@@ -331,19 +400,40 @@ export function EditorAIPanel({
         <div className="grid grid-cols-2 auto-rows-fr gap-2">
           {FEATURE_BUTTONS.map((btn) => {
             const Icon = btn.icon
-            return (
+            const featureButton = (
               <button
                 key={btn.id}
+                type="button"
                 onClick={() => handleOpenDialog(btn.id)}
-                className="flex h-full min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
+                disabled={btn.disabled}
+                className={
+                  btn.disabled
+                    ? "flex h-full min-h-24 w-full cursor-not-allowed flex-col items-center justify-center gap-1.5 rounded-lg bg-muted/40 p-3 opacity-55 shadow-sm"
+                    : "flex h-full min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
+                }
               >
                 <span className={`rounded-md p-1.5 ${btn.bgColor}`}>
-                  <Icon className="h-4 w-4 text-foreground/70" />
+                  <Icon className={btn.disabled ? "h-4 w-4 text-muted-foreground" : "h-4 w-4 text-foreground/70"} />
                 </span>
-                <span className="text-center text-xs leading-tight text-foreground/80">
+                <span className={btn.disabled ? "text-center text-xs leading-tight text-muted-foreground" : "text-center text-xs leading-tight text-foreground/80"}>
                   {t(btn.labelKey)}
                 </span>
               </button>
+            )
+
+            if (!btn.disabled) {
+              return featureButton
+            }
+
+            return (
+              <Tooltip key={btn.id}>
+                <TooltipTrigger asChild>
+                  <span className="block h-full">{featureButton}</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>{t(btn.tooltipKey ?? "tiptapEditor.aiPanel.generateVideoComingSoon")}</span>
+                </TooltipContent>
+              </Tooltip>
             )
           })}
         </div>
@@ -374,8 +464,14 @@ export function EditorAIPanel({
       </div>
 
       <Dialog open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
-        <DialogContent className="flex max-h-[80vh] flex-col sm:max-w-[720px]">
-          <DialogHeader>
+        <DialogContent
+          className={
+            selectedTaskRef?.type === "presentation"
+              ? "flex h-[calc(100vh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col overflow-hidden sm:max-w-none"
+              : "flex max-h-[80vh] flex-col sm:max-w-[720px]"
+          }
+        >
+          <DialogHeader className={selectedTaskRef?.type === "presentation" ? "shrink-0" : undefined}>
             <DialogTitle>{t("contentWriting.taskCenter.detailTitle")}</DialogTitle>
             <DialogDescription>
               {selectedTaskRef
@@ -394,8 +490,26 @@ export function EditorAIPanel({
             </Alert>
           ) : selectedTaskRef && taskDetail ? (
             <>
-              <div className="flex-1 overflow-y-auto pr-1">
-                <TaskCenterTaskDetailView taskRef={selectedTaskRef} detail={taskDetail} />
+              <div
+                className={
+                  selectedTaskRef.type === "presentation"
+                    ? "min-h-0 flex-1 overflow-y-auto pr-1"
+                    : "min-h-0 max-h-[calc(80vh-8rem)] overflow-y-auto pr-1"
+                }
+              >
+                <TaskCenterTaskDetailView
+                  taskRef={selectedTaskRef}
+                  detail={taskDetail}
+                  onSelectTask={(taskRef) => {
+                    setSelectedTaskRef(taskRef)
+                    const matchedTask = liveTasks.find(
+                      (task) => task.id === taskRef.id && task.type === taskRef.type
+                    )
+                    if (matchedTask) {
+                      void fetchTaskDetail(mapTaskCenterTaskToProgressItem(matchedTask, t))
+                    }
+                  }}
+                />
               </div>
 
               {selectedTaskRef.type === "image" || selectedTaskRef.type === "infographic" ? (
@@ -459,6 +573,20 @@ export function EditorAIPanel({
         onOpenChange={setIsInfographicOpen}
         articleId={articleId}
         selectedText={selectedInfographicText}
+      />
+
+      <PresentationDialog
+        open={isPresentationOpen}
+        onOpenChange={setIsPresentationOpen}
+        articleId={articleId}
+        onTaskSubmitted={(taskRef) => {
+          void refetch({ silent: true })
+          console.info("[EditorAIPanel] Submitted presentation task", {
+            taskId: taskRef.id,
+            taskType: taskRef.type,
+            articleId,
+          })
+        }}
       />
     </div>
   )
