@@ -50,12 +50,21 @@ export interface TaskCenterInfographicListDetails {
   model_reference_id?: string
 }
 
+export interface TaskCenterPresentationSlideSummary {
+  total: number
+  pending: number
+  processing: number
+  success: number
+  failed: number
+}
+
 export interface TaskCenterPresentationListDetails {
   article_id: number
   storycard_id?: number
   task_kind?: string
   stage?: string
   slide_count?: number
+  slide_summary?: TaskCenterPresentationSlideSummary
   model_name?: string
   completed_at?: string | null
   ppt_url?: string
@@ -160,6 +169,23 @@ export interface TaskCenterInfographicTaskDetail {
   updated_at: string
 }
 
+export interface TaskCenterPresentationSlideTask {
+  id: number
+  presentation_log_id: number
+  slide_index: number
+  storycard_node_id: string
+  layout_type?: string
+  status: TaskCenterPresentationStatus
+  error_message?: string
+  image_prompt?: string
+  image_url?: string
+  image_task_id?: number
+  retry_count?: number
+  created_at?: string
+  updated_at?: string
+  completed_at?: string | null
+}
+
 export interface TaskCenterPresentationTaskDetail {
   id: number
   article_id: number
@@ -167,6 +193,8 @@ export interface TaskCenterPresentationTaskDetail {
   task_kind?: string
   stage?: string
   slide_count?: number
+  slide_summary?: TaskCenterPresentationSlideSummary
+  slides?: TaskCenterPresentationSlideTask[]
   model_name?: string
   status: TaskCenterPresentationStatus
   error?: string

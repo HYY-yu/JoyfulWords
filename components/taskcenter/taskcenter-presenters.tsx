@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/base/button"
 import { PresentationTaskDetail } from "@/components/taskcenter/presentation-task-detail"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
+  TaskCenterPresentationSlideSummary,
   TaskCenterPresentationTaskDetail,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
@@ -72,6 +73,13 @@ export function getTaskCenterTaskTitle(
   return "articleEdit"
 }
 
+function getPresentationSlideSummaryStage(summary: TaskCenterPresentationSlideSummary): string {
+  if (summary.processing > 0) return "slides_processing"
+  if (summary.pending > 0) return "slides_pending"
+  if (summary.success >= summary.total && summary.total > 0) return "slides_success"
+  return "slides_processing"
+}
+
 export function getTaskCenterTaskSummary(task: TaskCenterTaskListItem): string {
   if (task.type === "article") {
     return task.details.req_text || task.details.resp_text || task.details.exec_id
@@ -82,6 +90,15 @@ export function getTaskCenterTaskSummary(task: TaskCenterTaskListItem): string {
   }
 
   if (task.type === "presentation") {
+    const slideSummary = task.details.slide_summary
+    if (slideSummary && slideSummary.total > 0) {
+      if (slideSummary.failed > 0) {
+        return `${slideSummary.failed} failed / ${slideSummary.total} slides`
+      }
+
+      return `${slideSummary.success}/${slideSummary.total} slides · ${getPresentationSlideSummaryStage(slideSummary)}`
+    }
+
     const summaryParts = [
       task.details.task_kind,
       task.details.stage,

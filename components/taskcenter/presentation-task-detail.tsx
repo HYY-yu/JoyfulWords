@@ -1,10 +1,21 @@
 "use client"
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AlertCircleIcon, DownloadIcon, Loader2Icon, RefreshCwIcon, SaveIcon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  DownloadIcon,
+  ExternalLinkIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  SaveIcon,
+} from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
+import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
+import { Progress } from "@/components/ui/base/progress"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { Textarea } from "@/components/ui/base/textarea"
@@ -15,7 +26,12 @@ import type {
   PresentationStorycardDocument,
   PresentationStorycardRecord,
 } from "@/lib/api/presentations/types"
-import type { TaskCenterPresentationTaskDetail } from "@/lib/api/taskcenter/types"
+import type {
+  TaskCenterPresentationSlideSummary,
+  TaskCenterPresentationSlideTask,
+  TaskCenterPresentationTaskDetail,
+} from "@/lib/api/taskcenter/types"
+import { cn } from "@/lib/utils"
 
 function cloneStorycard(storycard: PresentationStorycardDocument): PresentationStorycardDocument {
   return JSON.parse(JSON.stringify(storycard)) as PresentationStorycardDocument
@@ -48,6 +64,188 @@ function triggerDownload(url: string) {
   anchor.click()
 }
 
+function getSlideSummaryFromSlides(
+  slides: TaskCenterPresentationSlideTask[]
+): TaskCenterPresentationSlideSummary {
+  return slides.reduce<TaskCenterPresentationSlideSummary>(
+    (summary, slide) => {
+      summary.total += 1
+      summary[slide.status] += 1
+      return summary
+    },
+    { total: 0, pending: 0, processing: 0, success: 0, failed: 0 }
+  )
+}
+
+function getNormalizedSlideSummary(
+  detail: TaskCenterPresentationTaskDetail
+): TaskCenterPresentationSlideSummary | null {
+  if (detail.slide_summary && detail.slide_summary.total > 0) {
+    return detail.slide_summary
+  }
+
+  if (detail.slides?.length) {
+    return getSlideSummaryFromSlides(detail.slides)
+  }
+
+  if (typeof detail.slide_count === "number" && detail.slide_count > 0) {
+    return {
+      total: detail.slide_count,
+      pending: detail.status === "pending" ? detail.slide_count : 0,
+      processing: detail.status === "processing" ? detail.slide_count : 0,
+      success: detail.status === "success" ? detail.slide_count : 0,
+      failed: detail.status === "failed" ? detail.slide_count : 0,
+    }
+  }
+
+  return null
+}
+
+function getSlideStatusTone(status: TaskCenterPresentationSlideTask["status"]) {
+  switch (status) {
+    case "failed":
+      return "border-destructive/40 bg-destructive/5"
+    case "processing":
+      return "border-primary/25 bg-primary/5"
+    case "success":
+      return "border-emerald-500/25 bg-emerald-500/5"
+    default:
+      return "border-border bg-background"
+  }
+}
+
+function PresentationSlideProgressPanel({ detail }: { detail: TaskCenterPresentationTaskDetail }) {
+  const { t } = useTranslation()
+  const summary = getNormalizedSlideSummary(detail)
+  const slides = detail.slides ?? []
+  const progressValue = summary && summary.total > 0 ? (summary.success / summary.total) * 100 : 0
+
+  if (!summary && slides.length === 0) return null
+
+  return (
+    <section className="space-y-4 rounded-xl border bg-background p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            {t("presentation.detail.slides.title")}
+          </h3>
+          {summary ? (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("presentation.detail.slides.progress", {
+                success: summary.success,
+                total: summary.total,
+              })}
+            </p>
+          ) : null}
+        </div>
+        {summary ? (
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline">
+              {t("presentation.detail.slides.pending", { count: summary.pending })}
+            </Badge>
+            <Badge variant="secondary">
+              {t("presentation.detail.slides.processing", { count: summary.processing })}
+            </Badge>
+            <Badge variant="default">
+              {t("presentation.detail.slides.success", { count: summary.success })}
+            </Badge>
+            <Badge variant={summary.failed > 0 ? "destructive" : "outline"}>
+              {t("presentation.detail.slides.failed", { count: summary.failed })}
+            </Badge>
+          </div>
+        ) : null}
+      </div>
+
+      {summary ? <Progress value={progressValue} className="h-2" /> : null}
+
+      {slides.length > 0 ? (
+        <div className="space-y-2">
+          {slides.map((slide) => {
+            const pageNumber = slide.slide_index + 1
+            const imageUrl =
+              typeof slide.image_url === "string" && slide.image_url.trim().length > 0
+                ? slide.image_url.trim()
+                : null
+
+            return (
+              <div
+                key={slide.id}
+                className={cn(
+                  "grid gap-3 rounded-lg border p-3 text-sm md:grid-cols-[minmax(0,1fr)_96px]",
+                  getSlideStatusTone(slide.status)
+                )}
+              >
+                <div className="min-w-0 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-foreground">#{pageNumber}</span>
+                    {slide.layout_type ? (
+                      <span className="text-xs text-muted-foreground">{slide.layout_type}</span>
+                    ) : null}
+                    <Badge variant={slide.status === "failed" ? "destructive" : "outline"}>
+                      <span className="inline-flex items-center gap-1">
+                        {slide.status === "processing" ? (
+                          <Loader2Icon className="h-3 w-3 animate-spin" />
+                        ) : null}
+                        {t(`contentWriting.taskCenter.statuses.${slide.status}`)}
+                      </span>
+                    </Badge>
+                    {typeof slide.retry_count === "number" && slide.retry_count > 0 ? (
+                      <span className="text-xs text-muted-foreground">
+                        {t("presentation.detail.slides.retryCount", {
+                          count: slide.retry_count,
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {slide.image_prompt ? (
+                    <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {t("presentation.detail.slides.imagePrompt")}:
+                      </span>{" "}
+                      {slide.image_prompt}
+                    </p>
+                  ) : null}
+
+                  {slide.error_message ? (
+                    <p className="text-xs leading-5 text-destructive">{slide.error_message}</p>
+                  ) : null}
+
+                  {imageUrl ? (
+                    <a
+                      href={imageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <ExternalLinkIcon className="h-3 w-3" />
+                      {t("presentation.detail.slides.imageReady")}
+                    </a>
+                  ) : null}
+                </div>
+
+                {imageUrl ? (
+                  <a href={imageUrl} target="_blank" rel="noreferrer" className="block">
+                    <img
+                      src={imageUrl}
+                      alt={`${t("presentation.detail.slides.title")} ${pageNumber}`}
+                      className="aspect-video w-full rounded-md border bg-muted object-cover"
+                    />
+                  </a>
+                ) : (
+                  <div className="flex aspect-video items-center justify-center rounded-md border bg-muted/40 px-2 text-center text-xs text-muted-foreground">
+                    {slide.layout_type || "-"}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 interface PresentationTaskDetailProps {
   detail: TaskCenterPresentationTaskDetail
   onSelectTask?: (taskRef: { id: number; type: "presentation" }) => void
@@ -71,6 +269,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
   const [pendingDownloadTaskId, setPendingDownloadTaskId] = useState<number | null>(null)
 
   const hasPPTUrl = typeof detail.ppt_url === "string" && detail.ppt_url.trim().length > 0
+  const hasSlideProgress = Boolean(getNormalizedSlideSummary(detail) || detail.slides?.length)
 
   const slides = useMemo(() => {
     if (!storycardDraft?.slides || !Array.isArray(storycardDraft.slides)) {
@@ -385,10 +584,18 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
             </Alert>
           ) : null}
 
-          {detail.status !== "success" ? (
-            <div className="px-4 py-8 text-sm text-muted-foreground">
-              {t("presentation.detail.preview.waiting")}
+          {hasSlideProgress ? (
+            <div className="p-4">
+              <PresentationSlideProgressPanel detail={detail} />
             </div>
+          ) : null}
+
+          {detail.status !== "success" ? (
+            hasSlideProgress ? null : (
+              <div className="px-4 py-8 text-sm text-muted-foreground">
+                {t("presentation.detail.preview.waiting")}
+              </div>
+            )
           ) : htmlLoading ? (
             <div className="flex items-center justify-center px-4 py-12">
               <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -650,10 +857,18 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
             </Alert>
           ) : null}
 
-          {detail.status !== "success" ? (
-            <div className="px-4 py-8 text-sm text-muted-foreground">
-              {t("presentation.detail.preview.waiting")}
+          {hasSlideProgress ? (
+            <div className="p-4">
+              <PresentationSlideProgressPanel detail={detail} />
             </div>
+          ) : null}
+
+          {detail.status !== "success" ? (
+            hasSlideProgress ? null : (
+              <div className="px-4 py-8 text-sm text-muted-foreground">
+                {t("presentation.detail.preview.waiting")}
+              </div>
+            )
           ) : htmlLoading ? (
             <div className="flex items-center justify-center px-4 py-12">
               <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />

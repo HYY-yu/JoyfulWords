@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/base/select"
 import { Skeleton } from "@/components/ui/base/skeleton"
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
-import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
@@ -158,7 +158,7 @@ export function TaskCenterBrowser({
     try {
       const result = await taskCenterClient.getTaskDetail(taskRef.type, taskRef.id)
 
-      if ("error" in result) {
+      if (isTaskCenterErrorResponse(result)) {
         setTaskDetailError(String(result.error))
         setTaskDetail(null)
         return

@@ -1369,6 +1369,17 @@ export const zh = {
                 exportStarted: "PPT 导出任务已提交，请在任务中心继续等待",
                 downloadPpt: "下载 PPT",
             },
+            slides: {
+                title: "Slide 进度",
+                progress: "{success}/{total} 页已完成",
+                pending: "待处理 {count}",
+                processing: "处理中 {count}",
+                success: "成功 {count}",
+                failed: "失败 {count}",
+                retryCount: "重试 {count} 次",
+                imagePrompt: "图片提示词",
+                imageReady: "图片已生成",
+            },
         },
     },
     infographicDialog: {

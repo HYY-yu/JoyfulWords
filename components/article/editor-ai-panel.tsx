@@ -15,7 +15,7 @@ import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
-import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
@@ -251,7 +251,7 @@ export function EditorAIPanel({
 
     try {
       const result = await taskCenterClient.getTaskDetail(taskRef.type, taskRef.id)
-      if ("error" in result) {
+      if (isTaskCenterErrorResponse(result)) {
         throw new Error(String(result.error))
       }
 

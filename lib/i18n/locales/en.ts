@@ -1369,6 +1369,17 @@ export const en = {
                 exportStarted: "PPT export task submitted. Continue in Task Center.",
                 downloadPpt: "Download PPT",
             },
+            slides: {
+                title: "Slide Progress",
+                progress: "{success}/{total} slides complete",
+                pending: "Pending {count}",
+                processing: "Processing {count}",
+                success: "Succeeded {count}",
+                failed: "Failed {count}",
+                retryCount: "Retry {count}",
+                imagePrompt: "Image prompt",
+                imageReady: "Image ready",
+            },
         },
     },
     infographicDialog: {
