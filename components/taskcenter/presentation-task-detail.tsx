@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/base/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { presentationsClient } from "@/lib/api/presentations/client"
+import { preparePresentationPreviewHTML } from "@/lib/api/presentations/preview-html"
 import type {
   PresentationStorycardDocument,
   PresentationStorycardRecord,
@@ -327,7 +328,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
         throw new Error(String(result.error))
       }
 
-      setHTMLContent(result.html_content || "")
+      setHTMLContent(preparePresentationPreviewHTML(result.html_content || ""))
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load HTML preview"
       console.error("[PresentationTaskDetail] Failed to load HTML preview", {
