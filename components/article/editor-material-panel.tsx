@@ -635,20 +635,8 @@ function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
     }
   }, [articleId, stopPolling, userId])
 
-  const hydrateSelections = useCallback((response: MaterialSearchDetailResponse) => {
-    if (response.status !== "success" || !response.ai_result) {
-      setSelectedUrls(new Set())
-      return
-    }
-
-    if (response.material_type === "image") {
-      setSelectedUrls(new Set((response.ai_result.images ?? []).map((url) => buildImageSelectableUrl(url))))
-      return
-    }
-
-    setSelectedUrls(
-      new Set((response.ai_result.ai_result ?? []).map((item) => buildSelectableUrl(item)))
-    )
+  const resetSelections = useCallback(() => {
+    setSelectedUrls(new Set())
   }, [])
 
   const handlePollResult = useCallback(
@@ -694,13 +682,13 @@ function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
 
       stopPolling()
       setBannerStatus(null)
-      hydrateSelections(response)
+      resetSelections()
       console.info("[MaterialSearch] search finished", {
         logId: task.logId,
         status: response.status,
       })
     },
-    [clearSearchTask, hydrateSelections, stopPolling, t, toast]
+    [clearSearchTask, resetSelections, stopPolling, t, toast]
   )
 
   useEffect(() => {
