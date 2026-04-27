@@ -1,5 +1,7 @@
-import { authenticatedApiRequest } from "@/lib/api/client"
+import { API_BASE_URL } from "@/lib/config"
+import { authenticatedApiRequest, getLanguageHeader } from "@/lib/api/client"
 import type { ErrorResponse } from "@/lib/api/types"
+import { tokenStore } from "@/lib/tokens/token-store"
 import type {
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
@@ -68,5 +70,49 @@ export const taskCenterClient = {
     return authenticatedApiRequest<TaskCenterTaskDetailResponse>(`/api/taskcenter/task/${type}/${id}`, {
       signal,
     })
+  },
+
+  async deleteTask(
+    type: TaskCenterTaskReference["type"],
+    id: TaskCenterTaskReference["id"],
+    signal?: AbortSignal
+  ): Promise<ErrorResponse | null> {
+    const accessToken = tokenStore.getAccessToken()
+    const response = await fetch(`${API_BASE_URL}/api/taskcenter/task/${type}/${id}`, {
+      method: "DELETE",
+      signal,
+      headers: {
+        "Accept-Language": getLanguageHeader(),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    })
+
+    if (response.status === 204) {
+      return null
+    }
+
+    const responseText = await response.text()
+    let parsedPayload: Record<string, unknown> | null = null
+    if (responseText) {
+      try {
+        parsedPayload = JSON.parse(responseText) as Record<string, unknown>
+      } catch {
+        parsedPayload = null
+      }
+    }
+
+    if (!response.ok) {
+      const errorMessage =
+        (parsedPayload && typeof parsedPayload.error === "string" && parsedPayload.error) ||
+        (parsedPayload && typeof parsedPayload.message === "string" && parsedPayload.message) ||
+        (responseText ? responseText : "Request failed")
+
+      return {
+        error: errorMessage,
+        status: response.status,
+      }
+    }
+
+    return null
   },
 }

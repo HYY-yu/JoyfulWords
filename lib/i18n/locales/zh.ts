@@ -397,6 +397,8 @@ export const zh = {
             copyToMaterials: "加入素材库",
             copyToMaterialsSuccess: "已成功加入素材库。",
             copyToMaterialsFailed: "加入素材库失败，请稍后重试。",
+            deleteSuccessConfirm: "删除后将无法找回，请谨慎。",
+            deleteFailed: "删除任务失败，请稍后重试。",
             filters: {
                 type: "任务类型",
                 status: "任务状态",

@@ -397,6 +397,8 @@ export const en = {
             copyToMaterials: "Add to Materials",
             copyToMaterialsSuccess: "Added to materials successfully.",
             copyToMaterialsFailed: "Failed to add to materials. Please try again later.",
+            deleteSuccessConfirm: "This deletion cannot be undone. Please proceed with caution.",
+            deleteFailed: "Failed to delete task. Please try again later.",
             filters: {
                 type: "Task Type",
                 status: "Task Status",

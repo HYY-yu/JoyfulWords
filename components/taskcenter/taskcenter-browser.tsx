@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircleIcon, Loader2Icon, RefreshCwIcon } from "lucide-react"
+import { AlertCircleIcon, Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
@@ -25,6 +25,7 @@ import type {
 } from "@/lib/api/taskcenter/types"
 import { getTaskCenterTaskKey } from "@/lib/api/taskcenter/types"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import {
   TaskCenterStatusBadge,
@@ -48,52 +49,68 @@ interface TaskCenterBrowserProps {
   showHeader?: boolean
 }
 
-function TaskCard({
-  task,
-  selected,
-  onClick,
-}: {
+interface TaskCardProps {
   task: TaskCenterTaskListItem
   selected: boolean
+  removable: boolean
   onClick: () => void
-}) {
+  onRemove: () => void
+}
+
+function TaskCard({ task, selected, removable, onClick, onRemove }: TaskCardProps) {
   const { t } = useTranslation()
   const Icon = getTaskCenterTypeIcon(task.type)
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full rounded-2xl border px-4 py-4 text-left transition-colors",
-        selected
-          ? "border-primary/40 bg-primary/5 shadow-sm"
-          : "border-border/70 bg-background hover:bg-muted/40"
-      )}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="rounded-xl bg-muted p-2 text-muted-foreground">
-            <Icon className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <TaskCenterTaskTypeBadge type={task.type} />
-              <TaskCenterStatusBadge status={task.status as TaskCenterTaskStatus} />
+    <div className="group relative overflow-hidden rounded-2xl">
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "relative w-full rounded-2xl border px-4 py-4 text-left transition-colors",
+          selected
+            ? "border-primary/40 bg-primary/5 shadow-sm"
+            : "border-border/70 bg-background hover:bg-muted/40"
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="rounded-xl bg-muted p-2 text-muted-foreground">
+              <Icon className="h-4 w-4" />
+            </span>
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <TaskCenterTaskTypeBadge type={task.type} />
+                <TaskCenterStatusBadge status={task.status as TaskCenterTaskStatus} />
+              </div>
+              <p className="truncate text-sm font-semibold text-foreground">
+                {t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`)}
+              </p>
+              <p className="line-clamp-2 text-sm text-muted-foreground">
+                {getTaskCenterTaskSummary(task)}
+              </p>
             </div>
-            <p className="truncate text-sm font-semibold text-foreground">
-              {t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`)}
-            </p>
-            <p className="line-clamp-2 text-sm text-muted-foreground">
-              {getTaskCenterTaskSummary(task)}
-            </p>
           </div>
+          <p className="shrink-0 text-xs text-muted-foreground">
+            {formatTaskCenterTime(task.created_at)}
+          </p>
         </div>
-        <p className="shrink-0 text-xs text-muted-foreground">
-          {formatTaskCenterTime(task.created_at)}
-        </p>
-      </div>
-    </button>
+      </button>
+      {removable ? (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onRemove()
+          }}
+          className="absolute right-3 top-3 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border/70 bg-background/90 text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+          aria-label={t("common.delete")}
+          title={t("common.delete")}
+        >
+          <XIcon className="h-3 w-3" />
+        </button>
+      ) : null}
+    </div>
   )
 }
 
@@ -107,12 +124,14 @@ export function TaskCenterBrowser({
   showHeader = true,
 }: TaskCenterBrowserProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
   const router = useRouter()
   const [taskType, setTaskType] = useState<TaskCenterTaskType | "all">("all")
   const [selectedTaskRef, setSelectedTaskRef] = useState<TaskCenterTaskReference | null>(null)
   const [taskDetail, setTaskDetail] = useState<TaskCenterTaskDetailResponse | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [taskDetailError, setTaskDetailError] = useState<string | null>(null)
+  const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
 
   const {
     tasks,
@@ -120,6 +139,7 @@ export function TaskCenterBrowser({
     refreshing,
     error,
     refetch,
+    setTasks,
   } = useTaskCenterLiveTasks({
     enabled,
     realtimeScope,
@@ -130,14 +150,7 @@ export function TaskCenterBrowser({
   const selectedTask = useMemo(
     () =>
       selectedTaskRef
-        ? tasks.find(
-            (task) =>
-              task.id === selectedTaskRef.id && task.type === selectedTaskRef.type
-          ) ||
-          tasks.find(
-            (task) =>
-              task.id === selectedTaskRef.id && task.type === selectedTaskRef.type
-          ) ||
+        ? tasks.find((task) => task.id === selectedTaskRef.id && task.type === selectedTaskRef.type) ||
           null
         : tasks[0] || null,
     [selectedTaskRef, tasks]
@@ -224,6 +237,78 @@ export function TaskCenterBrowser({
     [router]
   )
 
+  const handleDeleteTask = useCallback(
+    async (task: TaskCenterTaskListItem) => {
+      if (task.status === "success") {
+        const confirmed = window.confirm(t("contentWriting.taskCenter.deleteSuccessConfirm"))
+        if (!confirmed) {
+          return
+        }
+      }
+
+      const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
+      let startedDeletion = false
+
+      setDeletingTaskKeys((current) => {
+        if (current.has(taskKey)) {
+          return current
+        }
+
+        startedDeletion = true
+        const next = new Set(current)
+        next.add(taskKey)
+        return next
+      })
+
+      if (!startedDeletion) {
+        return
+      }
+
+      try {
+        const deletionResult = await taskCenterClient.deleteTask(task.type, task.id)
+        if (deletionResult) {
+          toast({
+            variant: "destructive",
+            title: t("contentWriting.taskCenter.deleteFailed"),
+            description: deletionResult.error || t("contentWriting.taskCenter.deleteFailed"),
+          })
+          return
+        }
+
+        setTasks((currentTasks) =>
+          currentTasks.filter(
+            (currentTask) => !(currentTask.id === task.id && currentTask.type === task.type)
+          )
+        )
+
+        if (selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type) {
+          setSelectedTaskRef(null)
+          setTaskDetail(null)
+          setTaskDetailError(null)
+          setTaskDetailLoading(false)
+        }
+      } catch (error) {
+        const fallbackMessage = t("contentWriting.taskCenter.deleteFailed")
+        toast({
+          variant: "destructive",
+          title: fallbackMessage,
+          description: error instanceof Error ? error.message : fallbackMessage,
+        })
+      } finally {
+        setDeletingTaskKeys((current) => {
+          if (!current.has(taskKey)) {
+            return current
+          }
+
+          const next = new Set(current)
+          next.delete(taskKey)
+          return next
+        })
+      }
+    },
+    [selectedTaskRef, setTasks, t, toast]
+  )
+
   return (
     <div className={cn("flex h-full min-h-0 flex-col gap-4", className)}>
       {showHeader ? (
@@ -301,18 +386,25 @@ export function TaskCenterBrowser({
                   </div>
                 </div>
               ) : (
-                tasks.map((task) => (
-                  <TaskCard
-                    key={getTaskCenterTaskKey({ id: task.id, type: task.type })}
-                    task={task}
-                    selected={
-                      selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type
-                    }
-                    onClick={() => {
-                      setSelectedTaskRef({ id: task.id, type: task.type })
-                    }}
-                  />
-                ))
+                tasks.map((task) => {
+                  const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
+                  const removable =
+                    (task.status === "success" || task.status === "failed") &&
+                    !deletingTaskKeys.has(taskKey)
+
+                  return (
+                    <TaskCard
+                      key={taskKey}
+                      task={task}
+                      selected={selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type}
+                      removable={removable}
+                      onRemove={() => void handleDeleteTask(task)}
+                      onClick={() => {
+                        setSelectedTaskRef({ id: task.id, type: task.type })
+                      }}
+                    />
+                  )
+                })
               )}
             </div>
           </ScrollArea>
