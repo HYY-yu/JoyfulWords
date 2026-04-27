@@ -4,6 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { Markdown } from "@tiptap/markdown";
+import type { EditorView } from "@tiptap/pm/view";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/editor/tiptap-toolbar";
 import { CustomImage, CustomHighlight, CustomTextAlign, CustomLink } from "@/lib/tiptap-extensions";
@@ -17,7 +18,11 @@ import { useTranslation } from "@/lib/i18n/i18n-context";
 import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 import { markdownToHTML } from "@/lib/tiptap-utils";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
-import { getMaterialImageFromDataTransfer } from "@/lib/editor-drag-drop";
+import {
+  getImageFileFromClipboardData,
+  getImageFileFromDataTransfer,
+  getMaterialImageFromDataTransfer,
+} from "@/lib/editor-drag-drop";
 import type {
   TaskCenterArticleTaskDetail,
   TaskCenterTaskReference,
@@ -174,6 +179,92 @@ export function TiptapEditor({
     Markdown,         // Markdown extension for export functionality
   ], []);
 
+  const insertImageNodeToView = useCallback(
+    (view: EditorView, imageUrl: string, altText: string, insertPos?: number) => {
+      const imageNodeType = view.state.schema.nodes.customImage;
+
+      if (!imageNodeType) {
+        console.warn("[TiptapEditor] customImage node type missing when inserting uploaded image");
+        return false;
+      }
+
+      const position = typeof insertPos === "number" ? insertPos : view.state.selection.from;
+      const imageNode = imageNodeType.create({ src: imageUrl, alt: altText });
+      const transaction = view.state.tr.insert(position, imageNode).scrollIntoView();
+
+      view.dispatch(transaction);
+      view.focus();
+
+      return true;
+    },
+    []
+  );
+
+  const uploadAndInsertEditorImage = useCallback(
+    async (view: EditorView, file: File, source: "drop" | "paste", insertPos?: number) => {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        toast({
+          variant: "destructive",
+          title: t("contentWriting.writing.uploadFailed"),
+          description: t(`contentWriting.writing.${validation.error}`),
+        });
+        return;
+      }
+
+      // observability: image upload path triggered from editor event chain
+      console.debug("[TiptapEditor] Start uploading image from editor event", {
+        source,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      });
+
+      setIsUploadingImage(true);
+      toast({
+        title: t("contentWriting.writing.uploading"),
+        description: t("tiptapEditor.toast.uploadingImage"),
+      });
+
+      try {
+        const imageUrl = await uploadImageToR2(file);
+        const inserted = insertImageNodeToView(view, imageUrl, file.name, insertPos);
+
+        if (!inserted) {
+          throw new Error(t("tiptapEditor.toast.editorNotReady"));
+        }
+
+        console.info("[TiptapEditor] Image uploaded and inserted into editor", {
+          source,
+          fileName: file.name,
+        });
+        toast({
+          title: t("contentWriting.writing.uploadSuccess"),
+          description: t("tiptapEditor.toast.imageInserted"),
+        });
+      } catch (error) {
+        console.error("[TiptapEditor] Image upload/insert failed in editor event path", {
+          source,
+          error,
+        });
+
+        const errorMessage = error instanceof Error ? error.message : "未知错误";
+        const displayError = errorMessage.startsWith("contentWriting.")
+          ? t(errorMessage)
+          : `${t("contentWriting.writing.uploadError").replace("{error}", errorMessage)}`;
+
+        toast({
+          variant: "destructive",
+          title: t("contentWriting.writing.uploadFailed"),
+          description: displayError,
+        });
+      } finally {
+        setIsUploadingImage(false);
+      }
+    },
+    [insertImageNodeToView, t, toast]
+  );
+
   const editor = useEditor({
     extensions,
     content: initialContent,
@@ -191,24 +282,38 @@ export function TiptapEditor({
 
         const materialImageUrl = getMaterialImageFromDataTransfer(event.dataTransfer);
 
-        if (!materialImageUrl) {
+        if (materialImageUrl) {
+          event.preventDefault();
+
+          const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          insertImageNodeToView(view, materialImageUrl, "", dropPos?.pos);
+
+          return true;
+        }
+
+        const droppedImageFile = getImageFileFromDataTransfer(event.dataTransfer);
+        if (!droppedImageFile) {
           return false;
         }
 
         event.preventDefault();
-
         const dropPos = view.posAtCoords({ left: event.clientX, top: event.clientY });
-        const imageNodeType = view.state.schema.nodes.customImage;
+        void uploadAndInsertEditorImage(view, droppedImageFile, "drop", dropPos?.pos);
 
-        if (!dropPos || !imageNodeType) {
-          return true;
+        return true;
+      },
+      handlePaste(view, event) {
+        if (!event.clipboardData) {
+          return false;
         }
 
-        const imageNode = imageNodeType.create({ src: materialImageUrl, alt: "" });
-        const transaction = view.state.tr.insert(dropPos.pos, imageNode).scrollIntoView();
+        const pastedImageFile = getImageFileFromClipboardData(event.clipboardData);
+        if (!pastedImageFile) {
+          return false;
+        }
 
-        view.dispatch(transaction);
-        view.focus();
+        event.preventDefault();
+        void uploadAndInsertEditorImage(view, pastedImageFile, "paste");
 
         return true;
       },
