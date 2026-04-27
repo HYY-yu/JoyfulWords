@@ -1,6 +1,8 @@
 const REVEAL_PREVIEW_GUARD_STYLE_ID = "joyfulwords-reveal-preview-guard"
 
 const REVEAL_PREVIEW_GUARD_STYLE = `<style id="${REVEAL_PREVIEW_GUARD_STYLE_ID}">
+.slide-number,
+.slide-number a,
 .reveal .slide-number,
 .reveal a.slide-number,
 .reveal .slide-number a {

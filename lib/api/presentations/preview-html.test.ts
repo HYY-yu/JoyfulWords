@@ -9,6 +9,8 @@ test("preparePresentationPreviewHTML hides reveal slide number links", () => {
   const result = preparePresentationPreviewHTML(html)
 
   assert.match(result, /joyfulwords-reveal-preview-guard/)
+  assert.match(result, /\.slide-number,/)
+  assert.match(result, /\.slide-number a,/)
   assert.match(result, /\.reveal \.slide-number/)
   assert.match(result, /\.reveal \.slide-number a/)
   assert.match(result, /pointer-events: none !important/)
