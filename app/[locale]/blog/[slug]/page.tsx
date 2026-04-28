@@ -1,12 +1,13 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Script from "next/script"
 import { notFound } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { BlogLanguageToggle } from "@/components/blog/blog-language-toggle"
 import { getBlogPostBySlug, getBlogSlugs } from "@/lib/blog"
 import { getServerDictionary } from "@/lib/i18n/server"
-import { buildLocalizedPath, isLocale, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
-import { buildMetadata, DEFAULT_OG_IMAGE, SITE_NAME } from "@/lib/seo"
+import { buildLocalizedPath, getHtmlLang, isLocale, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
+import { buildCanonicalUrl, buildMetadata, DEFAULT_OG_IMAGE, SITE_NAME } from "@/lib/seo"
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -83,8 +84,80 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
     notFound()
   }
 
+  const articlePath = buildLocalizedPath(locale, `/blog/${slug}`)
+  const blogPath = buildLocalizedPath(locale, "/blog")
+  const homePath = buildLocalizedPath(locale)
+  const articleUrl = buildCanonicalUrl(articlePath)
+  const blogUrl = buildCanonicalUrl(blogPath)
+  const homeUrl = buildCanonicalUrl(homePath)
+  const organizationUrl = buildCanonicalUrl("/")
+  const imageUrl = buildCanonicalUrl(DEFAULT_OG_IMAGE)
+  const dateIso = new Date(post.date).toISOString()
+  const blogPostingJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.summary,
+    datePublished: dateIso,
+    dateModified: dateIso,
+    inLanguage: getHtmlLang(locale),
+    image: [imageUrl],
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    author: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: organizationUrl,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: organizationUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: imageUrl,
+      },
+    },
+  }
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: locale === "zh" ? "首页" : "Home",
+        item: homeUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: locale === "zh" ? "博客" : "Blog",
+        item: blogUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: post.title,
+        item: articleUrl,
+      },
+    ],
+  }
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.95))]">
+      <Script
+        id={`blogposting-jsonld-${locale}-${slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(blogPostingJsonLd) }}
+      />
+      <Script
+        id={`breadcrumb-jsonld-${locale}-${slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <div className="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-8 md:px-10 md:py-12">
         <header className="rounded-[2rem] border border-border/70 bg-background/90 p-8 shadow-[0_16px_80px_rgba(15,23,42,0.06)] backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-4">

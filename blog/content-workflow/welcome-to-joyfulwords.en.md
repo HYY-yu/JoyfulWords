@@ -48,7 +48,7 @@ JoyfulWords was created to protect that commitment to high-quality output. We ho
 5. **Content production**: Research references, expand the content, add visuals, and handle PPT tasks at the same time.
 6. **Finish creation**: End up with an article that has a complete structure, a consistent style, and is ready for publishing preparation.
 
-![](https://cdn.joyword.link/infographic/5786dda57d4ca478d99a7f93bbc3fb1d.png)
+![JoyfulWords visual](https://cdn.joyword.link/infographic/5786dda57d4ca478d99a7f93bbc3fb1d.png)
 
 > **Key point**: The goal is not to chat with AI, but to produce content inside a proper creation interface.
 

@@ -16,13 +16,13 @@ A strong cover image can make a reader curious before they read the first line. 
 
 In this example layout, I only need to describe the core visual direction and a few key elements. The AI image model fills in the missing design details and produces a polished image that is suitable for publishing. Compared with a general chat-style image generator, this structured interface reduces the amount of prompt writing. You do not have to compose a long, highly detailed instruction just to reach a usable result.
 
-![](https://cdn.joyword.link/materials/2/eec85298ba33af1038c43ac17c1b08fa.png)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/eec85298ba33af1038c43ac17c1b08fa.png)
 
 From there, we get several images that can be used directly as article covers:
 
-![](https://cdn.joyword.link/materials/2/c6286471c53c088b368f0d3dcec4da55.jpeg)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/c6286471c53c088b368f0d3dcec4da55.jpeg)
 
-![](https://cdn.joyword.link/materials/2/5cdb922eb64bd422cd338171fdb2c802.jpeg)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/5cdb922eb64bd422cd338171fdb2c802.jpeg)
 
 ### Search for Web Images
 
@@ -38,7 +38,7 @@ Of course, web images are not always ready to use. Some have watermarks. Some ar
 
 With this workflow, I can isolate the yellow sports car from the original image and restyle it into a new crystal car:
 
-![](https://cdn.joyword.link/img-gen/2e701a0483202c786ac9233ca2e6f24c.png)
+![JoyfulWords visual](https://cdn.joyword.link/img-gen/2e701a0483202c786ac9233ca2e6f24c.png)
 
 This is useful when you want the image to support your article, but you also want it to feel original and consistent with the rest of your content. The three steps, search, split, and restyle, can work together to create many interesting visual directions.
 
@@ -54,7 +54,7 @@ For example, here is a short paragraph about the mysteries of the universe:
 
 "Dark matter and dark energy are two mysterious components that shape the universe. Dark matter makes up about 26.8% of the total mass-energy of the universe. It cannot be observed through electromagnetic waves, but its gravity helps hold galaxies together. Dark energy accounts for about 68.3% and is believed to drive the accelerating expansion of the universe. Its physical nature remains one of the major unsolved questions in astrophysics."
 
-![](https://cdn.joyword.link/infographic/733d99618d747a4b24f8964bf7865599.png)
+![JoyfulWords visual](https://cdn.joyword.link/infographic/733d99618d747a4b24f8964bf7865599.png)
 
 After selecting this paragraph and choosing a technical visual style, the AI quickly turns a complex idea into a structured knowledge card. The result is easier to understand, easier to remember, and easier to share.
 
@@ -62,7 +62,7 @@ You can also create cards that feel more social and lightweight. For example, he
 
 "Did you know? The soft red part of a strawberry that we usually eat is not the fruit itself. It is actually the flower receptacle. The tiny dots on the surface are the real fruits, each holding a seed."
 
-![](https://cdn.joyword.link/infographic/a8e25ffa31e54b250861ebdcf0182be4.png)
+![JoyfulWords visual](https://cdn.joyword.link/infographic/a8e25ffa31e54b250861ebdcf0182be4.png)
 
 Select the paragraph, choose a fresh and playful style, and the AI will turn it into a card that feels ready for Instagram, Facebook, X, or a casual newsletter section. It gives the idea a visual form that can catch attention quickly and invite comments or reposts.
 

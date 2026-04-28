@@ -14,13 +14,13 @@ locale: "zh"
 
 我这里展示一个示例布局，在该预设布局下，我仅需输入轻量化的视觉风格与核心要素描述，AI视觉生成模型将自动补全缺失的专业视觉细节，输出符合内容传播标准的高质量配图。相较于通用对话式AI生成工具，它通过结构化交互界面简化了prompt构建流程，无需撰写大段精细化描述指令即可达成预期效果，显著提升了配图生成的效率与精准匹配度。
 
-![](https://cdn.joyword.link/materials/2/eec85298ba33af1038c43ac17c1b08fa.png)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/eec85298ba33af1038c43ac17c1b08fa.png)
 
 我们得到了一些示例图片，可以直接用来做文章封面：
 
-![](https://cdn.joyword.link/materials/2/c6286471c53c088b368f0d3dcec4da55.jpeg)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/c6286471c53c088b368f0d3dcec4da55.jpeg)
 
-![](https://cdn.joyword.link/materials/2/5cdb922eb64bd422cd338171fdb2c802.jpeg)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/5cdb922eb64bd422cd338171fdb2c802.jpeg)
 
 ### 搜索网络图片
 
@@ -34,7 +34,7 @@ locale: "zh"
 
 使用这个功能，我们把黄色的跑车扣出来，然后把它改成全新的水晶跑车：
 
-![](https://cdn.joyword.link/img-gen/2e701a0483202c786ac9233ca2e6f24c.png)
+![JoyfulWords visual](https://cdn.joyword.link/img-gen/2e701a0483202c786ac9233ca2e6f24c.png)
 
 通过这个操作，我们可以将网络上存在版权的图片，变成自己的原创图片。这三个功能相互配合，可以生成很多好玩的图片。
 
@@ -48,7 +48,7 @@ locale: "zh"
 
 “暗物质与暗能量是构成宇宙的关键神秘组分：暗物质约占宇宙总质能的26.8%，它无法通过电磁波观测，却凭借引力维系着星系的结构与运转；暗能量则占据宇宙总质能的68.3%，是推动宇宙持续加速膨胀的幕后力量，其物理本质至今仍是天体物理学领域的重大未解之谜。”
 
-![](https://cdn.joyword.link/infographic/733d99618d747a4b24f8964bf7865599.png)
+![JoyfulWords visual](https://cdn.joyword.link/infographic/733d99618d747a4b24f8964bf7865599.png)
 
 选中这段文字后，只需选择想要的科技质感风格，AI就能快速生成一张分点清晰的知识卡片，把专业复杂的知识点变得直观易懂，更利于传播与记忆。
 
@@ -56,7 +56,7 @@ locale: "zh"
 
 “你知道吗？平时吃的草莓，我们咬下的粉嫩‘果肉’其实是它的花托，表面那些密密麻麻的小颗粒才是真正的瘦果，相当于草莓的‘种子’！”
 
-![](https://cdn.joyword.link/infographic/a8e25ffa31e54b250861ebdcf0182be4.png)
+![JoyfulWords visual](https://cdn.joyword.link/infographic/a8e25ffa31e54b250861ebdcf0182be4.png)
 
 选中这段文字后，选择“清新萌系”风格，AI会自动匹配，生成的卡片自带传播属性，不管是发朋友圈分享趣味冷知识，还是发小红书打造科普笔记，都能快速抓住大家的注意力，轻松收获点赞与讨论。
 

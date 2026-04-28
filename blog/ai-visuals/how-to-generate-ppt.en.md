@@ -24,7 +24,7 @@ When I opened the PPT it generated, I realized the slides were just a stack of i
 
 So, in practice, NotebookLM took a shortcut. It did not really handle PPT. It just asked AI to generate images, one after another. That was not what I wanted.
 
-![](https://cdn.joyword.link/search-images/XPcWqZpWblb8pygn8-zSx-135-1)
+![JoyfulWords visual](https://cdn.joyword.link/search-images/XPcWqZpWblb8pygn8-zSx-135-1)
 
 ### Gamma: The PPT Specialist
 
@@ -46,7 +46,7 @@ Through something called a Skill, you can add web search, document handling, and
 
 The results are indeed pretty good. But running it is also genuinely tiring. Most of my time was not spent designing the presentation. It was spent installing Skills and talking to the AI. I felt like my keyboard was about to catch fire.
 
-![](https://cdn.joyword.link/img-gen/ab2593834dbb1f15d9cedfd6b7198130.png)
+![JoyfulWords visual](https://cdn.joyword.link/img-gen/ab2593834dbb1f15d9cedfd6b7198130.png)
 
 ### The Final Answer: Building PPT Generation Into JoyfulWords
 
@@ -54,7 +54,7 @@ So what I really wanted was this: a tool that collects and organizes information
 
 Inside JoyfulWords, all of this is brought together and kept within reach. I only need to move my mouse a little, and the whole workflow is there.
 
-![](https://cdn.joyword.link/materials/2/8dc570ff2a35c53a034614b298452800.png)
+![JoyfulWords visual](https://cdn.joyword.link/materials/2/8dc570ff2a35c53a034614b298452800.png)
 
 First, I use Search to find materials and add the useful ones to my material library. Then I ask AI to write a first draft for me. I can keep editing the article, add more details, and use AI to generate images that fit the content.
 

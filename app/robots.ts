@@ -6,19 +6,17 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: [
-          "/",
-          "/zh",
-          "/zh/",
-          "/en",
-          "/en/",
+        allow: ["/zh", "/zh/", "/en", "/en/"],
+        disallow: [
+          "/auth/",
+          "/articles",
+          "/taskcenter",
+          "/payment/",
           "/blog",
-          "/blog/",
           "/privacy-policy",
           "/cookie-policy",
           "/terms-of-use",
         ],
-        disallow: ["/auth/", "/articles", "/taskcenter", "/payment/"],
       },
     ],
     sitemap: `${APP_URL}/sitemap.xml`,

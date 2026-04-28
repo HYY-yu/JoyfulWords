@@ -20,7 +20,7 @@ notebooklm 确实是一款很棒的产品，它有效的缩短了我考虑和列
 
 所以 Notebooklm 实际上偷了懒，它并没有处理 PPT，它只是让 AI 生成了一张张图而已，这并不是我想要的。
 
-![](https://cdn.joyword.link/search-images/XPcWqZpWblb8pygn8-zSx-135-1)
+![JoyfulWords visual](https://cdn.joyword.link/search-images/XPcWqZpWblb8pygn8-zSx-135-1)
 
 ### Gamma 专攻 PPT 的特长生
 
@@ -38,7 +38,7 @@ Gamma 绝对是一个生成 PPT 的好手，当我使用它时，毫不费力的
 
 它的效果确实不错，但要运行它也确实很累，实际上，我大部分时间都不是在设计，而是在安装 Skill 和跟 AI 对话，我觉得我的键盘都要冒火了。
 
-![](https://cdn.joyword.link/img-gen/ab2593834dbb1f15d9cedfd6b7198130.png)
+![JoyfulWords visual](https://cdn.joyword.link/img-gen/ab2593834dbb1f15d9cedfd6b7198130.png)
 
 ### 最终方案：在JoyfulWords内集成 PPT 生成
 
@@ -46,7 +46,7 @@ Gamma 绝对是一个生成 PPT 的好手，当我使用它时，毫不费力的
 
 在 JoyfulWords 里，一切都被集成到一起，并且都放在我的手边，稍微挪动一下鼠标，我就能使用它。
 
-![](https://cdn.joyword.link/infographic/c150f2a92d018673ab971f23af1ca653.png)
+![JoyfulWords visual](https://cdn.joyword.link/infographic/c150f2a92d018673ab971f23af1ca653.png)
 
 我会首先使用 Search 功能，搜索素材，把适合的素材添加到素材库里。然后我让 AI 为我写一个初稿文章，我可以继续修改文章，添加更多内容，利用 AI 为文章生成合适的配图。这一切都不需要切换其他工具，当我完成了我想表达的内容，我点击 Generate PPT，然后喝一杯咖啡☕️。
 
