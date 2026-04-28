@@ -209,6 +209,17 @@ export default function ArticleEditPage() {
     [editorState, article]
   )
 
+  // ==================== Version rollback ====================
+
+  const handleVersionRollback = useCallback((versionData: { content: string }) => {
+    if (versionData.content) {
+      editorState.setContent({
+        html: versionData.content,
+        text: versionData.content.replace(/<[^>]*>/g, ""),
+      })
+    }
+  }, [editorState])
+
   // ==================== Cleanup on unmount ====================
 
   useEffect(() => {
@@ -261,6 +272,7 @@ export default function ArticleEditPage() {
   const topBar = (
     <EditorTopBar
       article={article}
+      onSave={autoSave.triggerSave}
       onExport={handleExport}
       onArticleUpdated={handleArticleUpdated}
       saveState={
@@ -272,6 +284,8 @@ export default function ArticleEditPage() {
           ? "error"
           : "idle"
       }
+      currentContent={editorState.content.html}
+      onVersionRollback={handleVersionRollback}
     />
   )
 

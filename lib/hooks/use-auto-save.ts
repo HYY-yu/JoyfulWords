@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { articlesClient } from '@/lib/api/articles/client'
+import { versionsClient } from '@/lib/api/versions/client'
 
 /**
  * 自动保存状态
@@ -29,7 +30,7 @@ export interface UseAutoSaveOptions {
  */
 export interface UseAutoSaveReturn {
   saveState: AutoSaveState      // 当前保存状态
-  triggerSave: (content: string) => void  // 触发保存
+  triggerSave: (content: string, skipVersion?: boolean) => void  // 触发保存，skipVersion 为 true 时跳过版本创建
   cancelPendingSave: () => void // 取消待处理保存
   resetSaveState: () => void    // 重置状态
 }
@@ -69,6 +70,7 @@ function isAbortError(error: unknown): boolean {
  * - 竞态条件处理：使用请求版本号，只接受最新响应
  * - 指数退避重试：失败后重试 3 次（1s → 2s → 4s）
  * - 请求取消：使用 AbortController 取消过期请求
+ * - 版本创建：保存成功后自动创建版本（回滚时除外）
  *
  * 可观测性：
  * - 日志前缀：[AutoSave]
@@ -85,6 +87,9 @@ function isAbortError(error: unknown): boolean {
  *
  * // 在内容变化时触发
  * onChange={(content) => autoSave.triggerSave(content)}
+ *
+ * // 回滚时触发，跳过版本创建
+ * autoSave.triggerSave(content, true)
  * ```
  */
 export function useAutoSave({
@@ -117,6 +122,42 @@ export function useAutoSave({
   // 保存中的内容（用于重试）
   const savingContentRef = useRef<string | null>(null)
 
+  // 是否跳过版本创建（用于回滚场景）
+  const skipVersionRef = useRef(false)
+
+  /**
+   * 创建版本
+   */
+  const createVersion = useCallback(async (content: string): Promise<void> => {
+    if (!articleId) return
+
+    try {
+      console.info('[AutoSave] Creating version', { articleId })
+
+      const result = await versionsClient.createVersion(
+        articleId,
+        {
+          title: '',
+          content,
+          status: 'draft',
+          category: '',
+          tags: '',
+        },
+        `自动保存版本 - ${new Date().toLocaleString('zh-CN')}`
+      )
+
+      if ('error' in result) {
+        console.warn('[AutoSave] Version creation failed', { error: result.error })
+      } else {
+        console.info('[AutoSave] Version created successfully', { versionId: result.id })
+      }
+    } catch (error) {
+      console.warn('[AutoSave] Version creation error', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }, [articleId])
+
   /**
    * 执行保存到 API
    */
@@ -133,6 +174,7 @@ export function useAutoSave({
       attempt: attempt + 1,
       maxRetries: maxRetries + 1,
       contentLength: content.length,
+      skipVersion: skipVersionRef.current,
     })
 
     // 更新状态为保存中
@@ -177,6 +219,14 @@ export function useAutoSave({
           version: currentVersion,
           contentLength: content.length,
         })
+
+        // 如果不是回滚操作，创建版本
+        if (!skipVersionRef.current) {
+          await createVersion(content)
+        } else {
+          console.debug('[AutoSave] Skipping version creation (rollback mode)')
+          skipVersionRef.current = false // 重置标记
+        }
 
         // METRIC: auto_save_success - 指标标签: article_id
         setSaveState({
@@ -263,12 +313,12 @@ export function useAutoSave({
         }
       }
     }
-  }, [isEditMode, articleId, maxRetries, onSaved, onError])
+  }, [isEditMode, articleId, maxRetries, onSaved, onError, createVersion])
 
   /**
    * 触发自动保存（带防抖）
    */
-  const triggerSave = useCallback((content: string) => {
+  const triggerSave = useCallback((content: string, skipVersion = false) => {
     // 只在编辑模式下触发
     if (!isEditMode || !articleId) {
       return
@@ -294,9 +344,15 @@ export function useAutoSave({
       return
     }
 
+    // 设置是否跳过版本创建
+    if (skipVersion) {
+      skipVersionRef.current = true
+    }
+
     console.debug('[AutoSave] Debounced save scheduled', {
       articleId,
       delay,
+      skipVersion,
     })
 
     // 设置新的防抖计时器
