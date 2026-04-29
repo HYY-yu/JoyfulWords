@@ -23,6 +23,7 @@ export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const handledNoticeRef = useRef<string | null>(null)
+  const googleLoginPendingRef = useRef(false)
 
   useEffect(() => {
     const prefilledEmail = searchParams.get("email")
@@ -90,12 +91,18 @@ export function LoginForm() {
   }
 
   const handleGoogleLogin = async () => {
+    if (googleLoginPendingRef.current) {
+      return
+    }
+
+    googleLoginPendingRef.current = true
     setGoogleLoading(true)
     try {
       await signInWithGoogle('/articles')
     } catch (error: any) {
       // Toast is already shown
     } finally {
+      googleLoginPendingRef.current = false
       setGoogleLoading(false)
     }
   }

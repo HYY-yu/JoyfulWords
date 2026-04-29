@@ -1247,6 +1247,9 @@ export const zh = {
         oauth: {
             missingParams: "缺少 OAuth 参数",
             stateVerificationFailed: "State 参数验证失败",
+            stateMissing: "登录会话已失效，请重新使用 Google 登录",
+            stateExpired: "Google 登录已超时，请重新发起登录",
+            callbackInProgress: "Google 登录正在处理中，请稍候",
             loginFailed: "OAuth 登录失败",
             completingGoogleLogin: "正在完成 Google 登录...",
             processingLoginInfo: "请稍候，我们正在处理您的登录信息",

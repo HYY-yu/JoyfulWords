@@ -1247,6 +1247,9 @@ export const en = {
         oauth: {
             missingParams: "Missing OAuth parameters",
             stateVerificationFailed: "State parameter verification failed",
+            stateMissing: "Your login session is no longer valid. Please sign in with Google again.",
+            stateExpired: "Google login timed out. Please start the login again.",
+            callbackInProgress: "Google login is already being processed. Please wait.",
             loginFailed: "OAuth login failed",
             completingGoogleLogin: "Completing Google login...",
             processingLoginInfo: "Please wait while we process your login information",
