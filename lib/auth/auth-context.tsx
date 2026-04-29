@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api/client'
 import { setupTokenRefresh } from '@/lib/tokens/refresh'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { isSignupEmailAlreadyRegisteredError } from '@/lib/auth/auth-error-resolver'
+import { saveOAuthState } from '@/lib/auth/oauth-state'
 import { shouldAttemptSessionRestore } from '@/lib/auth/session-policy'
 import type { User } from '@/lib/api/types'
 
@@ -231,8 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(result.error)
     }
 
-    sessionStorage.setItem('oauth_state', result.state)
-    sessionStorage.setItem('oauth_redirect', redirectUrl || '/articles')
+    saveOAuthState(result.state, redirectUrl || '/articles')
     window.location.href = result.auth_url
   }
 

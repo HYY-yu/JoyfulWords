@@ -1,6 +1,41 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { CreatorMode } from "@/components/image-generator/creator-mode"
+import { InversionMode } from "@/components/image-generator/modes/inversion-mode"
+import { StyleMode } from "@/components/image-generator/modes/style-mode"
+import {
+  TaskCenterTaskDetailView,
+  getTaskCenterTaskSummary,
+  getTaskCenterTaskTitle,
+} from "@/components/taskcenter/taskcenter-presenters"
+import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
+import { Alert, AlertDescription } from "@/components/ui/base/alert"
+import { Button } from "@/components/ui/base/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/base/dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/base/tooltip"
+import { useToast } from "@/hooks/use-toast"
+import { imageGenerationClient } from "@/lib/api/image-generation/client"
+import { infographicsClient } from "@/lib/api/infographics/client"
+import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
+import type {
+  TaskCenterTaskDetailResponse,
+  TaskCenterTaskListItem,
+  TaskCenterTaskReference,
+} from "@/lib/api/taskcenter/types"
+import { getTaskCenterTaskKey } from "@/lib/api/taskcenter/types"
+import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
+import { useTranslation } from "@/lib/i18n/i18n-context"
+import { cn } from "@/lib/utils"
 import {
   BrainCircuitIcon,
   ChartNoAxesCombinedIcon,
@@ -12,46 +47,12 @@ import {
   PresentationIcon,
   RefreshCwIcon,
   SparklesIcon,
-  WandSparklesIcon,
+  WandSparklesIcon
 } from "lucide-react"
-import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
-import { useTranslation } from "@/lib/i18n/i18n-context"
-import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
-import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
-import type {
-  TaskCenterTaskDetailResponse,
-  TaskCenterTaskListItem,
-  TaskCenterTaskReference,
-} from "@/lib/api/taskcenter/types"
-import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/base/dialog"
-import { Alert, AlertDescription } from "@/components/ui/base/alert"
-import { Button } from "@/components/ui/base/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/base/tooltip"
-import { imageGenerationClient } from "@/lib/api/image-generation/client"
-import { infographicsClient } from "@/lib/api/infographics/client"
-import { CreatorMode } from "@/components/image-generator/creator-mode"
-import { InversionMode } from "@/components/image-generator/modes/inversion-mode"
-import { StyleMode } from "@/components/image-generator/modes/style-mode"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
 import { PresentationDialog } from "./presentation-dialog"
-import {
-  TaskCenterTaskDetailView,
-  getTaskCenterTaskSummary,
-  getTaskCenterTaskTitle,
-} from "@/components/taskcenter/taskcenter-presenters"
 
 type ActiveDialog =
   | "ai-edit"
@@ -170,7 +171,8 @@ interface EditorAIPanelProps {
 
 function mapTaskCenterTaskToProgressItem(
   task: TaskCenterTaskListItem,
-  t: (key: string) => string
+  t: (key: string) => string,
+  removable = true
 ): TaskItem {
   const status =
     task.status === "success"
@@ -181,12 +183,12 @@ function mapTaskCenterTaskToProgressItem(
 
   return {
     id: `${task.type}-${task.id}`,
-    type: "task-center" as TaskType,
+    type: "task-center",
     status,
     label: t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`),
     description: getTaskCenterTaskSummary(task),
     startedAt: new Date(task.created_at).getTime(),
-    removable: false,
+    removable: removable && (task.status === "success" || task.status === "failed"),
     taskCenterData: task,
     originalType: task.type,
   }
@@ -213,8 +215,9 @@ export function EditorAIPanel({
   const [isInfographicOpen, setIsInfographicOpen] = useState(false)
   const [isPresentationOpen, setIsPresentationOpen] = useState(false)
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
+  const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
 
-  const { tasks: liveTasks, refetch } = useTaskCenterLiveTasks({
+  const { tasks: liveTasks, refetch, setTasks: setLiveTasks } = useTaskCenterLiveTasks({
     article_id: articleId ?? undefined,
     enabled: typeof articleId === "number",
     realtimeScope: "article",
@@ -223,10 +226,13 @@ export function EditorAIPanel({
   const taskCenterTasks = useMemo(
     () =>
       liveTasks
-        .map((task) => mapTaskCenterTaskToProgressItem(task, t))
+        .map((task) => {
+          const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
+          return mapTaskCenterTaskToProgressItem(task, t, !deletingTaskKeys.has(taskKey))
+        })
         .sort((left, right) => right.startedAt - left.startedAt)
         .slice(0, 10),
-    [liveTasks, t]
+    [deletingTaskKeys, liveTasks, t]
   )
   const selectedLiveTaskFingerprint = useMemo(() => {
     if (!selectedTaskRef) return null
@@ -270,11 +276,12 @@ export function EditorAIPanel({
   }
 
   const fetchTaskDetail = useCallback(async (task: TaskItem) => {
-    if (!task.taskCenterData) return
+    const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined
+    if (!taskCenterTask) return
 
     const taskRef = {
-      id: task.taskCenterData.id,
-      type: task.taskCenterData.type,
+      id: taskCenterTask.id,
+      type: taskCenterTask.type,
     } satisfies TaskCenterTaskReference
 
     setLoadingTaskDetail(true)
@@ -330,6 +337,89 @@ export function EditorAIPanel({
     selectedTaskRef,
     t,
   ])
+
+  const handleRemoveTask = useCallback(
+    async (task: TaskItem) => {
+      if (task.type !== "task-center") return
+      if (task.status === "completed") {
+        const confirmed = window.confirm(t("contentWriting.taskCenter.deleteSuccessConfirm"))
+        if (!confirmed) {
+          return
+        }
+      }
+
+      const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined
+      if (!taskCenterTask) return
+
+      const taskKey = getTaskCenterTaskKey({
+        id: taskCenterTask.id,
+        type: taskCenterTask.type,
+      })
+      let startedDeletion = false
+
+      setDeletingTaskKeys((current) => {
+        if (current.has(taskKey)) {
+          return current
+        }
+
+        startedDeletion = true
+        const next = new Set(current)
+        next.add(taskKey)
+        return next
+      })
+
+      if (!startedDeletion) {
+        return
+      }
+
+      try {
+        const deletionResult = await taskCenterClient.deleteTask(taskCenterTask.type, taskCenterTask.id)
+        if (deletionResult) {
+          toast({
+            variant: "destructive",
+            title: t("contentWriting.taskCenter.deleteFailed"),
+            description: deletionResult.error || t("contentWriting.taskCenter.deleteFailed"),
+          })
+          return
+        }
+
+        setLiveTasks((currentTasks) =>
+          currentTasks.filter(
+            (currentTask) =>
+              !(currentTask.id === taskCenterTask.id && currentTask.type === taskCenterTask.type)
+          )
+        )
+
+        if (selectedTaskRef?.id === taskCenterTask.id && selectedTaskRef.type === taskCenterTask.type) {
+          setIsTaskDetailOpen(false)
+          setSelectedTaskRef(null)
+          setTaskDetail(null)
+          setTaskDetailError(null)
+          setLoadingTaskDetail(false)
+          setCopyToMaterialsError(null)
+          setCopyToMaterialsSuccess(null)
+        }
+      } catch (error) {
+        const fallbackMessage = t("contentWriting.taskCenter.deleteFailed")
+        toast({
+          variant: "destructive",
+          title: fallbackMessage,
+          description: error instanceof Error ? error.message : fallbackMessage,
+        })
+      } finally {
+        setDeletingTaskKeys((current) => {
+          if (!current.has(taskKey)) {
+            return current
+          }
+
+          const next = new Set(current)
+          next.delete(taskKey)
+          return next
+        })
+      }
+    },
+    [selectedTaskRef, setLiveTasks, t, toast]
+  )
 
   const copyToMaterials = async () => {
     if (!selectedTaskRef) return
@@ -549,12 +639,15 @@ export function EditorAIPanel({
         <div className="flex-1 overflow-y-auto">
           <EditorTaskProgress
             taskCenterTasks={taskCenterTasks}
-            onRemoveTask={(_id: string, _type: TaskType) => {}}
+            showHeader={false}
+            onRemoveTask={(task) => void handleRemoveTask(task)}
             onClickTask={(task: TaskItem) => {
+              const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined
               if (task.type === "task-center" && task.originalType === "article") {
+                if (!taskCenterTask) return
                 onOpenArticleEditTask({
-                  id: task.taskCenterData.id,
-                  type: task.taskCenterData.type,
+                  id: taskCenterTask.id,
+                  type: taskCenterTask.type,
                 })
               } else if (task.type === "task-center") {
                 void fetchTaskDetail(task)
@@ -601,15 +694,6 @@ export function EditorAIPanel({
                 <TaskCenterTaskDetailView
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
-                  onSelectTask={(taskRef) => {
-                    setSelectedTaskRef(taskRef)
-                    const matchedTask = liveTasks.find(
-                      (task) => task.id === taskRef.id && task.type === taskRef.type
-                    )
-                    if (matchedTask) {
-                      void fetchTaskDetail(mapTaskCenterTaskToProgressItem(matchedTask, t))
-                    }
-                  }}
                 />
               </div>
 

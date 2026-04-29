@@ -68,6 +68,10 @@ export interface TaskCenterPresentationListDetails {
   model_name?: string
   completed_at?: string | null
   ppt_url?: string
+  pptUrl?: string
+  PPT_URL?: string
+  artifact_url?: string
+  artifactUrl?: string
   cached?: boolean
   error?: string
 }
@@ -204,6 +208,10 @@ export interface TaskCenterPresentationTaskDetail {
   deck_model_json?: unknown
   render_html?: string
   ppt_url?: string
+  pptUrl?: string
+  PPT_URL?: string
+  artifact_url?: string
+  artifactUrl?: string
   created_at: string
   updated_at: string
   completed_at?: string | null
@@ -222,6 +230,39 @@ export interface TaskCenterTaskReference {
 
 export function getTaskCenterTaskKey(task: TaskCenterTaskReference): string {
   return `${task.type}:${task.id}`
+}
+
+type TaskCenterPresentationDownloadSource = Pick<
+  TaskCenterPresentationListDetails,
+  "ppt_url" | "pptUrl" | "PPT_URL" | "artifact_url" | "artifactUrl"
+>
+
+export function getTaskCenterPresentationDownloadUrl(
+  value: TaskCenterPresentationDownloadSource | null | undefined
+): string | null {
+  const candidates = [
+    value?.ppt_url,
+    value?.pptUrl,
+    value?.PPT_URL,
+    value?.artifact_url,
+    value?.artifactUrl,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+  }
+
+  return null
+}
+
+export function shouldDisplayTaskCenterTask(task: TaskCenterTaskListItem): boolean {
+  if (task.type === "presentation" && task.details.task_kind === "ppt_export") {
+    return false
+  }
+
+  return true
 }
 
 export function parseTaskCenterImageUrls(value: unknown): string[] {

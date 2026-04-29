@@ -10,6 +10,27 @@ import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { useAuth } from '@/lib/auth/auth-context'
+import { API_BASE_URL } from '@/lib/config'
+import {
+  beginOAuthCallbackProcessing,
+  clearOAuthCallbackProcessing,
+  clearOAuthState,
+  validateOAuthState,
+} from '@/lib/auth/oauth-state'
+
+function getOAuthErrorMessage(t: (key: string) => string, reason?: string, fallback?: string): string {
+  switch (reason) {
+    case 'state_expired':
+      return t('auth.oauth.stateExpired')
+    case 'state_missing':
+    case 'missing':
+      return t('auth.oauth.stateMissing')
+    case 'state_processing':
+      return t('auth.oauth.callbackInProgress')
+    default:
+      return fallback || t('auth.oauth.loginFailed')
+  }
+}
 
 export default function GoogleCallbackPage() {
   const router = useRouter()
@@ -27,6 +48,7 @@ export default function GoogleCallbackPage() {
         return
       }
       isProcessed.current = true
+      let processingStarted = false
       try {
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search)
@@ -37,16 +59,19 @@ export default function GoogleCallbackPage() {
           throw new Error(t('auth.oauth.missingParams'))
         }
 
-        // Verify state matches
-        const storedState = sessionStorage.getItem('oauth_state')
-        if (storedState !== state) {
-          throw new Error(t('auth.oauth.stateVerificationFailed'))
+        const stateValidation = validateOAuthState(state)
+        if (!stateValidation.ok) {
+          throw new Error(getOAuthErrorMessage(t, stateValidation.reason))
         }
 
-        // Get the redirect URL from backend
-        // The backend has already processed the OAuth callback
-        // We need to fetch the tokens from the backend response
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'
+        if (!beginOAuthCallbackProcessing(state)) {
+          console.warn('[GoogleOAuth] Callback already processing', { stateLength: state.length })
+          return
+        }
+        processingStarted = true
+
+        // The backend validates the server-side OAuth state, exchanges the code,
+        // sets the refresh cookie, and returns the short-lived access token.
         const response = await fetch(`${API_BASE_URL}/auth/google/callback?code=${code}&state=${state}`, {
           method: 'GET',
           credentials: 'include',
@@ -58,7 +83,14 @@ export default function GoogleCallbackPage() {
         const data = await response.json()
 
         if (!response.ok || data.error) {
-          throw new Error(data.error || t('auth.oauth.loginFailed'))
+          console.warn('[GoogleOAuth] Backend callback rejected', {
+            status: response.status,
+            reason: data.reason,
+          })
+          if (data.reason === 'state_expired' || data.reason === 'state_missing') {
+            clearOAuthState(state)
+          }
+          throw new Error(getOAuthErrorMessage(t, data.reason, data.error))
         }
 
         // Store tokens
@@ -73,11 +105,9 @@ export default function GoogleCallbackPage() {
         _setUser(data.user)
 
         // Resolve redirect target first
-        const redirect = sessionStorage.getItem('oauth_redirect') || '/articles'
+        const redirect = stateValidation.redirect
 
-        // Clear session storage
-        sessionStorage.removeItem('oauth_state')
-        sessionStorage.removeItem('oauth_redirect')
+        clearOAuthState(state)
 
         setStatus('success')
 
@@ -99,6 +129,12 @@ export default function GoogleCallbackPage() {
         setTimeout(() => {
           router.push('/auth/login')
         }, 3000)
+      } finally {
+        const urlParams = new URLSearchParams(window.location.search)
+        const state = urlParams.get('state')
+        if (state && processingStarted) {
+          clearOAuthCallbackProcessing(state)
+        }
       }
     }
 

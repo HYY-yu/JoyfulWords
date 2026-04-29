@@ -1,221 +1,206 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { XIcon, CheckIcon, AlertCircleIcon, LoaderIcon, ImageIcon, ClipboardListIcon, RefreshCwIcon, PaletteIcon, PencilIcon, FileTextIcon } from "lucide-react"
+import {
+  XIcon,
+  CheckIcon,
+  AlertCircleIcon,
+  LoaderIcon,
+  ImageIcon,
+  ClipboardListIcon,
+  PaletteIcon,
+  PencilIcon,
+  LayersIcon,
+  Presentation,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-
-// ---- Types ----
 
 export type TaskType = "image-generation" | "task-center"
 export type TaskStatus = "pending" | "completed" | "failed"
 
 export interface TaskItem {
-    id: string
-    type: TaskType
-    status: TaskStatus
-    label: string
-    description: string
-    startedAt: number
-    removable?: boolean
-    taskCenterData?: any // 存储任务中心任务的原始数据
-    originalType?: string // 存储原始任务类型（image, article, infographic）
+  id: string
+  type: TaskType
+  status: TaskStatus
+  label: string
+  description: string
+  startedAt: number
+  removable?: boolean
+  taskCenterData?: any
+  originalType?: string
 }
 
 interface EditorTaskProgressProps {
-    imageGenerationTasks?: TaskItem[]
-    taskCenterTasks?: TaskItem[]
-    onRemoveTask: (id: string, type: TaskType) => void
-    onClickTask: (task: TaskItem) => void
+  imageGenerationTasks?: TaskItem[]
+  taskCenterTasks?: TaskItem[]
+  showHeader?: boolean
+  onRemoveTask: (task: TaskItem) => void
+  onClickTask: (task: TaskItem) => void
 }
 
-// ---- Helpers ----
-
 function getTimeAgo(timestampMs: number): string {
-    const diffMs = Date.now() - timestampMs
-    const seconds = Math.floor(diffMs / 1000)
+  const diffMs = Date.now() - timestampMs
+  const seconds = Math.floor(diffMs / 1000)
 
-    if (seconds < 60) {
-        return `${seconds}秒前`
-    }
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) {
-        return `${minutes}分钟前`
-    }
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) {
-        return `${hours}小时前`
-    }
-    // 超过24小时，显示具体日期
-    const date = new Date(timestampMs)
-    return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    })
+  if (seconds < 60) {
+    return `${seconds}秒前`
+  }
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes}分钟前`
+  }
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    return `${hours}小时前`
+  }
+
+  const date = new Date(timestampMs)
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 interface TaskCardProps {
-    task: TaskItem
-    onRemove: () => void
-    onClick: () => void
+  task: TaskItem
+  onRemove: () => void
+  onClick: () => void
 }
 
 function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
-    const { t } = useTranslation()
-    const [hovered, setHovered] = useState(false)
+  const { t } = useTranslation()
 
-    const isDone = task.status === "completed" || task.status === "failed"
-    const typeIcon =
-        task.type === "image-generation" ? (
-            <ImageIcon className="w-4 h-4 shrink-0" />
-        ) : task.type === "task-center" && task.originalType === "image" ? (
-            task.taskCenterData?.details?.gen_mode === 'split_images' || task.taskCenterData?.detail?.gen_mode === 'split_images' || task.taskCenterData?.gen_mode === 'split_images' ? (
-                <RefreshCwIcon className="w-4 h-4 shrink-0" />
-            ) : task.taskCenterData?.details?.gen_mode === 'creator' || task.taskCenterData?.detail?.gen_mode === 'creator' || task.taskCenterData?.gen_mode === 'creator' ? (
-                <ImageIcon className="w-4 h-4 shrink-0" />
-            ) : task.taskCenterData?.details?.gen_mode === 'style' || task.taskCenterData?.detail?.gen_mode === 'style' || task.taskCenterData?.gen_mode === 'style' ? (
-                <PaletteIcon className="w-4 h-4 shrink-0" />
-            ) : (
-                <ImageIcon className="w-4 h-4 shrink-0" />
-            )
-        ) : task.type === "task-center" && task.originalType === "article" ? (
-            <PencilIcon className="w-4 h-4 shrink-0" />
-        ) : task.type === "task-center" && task.originalType === "infographic" ? (
-            <ClipboardListIcon className="w-4 h-4 shrink-0" />
-        ) : task.type === "task-center" && task.originalType === "presentation" ? (
-            <FileTextIcon className="w-4 h-4 shrink-0" />
-        ) : (
-            <ClipboardListIcon className="w-4 h-4 shrink-0" />
-        )
+  const isDone = task.status === "completed" || task.status === "failed"
+  const canDelete = isDone && task.removable !== false && task.type === "task-center"
 
-    const statusIcon = () => {
-        if (task.status === "completed") {
-            return <CheckIcon className="w-4 h-4 shrink-0 text-green-500" />
-        }
-        if (task.status === "failed") {
-            return <AlertCircleIcon className="w-4 h-4 shrink-0 text-red-500" />
-        }
-        return (
-            <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-teal-600" />
-        )
+  const statusIcon = () => {
+    if (task.status === "completed") {
+      return <CheckIcon className="w-4 h-4 shrink-0 text-green-500" />
     }
+    if (task.status === "failed") {
+      return <AlertCircleIcon className="w-4 h-4 shrink-0 text-red-500" />
+    }
+    return <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-teal-600" />
+  }
 
-    const borderClass = cn(
-        "relative cursor-pointer rounded-lg border bg-[#fffef9]/88 p-3 shadow-[0_10px_24px_-22px_rgba(84,64,38,0.22)] transition-colors",
-        task.status === "pending" && "border-teal-200/80 hover:bg-teal-50/45",
-        task.status === "completed" && "border-emerald-200/80 hover:bg-emerald-50/45",
-        task.status === "failed" && "border-red-200/80 hover:bg-red-50/45"
-    )
+  const typeIcon = (() => {
+    if (task.type === "image-generation") {
+      return <ImageIcon className="h-4 w-4 shrink-0" />
+    }
+    switch (task.originalType) {
+      case "image":
+        return <ImageIcon className="h-4 w-4 shrink-0" />
+      case "infographic":
+        return <LayersIcon className="h-4 w-4 shrink-0" />
+      case "presentation":
+        return <Presentation className="h-4 w-4 shrink-0" />
+      case "article":
+        return <PencilIcon className="h-4 w-4 shrink-0" />
+      default:
+        return <ClipboardListIcon className="h-4 w-4 shrink-0" />
+    }
+  })()
 
-    return (
-        <div
-            className={borderClass}
-            onClick={onClick}
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-        >
-            {/* Header row */}
-            <div className="flex items-center gap-2">
-                {/* Type icon */}
-                <span
-                    className={cn(
-                        task.status === "pending" && "text-teal-600",
-                        task.status === "completed" && "text-green-500",
-                        task.status === "failed" && "text-red-500"
-                    )}
-                >
-                    {typeIcon}
-                </span>
+  const borderClass = cn(
+    "group relative cursor-pointer rounded-lg border bg-[#fffef9]/88 p-3 shadow-[0_10px_24px_-22px_rgba(84,64,38,0.22)] transition-colors",
+    task.status === "pending" && "border-teal-200/80 hover:bg-teal-50/45",
+    task.status === "completed" && "border-emerald-200/80 hover:bg-emerald-50/45",
+    task.status === "failed" && "border-red-200/80 hover:bg-red-50/45"
+  )
 
-                {/* Label */}
-                <span className="text-xs font-semibold flex-1 truncate">
-                    {task.label}
-                </span>
-
-                {/* Right side: status icon or delete button */}
-                {isDone && hovered && task.removable !== false ? (
-                    <button
-                        type="button"
-                        className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onRemove()
-                        }}
-                        title={t("contentWriting.taskProgress.removeTask")}
-                    >
-                        <XIcon className="w-3.5 h-3.5" />
-                    </button>
-                ) : (
-                    statusIcon()
-                )}
-            </div>
-
-            {/* Description (truncated) */}
-            {task.description && (
-                <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {task.description}
-                </p>
+  return (
+    <div className={borderClass} onClick={onClick}>
+      <div>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              task.status === "pending" && "text-teal-600",
+              task.status === "completed" && "text-green-500",
+              task.status === "failed" && "text-red-500"
             )}
+          >
+            {typeIcon}
+          </span>
 
-            {/* 移除进度条展示 */}
+          <span className="flex-1 truncate text-xs font-semibold">{task.label}</span>
 
-            {/* Time ago */}
-            <p className="mt-1.5 text-[10px] text-muted-foreground/70">
-                {getTimeAgo(task.startedAt)}
-            </p>
+          <span className={cn("shrink-0 transition-opacity", canDelete ? "group-hover:opacity-0" : undefined)}>
+            {statusIcon()}
+          </span>
         </div>
-    )
+
+        {task.description ? (
+          <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {task.description}
+          </p>
+        ) : null}
+
+        <p className="mt-1.5 text-[10px] text-muted-foreground/70">{getTimeAgo(task.startedAt)}</p>
+      </div>
+
+      {canDelete ? (
+        <button
+          type="button"
+          className="absolute right-2 top-2 z-10 inline-flex items-center justify-center text-muted-foreground opacity-0 transition-opacity hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+          onClick={(event) => {
+            event.stopPropagation()
+            onRemove()
+          }}
+          title={t("contentWriting.taskProgress.removeTask")}
+          aria-label={t("contentWriting.taskProgress.removeTask")}
+        >
+          <XIcon className="h-3.5 w-3.5" />
+        </button>
+      ) : null}
+    </div>
+  )
 }
 
-// ---- Main Component ----
-
 export function EditorTaskProgress(props: EditorTaskProgressProps) {
-    const { imageGenerationTasks = [], taskCenterTasks, onRemoveTask, onClickTask } = props
-    const { t } = useTranslation()
+  const { imageGenerationTasks = [], taskCenterTasks, showHeader = true, onRemoveTask, onClickTask } = props
+  const { t } = useTranslation()
 
-    // Merge all tasks
-    const allTasks: TaskItem[] = [...imageGenerationTasks, ...(taskCenterTasks || [])]
+  const allTasks: TaskItem[] = [...imageGenerationTasks, ...(taskCenterTasks || [])]
+  allTasks.sort((a, b) => b.startedAt - a.startedAt)
 
-    // Sort newest first
-    allTasks.sort((a, b) => b.startedAt - a.startedAt)
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setTick((n) => n + 1), 1000)
+    return () => clearInterval(interval)
+  }, [])
 
-    // Re-render every second to keep time-ago fresh
-    const [, setTick] = useState(0)
-    // 用于触发任务列表更新的状态
-    useEffect(() => {
-        const interval = setInterval(() => setTick((n) => n + 1), 1000)
-        return () => clearInterval(interval)
-    }, [])
-
-    if (allTasks.length === 0) {
-        return (
-            <div className="mx-3 flex h-40 flex-col items-center justify-center gap-2 rounded-lg bg-[#fffef9]/58 text-muted-foreground shadow-[inset_0_0_0_1px_rgba(216,205,187,0.38)]">
-                <CheckIcon className="h-8 w-8 opacity-30" />
-                <p className="text-sm">{t("contentWriting.taskProgress.empty")}</p>
-            </div>
-        )
-    }
-
+  if (allTasks.length === 0) {
     return (
-        <div className="flex flex-col gap-2 px-3 pb-3">
-            <p className="text-xs font-medium text-muted-foreground">
-                {t("contentWriting.taskProgress.title")}
-                <span className="ml-1 text-foreground/70">({allTasks.length})</span>
-            </p>
-
-            <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-                {allTasks.map((task) => (
-                    <TaskCard
-                        key={task.id}
-                        task={task}
-                        onRemove={() => onRemoveTask(task.id, task.type)}
-                        onClick={() => onClickTask(task)}
-                    />
-                ))}
-            </div>
-        </div>
+      <div className="mx-3 flex h-40 flex-col items-center justify-center gap-2 rounded-lg bg-[#fffef9]/58 text-muted-foreground shadow-[inset_0_0_0_1px_rgba(216,205,187,0.38)]">
+        <CheckIcon className="h-8 w-8 opacity-30" />
+        <p className="text-sm">{t("contentWriting.taskProgress.empty")}</p>
+      </div>
     )
+  }
+
+  return (
+    <div className="flex flex-col gap-2 p-3">
+      {showHeader ? (
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {t("contentWriting.taskProgress.title")}
+          <span className="ml-1 text-foreground/70">({allTasks.length})</span>
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-2">
+        {allTasks.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            onRemove={() => onRemoveTask(task)}
+            onClick={() => onClickTask(task)}
+          />
+        ))}
+      </div>
+    </div>
+  )
 }

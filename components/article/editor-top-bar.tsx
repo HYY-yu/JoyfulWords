@@ -19,26 +19,31 @@ import {
 import {
   ArrowLeftIcon,
   SaveIcon,
+  BookLockIcon,
   DownloadIcon,
   Trash2,
   PencilLineIcon,
   LoaderIcon,
   CheckIcon,
+  GitBranchIcon,
 } from "lucide-react"
 import type { Article } from "@/lib/api/articles/types"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
+import { VersionDialog } from "./version-dialog"
 
 export type SaveState = "idle" | "saving" | "saved" | "error"
 
 interface EditorTopBarProps {
   article?: Article | null
-  onSave?: () => void
+  onSave?: (content: string, skipVersion?: boolean) => void
   onExport?: (format: "markdown" | "html") => void
   onClean?: () => void
   onArticleUpdated?: (article: Article) => void
   isSaving?: boolean
   saveState?: SaveState
+  currentContent?: string
+  onVersionRollback?: (versionData: { content: string }) => void
 }
 
 export function EditorTopBar({
@@ -49,10 +54,16 @@ export function EditorTopBar({
   onArticleUpdated,
   isSaving = false,
   saveState = "idle",
+  currentContent = "",
+  onVersionRollback,
 }: EditorTopBarProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const router = useRouter()
+  const canOpenVersionDialog = Boolean(article && onSave && onVersionRollback)
+
+  // 历史版本对话框状态
+  const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false)
 
   // Inline title editing state
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -161,7 +172,7 @@ export function EditorTopBar({
     if (saveState === "saved") {
       return <CheckIcon className="w-4 h-4" />
     }
-    return <SaveIcon className="w-4 h-4" />
+    return <BookLockIcon className="w-4 h-4" />
   }
 
   const getSaveTooltip = () => {
@@ -171,10 +182,11 @@ export function EditorTopBar({
     if (saveState === "saved") {
       return t("contentWriting.editorHeader.saved")
     }
-    return t("contentWriting.editorHeader.saveTooltip")
+    return t("contentWriting.editorHeader.saveAsNewReversion")
   }
 
   return (
+    <>
     <div className="relative z-10 flex h-14 items-center justify-between px-4">
       {/* Left: Back button + Title + Status Badge */}
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
@@ -294,13 +306,32 @@ export function EditorTopBar({
           </TooltipContent>
         </Tooltip>
 
+        {/* Version History Button */}
+        {canOpenVersionDialog && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsVersionDialogOpen(true)}
+              >
+                <GitBranchIcon className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{t("contentWriting.version.historyVersions")}</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
         {/* Save Button */}
         {onSave && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 className="h-9 gap-2 rounded-lg bg-teal-700 px-3 text-white shadow-[0_12px_24px_-18px_rgba(15,118,110,0.8)] hover:bg-teal-800"
-                onClick={onSave}
+                onClick={() => onSave(currentContent)}
                 disabled={isSaving || saveState === "saving"}
               >
                 {renderSaveIcon()}
@@ -314,5 +345,19 @@ export function EditorTopBar({
         )}
       </div>
     </div>
+
+    {/* Version Dialog */}
+    {article && onSave && onVersionRollback && (
+      <VersionDialog
+        open={isVersionDialogOpen}
+        onOpenChange={setIsVersionDialogOpen}
+        articleId={article.id}
+        currentContent={currentContent}
+        currentTitle={article.title}
+        onVersionRollback={onVersionRollback}
+        onSave={onSave}
+      />
+    )}
+    </>
   )
 }

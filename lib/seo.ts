@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { APP_URL } from "@/lib/config"
-import { getHreflang, getOpenGraphLocale } from "@/lib/i18n/route-locale"
+import { getHreflang, getOpenGraphLocale, stripLocalePrefix } from "@/lib/i18n/route-locale"
 import type { Locale } from "@/lib/i18n/shared"
 
 export const SITE_NAME = "JoyfulWords"
@@ -14,6 +14,7 @@ interface BuildMetadataOptions {
   path: string
   locale: Locale
   alternatePaths?: Partial<Record<Locale, string>>
+  xDefaultPath?: string | null
   keywords?: string[]
   type?: "website" | "article"
   image?: string
@@ -25,11 +26,13 @@ export function buildMetadata({
   path,
   locale,
   alternatePaths,
+  xDefaultPath,
   keywords,
   type = "website",
   image = DEFAULT_OG_IMAGE,
 }: BuildMetadataOptions): Metadata {
   const canonical = buildCanonicalUrl(path)
+  const imageUrl = resolveAssetUrl(image)
   const fullTitle = `${title} | ${SITE_NAME}`
   const languageAlternates: Record<string, string> = {
     [getHreflang(locale)]: canonical,
@@ -39,6 +42,11 @@ export function buildMetadata({
     if (!alternatePath) continue
     const localeKey = alternateLocale as Locale
     languageAlternates[getHreflang(localeKey)] = buildCanonicalUrl(alternatePath)
+  }
+
+  const resolvedXDefaultPath = xDefaultPath === undefined ? stripLocalePrefix(path) : xDefaultPath
+  if (resolvedXDefaultPath) {
+    languageAlternates["x-default"] = buildCanonicalUrl(resolvedXDefaultPath)
   }
 
   return {
@@ -58,7 +66,7 @@ export function buildMetadata({
       locale: getOpenGraphLocale(locale),
       images: [
         {
-          url: image,
+          url: imageUrl,
         },
       ],
     },
@@ -66,11 +74,23 @@ export function buildMetadata({
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: [image],
+      images: [imageUrl],
     },
   }
 }
 
 export function buildCanonicalUrl(path: string): string {
   return new URL(path, SITE_ORIGIN).toString()
+}
+
+function resolveAssetUrl(input: string): string {
+  if (input.startsWith("http://") || input.startsWith("https://")) {
+    return input
+  }
+
+  if (input.startsWith("/")) {
+    return buildCanonicalUrl(input)
+  }
+
+  return buildCanonicalUrl(`/${input}`)
 }

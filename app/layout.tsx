@@ -4,7 +4,7 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import "./globals.css"
 import { APP_URL } from "@/lib/config"
-import { SITE_NAME } from "@/lib/seo"
+import { DEFAULT_OG_IMAGE, SITE_NAME } from "@/lib/seo"
 import { getHtmlLang, isLocale } from "@/lib/i18n/route-locale"
 
 export const metadata: Metadata = {
@@ -19,9 +19,15 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    images: [DEFAULT_OG_IMAGE],
   },
   icons: {
     icon: [

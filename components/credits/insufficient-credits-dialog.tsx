@@ -56,17 +56,14 @@ export function InsufficientCreditsDialog({
   const handleGoToRecharge = () => {
     if (!data) return
 
-    // 设置 billing tab 为激活状态
-    localStorage.setItem('joyfulwords-active-tab', 'billing')
-
     // 设置推荐充值金额到 localStorage，供 BillingPage 使用
     localStorage.setItem('billing-recommended-amount', data.recommended_recharge_usd)
 
     // 设置标记，告诉 BillingPage 自动打开充值弹窗
     localStorage.setItem('billing-auto-open-recharge', 'true')
 
-    // 刷新页面以应用 tab 切换
-    window.location.reload()
+    // 跳转到文章列表页，由 BillingDialogQuerySync 打开 Billing 弹窗
+    window.location.href = '/articles?tab=billing'
   }
 
   if (!data) return null

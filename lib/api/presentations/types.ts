@@ -2,13 +2,17 @@ import type { MessageResponse } from "@/lib/api/types"
 
 export type PresentationLanguage = "zh" | "en"
 export type PresentationStatus = "pending" | "processing" | "success" | "failed" | "already_created"
-export type PresentationTaskKind = "storycard_generate" | "layout_generate" | "ppt_export"
+export type PresentationTaskKind = "storycard_generate" | "layout_generate"
 export type PresentationStage =
   | "storycard_generate"
   | "layout_generate"
+  | "generate_layouts"
+  | "slides_processing"
+  | "build_deck"
   | "generate_images"
   | "render_html"
   | "render_ppt"
+  | "uploaded_ppt"
   | "completed"
   | "failed"
 

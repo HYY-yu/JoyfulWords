@@ -34,6 +34,13 @@ export interface BlogPost extends BlogListItem {
   html: string
 }
 
+export interface BlogSitemapEntry {
+  slug: string
+  locale: Locale
+  date: string
+  availableLocales: Locale[]
+}
+
 function parseFrontmatter(markdown: string): {
   frontmatter: Record<string, string>
   content: string
@@ -196,6 +203,18 @@ function buildLocaleMap(posts: RawBlogPost[]) {
 export const getBlogSlugs = cache(async (): Promise<string[]> => {
   const posts = await getRawBlogPosts()
   return [...new Set(posts.map((post) => post.slug))]
+})
+
+export const getBlogSitemapEntries = cache(async (): Promise<BlogSitemapEntry[]> => {
+  const posts = await getRawBlogPosts()
+  const localeMap = buildLocaleMap(posts)
+
+  return posts.map((post) => ({
+    slug: post.slug,
+    locale: post.locale,
+    date: post.date,
+    availableLocales: (Object.keys(localeMap.get(post.slug) ?? {}) as Locale[]).sort(),
+  }))
 })
 
 export const getBlogList = cache(async (locale: Locale): Promise<BlogListItem[]> => {

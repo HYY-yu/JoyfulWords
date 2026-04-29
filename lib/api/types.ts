@@ -62,6 +62,7 @@ export interface MessageResponse {
 export interface ErrorResponse {
   error: string
   status?: number
+  reason?: string
 }
 
 export interface AccessTokenSession {

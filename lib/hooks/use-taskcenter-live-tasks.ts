@@ -6,6 +6,7 @@ import type {
   TaskCenterTaskListItem,
   TaskCenterTasksQuery,
 } from "@/lib/api/taskcenter/types"
+import { shouldDisplayTaskCenterTask } from "@/lib/api/taskcenter/types"
 import { webSocketService, type TaskSocketEvent } from "@/lib/websocket/websocket-service"
 import { tokenStore } from "@/lib/tokens/token-store"
 
@@ -18,6 +19,9 @@ function dedupeTasks(tasks: TaskCenterTaskListItem[]): TaskCenterTaskListItem[] 
   const deduped = new Map<string, TaskCenterTaskListItem>()
 
   tasks.forEach((task) => {
+    if (!shouldDisplayTaskCenterTask(task)) {
+      return
+    }
     deduped.set(`${task.type}:${task.id}`, task)
   })
 
