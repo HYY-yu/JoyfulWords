@@ -60,6 +60,7 @@ export function EditorTopBar({
   const { t } = useTranslation()
   const { toast } = useToast()
   const router = useRouter()
+  const canOpenVersionDialog = Boolean(article && onSave && onVersionRollback)
 
   // 历史版本对话框状态
   const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false)
@@ -289,7 +290,7 @@ export function EditorTopBar({
         </Tooltip>
 
         {/* Version History Button */}
-        {article && (
+        {canOpenVersionDialog && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -302,7 +303,7 @@ export function EditorTopBar({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <span>{t("contentWriting.version.historyVersions") || "版本历史"}</span>
+              <span>{t("contentWriting.version.historyVersions")}</span>
             </TooltipContent>
           </Tooltip>
         )}
@@ -330,7 +331,7 @@ export function EditorTopBar({
     </div>
 
     {/* Version Dialog */}
-    {article && (
+    {article && onSave && onVersionRollback && (
       <VersionDialog
         open={isVersionDialogOpen}
         onOpenChange={setIsVersionDialogOpen}

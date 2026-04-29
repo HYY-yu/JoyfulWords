@@ -1,6 +1,5 @@
 import { authenticatedApiRequest } from '@/lib/api/client'
 import type {
-  VersionListResponse,
   Version,
   CreateVersionRequest,
   MessageResponse,

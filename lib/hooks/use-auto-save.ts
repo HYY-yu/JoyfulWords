@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { articlesClient } from '@/lib/api/articles/client'
 import { versionsClient } from '@/lib/api/versions/client'
+import { useTranslation } from '@/lib/i18n/i18n-context'
 
 /**
  * 自动保存状态
@@ -100,6 +101,8 @@ export function useAutoSave({
   onSaved,
   onError,
 }: UseAutoSaveOptions): UseAutoSaveReturn {
+  const { t, locale } = useTranslation()
+
   // 保存状态
   const [saveState, setSaveState] = useState<AutoSaveState>({
     status: 'idle',
@@ -143,7 +146,9 @@ export function useAutoSave({
           category: '',
           tags: '',
         },
-        `自动保存版本 - ${new Date().toLocaleString('zh-CN')}`
+        t("contentWriting.version.autoSaveVersionDetail", {
+          time: new Date().toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US'),
+        })
       )
 
       if ('error' in result) {
@@ -156,7 +161,7 @@ export function useAutoSave({
         error: error instanceof Error ? error.message : String(error),
       })
     }
-  }, [articleId])
+  }, [articleId, locale, t])
 
   /**
    * 执行保存到 API

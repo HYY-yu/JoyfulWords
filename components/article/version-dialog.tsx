@@ -37,7 +37,7 @@ export function VersionDialog({
   onVersionRollback,
   onSave,
 }: VersionDialogProps) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { toast } = useToast()
   const [versions, setVersions] = useState<Version[]>([])
   const [loading, setLoading] = useState(false)
@@ -57,7 +57,7 @@ export function VersionDialog({
       if ('error' in result) {
         toast({
           variant: 'destructive',
-          title: '加载失败',
+          title: t("contentWriting.version.loadFailed"),
           description: result.error,
         })
         return
@@ -67,13 +67,13 @@ export function VersionDialog({
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: '加载失败',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        title: t("contentWriting.version.loadFailed"),
+        description: error instanceof Error ? error.message : t("common.unknownError"),
       })
     } finally {
       setLoading(false)
     }
-  }, [articleId, toast])
+  }, [articleId, t, toast])
 
   useEffect(() => {
     if (open) {
@@ -94,8 +94,8 @@ export function VersionDialog({
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: '解析失败',
-        description: 'Failed to parse version data',
+        title: t("contentWriting.version.parseFailed"),
+        description: t("contentWriting.version.parseFailedDescription"),
       })
     }
   }
@@ -108,7 +108,7 @@ export function VersionDialog({
       onVersionRollback({ content: selectedVersionData.content || '' })
       await onSave(selectedVersionData.content || '', true)
       toast({
-        title: '回滚成功',
+        title: t("contentWriting.version.rollbackSuccess"),
       })
       setShowCompare(false)
       setSelectedVersion(null)
@@ -117,8 +117,8 @@ export function VersionDialog({
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: '回滚失败',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        title: t("contentWriting.version.rollbackFailed"),
+        description: error instanceof Error ? error.message : t("common.unknownError"),
       })
     } finally {
       setApplyingVersion(false)
@@ -132,13 +132,13 @@ export function VersionDialog({
       if ('error' in result) {
         toast({
           variant: 'destructive',
-          title: '删除失败',
+          title: t("contentWriting.version.deleteFailed"),
           description: result.error,
         })
         return
       }
       toast({
-        title: '删除成功',
+        title: t("contentWriting.version.deleteSuccess"),
       })
       await fetchVersions()
       if (selectedVersion?.id === versionId) {
@@ -149,8 +149,8 @@ export function VersionDialog({
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: '删除失败',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        title: t("contentWriting.version.deleteFailed"),
+        description: error instanceof Error ? error.message : t("common.unknownError"),
       })
     } finally {
       setDeletingVersionId(null)
@@ -159,7 +159,7 @@ export function VersionDialog({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleString('zh-CN', {
+    return date.toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -178,7 +178,7 @@ export function VersionDialog({
         <DialogHeader className="px-6 py-3 border-b bg-gradient-to-r from-primary/5 to-secondary/5">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
             <GitBranchIcon className="w-5 h-5 text-primary" />
-            版本历史
+            {t("contentWriting.version.historyVersions")}
           </DialogTitle>
         </DialogHeader>
 
@@ -188,7 +188,7 @@ export function VersionDialog({
             <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-primary" />
-                <span className="font-medium text-sm text-gray-800">当前版本</span>
+                <span className="font-medium text-sm text-gray-800">{t("contentWriting.version.currentVersion")}</span>
               </div>
               <span className="text-xs text-gray-500 truncate max-w-48">{currentTitle}</span>
             </div>
@@ -208,7 +208,9 @@ export function VersionDialog({
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-secondary" />
                 <span className="font-medium text-sm text-gray-800">
-                  {showCompare && selectedVersion ? '选中版本' : '版本列表'}
+                  {showCompare && selectedVersion
+                    ? t("contentWriting.version.selectedVersion")
+                    : t("contentWriting.version.versionList")}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -216,7 +218,7 @@ export function VersionDialog({
                   <Button
                     onClick={handleApplyVersion}
                     disabled={applyingVersion}
-                    size="xs"
+                    size="sm"
                     className="bg-primary hover:bg-primary/90 text-white text-xs px-3 py-1.5 rounded-md shadow-sm hover:shadow transition-all"
                   >
                     {applyingVersion ? (
@@ -224,7 +226,7 @@ export function VersionDialog({
                     ) : (
                       <ArrowRightIcon className="w-3 h-3 mr-1.5" />
                     )}
-                    应用版本
+                    {t("contentWriting.version.applyVersion")}
                   </Button>
                 )}
                 {showCompare && (
@@ -236,6 +238,7 @@ export function VersionDialog({
                       setSelectedVersion(null)
                       setSelectedVersionData(null)
                     }}
+                    aria-label={t("contentWriting.version.closeCompare")}
                     className="h-7 w-7 rounded-md hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-colors"
                   >
                     <XIcon className="w-3.5 h-3.5" />
@@ -253,18 +256,18 @@ export function VersionDialog({
                 <div className="h-full flex flex-col">
                   <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-200 space-y-1">
                     <div className="text-xs text-gray-500 flex items-center gap-1">
-                      <span className="font-medium">创建时间：</span>
+                      <span className="font-medium">{t("contentWriting.version.createdAt")}:</span>
                       {formatDate(selectedVersion.created_at)}
                     </div>
                     {selectedVersion.detail && (
                       <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <span className="font-medium">描述：</span>
+                        <span className="font-medium">{t("contentWriting.version.description")}:</span>
                         {selectedVersion.detail}
                       </div>
                     )}
                     {selectedVersionData.title && (
                       <div className="text-xs text-gray-500 flex items-center gap-1">
-                        <span className="font-medium">标题：</span>
+                        <span className="font-medium">{t("contentWriting.version.articleTitle")}:</span>
                         {selectedVersionData.title}
                       </div>
                     )}
@@ -282,7 +285,7 @@ export function VersionDialog({
                   {versions.length === 0 ? (
                     <div className="text-center py-12">
                       <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm">暂无版本记录</p>
+                      <p className="text-gray-500 text-sm">{t("contentWriting.version.empty")}</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -294,7 +297,7 @@ export function VersionDialog({
                         >
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="font-medium text-sm text-gray-800">
-                              {version.detail || `版本 ${version.id}`}
+                              {version.detail || t("contentWriting.version.versionName", { id: version.id })}
                             </span>
                             <Button
                               variant="ghost"
@@ -304,6 +307,7 @@ export function VersionDialog({
                                 handleDeleteVersion(version.id)
                               }}
                               disabled={deletingVersionId === version.id}
+                              aria-label={t("contentWriting.version.deleteVersion")}
                               className="h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all rounded-md"
                             >
                               {deletingVersionId === version.id ? (
