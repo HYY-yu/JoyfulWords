@@ -20,6 +20,7 @@ import {
 import {
   ArrowLeftIcon,
   SaveIcon,
+  BookLockIcon,
   DownloadIcon,
   Trash2,
   LoaderIcon,
@@ -172,7 +173,7 @@ export function EditorTopBar({
     if (saveState === "saved") {
       return <CheckIcon className="w-4 h-4" />
     }
-    return <SaveIcon className="w-4 h-4" />
+    return <BookLockIcon className="w-4 h-4" />
   }
 
   const getSaveTooltip = () => {
@@ -182,7 +183,7 @@ export function EditorTopBar({
     if (saveState === "saved") {
       return t("contentWriting.editorHeader.saved")
     }
-    return t("contentWriting.editorHeader.saveTooltip")
+    return t("contentWriting.editorHeader.saveAsNewReversion")
   }
 
   return (

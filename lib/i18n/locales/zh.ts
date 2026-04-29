@@ -307,6 +307,7 @@ export const zh = {
             hideDetails: "隐藏详情",
             cleanTooltip: "清除所有内容并返回创建模式",
             saveTooltip: "保存为新文章",
+            saveAsNewReversion: "快照当前版本",
             exportTooltip: "导出文章",
             cleanConfirmTitle: "确认清空",
             cleanConfirmDesc: "确定要清空所有内容吗？此操作无法撤销。",
@@ -447,7 +448,7 @@ export const zh = {
                 splitImages: "图片拆分任务",
                 infographic: "信息图任务",
                 presentationStorycard: "Storycard 生成任务",
-                presentationLayout: "PPT / Reveal 布局任务",
+                presentationLayout: "PPT 生成任务",
             },
             fields: {
                 execId: "执行 ID",

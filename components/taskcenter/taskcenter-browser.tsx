@@ -32,9 +32,9 @@ import {
   TaskCenterTaskDetailView,
   TaskCenterTaskTypeBadge,
   formatTaskCenterTime,
+  getTaskCenterTaskIcon,
   getTaskCenterTaskSummary,
   getTaskCenterTaskTitle,
-  getTaskCenterTypeIcon,
 } from "./taskcenter-presenters"
 
 const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = ["article", "image", "infographic", "presentation"]
@@ -59,7 +59,7 @@ interface TaskCardProps {
 
 function TaskCard({ task, selected, removable, onClick, onRemove }: TaskCardProps) {
   const { t } = useTranslation()
-  const Icon = getTaskCenterTypeIcon(task.type)
+  const Icon = getTaskCenterTaskIcon(task)
 
   return (
     <div className="group relative overflow-hidden rounded-2xl">

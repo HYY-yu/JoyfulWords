@@ -20,7 +20,14 @@ import {
   parseTaskCenterImageUrls,
 } from "@/lib/api/taskcenter/types"
 import { cn } from "@/lib/utils"
-import { ExternalLinkIcon, FileTextIcon, ImageIcon, LayoutTemplateIcon } from "lucide-react"
+import {
+  ExternalLinkIcon,
+  FileTextIcon,
+  ImageIcon,
+  LayersIcon,
+  LayoutTemplateIcon,
+  Presentation,
+} from "lucide-react"
 
 const STATUS_VARIANTS: Record<
   TaskCenterTaskStatus,
@@ -50,10 +57,18 @@ export function getTaskCenterTypeIcon(type: TaskCenterTaskType) {
     case "infographic":
       return LayoutTemplateIcon
     case "presentation":
-      return FileTextIcon
+      return Presentation
     default:
       return FileTextIcon
   }
+}
+
+export function getTaskCenterTaskIcon(task: TaskCenterTaskListItem) {
+  if (task.type === "image" && task.details.gen_mode === "split_images") {
+    return LayersIcon
+  }
+
+  return getTaskCenterTypeIcon(task.type)
 }
 
 export function getTaskCenterTaskTitle(

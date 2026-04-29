@@ -45,13 +45,13 @@ const STYLE_PREVIEWS: Array<{
   value: InfographicCardStyle
   assetPath: string
 }> = [
-  { value: "professional", assetPath: "/images/infographics/styles/professional.svg" },
-  { value: "rustic", assetPath: "/images/infographics/styles/rustic.svg" },
-  { value: "academic", assetPath: "/images/infographics/styles/academic.svg" },
-  { value: "handdrawn", assetPath: "/images/infographics/styles/handdrawn.svg" },
-  { value: "magazine", assetPath: "/images/infographics/styles/magazine.svg" },
-  { value: "minimal", assetPath: "/images/infographics/styles/minimal.svg" },
-  { value: "fresh", assetPath: "/images/infographics/styles/fresh.svg" },
+  { value: "professional", assetPath: "/images/infographics/styles/professional.png" },
+  { value: "rustic", assetPath: "/images/infographics/styles/rustic.png" },
+  { value: "academic", assetPath: "/images/infographics/styles/academic.png" },
+  { value: "handdrawn", assetPath: "/images/infographics/styles/handdrawn.png" },
+  { value: "magazine", assetPath: "/images/infographics/styles/magazine.png" },
+  { value: "minimal", assetPath: "/images/infographics/styles/minimal.png" },
+  { value: "fresh", assetPath: "/images/infographics/styles/fresh.png" },
 ]
 
 type InfographicFormState = {
@@ -360,7 +360,7 @@ export function InfographicDialog({
                             : "border-border hover:border-primary/40 hover:shadow-sm"
                         )}
                       >
-                        <div className="aspect-[4/5] bg-muted">
+                        <div className="aspect-square bg-muted">
                           <img
                             src={style.assetPath}
                             alt={t(`infographicDialog.styles.${style.value}.title`)}

@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   ClipboardListIcon,
+  Presentation,
   ImageIcon,
   LoaderIcon,
   NetworkIcon,
   PaletteIcon,
   PencilIcon,
+  Layers,
   RefreshCwIcon,
   VideoIcon,
 } from "lucide-react"
@@ -92,7 +94,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
   {
     id: "reversal-mode",
     labelKey: "tiptapEditor.aiPanel.reversalMode",
-    icon: RefreshCwIcon,
+    icon: Layers,
     bgColor: "bg-pink-50",
   },
   {
@@ -110,7 +112,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
   {
     id: "presentation",
     labelKey: "tiptapEditor.aiPanel.generatePpt",
-    icon: ClipboardListIcon,
+    icon: Presentation,
     bgColor: "bg-violet-50",
   },
   {

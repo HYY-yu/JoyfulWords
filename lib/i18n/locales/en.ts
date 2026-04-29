@@ -307,6 +307,7 @@ export const en = {
             hideDetails: "Hide Details",
             cleanTooltip: "Clear all content and return to create mode",
             saveTooltip: "Save as new article",
+            saveAsNewReversion: "Snapshot Current Version",
             exportTooltip: "Export article",
             cleanConfirmTitle: "Confirm Clear",
             cleanConfirmDesc: "Are you sure you want to clear all content? This action cannot be undone.",
@@ -447,7 +448,7 @@ export const en = {
                 splitImages: "Image Split Job",
                 infographic: "Infographic Job",
                 presentationStorycard: "Storycard Generation Job",
-                presentationLayout: "PPT / Reveal Layout Job",
+                presentationLayout: "PPT Generation Job",
             },
             fields: {
                 execId: "Execution ID",

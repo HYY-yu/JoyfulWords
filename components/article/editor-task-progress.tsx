@@ -8,10 +8,10 @@ import {
   LoaderIcon,
   ImageIcon,
   ClipboardListIcon,
-  RefreshCwIcon,
   PaletteIcon,
   PencilIcon,
-  FileTextIcon,
+  LayersIcon,
+  Presentation,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -87,7 +87,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
       <ImageIcon className="h-4 w-4 shrink-0" />
     ) : task.type === "task-center" && task.originalType === "image" ? (
       taskGenMode === "split_images" ? (
-        <RefreshCwIcon className="h-4 w-4 shrink-0" />
+        <LayersIcon className="h-4 w-4 shrink-0" />
       ) : taskGenMode === "creator" ? (
         <ImageIcon className="h-4 w-4 shrink-0" />
       ) : taskGenMode === "style" ? (
@@ -100,7 +100,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
     ) : task.type === "task-center" && task.originalType === "infographic" ? (
       <ClipboardListIcon className="h-4 w-4 shrink-0" />
     ) : task.type === "task-center" && task.originalType === "presentation" ? (
-      <FileTextIcon className="h-4 w-4 shrink-0" />
+      <Presentation className="h-4 w-4 shrink-0" />
     ) : (
       <ClipboardListIcon className="h-4 w-4 shrink-0" />
     )
