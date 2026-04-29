@@ -217,6 +217,9 @@ interface PersistedMaterialSearchTask {
 interface SearchTabProps {
   articleId: number | null
   userId: number | null
+  searchType: MaterialType
+  onSearchTypeChange: (type: MaterialType) => void
+  onSearchLockedChange?: (locked: boolean) => void
   onImportSuccess?: (materialType: MaterialType) => void
 }
 
@@ -587,11 +590,17 @@ function SearchResultCard({
   )
 }
 
-function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
+function SearchTab({
+  articleId,
+  userId,
+  searchType,
+  onSearchTypeChange,
+  onSearchLockedChange,
+  onImportSuccess,
+}: SearchTabProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
 
-  const [searchType, setSearchType] = useState<MaterialType>("info")
   const [searchText, setSearchText] = useState("")
   const [activeTask, setActiveTask] = useState<PersistedMaterialSearchTask | null>(null)
   const [detail, setDetail] = useState<MaterialSearchDetailResponse | null>(null)
@@ -703,15 +712,19 @@ function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
       logId: storedTask.logId,
     })
     setActiveTask(storedTask)
-    setSearchType(storedTask.materialType)
+    onSearchTypeChange(storedTask.materialType)
     setSearchText(storedTask.query)
     setBannerStatus("polling")
     void handlePollResult(storedTask)
 
     return stopPolling
-  }, [articleId, handlePollResult, stopPolling, userId])
+  }, [articleId, handlePollResult, onSearchTypeChange, stopPolling, userId])
 
   useEffect(() => stopPolling, [stopPolling])
+
+  useEffect(() => {
+    onSearchLockedChange?.(Boolean(activeTask))
+  }, [activeTask, onSearchLockedChange])
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
@@ -827,30 +840,6 @@ function SearchTab({ articleId, userId, onImportSuccess }: SearchTabProps) {
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
-      <div className="flex gap-1.5 shrink-0">
-        {SEARCH_TYPE_TABS.map((tab) => {
-          const Icon = tab.icon
-          const isActive = searchType === tab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setSearchType(tab.id)}
-              disabled={isSearchLocked}
-              className={cn(
-                "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {t(`contentWriting.materialPanel.${tab.i18nKey}`)}
-            </button>
-          )
-        })}
-      </div>
-
       <div className="space-y-2">
         <div className="flex gap-2">
           <div className="flex-1">
@@ -956,13 +945,11 @@ function FavoriteEmptyState() {
 function LibraryTab({
   articleId,
   activeCategory,
-  onActiveCategoryChange,
   onFavorite,
   onDelete,
 }: {
   articleId: number | null
   activeCategory: MaterialType
-  onActiveCategoryChange: (category: MaterialType) => void
   onFavorite: (material: Material) => void
   onDelete: (material: Material) => void
 }) {
@@ -978,30 +965,6 @@ function LibraryTab({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
-      {/* Category tabs */}
-      <div className="flex gap-1.5 shrink-0">
-        {CATEGORY_TABS.map((tab) => {
-          const Icon = tab.icon
-          const isActive = activeCategory === tab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => onActiveCategoryChange(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {t(`contentWriting.materials.types.${tab.i18nKey}`)}
-            </button>
-          )
-        })}
-      </div>
-
       {/* Materials list */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
         <div className="h-full min-w-0 overflow-y-auto pr-2">
@@ -1411,11 +1374,61 @@ export interface EditorMaterialPanelProps {
   userId: number | null
 }
 
+type MaterialPanelView = "search" | "library" | "favorites"
+
+function MaterialTypeSwitcher({
+  mode,
+  value,
+  disabled = false,
+  onValueChange,
+}: {
+  mode: Exclude<MaterialPanelView, "favorites">
+  value: MaterialType
+  disabled?: boolean
+  onValueChange: (value: MaterialType) => void
+}) {
+  const { t } = useTranslation()
+  const tabs = mode === "search" ? SEARCH_TYPE_TABS : CATEGORY_TABS
+
+  return (
+    <div className="flex items-center gap-1">
+      {tabs.map((tab) => {
+        const Icon = tab.icon
+        const isActive = value === tab.id
+        const label =
+          mode === "search"
+            ? t(`contentWriting.materialPanel.${tab.i18nKey}`)
+            : t(`contentWriting.materials.types.${tab.i18nKey}`)
+
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onValueChange(tab.id)}
+            disabled={disabled}
+            className={cn(
+              "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              isActive
+                ? "bg-slate-200/70 text-slate-900 ring-1 ring-slate-200"
+                : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function EditorMaterialPanel({ className, articleId, userId }: EditorMaterialPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [showUpload, setShowUpload] = useState(false)
-  const [activeView, setActiveView] = useState<"search" | "library" | "favorites">("search")
+  const [activeView, setActiveView] = useState<MaterialPanelView>("search")
+  const [searchType, setSearchType] = useState<MaterialType>("info")
+  const [isSearchTypeLocked, setIsSearchTypeLocked] = useState(false)
   const [libraryActiveCategory, setLibraryActiveCategory] = useState<MaterialType>("info")
   // Incrementing key forces LibraryTab to remount and refetch after upload
   const [libraryKey, setLibraryKey] = useState(0)
@@ -1435,6 +1448,17 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
     setActiveView("library")
     setLibraryKey((key) => key + 1)
   }, [articleId])
+
+  const handleMaterialTypeChange = useCallback((materialType: MaterialType) => {
+    if (activeView === "search") {
+      setSearchType(materialType)
+      return
+    }
+
+    if (activeView === "library") {
+      setLibraryActiveCategory(materialType)
+    }
+  }, [activeView])
 
   const handleFavoriteMaterial = useCallback(async (material: Material) => {
     console.info("[MaterialFavorites] toggling favorite", {
@@ -1522,9 +1546,14 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
         </Button>
       </div>
 
-      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as "search" | "library" | "favorites")} className="flex h-full flex-col">
-        <div className="mx-3 mt-2 flex items-center gap-2 shrink-0">
-          <TabsList className="min-w-0 flex-1">
+      <div className="px-3 py-3">
+        <div className="mx-auto h-[2px] w-[calc(100%-2.5rem)] rounded-full bg-border/55" />
+      </div>
+
+      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as MaterialPanelView)} className="flex h-full flex-col gap-2">
+        <div className="mx-3 shrink-0 rounded-xl border border-border/70 bg-muted/35 p-1.5">
+          <div className="flex items-center gap-1.5">
+          <TabsList className="h-9 min-w-0 flex-1 bg-background/80 p-1 ring-1 ring-border/50">
             <TabsTrigger value="search" className="flex-1 text-xs">
               <Search className="mr-1.5 h-3.5 w-3.5" />
               {t("contentWriting.materialPanel.searchTab")}
@@ -1536,41 +1565,58 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
           </TabsList>
           <Button
             type="button"
-            variant={activeView === "favorites" ? "default" : "outline"}
+            variant="ghost"
             size="icon-sm"
-            className="h-9 w-9 shrink-0"
+            className={cn(
+              "h-9 w-9 shrink-0 rounded-md border border-border/50 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground",
+              activeView === "favorites" && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+            )}
             onClick={() => setActiveView("favorites")}
             aria-label={t("contentWriting.materialPanel.globalFavoriteButton")}
             title={t("contentWriting.materialPanel.globalFavoriteButton")}
           >
             <Heart className={cn("h-4 w-4", activeView === "favorites" && "fill-current")} />
           </Button>
+          </div>
+
+          {activeView === "search" || activeView === "library" ? (
+            <div className="mt-1.5 rounded-lg bg-background/65 p-1 ring-1 ring-border/50">
+              <MaterialTypeSwitcher
+                mode={activeView}
+                value={activeView === "search" ? searchType : libraryActiveCategory}
+                disabled={activeView === "search" && isSearchTypeLocked}
+                onValueChange={handleMaterialTypeChange}
+              />
+            </div>
+          ) : null}
         </div>
 
-        <TabsContent value="search" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-3">
+        <TabsContent value="search" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-1">
           <div className="min-h-0 h-full min-w-0">
             <SearchTab
               articleId={articleId}
               userId={userId}
+              searchType={searchType}
+              onSearchTypeChange={setSearchType}
+              onSearchLockedChange={setIsSearchTypeLocked}
               onImportSuccess={handleImportSuccess}
             />
           </div>
         </TabsContent>
 
-        <TabsContent value="library" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-3">
+        <TabsContent value="library" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-1">
           <div className="h-full min-h-0 min-w-0">
             <LibraryTab
               key={libraryKey}
               articleId={articleId}
               activeCategory={libraryActiveCategory}
-              onActiveCategoryChange={setLibraryActiveCategory}
               onFavorite={(material) => void handleFavoriteMaterial(material)}
               onDelete={(material) => void handleDeleteMaterial(material)}
             />
           </div>
         </TabsContent>
 
-        <TabsContent value="favorites" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-3">
+        <TabsContent value="favorites" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-1">
           <div className="h-full min-h-0 min-w-0">
             <FavoriteList
               key={favoritesKey}

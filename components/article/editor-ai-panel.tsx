@@ -480,7 +480,7 @@ export function EditorAIPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b px-4 py-3">
+      <div className="px-4 py-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t("tiptapEditor.aiPanel.title")}
         </h3>
@@ -498,14 +498,14 @@ export function EditorAIPanel({
                 disabled={btn.disabled}
                 className={
                   btn.disabled
-                    ? "flex h-full min-h-24 w-full cursor-not-allowed flex-col items-center justify-center gap-1.5 rounded-lg bg-muted/40 p-3 opacity-55 shadow-sm"
-                    : "flex h-full min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
+                    ? "flex h-full min-h-16 w-full cursor-not-allowed flex-row items-center justify-start gap-3 rounded-lg bg-muted/40 px-3 py-2 opacity-55 shadow-sm"
+                    : "flex h-full min-h-16 w-full cursor-pointer flex-row items-center justify-start gap-3 rounded-lg bg-white px-3 py-2 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
                 }
               >
-                <span className={`rounded-md p-1.5 ${btn.bgColor}`}>
+                <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${btn.bgColor}`}>
                   <Icon className={btn.disabled ? "h-4 w-4 text-muted-foreground" : "h-4 w-4 text-foreground/70"} />
                 </span>
-                <span className={btn.disabled ? "text-center text-xs leading-tight text-muted-foreground" : "text-center text-xs leading-tight text-foreground/80"}>
+                <span className={btn.disabled ? "min-w-0 text-left text-xs leading-tight text-muted-foreground" : "min-w-0 text-left text-xs leading-tight text-foreground/80"}>
                   {t(btn.labelKey)}
                 </span>
               </button>
@@ -532,12 +532,14 @@ export function EditorAIPanel({
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="px-4 py-2">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t("tiptapEditor.aiPanel.taskProgress")}
+            {t("contentWriting.taskProgress.title")}
+            <span className="ml-1 text-foreground/70">({taskCenterTasks.length})</span>
           </h4>
         </div>
         <div className="flex-1 overflow-y-auto">
           <EditorTaskProgress
             taskCenterTasks={taskCenterTasks}
+            showHeader={false}
             onRemoveTask={(task) => void handleRemoveTask(task)}
             onClickTask={(task: TaskItem) => {
               const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined

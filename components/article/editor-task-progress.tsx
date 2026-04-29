@@ -34,6 +34,7 @@ export interface TaskItem {
 interface EditorTaskProgressProps {
   imageGenerationTasks?: TaskItem[]
   taskCenterTasks?: TaskItem[]
+  showHeader?: boolean
   onRemoveTask: (task: TaskItem) => void
   onClickTask: (task: TaskItem) => void
 }
@@ -173,7 +174,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 }
 
 export function EditorTaskProgress(props: EditorTaskProgressProps) {
-  const { imageGenerationTasks = [], taskCenterTasks, onRemoveTask, onClickTask } = props
+  const { imageGenerationTasks = [], taskCenterTasks, showHeader = true, onRemoveTask, onClickTask } = props
   const { t } = useTranslation()
 
   const allTasks: TaskItem[] = [...imageGenerationTasks, ...(taskCenterTasks || [])]
@@ -196,10 +197,12 @@ export function EditorTaskProgress(props: EditorTaskProgressProps) {
 
   return (
     <div className="flex flex-col gap-2 p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {t("contentWriting.taskProgress.title")}
-        <span className="ml-1 text-foreground/70">({allTasks.length})</span>
-      </p>
+      {showHeader ? (
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {t("contentWriting.taskProgress.title")}
+          <span className="ml-1 text-foreground/70">({allTasks.length})</span>
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         {allTasks.map((task) => (
