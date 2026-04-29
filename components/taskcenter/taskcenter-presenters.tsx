@@ -15,7 +15,10 @@ import type {
   TaskCenterTaskStatus,
   TaskCenterTaskType,
 } from "@/lib/api/taskcenter/types"
-import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
+import {
+  getTaskCenterPresentationDownloadUrl,
+  parseTaskCenterImageUrls,
+} from "@/lib/api/taskcenter/types"
 import { cn } from "@/lib/utils"
 import { ExternalLinkIcon, FileTextIcon, ImageIcon, LayoutTemplateIcon } from "lucide-react"
 
@@ -67,7 +70,6 @@ export function getTaskCenterTaskTitle(
   if (task.type === "presentation") {
     const taskKind = task.details.task_kind
     if (taskKind === "storycard_generate") return "presentationStorycard"
-    if (taskKind === "ppt_export") return "presentationPptExport"
     return "presentationLayout"
   }
   return "articleEdit"
@@ -171,13 +173,11 @@ export function TaskCenterTaskDetailView({
   taskRef,
   detail,
   onOpenArticle,
-  onSelectTask,
   className,
 }: {
   taskRef: TaskCenterTaskReference
   detail: TaskCenterTaskDetailResponse
   onOpenArticle?: (articleId: number) => void
-  onSelectTask?: (taskRef: TaskCenterTaskReference) => void
   className?: string
 }) {
   const { t } = useTranslation()
@@ -189,6 +189,10 @@ export function TaskCenterTaskDetailView({
       : []
   const articleId = "article_id" in detail ? detail.article_id : null
   const status = "status" in detail ? detail.status : null
+  const presentationDownloadUrl =
+    taskRef.type === "presentation"
+      ? getTaskCenterPresentationDownloadUrl(detail as TaskCenterPresentationTaskDetail)
+      : null
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -313,10 +317,11 @@ export function TaskCenterTaskDetailView({
             }
           />
         ) : null}
-        {"ppt_url" in detail ? (
+        {taskRef.type === "presentation" &&
+        ("task_kind" in detail ? detail.task_kind === "layout_generate" : false) ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.pptUrl")}
-            value={detail.ppt_url || "-"}
+            value={presentationDownloadUrl || "-"}
             className="sm:col-span-2"
           />
         ) : null}
@@ -336,7 +341,6 @@ export function TaskCenterTaskDetailView({
       {taskRef.type === "presentation" ? (
         <PresentationTaskDetail
           detail={detail as TaskCenterPresentationTaskDetail}
-          onSelectTask={onSelectTask}
         />
       ) : null}
 

@@ -592,15 +592,6 @@ export function EditorAIPanel({
                 <TaskCenterTaskDetailView
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
-                  onSelectTask={(taskRef) => {
-                    setSelectedTaskRef(taskRef)
-                    const matchedTask = liveTasks.find(
-                      (task) => task.id === taskRef.id && task.type === taskRef.type
-                    )
-                    if (matchedTask) {
-                      void fetchTaskDetail(mapTaskCenterTaskToProgressItem(matchedTask, t))
-                    }
-                  }}
                 />
               </div>
 

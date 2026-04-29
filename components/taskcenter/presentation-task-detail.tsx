@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AlertCircleIcon,
   DownloadIcon,
-  ExternalLinkIcon,
   Loader2Icon,
   RefreshCwIcon,
   SaveIcon,
@@ -32,6 +31,7 @@ import type {
   TaskCenterPresentationSlideTask,
   TaskCenterPresentationTaskDetail,
 } from "@/lib/api/taskcenter/types"
+import { getTaskCenterPresentationDownloadUrl } from "@/lib/api/taskcenter/types"
 import { cn } from "@/lib/utils"
 
 function cloneStorycard(storycard: PresentationStorycardDocument): PresentationStorycardDocument {
@@ -115,6 +115,112 @@ function getSlideStatusTone(status: TaskCenterPresentationSlideTask["status"]) {
   }
 }
 
+type PresentationLayoutPreviewKind =
+  | "cover_page"
+  | "horizontal_with_text_and_image"
+  | "vertical_main"
+  | "timeline"
+  | "quadrant_grid"
+  | "component_composition"
+  | "generic"
+
+function getPresentationLayoutPreviewKind(
+  layoutType?: string | null
+): PresentationLayoutPreviewKind {
+  switch (layoutType?.trim()) {
+    case "cover_page":
+      return "cover_page"
+    case "horizontal_with_text_and_image":
+      return "horizontal_with_text_and_image"
+    case "vertical_main":
+      return "vertical_main"
+    case "timeline":
+      return "timeline"
+    case "quadrant_grid":
+      return "quadrant_grid"
+    case "component_composition":
+      return "component_composition"
+    default:
+      return "generic"
+  }
+}
+
+function LayoutPreviewBlock({ className }: { className: string }) {
+  return <div className={cn("shrink-0 rounded-sm bg-foreground/15", className)} />
+}
+
+function LayoutPreviewTitle({ className }: { className: string }) {
+  return <LayoutPreviewBlock className={cn("h-2.5 rounded-full bg-foreground/35", className)} />
+}
+
+function PresentationLayoutPreview({ layoutType }: { layoutType?: string | null }) {
+  const kind = getPresentationLayoutPreviewKind(layoutType)
+
+  return (
+    <div className="relative aspect-video overflow-hidden rounded-md border border-dashed bg-muted/30 p-1.5 text-muted-foreground">
+      {kind === "cover_page" ? (
+        <div className="flex h-full items-center justify-center rounded-[10px] bg-foreground/[0.04]">
+          <LayoutPreviewTitle className="h-4 w-1/3 max-w-20" />
+        </div>
+      ) : kind === "horizontal_with_text_and_image" ? (
+        <div className="grid h-full grid-cols-2 gap-1.5">
+          <LayoutPreviewBlock className="h-full rounded-md bg-foreground/20" />
+          <LayoutPreviewBlock className="h-full rounded-md bg-foreground/10" />
+        </div>
+      ) : kind === "vertical_main" ? (
+        <div className="flex h-full flex-col gap-1.5">
+          <LayoutPreviewTitle className="h-4 w-1/3 max-w-20" />
+          <div className="grid min-h-0 flex-1 grid-rows-3 gap-1.5">
+            <LayoutPreviewBlock className="rounded-md bg-foreground/15" />
+            <LayoutPreviewBlock className="rounded-md bg-foreground/10" />
+            <LayoutPreviewBlock className="rounded-md bg-foreground/15" />
+          </div>
+        </div>
+      ) : kind === "timeline" ? (
+        <div className="flex h-full flex-col gap-1.5">
+          <LayoutPreviewTitle className="h-4 w-1/3 max-w-20" />
+          <div className="relative min-h-0 flex-1 pt-2">
+            <div className="absolute left-1 right-1 top-1/2 h-px -translate-y-1/2 bg-foreground/15" />
+            <div className="absolute left-[15%] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/35" />
+            <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/35" />
+            <div className="absolute left-[85%] top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/35" />
+          </div>
+        </div>
+      ) : kind === "quadrant_grid" ? (
+        <div className="flex h-full flex-col gap-1.5">
+          <LayoutPreviewTitle className="h-4 w-1/3 max-w-20" />
+          <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-1.5">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <LayoutPreviewBlock
+                key={index}
+                className={cn(
+                  "rounded-md border border-foreground/10",
+                  index === 1 || index === 2 ? "bg-foreground/10" : "bg-foreground/15"
+                )}
+              />
+            ))}
+          </div>
+        </div>
+      ) : kind === "component_composition" ? (
+        <div className="flex h-full flex-col gap-1.5">
+          <LayoutPreviewTitle className="h-4 w-1/3 max-w-20" />
+          <div className="grid min-h-0 flex-1 grid-cols-4 gap-1.5">
+            <LayoutPreviewBlock className="rounded-full bg-foreground/15" />
+            <LayoutPreviewBlock className="rounded-md bg-foreground/10" />
+            <LayoutPreviewBlock className="rounded-full bg-foreground/15" />
+            <LayoutPreviewBlock className="rounded-md bg-foreground/10" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex h-full flex-col gap-1.5">
+          <LayoutPreviewTitle className="h-4 w-1/3 max-w-20" />
+          <LayoutPreviewBlock className="min-h-0 flex-1 rounded-md bg-foreground/10" />
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PresentationSlideProgressPanel({ detail }: { detail: TaskCenterPresentationTaskDetail }) {
   const { t } = useTranslation()
   const summary = getNormalizedSlideSummary(detail)
@@ -163,10 +269,7 @@ function PresentationSlideProgressPanel({ detail }: { detail: TaskCenterPresenta
         <div className="space-y-2">
           {slides.map((slide) => {
             const pageNumber = slide.slide_index + 1
-            const imageUrl =
-              typeof slide.image_url === "string" && slide.image_url.trim().length > 0
-                ? slide.image_url.trim()
-                : null
+            const layoutType = slide.layout_type
 
             return (
               <div
@@ -211,33 +314,9 @@ function PresentationSlideProgressPanel({ detail }: { detail: TaskCenterPresenta
                   {slide.error_message ? (
                     <p className="text-xs leading-5 text-destructive">{slide.error_message}</p>
                   ) : null}
-
-                  {imageUrl ? (
-                    <a
-                      href={imageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                    >
-                      <ExternalLinkIcon className="h-3 w-3" />
-                      {t("presentation.detail.slides.imageReady")}
-                    </a>
-                  ) : null}
                 </div>
 
-                {imageUrl ? (
-                  <a href={imageUrl} target="_blank" rel="noreferrer" className="block">
-                    <img
-                      src={imageUrl}
-                      alt={`${t("presentation.detail.slides.title")} ${pageNumber}`}
-                      className="aspect-video w-full rounded-md border bg-muted object-cover"
-                    />
-                  </a>
-                ) : (
-                  <div className="flex aspect-video items-center justify-center rounded-md border bg-muted/40 px-2 text-center text-xs text-muted-foreground">
-                    {slide.layout_type || "-"}
-                  </div>
-                )}
+                <PresentationLayoutPreview layoutType={layoutType} />
               </div>
             )
           })}
@@ -249,10 +328,25 @@ function PresentationSlideProgressPanel({ detail }: { detail: TaskCenterPresenta
 
 interface PresentationTaskDetailProps {
   detail: TaskCenterPresentationTaskDetail
-  onSelectTask?: (taskRef: { id: number; type: "presentation" }) => void
 }
 
-export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTaskDetailProps) {
+function isPresentationHTMLReady(detail: TaskCenterPresentationTaskDetail): boolean {
+  if (detail.task_kind !== "layout_generate") {
+    return false
+  }
+
+  if (detail.status === "success") {
+    return true
+  }
+
+  if (typeof detail.render_html === "string" && detail.render_html.trim().length > 0) {
+    return true
+  }
+
+  return ["render_html", "render_ppt", "uploaded_ppt", "completed"].includes(detail.stage ?? "")
+}
+
+export function PresentationTaskDetail({ detail }: PresentationTaskDetailProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [storycardRecord, setStorycardRecord] = useState<PresentationStorycardRecord | null>(null)
@@ -269,8 +363,17 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
   const [storycardTab, setStorycardTab] = useState("slides")
   const [pendingDownloadTaskId, setPendingDownloadTaskId] = useState<number | null>(null)
 
-  const hasPPTUrl = typeof detail.ppt_url === "string" && detail.ppt_url.trim().length > 0
+  const presentationDownloadUrl = getTaskCenterPresentationDownloadUrl(detail)
+  const hasPPTUrl = typeof presentationDownloadUrl === "string"
   const hasSlideProgress = Boolean(getNormalizedSlideSummary(detail) || detail.slides?.length)
+  const htmlReady = isPresentationHTMLReady(detail)
+  const exportInProgress =
+    detail.task_kind === "layout_generate" &&
+    !hasPPTUrl &&
+    (exportingPPT ||
+      pendingDownloadTaskId === detail.id ||
+      detail.stage === "render_ppt" ||
+      detail.stage === "uploaded_ppt")
 
   const slides = useMemo(() => {
     if (!storycardDraft?.slides || !Array.isArray(storycardDraft.slides)) {
@@ -313,7 +416,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
   }, [detail.article_id, detail.id, syncStorycardDraft])
 
   const loadHTML = useCallback(async () => {
-    if (detail.status !== "success" || detail.task_kind !== "layout_generate") {
+    if (!htmlReady) {
       setHTMLContent(null)
       setHTMLError(null)
       return
@@ -340,7 +443,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
     } finally {
       setHTMLLoading(false)
     }
-  }, [detail.id, detail.status, detail.task_kind])
+  }, [detail.id, htmlReady])
 
   useEffect(() => {
     void loadStorycard()
@@ -359,14 +462,13 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
     if (
       pendingDownloadTaskId !== null &&
       detail.id === pendingDownloadTaskId &&
-      detail.status === "success" &&
-      typeof detail.ppt_url === "string" &&
-      detail.ppt_url.trim().length > 0
+      hasPPTUrl &&
+      presentationDownloadUrl
     ) {
-      triggerDownload(detail.ppt_url)
+      triggerDownload(presentationDownloadUrl)
       setPendingDownloadTaskId(null)
     }
-  }, [detail.id, detail.ppt_url, detail.status, pendingDownloadTaskId])
+  }, [detail.id, hasPPTUrl, pendingDownloadTaskId, presentationDownloadUrl])
 
   const handleStorycardFieldChange = useCallback(
     (key: "title", value: string) => {
@@ -507,8 +609,8 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
   }, [detail.article_id, loadStorycard, storycardRecord?.language, syncStorycardDraft, t, toast])
 
   const handleExportPPT = useCallback(async () => {
-    if (hasPPTUrl && detail.ppt_url) {
-      triggerDownload(detail.ppt_url)
+    if (hasPPTUrl && presentationDownloadUrl) {
+      triggerDownload(presentationDownloadUrl)
       return
     }
 
@@ -520,11 +622,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
         throw new Error(String(exported.error))
       }
 
-      setPendingDownloadTaskId(exported.presentation_log_id)
-      onSelectTask?.({
-        id: exported.presentation_log_id,
-        type: "presentation",
-      })
+      setPendingDownloadTaskId(detail.id)
       toast({
         description: t("presentation.detail.preview.exportStarted"),
       })
@@ -541,7 +639,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
     } finally {
       setExportingPPT(false)
     }
-  }, [detail.id, detail.ppt_url, hasPPTUrl, onSelectTask, t, toast])
+  }, [detail.id, hasPPTUrl, presentationDownloadUrl, t, toast])
 
   if (detail.task_kind === "storycard_generate") {
     return (
@@ -551,25 +649,6 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
             {t("presentation.detail.storycardGenerateHint")}
           </p>
         </div>
-      </div>
-    )
-  }
-
-  if (detail.task_kind === "ppt_export") {
-    return (
-      <div className="flex items-center justify-center rounded-2xl border bg-muted/20 px-6 py-8">
-        <Button
-          type="button"
-          onClick={() => {
-            if (hasPPTUrl && detail.ppt_url) {
-              triggerDownload(detail.ppt_url)
-            }
-          }}
-          disabled={detail.status !== "success" || !hasPPTUrl}
-        >
-          <DownloadIcon className="h-4 w-4" />
-          {t("presentation.detail.preview.downloadPpt")}
-        </Button>
       </div>
     )
   }
@@ -591,7 +670,7 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
             </div>
           ) : null}
 
-          {detail.status !== "success" ? (
+          {!htmlReady ? (
             hasSlideProgress ? null : (
               <div className="px-4 py-8 text-sm text-muted-foreground">
                 {t("presentation.detail.preview.waiting")}
@@ -625,9 +704,9 @@ export function PresentationTaskDetail({ detail, onSelectTask }: PresentationTas
               type="button"
               size="sm"
               onClick={() => void handleExportPPT()}
-              disabled={exportingPPT || detail.status !== "success"}
+              disabled={exportInProgress || !htmlReady}
             >
-              {exportingPPT ? (
+              {exportInProgress ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <DownloadIcon className="h-4 w-4" />

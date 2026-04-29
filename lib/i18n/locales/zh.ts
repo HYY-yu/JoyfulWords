@@ -425,7 +425,6 @@ export const zh = {
                 infographic: "信息图任务",
                 presentationStorycard: "Storycard 生成任务",
                 presentationLayout: "PPT / Reveal 布局任务",
-                presentationPptExport: "PPT 导出任务",
             },
             fields: {
                 execId: "执行 ID",
@@ -1368,7 +1367,7 @@ export const zh = {
                 empty: "暂时没有 HTML 结果。",
                 openNewTab: "新窗口打开",
                 exportPpt: "导出 PPT",
-                exportStarted: "PPT 导出任务已提交，请在任务中心继续等待",
+                exportStarted: "已开始导出 PPT，请在当前任务继续等待",
                 downloadPpt: "下载 PPT",
             },
             slides: {

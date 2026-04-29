@@ -428,7 +428,6 @@ export function TaskCenterBrowser({
                 <TaskCenterTaskDetailView
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
-                  onSelectTask={(taskRef) => setSelectedTaskRef(taskRef)}
                   onOpenArticle={handleOpenArticle}
                 />
               ) : loading ? (

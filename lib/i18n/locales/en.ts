@@ -425,7 +425,6 @@ export const en = {
                 infographic: "Infographic Job",
                 presentationStorycard: "Storycard Generation Job",
                 presentationLayout: "PPT / Reveal Layout Job",
-                presentationPptExport: "PPT Export Job",
             },
             fields: {
                 execId: "Execution ID",
@@ -1368,7 +1367,7 @@ export const en = {
                 empty: "No HTML result is available yet.",
                 openNewTab: "Open in New Tab",
                 exportPpt: "Export PPT",
-                exportStarted: "PPT export task submitted. Continue in Task Center.",
+                exportStarted: "PPT export started. Keep waiting in this task.",
                 downloadPpt: "Download PPT",
             },
             slides: {
