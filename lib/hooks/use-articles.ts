@@ -72,12 +72,14 @@ export function useArticles() {
       status?: ArticleStatus | "all"
     }) => {
       setLoading(true)
+      const requestTitle = filters && "title" in filters ? filters.title : undefined
+      const requestStatus = filters && "status" in filters ? filters.status : statusFilter
 
       const result = await articlesClient.getArticles({
         page: pagination.page,
         page_size: pagination.pageSize,
-        title: filters?.title || titleFilter || undefined,
-        status: filters?.status && filters.status !== "all" ? filters.status : undefined,
+        title: requestTitle?.trim() || undefined,
+        status: requestStatus && requestStatus !== "all" ? requestStatus : undefined,
       })
 
       setLoading(false)
@@ -98,7 +100,7 @@ export function useArticles() {
         return true
       }
     },
-    [pagination.page, pagination.pageSize, titleFilter, toast, t]
+    [pagination.page, pagination.pageSize, statusFilter, toast, t]
   )
 
   // 初始加载

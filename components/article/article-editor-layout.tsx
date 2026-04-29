@@ -28,15 +28,15 @@ export function ArticleEditorLayout({
     containerRef,
   } = useResizablePanels({
     storageKey: "joyfulwords-editor-panel-widths",
-    defaultLeftWidth: 22,
-    defaultRightWidth: 24,
-    leftConstraints: { minWidth: 320, maxWidth: 400 },
-    rightConstraints: { minWidth: 320, maxWidth: 480 },
-    centerMinWidth: 400,
+    defaultLeftWidth: 24,
+    defaultRightWidth: 25,
+    leftConstraints: { minWidth: 320, maxWidth: 440 },
+    rightConstraints: { minWidth: 320, maxWidth: 460 },
+    centerMinWidth: 560,
   })
 
   const panelShellClassName =
-    "overflow-hidden rounded-[7px] border border-border/70 bg-background/95 shadow-[0_24px_48px_-32px_rgba(15,23,42,0.24)] ring-1 ring-black/[0.02] backdrop-blur-sm"
+    "jw-editor-panel overflow-hidden rounded-lg bg-[#fffdf7]/90 shadow-[0_20px_54px_-44px_rgba(84,64,38,0.34)] ring-1 ring-[#d8cbb8]/45 backdrop-blur-xl"
 
   const leftPanelStyle = {
     ["--left-panel-width" as string]: `${leftWidth}%`,
@@ -47,15 +47,15 @@ export function ArticleEditorLayout({
   } as CSSProperties
 
   return (
-    <div className="flex h-[calc(100vh-48px)] flex-col bg-muted/60">
-      <div className="shrink-0 bg-background/90 backdrop-blur-sm">
+    <div className="jw-editor-workspace flex h-screen flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-[#e8ddcc]/55 bg-[#fffdf7]/92 backdrop-blur-xl">
         {topBar}
       </div>
 
       <div className="flex-1 overflow-hidden">
         <div
           ref={containerRef}
-          className="flex h-full min-h-0 flex-col gap-1.5 p-1.5 lg:flex-row lg:items-stretch lg:gap-px"
+          className="flex h-full min-h-0 flex-col gap-3 p-3 lg:flex-row lg:items-stretch"
         >
           {!leftCollapsed && (
             <>
@@ -63,7 +63,7 @@ export function ArticleEditorLayout({
                 className={`min-h-0 w-full flex-1 lg:w-[var(--left-panel-width)] lg:flex-none ${panelShellClassName}`}
                 style={leftPanelStyle}
               >
-                <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background/90">
+                <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#fffdf7]/92">
                   {leftPanel}
                 </div>
               </div>
@@ -71,7 +71,7 @@ export function ArticleEditorLayout({
                 className="group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
                 onMouseDown={handleLeftDragStart}
               >
-                <div className={`h-16 w-[3px] rounded-full transition-colors duration-150 ${leftAtMin ? "bg-destructive/60" : "bg-border/90 group-hover:bg-primary/35 group-active:bg-primary/45"}`} />
+                <div className={`h-16 w-[2px] rounded-full transition-colors duration-150 ${leftAtMin ? "bg-destructive/50" : "bg-stone-300/50 group-hover:bg-primary/35 group-active:bg-primary/50"}`} />
                 {leftAtMin && (
                   <div className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-[calc(50%+24px)] whitespace-nowrap rounded-md bg-foreground/90 px-2.5 py-1 text-xs text-background shadow-md">
                     已到最小宽度
@@ -82,7 +82,7 @@ export function ArticleEditorLayout({
           )}
 
           <div className={`min-h-0 min-w-0 w-full flex-[1.2] lg:flex-1 ${panelShellClassName}`}>
-            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background/90">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#fffdf7]/94">
               {centerPanel}
             </div>
           </div>
@@ -93,7 +93,7 @@ export function ArticleEditorLayout({
                 className="group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
                 onMouseDown={handleRightDragStart}
               >
-                <div className={`h-16 w-[3px] rounded-full transition-colors duration-150 ${rightAtMin ? "bg-destructive/60" : "bg-border/90 group-hover:bg-primary/35 group-active:bg-primary/45"}`} />
+                <div className={`h-16 w-[2px] rounded-full transition-colors duration-150 ${rightAtMin ? "bg-destructive/50" : "bg-stone-300/50 group-hover:bg-primary/35 group-active:bg-primary/50"}`} />
                 {rightAtMin && (
                   <div className="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-[calc(50%+24px)] whitespace-nowrap rounded-md bg-foreground/90 px-2.5 py-1 text-xs text-background shadow-md">
                     已到最小宽度
@@ -104,7 +104,7 @@ export function ArticleEditorLayout({
                 className={`min-h-0 w-full flex-1 lg:w-[var(--right-panel-width)] lg:flex-none ${panelShellClassName}`}
                 style={rightPanelStyle}
               >
-                <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background/90">
+                <div className="flex h-full min-h-0 flex-col overflow-hidden bg-[#fffdf7]/92">
                   {rightPanel}
                 </div>
               </div>

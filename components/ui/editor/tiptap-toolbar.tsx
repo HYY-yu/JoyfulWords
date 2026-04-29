@@ -63,8 +63,8 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
   }
 
   return (
-    <div className="flex items-center justify-between gap-2 p-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="flex flex-wrap gap-1">
+    <div className="jw-editor-toolbar flex items-center justify-between gap-3 px-3 py-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-1">
       {/* Undo/Redo */}
       <ToolbarButton
         tooltip={t("tiptapEditor.toolbar.undo")}
@@ -145,7 +145,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* Headings */}
       <select
-        className="h-8 px-2 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        className="jw-soft-input h-8 rounded-md border px-2 text-sm text-foreground ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring/35 focus:ring-offset-0"
         value={
           editor.isActive('heading', { level: 1 })
             ? 'h1'
@@ -257,7 +257,11 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </div>
 
       {/* 自动保存状态指示灯 - 固定在工具栏最右侧 */}
-      {saveStatus && <div className="mr-4"><SaveStatusIndicator saveStatus={saveStatus} /></div>}
+      {saveStatus && (
+        <div className="hidden shrink-0 rounded-full border border-[#ded4c4] bg-[#fffdf7]/82 px-2.5 py-1 shadow-[0_1px_2px_rgba(84,64,38,0.05)] sm:block">
+          <SaveStatusIndicator saveStatus={saveStatus} />
+        </div>
+      )}
     </div>
   );
 }

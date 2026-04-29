@@ -158,7 +158,7 @@ export function TiptapEditor({
       autolink: true,
       linkOnPaste: true,
       HTMLAttributes: {
-        class: "text-blue-600 underline cursor-pointer",
+        class: "text-teal-700 underline cursor-pointer",
       },
     }),
     Underline,
@@ -181,7 +181,7 @@ export function TiptapEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-6 prose-headings:font-bold prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300",
+        class: `prose prose-lg dark:prose-invert max-w-none focus:outline-none prose-headings:font-bold prose-a:text-teal-700 prose-a:underline hover:prose-a:text-teal-800 dark:prose-a:text-teal-300 dark:hover:prose-a:text-teal-200 ${mode === "edit" ? "" : "min-h-[400px] p-6"}`,
         placeholder,
       },
       handleDrop(view, event) {
@@ -605,7 +605,7 @@ export function TiptapEditor({
 
   const editorShellClassName =
     mode === "edit"
-      ? "flex h-full w-full flex-col overflow-hidden bg-transparent"
+      ? "jw-editor-shell flex h-full w-full flex-col overflow-hidden bg-transparent"
       : "flex h-full w-full flex-col overflow-hidden rounded-lg border bg-background";
 
   return (
@@ -618,13 +618,16 @@ export function TiptapEditor({
         mode={mode}
       />
       <div
-        className="flex-1 overflow-y-auto min-h-0"
+        className={mode === "edit" ? "jw-document-stage min-h-0 flex-1 overflow-y-auto px-4" : "min-h-0 flex-1 overflow-y-auto"}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "copy";
         }}
       >
-        <EditorContent editor={editor} className="h-full" />
+        <EditorContent
+          editor={editor}
+          className={mode === "edit" ? "jw-document-paper" : "h-full"}
+        />
       </div>
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}

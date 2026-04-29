@@ -83,6 +83,16 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
   const [imageGalleryOpen, setImageGalleryOpen] = useState(false)
   const [materialsLinksOpen, setMaterialsLinksOpen] = useState(false)
   const [editTitleOpen, setEditTitleOpen] = useState(false)
+  const normalizedTitleFilter = titleFilter.trim().toLowerCase()
+  const visibleArticles = normalizedTitleFilter
+    ? articles.filter((article) =>
+        article.title.toLowerCase().includes(normalizedTitleFilter)
+      )
+    : articles
+  const displayedTotal = normalizedTitleFilter ? visibleArticles.length : pagination.total
+  const totalPages = normalizedTitleFilter
+    ? 1
+    : Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
 
   // Action handlers
   const handleEditArticle = (article: Article) => {
@@ -238,7 +248,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
             {/* AI Help Button */}
             <Button
               onClick={() => setAiHelpDialogOpen(true)}
-              className="gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <SparklesIcon className="w-4 h-4" />
               {t("common.aiHelp")}
@@ -295,14 +305,16 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                   </div>
                 </td>
               </tr>
-            ) : articles.length === 0 ? (
+            ) : visibleArticles.length === 0 ? (
               <tr>
                 <td colSpan={9} className="text-center py-12 text-muted-foreground">
-                  {t("contentWriting.manager.emptyTitle")}
+                  {normalizedTitleFilter
+                    ? t("contentWriting.manager.emptySearchTitle")
+                    : t("contentWriting.manager.emptyTitle")}
                 </td>
               </tr>
             ) : (
-              articles.map((article) => (
+              visibleArticles.map((article) => (
                 <tr
                   key={article.id}
                   className="border-b border-border last:border-b-0 hover:bg-muted/30"
@@ -449,7 +461,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                               href={post.original_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 line-clamp-1 max-w-[150px] hover:underline"
+                              className="line-clamp-1 max-w-[150px] text-xs text-primary hover:text-primary/80 hover:underline"
                               title={`${post.platform || ''}${post.author_name ? ' - ' + post.author_name : ''}`}
                             >
                               {post.platform}{post.author_name ? ` - ${post.author_name}` : ''}
@@ -516,10 +528,10 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
         </table>
       }
           pagination={
-            pagination.total > 0 ? (
+            displayedTotal > 0 ? (
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                  {t("contentWriting.manager.totalCount", { total: pagination.total, page: pagination.page })}
+                  {t("contentWriting.manager.totalCount", { total: displayedTotal, page: pagination.page })}
                 </div>
                 <div className="flex items-center gap-4">
                   {/* Page size selector */}
@@ -548,13 +560,13 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handlePageChange(pagination.page - 1)}
-                      disabled={pagination.page <= 1 || loading}
+                      disabled={normalizedTitleFilter.length > 0 || pagination.page <= 1 || loading}
                     >
                       <ChevronLeftIcon className="w-4 h-4" />
                     </Button>
 
                     <div className="text-sm text-foreground min-w-[80px] text-center">
-                      {pagination.page} / {Math.ceil(pagination.total / pagination.pageSize)}
+                      {pagination.page} / {totalPages}
                     </div>
 
                     <Button
@@ -562,7 +574,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
                       size="icon"
                       className="h-8 w-8"
                       onClick={() => handlePageChange(pagination.page + 1)}
-                      disabled={pagination.page >= Math.ceil(pagination.total / pagination.pageSize) || loading}
+                      disabled={normalizedTitleFilter.length > 0 || pagination.page >= totalPages || loading}
                     >
                       <ChevronRightIcon className="w-4 h-4" />
                     </Button>

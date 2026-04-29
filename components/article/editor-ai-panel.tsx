@@ -2,18 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import {
-  ClipboardListIcon,
-  ImageIcon,
+  BrainCircuitIcon,
+  ChartNoAxesCombinedIcon,
+  FilmIcon,
+  GalleryHorizontalEndIcon,
+  ImagePlusIcon,
   LoaderIcon,
-  NetworkIcon,
   PaletteIcon,
-  PencilIcon,
+  PresentationIcon,
   RefreshCwIcon,
-  VideoIcon,
+  SparklesIcon,
+  WandSparklesIcon,
 } from "lucide-react"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 import { EditorTaskProgress, type TaskItem, type TaskType } from "./editor-task-progress"
 import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
@@ -65,58 +69,94 @@ interface FeatureButton {
   labelKey: string
   icon: React.ElementType
   bgColor: string
+  iconColor: string
+  groupKey: "writing" | "visual" | "structure"
   disabled?: boolean
   tooltipKey?: string
 }
+
+const FEATURE_GROUPS = [
+  {
+    id: "writing",
+    titleKey: "tiptapEditor.aiPanel.groups.writing",
+    descriptionKey: "tiptapEditor.aiPanel.groupDescriptions.writing",
+  },
+  {
+    id: "visual",
+    titleKey: "tiptapEditor.aiPanel.groups.visual",
+    descriptionKey: "tiptapEditor.aiPanel.groupDescriptions.visual",
+  },
+  {
+    id: "structure",
+    titleKey: "tiptapEditor.aiPanel.groups.structure",
+    descriptionKey: "tiptapEditor.aiPanel.groupDescriptions.structure",
+  },
+] as const
 
 const FEATURE_BUTTONS: FeatureButton[] = [
   {
     id: "ai-edit",
     labelKey: "tiptapEditor.aiPanel.aiEdit",
-    icon: PencilIcon,
-    bgColor: "bg-blue-50",
+    icon: WandSparklesIcon,
+    bgColor: "bg-teal-50 ring-teal-100",
+    iconColor: "text-teal-700",
+    groupKey: "writing",
   },
   {
     id: "mindmap",
     labelKey: "tiptapEditor.aiPanel.mindmap",
-    icon: NetworkIcon,
-    bgColor: "bg-emerald-50",
+    icon: BrainCircuitIcon,
+    bgColor: "bg-emerald-50 ring-emerald-100",
+    iconColor: "text-emerald-700",
+    groupKey: "structure",
   },
   {
     id: "create-image",
     labelKey: "tiptapEditor.aiPanel.createImage",
-    icon: ImageIcon,
-    bgColor: "bg-indigo-50",
+    icon: ImagePlusIcon,
+    bgColor: "bg-sky-50 ring-sky-100",
+    iconColor: "text-sky-700",
+    groupKey: "visual",
   },
   {
     id: "reversal-mode",
     labelKey: "tiptapEditor.aiPanel.reversalMode",
-    icon: RefreshCwIcon,
-    bgColor: "bg-pink-50",
+    icon: GalleryHorizontalEndIcon,
+    bgColor: "bg-rose-50 ring-rose-100",
+    iconColor: "text-rose-700",
+    groupKey: "visual",
   },
   {
     id: "image-style",
     labelKey: "tiptapEditor.aiPanel.imageStyle",
     icon: PaletteIcon,
-    bgColor: "bg-amber-50",
+    bgColor: "bg-amber-50 ring-amber-100",
+    iconColor: "text-amber-700",
+    groupKey: "visual",
   },
   {
     id: "infographic",
     labelKey: "tiptapEditor.aiPanel.infographic",
-    icon: ClipboardListIcon,
-    bgColor: "bg-cyan-50",
+    icon: ChartNoAxesCombinedIcon,
+    bgColor: "bg-cyan-50 ring-cyan-100",
+    iconColor: "text-cyan-700",
+    groupKey: "structure",
   },
   {
     id: "presentation",
     labelKey: "tiptapEditor.aiPanel.generatePpt",
-    icon: ClipboardListIcon,
-    bgColor: "bg-violet-50",
+    icon: PresentationIcon,
+    bgColor: "bg-violet-50 ring-violet-100",
+    iconColor: "text-violet-700",
+    groupKey: "structure",
   },
   {
     id: "video",
     labelKey: "tiptapEditor.aiPanel.generateVideo",
-    icon: VideoIcon,
-    bgColor: "bg-slate-100",
+    icon: FilmIcon,
+    bgColor: "bg-stone-100 ring-stone-200",
+    iconColor: "text-stone-400",
+    groupKey: "visual",
     disabled: true,
     tooltipKey: "tiptapEditor.aiPanel.generateVideoComingSoon",
   },
@@ -390,60 +430,121 @@ export function EditorAIPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="border-b px-4 py-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {t("tiptapEditor.aiPanel.title")}
-        </h3>
-      </div>
-
-      <div className="px-3 py-3">
-        <div className="grid grid-cols-2 auto-rows-fr gap-2">
-          {FEATURE_BUTTONS.map((btn) => {
-            const Icon = btn.icon
-            const featureButton = (
-              <button
-                key={btn.id}
-                type="button"
-                onClick={() => handleOpenDialog(btn.id)}
-                disabled={btn.disabled}
-                className={
-                  btn.disabled
-                    ? "flex h-full min-h-24 w-full cursor-not-allowed flex-col items-center justify-center gap-1.5 rounded-lg bg-muted/40 p-3 opacity-55 shadow-sm"
-                    : "flex h-full min-h-24 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg bg-white p-3 shadow-sm transition-all duration-150 hover:bg-blue-50/50 hover:shadow-md"
-                }
-              >
-                <span className={`rounded-md p-1.5 ${btn.bgColor}`}>
-                  <Icon className={btn.disabled ? "h-4 w-4 text-muted-foreground" : "h-4 w-4 text-foreground/70"} />
-                </span>
-                <span className={btn.disabled ? "text-center text-xs leading-tight text-muted-foreground" : "text-center text-xs leading-tight text-foreground/80"}>
-                  {t(btn.labelKey)}
-                </span>
-              </button>
-            )
-
-            if (!btn.disabled) {
-              return featureButton
-            }
-
-            return (
-              <Tooltip key={btn.id}>
-                <TooltipTrigger asChild>
-                  <span className="block h-full">{featureButton}</span>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span>{t(btn.tooltipKey ?? "tiptapEditor.aiPanel.generateVideoComingSoon")}</span>
-                </TooltipContent>
-              </Tooltip>
-            )
-          })}
+      <div className="shrink-0 bg-[linear-gradient(180deg,#fffef9_0%,#fbf6eb_100%)] px-4 py-4 shadow-[inset_0_-1px_0_rgba(219,208,190,0.34)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="truncate text-sm font-semibold text-foreground">
+              {t("tiptapEditor.aiPanel.studioTitle")}
+            </h2>
+            <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+              {t("tiptapEditor.aiPanel.studioSubtitle")}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className="jw-soft-input h-8 w-8 shrink-0"
+            onClick={() => void refetch({ silent: true })}
+            aria-label={t("common.refresh")}
+            title={t("common.refresh")}
+          >
+            <RefreshCwIcon className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="px-4 py-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="space-y-4 overflow-y-auto px-3 py-3">
+        {FEATURE_GROUPS.map((group) => {
+          const groupButtons = FEATURE_BUTTONS.filter((btn) => btn.groupKey === group.id)
+
+          return (
+            <section key={group.id} className="space-y-2">
+              <div className="px-1">
+                <h3 className="text-xs font-semibold text-foreground">
+                  {t(group.titleKey)}
+                </h3>
+                <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                  {t(group.descriptionKey)}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {groupButtons.map((btn) => {
+                  const Icon = btn.icon
+                  const featureButton = (
+                    <button
+                      key={btn.id}
+                      type="button"
+                      onClick={() => handleOpenDialog(btn.id)}
+                      disabled={btn.disabled}
+                      className={cn(
+                        "jw-action-card group flex min-h-20 w-full flex-col items-start justify-between rounded-lg p-3 text-left transition-all duration-150",
+                        btn.disabled
+                          ? "cursor-not-allowed opacity-55"
+                          : "cursor-pointer hover:-translate-y-0.5 hover:border-teal-500/35"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "relative flex h-10 w-10 items-center justify-center rounded-xl ring-1 shadow-sm transition-transform duration-150",
+                          btn.bgColor,
+                          !btn.disabled && "group-hover:-rotate-3 group-hover:scale-105"
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-5 w-5 stroke-[1.8]",
+                            btn.disabled ? "text-muted-foreground" : btn.iconColor
+                          )}
+                        />
+                        {!btn.disabled && (
+                          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#fffdf7] text-amber-500 shadow-[0_4px_12px_-8px_rgba(84,64,38,0.65)]">
+                            <SparklesIcon className="h-2.5 w-2.5" />
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={
+                          btn.disabled
+                            ? "mt-3 text-xs font-medium leading-tight text-muted-foreground"
+                            : "mt-3 text-xs font-semibold leading-tight text-foreground/85"
+                        }
+                      >
+                        {t(btn.labelKey)}
+                      </span>
+                    </button>
+                  )
+
+                  if (!btn.disabled) {
+                    return featureButton
+                  }
+
+                  return (
+                    <Tooltip key={btn.id}>
+                      <TooltipTrigger asChild>
+                        <span className="block h-full">{featureButton}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>{t(btn.tooltipKey ?? "tiptapEditor.aiPanel.generateVideoComingSoon")}</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
+              </div>
+            </section>
+          )
+        })}
+      </div>
+
+      <div className="flex min-h-[260px] flex-[1.05] flex-col overflow-hidden bg-[#fffdf7]/82 shadow-[inset_0_1px_0_rgba(219,208,190,0.34)]">
+        <div className="px-4 py-3">
+          <h4 className="text-xs font-semibold text-foreground">
             {t("tiptapEditor.aiPanel.taskProgress")}
           </h4>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
+            {t("tiptapEditor.aiPanel.taskProgressSubtitle")}
+          </p>
         </div>
         <div className="flex-1 overflow-y-auto">
           <EditorTaskProgress

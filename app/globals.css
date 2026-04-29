@@ -14,7 +14,7 @@
   --card-foreground: oklch(0.09 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.09 0 0);
-  --primary: oklch(0.45 0.22 264);
+  --primary: oklch(0.45 0.095 176);
   --primary-foreground: oklch(0.98 0 0);
   --secondary: oklch(0.96 0 0);
   --secondary-foreground: oklch(0.09 0 0);
@@ -26,7 +26,7 @@
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.91 0 0);
   --input: oklch(0.91 0 0);
-  --ring: oklch(0.45 0.22 264);
+  --ring: oklch(0.45 0.095 176);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -35,12 +35,12 @@
   --radius: 0.625rem;
   --sidebar: oklch(0.12 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.45 0.22 264);
+  --sidebar-primary: oklch(0.45 0.095 176);
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.2 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.25 0 0);
-  --sidebar-ring: oklch(0.45 0.22 264);
+  --sidebar-ring: oklch(0.45 0.095 176);
 }
 
 .dark {
@@ -52,7 +52,7 @@
   --card-foreground: oklch(0.98 0 0);
   --popover: oklch(0.09 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.55 0.24 264);
+  --primary: oklch(0.67 0.105 176);
   --primary-foreground: oklch(0.98 0 0);
   --secondary: oklch(0.2 0 0);
   --secondary-foreground: oklch(0.98 0 0);
@@ -64,20 +64,20 @@
   --destructive-foreground: oklch(0.98 0 0);
   --border: oklch(0.25 0 0);
   --input: oklch(0.25 0 0);
-  --ring: oklch(0.55 0.24 264);
-  --chart-1: oklch(0.55 0.24 264);
+  --ring: oklch(0.67 0.105 176);
+  --chart-1: oklch(0.67 0.105 176);
   --chart-2: oklch(0.7 0.17 162);
   --chart-3: oklch(0.77 0.19 70);
   --chart-4: oklch(0.63 0.27 304);
   --chart-5: oklch(0.65 0.25 16);
   --sidebar: oklch(0.12 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
-  --sidebar-primary: oklch(0.55 0.24 264);
+  --sidebar-primary: oklch(0.67 0.105 176);
   --sidebar-primary-foreground: oklch(0.98 0 0);
   --sidebar-accent: oklch(0.2 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(0.25 0 0);
-  --sidebar-ring: oklch(0.55 0.24 264);
+  --sidebar-ring: oklch(0.67 0.105 176);
 }
 
 @theme inline {
@@ -182,14 +182,14 @@
 /* Selected image highlight */
 .ProseMirror .image-container.ProseMirror-selectednode .tiptap-image,
 .ProseMirror .ProseMirror-selectednode.image-container .tiptap-image {
-  outline: 3px solid oklch(0.45 0.22 264);
+  outline: 3px solid oklch(0.45 0.095 176);
   outline-offset: 2px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .dark .ProseMirror .ProseMirror-selectednode.image-container .tiptap-image,
 .dark .ProseMirror .image-container.ProseMirror-selectednode .tiptap-image {
-  outline-color: oklch(0.55 0.24 264);
+  outline-color: oklch(0.67 0.105 176);
 }
 
 /* ========================================
@@ -262,9 +262,9 @@
   padding-bottom: 2px;
 }
 
-/* 链接样式（经典蓝色下划线） */
+/* 链接样式 */
 .ProseMirror a {
-  @apply text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300;
+  @apply text-teal-700 underline hover:text-teal-800 dark:text-teal-300 dark:hover:text-teal-200;
   @apply transition-colors cursor-pointer;
   text-decoration-style: solid;
   text-underline-offset: 2px;
@@ -477,8 +477,8 @@
   gap: 8px;
   padding: 8px 12px;
   margin: 4px 0;
-  background-color: rgba(59, 130, 246, 0.12);  /* blue-500/12 */
-  border: 1.5px solid rgba(59, 130, 246, 0.4);
+  background-color: rgba(15, 118, 110, 0.12);
+  border: 1.5px solid rgba(15, 118, 110, 0.38);
   border-radius: 6px;
   cursor: pointer;  /* ✅ 可点击 */
   user-select: none;
@@ -486,12 +486,12 @@
 }
 
 .ai-pending-block:hover {
-  background-color: rgba(59, 130, 246, 0.18);  /* ✅ hover 效果 */
-  border-color: rgba(59, 130, 246, 0.6);
+  background-color: rgba(15, 118, 110, 0.17);
+  border-color: rgba(15, 118, 110, 0.56);
 }
 
 .ai-pending-text {
-  color: rgba(37, 99, 235, 0.85); /* blue-700 */
+  color: rgba(15, 118, 110, 0.9);
   font-size: 0.9375em;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -504,8 +504,8 @@
   flex-shrink: 0;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(59, 130, 246, 0.3);
-  border-top-color: rgba(59, 130, 246, 0.9);
+  border: 2px solid rgba(15, 118, 110, 0.28);
+  border-top-color: rgba(15, 118, 110, 0.9);
   border-radius: 50%;
   animation: ai-pending-spin 0.8s linear infinite;
 }
@@ -516,17 +516,17 @@
 
 /* Dark mode */
 .dark .ai-pending-block {
-  background-color: rgba(59, 130, 246, 0.15);
-  border-color: rgba(96, 165, 250, 0.4);
+  background-color: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.34);
 }
 
 .dark .ai-pending-text {
-  color: rgba(147, 197, 253, 0.9); /* blue-300 */
+  color: rgba(94, 234, 212, 0.9);
 }
 
 .dark .ai-pending-spinner {
-  border-color: rgba(96, 165, 250, 0.3);
-  border-top-color: rgba(96, 165, 250, 0.9);
+  border-color: rgba(45, 212, 191, 0.3);
+  border-top-color: rgba(45, 212, 191, 0.88);
 }
 
 /* ========================================
@@ -605,4 +605,125 @@
 
 .blog-content hr {
   @apply my-8 border-border;
+}
+
+/* ========================================
+   JoyfulWords Article Workspace
+   ======================================== */
+
+.jw-editor-workspace {
+  background:
+    linear-gradient(180deg, rgba(255, 254, 248, 0.96) 0%, rgba(250, 246, 236, 0.98) 46%, rgba(245, 239, 226, 0.98) 100%),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.04), rgba(181, 142, 82, 0.035) 48%, rgba(255, 255, 255, 0) 100%),
+    #f8f3e8;
+}
+
+.jw-editor-workspace::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.2;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(93, 75, 47, 0.1) 1px, transparent 0),
+    linear-gradient(rgba(93, 75, 47, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px, 42px 42px;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 72%);
+}
+
+.jw-editor-panel {
+  border-color: transparent;
+}
+
+.jw-panel-header {
+  box-shadow: inset 0 -1px 0 rgba(219, 208, 190, 0.38);
+  background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(251, 247, 238, 0.92));
+}
+
+.jw-soft-input {
+  border-color: rgba(211, 199, 178, 0.62);
+  background: rgba(255, 253, 247, 0.92);
+  box-shadow: 0 1px 2px rgba(84, 64, 38, 0.045);
+}
+
+.jw-editor-shell {
+  background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(250, 246, 236, 0.96));
+}
+
+.jw-editor-toolbar {
+  border-bottom: 0;
+  background: rgba(255, 253, 247, 0.94);
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 -1px 0 rgba(219, 208, 190, 0.42);
+}
+
+.jw-document-stage {
+  background:
+    linear-gradient(180deg, rgba(246, 240, 228, 0.86), rgba(243, 235, 220, 0.98)),
+    #f5efe3;
+}
+
+.jw-document-paper {
+  width: min(100%, 900px);
+  min-height: calc(100% - 48px);
+  margin: 24px auto;
+  border: 1px solid rgba(211, 197, 174, 0.38);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fffef9 0%, #fffdf5 100%);
+  box-shadow:
+    0 18px 42px -38px rgba(84, 64, 38, 0.22),
+    0 1px 1px rgba(84, 64, 38, 0.045),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+}
+
+.jw-document-paper .ProseMirror {
+  min-height: 720px;
+  padding: 64px 76px 84px;
+  color: #27231d;
+}
+
+.jw-document-paper .ProseMirror p {
+  margin-bottom: 1rem;
+  color: rgba(39, 35, 29, 0.9);
+}
+
+.jw-document-paper .ProseMirror h1 {
+  margin-top: 0;
+  font-size: 2.1rem;
+  letter-spacing: 0;
+}
+
+.jw-document-paper .ProseMirror h2 {
+  letter-spacing: 0;
+}
+
+.jw-document-paper .ProseMirror blockquote {
+  border-left-color: rgba(15, 118, 110, 0.55);
+  background: rgba(15, 118, 110, 0.055);
+  border-radius: 0 8px 8px 0;
+  padding: 0.85rem 1rem;
+}
+
+.jw-action-card {
+  border: 1px solid rgba(211, 199, 178, 0.34);
+  background: linear-gradient(180deg, rgba(255, 254, 249, 0.82), rgba(250, 246, 236, 0.62));
+  box-shadow: none;
+}
+
+.jw-action-card:hover {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: #fffef9;
+  box-shadow: 0 14px 34px -32px rgba(84, 64, 38, 0.32);
+}
+
+@media (max-width: 960px) {
+  .jw-document-paper {
+    margin: 12px;
+    min-height: calc(100% - 24px);
+  }
+
+  .jw-document-paper .ProseMirror {
+    min-height: 560px;
+    padding: 32px 24px 56px;
+  }
 }

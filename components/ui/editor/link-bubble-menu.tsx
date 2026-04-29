@@ -65,7 +65,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-blue-600 dark:text-blue-400 hover:bg-muted"
+            className="h-6 px-2 text-teal-700 hover:bg-muted dark:text-teal-300"
           >
             <LinkIcon className="h-3 w-3 mr-1" />
             <span className="text-xs max-w-[200px] truncate">

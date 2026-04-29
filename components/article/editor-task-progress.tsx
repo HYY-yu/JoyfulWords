@@ -99,18 +99,18 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
             return <AlertCircleIcon className="w-4 h-4 shrink-0 text-red-500" />
         }
         return (
-            <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-blue-500" />
+            <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-teal-600" />
         )
     }
 
     const borderClass = cn(
-        "rounded-lg border p-3 cursor-pointer transition-colors relative",
-        task.status === "pending" && "border-blue-200 bg-blue-50/50 hover:bg-blue-50",
-        task.status === "completed" && "border-green-200 bg-green-50/50 hover:bg-green-50",
-        task.status === "failed" && "border-red-200 bg-red-50/50 hover:bg-red-50"
+        "relative cursor-pointer rounded-lg border bg-[#fffef9]/88 p-3 shadow-[0_10px_24px_-22px_rgba(84,64,38,0.22)] transition-colors",
+        task.status === "pending" && "border-teal-200/80 hover:bg-teal-50/45",
+        task.status === "completed" && "border-emerald-200/80 hover:bg-emerald-50/45",
+        task.status === "failed" && "border-red-200/80 hover:bg-red-50/45"
     )
 
-  return (
+    return (
         <div
             className={borderClass}
             onClick={onClick}
@@ -122,7 +122,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
                 {/* Type icon */}
                 <span
                     className={cn(
-                        task.status === "pending" && "text-blue-500",
+                        task.status === "pending" && "text-teal-600",
                         task.status === "completed" && "text-green-500",
                         task.status === "failed" && "text-red-500"
                     )}
@@ -192,21 +192,21 @@ export function EditorTaskProgress(props: EditorTaskProgressProps) {
 
     if (allTasks.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-32 gap-2 text-muted-foreground">
-                <CheckIcon className="w-8 h-8 opacity-30" />
+            <div className="mx-3 flex h-40 flex-col items-center justify-center gap-2 rounded-lg bg-[#fffef9]/58 text-muted-foreground shadow-[inset_0_0_0_1px_rgba(216,205,187,0.38)]">
+                <CheckIcon className="h-8 w-8 opacity-30" />
                 <p className="text-sm">{t("contentWriting.taskProgress.empty")}</p>
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col gap-2 p-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <div className="flex flex-col gap-2 px-3 pb-3">
+            <p className="text-xs font-medium text-muted-foreground">
                 {t("contentWriting.taskProgress.title")}
                 <span className="ml-1 text-foreground/70">({allTasks.length})</span>
             </p>
 
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
                 {allTasks.map((task) => (
                     <TaskCard
                         key={task.id}

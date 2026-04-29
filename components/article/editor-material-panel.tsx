@@ -1519,24 +1519,38 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
   }, [articleId, t, toast])
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden bg-background", className)}>
-      {/* Upload button — above tabs */}
-      <div className="px-3 pt-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => setShowUpload(true)}
-          disabled={!articleId}
-        >
-          <Upload className="mr-1.5 h-3.5 w-3.5" />
-          {t("contentWriting.materialPanel.uploadButton")}
-        </Button>
+    <div className={cn("flex h-full flex-col overflow-hidden bg-transparent", className)}>
+      <div className="shrink-0 bg-[linear-gradient(135deg,#fffef9_0%,#fbf6eb_55%,#f6f0e3_100%)] px-4 py-4 shadow-[inset_0_-1px_0_rgba(219,208,190,0.34)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-50 text-teal-700">
+                <FileText className="h-4 w-4" />
+              </div>
+              <h2 className="truncate text-sm font-semibold text-foreground">
+                {t("contentWriting.materialPanel.sourceTitle")}
+              </h2>
+            </div>
+            <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+              {t("contentWriting.materialPanel.sourceSubtitle")}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="jw-soft-input h-8 shrink-0 px-2.5 text-xs"
+            onClick={() => setShowUpload(true)}
+            disabled={!articleId}
+          >
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            {t("contentWriting.materialPanel.uploadButton")}
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeView} onValueChange={(value) => setActiveView(value as "search" | "library" | "favorites")} className="flex h-full flex-col">
-        <div className="mx-3 mt-2 flex items-center gap-2 shrink-0">
-          <TabsList className="min-w-0 flex-1">
+        <div className="mx-3 mt-3 flex shrink-0 items-center gap-2 rounded-lg bg-[#f4eee1]/78 p-1 shadow-[inset_0_0_0_1px_rgba(229,219,201,0.42)]">
+          <TabsList className="min-w-0 flex-1 bg-[#eee6d7]">
             <TabsTrigger value="search" className="flex-1 text-xs">
               <Search className="mr-1.5 h-3.5 w-3.5" />
               {t("contentWriting.materialPanel.searchTab")}

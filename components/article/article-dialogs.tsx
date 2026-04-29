@@ -246,7 +246,7 @@ export function MaterialsLinksDialog({ article, open, onOpenChange }: MaterialsL
                                 href={url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-md transition-colors"
+                                className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-1 text-xs text-teal-700 transition-colors hover:bg-teal-100 dark:bg-teal-950 dark:text-teal-300 dark:hover:bg-teal-900"
                               >
                                 <ExternalLink className="h-3 w-3" />
                                 Link{index + 1}

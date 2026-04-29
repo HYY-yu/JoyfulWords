@@ -46,6 +46,7 @@ export default function ArticleEditPage() {
   const [article, setArticle] = useState<Article | null>(null)
   const [loadingArticle, setLoadingArticle] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [isManualSaving, setIsManualSaving] = useState(false)
 
   // ---- Editor state ----
   const editorState = useEditorState()
@@ -171,6 +172,36 @@ export default function ArticleEditPage() {
     [toast, t]
   )
 
+  const handleManualSave = useCallback(async () => {
+    if (!article?.id || isManualSaving) return
+
+    setIsManualSaving(true)
+    autoSave.cancelPendingSave()
+
+    try {
+      const result = await articlesClient.updateArticleContent(article.id, {
+        content: editorState.content.html,
+      })
+
+      if ("error" in result) {
+        throw new Error(result.error)
+      }
+
+      editorState.markSaved()
+      toast({
+        title: t("contentWriting.editorHeader.saveMetadataSuccess"),
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.editorHeader.saveMetadataFailed"),
+        description: error instanceof Error ? error.message : String(error),
+      })
+    } finally {
+      setIsManualSaving(false)
+    }
+  }, [article?.id, autoSave, editorState, isManualSaving, t, toast])
+
   // ==================== Export ====================
 
   const handleExport = useCallback(
@@ -261,8 +292,10 @@ export default function ArticleEditPage() {
   const topBar = (
     <EditorTopBar
       article={article}
+      onSave={handleManualSave}
       onExport={handleExport}
       onArticleUpdated={handleArticleUpdated}
+      isSaving={isManualSaving}
       saveState={
         autoSave.saveState.status === "saving"
           ? "saving"

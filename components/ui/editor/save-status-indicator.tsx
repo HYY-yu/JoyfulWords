@@ -19,7 +19,8 @@ export function SaveStatusIndicator({ saveStatus }: SaveStatusIndicatorProps) {
   const { t } = useTranslation()
 
   const getStatusText = () => {
-    return t(`tiptapEditor.autoSave.${saveStatus.status}`)
+    const statusKey = saveStatus.status === 'idle' ? 'unsaved' : saveStatus.status
+    return t(`tiptapEditor.autoSave.${statusKey}`)
   }
 
   const getStatusDotClass = () => {
@@ -34,13 +35,16 @@ export function SaveStatusIndicator({ saveStatus }: SaveStatusIndicatorProps) {
 
   return (
     <div
-      className="flex items-center"
+      className="flex items-center gap-1.5"
       role="status"
       aria-live="polite"
       aria-label={getStatusText()}
       title={getStatusText()}
     >
       <div className={getStatusDotClass()} aria-hidden="true" />
+      <span className="text-xs font-medium text-muted-foreground">
+        {getStatusText()}
+      </span>
     </div>
   )
 }
