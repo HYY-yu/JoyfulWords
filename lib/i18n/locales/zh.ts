@@ -1957,6 +1957,7 @@ export const zh = {
             menu: "菜单",
             features: "功能",
             blog: "博客",
+            mcp: "MCP",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
@@ -2020,6 +2021,37 @@ export const zh = {
             version: "内容创作与管理工具 · v1.0.0",
             privacyPolicy: "隐私政策",
             termsOfUse: "服务条款",
+        },
+    },
+    mcpPage: {
+        nav: {
+            backHome: "返回官网",
+        },
+        eyebrow: "标准 HTTP MCP Server",
+        heading: "Connect to AI Agent",
+        description: "支持标准的 MCP Server，支持 Claude Code 或任意 AI Agent。",
+        agentHint: "如果不会用，直接复制命令让 AI Agent 自己安装即可。",
+        command: {
+            label: "Claude Code 安装命令",
+            transport: "HTTP Transport",
+            copy: "复制命令",
+            copied: "已复制",
+        },
+        stepsLabel: "配置流程",
+        stepsHeading: "Setup Flow",
+        steps: {
+            add: {
+                title: "添加 MCP 服务",
+                description: "运行上方命令，把 joyfulwords 作为标准 HTTP MCP Server 添加到 Claude Code。",
+            },
+            launch: {
+                title: "启动 Claude Code",
+                description: "重新启动 Claude Code，让本地客户端加载刚刚新增的 MCP 服务配置。",
+            },
+            verify: {
+                title: "执行 /mcp",
+                description: "在 Claude Code 中执行 /mcp，检查 joyfulwords 服务并启用可用能力。",
+            },
         },
     },
     blog: {

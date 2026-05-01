@@ -1957,6 +1957,7 @@ export const en = {
             menu: "Menu",
             features: "Features",
             blog: "Blog",
+            mcp: "MCP",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },
@@ -2020,6 +2021,37 @@ export const en = {
             version: "Content Creation Tool · v1.0.0",
             privacyPolicy: "Privacy Policy",
             termsOfUse: "Terms of Use",
+        },
+    },
+    mcpPage: {
+        nav: {
+            backHome: "Back Home",
+        },
+        eyebrow: "Standard HTTP MCP Server",
+        heading: "Connect to AI Agent",
+        description: "Supports the standard MCP Server protocol for Claude Code or any AI Agent.",
+        agentHint: "If you are not sure how to use it, copy the command and let your AI Agent install it for you.",
+        command: {
+            label: "Claude Code install command",
+            transport: "HTTP Transport",
+            copy: "Copy Command",
+            copied: "Copied",
+        },
+        stepsLabel: "Configuration",
+        stepsHeading: "Setup Flow",
+        steps: {
+            add: {
+                title: "Add the MCP service",
+                description: "Run the command above to add joyfulwords as a standard HTTP MCP Server in Claude Code.",
+            },
+            launch: {
+                title: "Launch Claude Code",
+                description: "Restart Claude Code so the local client loads the newly added MCP service configuration.",
+            },
+            verify: {
+                title: "Run /mcp",
+                description: "Run /mcp in Claude Code to check the joyfulwords service and enable the available capabilities.",
+            },
         },
     },
     blog: {
