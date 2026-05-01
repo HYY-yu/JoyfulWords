@@ -175,6 +175,8 @@ export async function apiRequest<T>(
             return {
               error: retryData.error || retryData.message || 'Request failed',
               status: retryResponse.status,
+              reason: retryData.reason,
+              error_description: retryData.error_description,
             } as T
           }
 
@@ -215,6 +217,8 @@ export async function apiRequest<T>(
       return {
         error: data.error || data.message || 'Request failed',
         status: response.status,
+        reason: typeof data.reason === 'string' ? data.reason : undefined,
+        error_description: typeof data.error_description === 'string' ? data.error_description : undefined,
       } as T
     }
 

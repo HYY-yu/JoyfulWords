@@ -23,7 +23,7 @@ interface AuthContextType {
   // Authentication methods
   signInWithEmail: (email: string, password: string) => Promise<void>
   signInWithGoogle: (redirectUrl?: string) => Promise<void>
-  requestSignupCode: (email: string) => Promise<SignupCodeRequestResult>
+  requestSignupCode: (email: string, redirectUrl?: string) => Promise<SignupCodeRequestResult>
   verifySignupCode: (email: string, code: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   requestPasswordReset: (email: string) => Promise<void>
@@ -236,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = result.auth_url
   }
 
-  const requestSignupCode = async (email: string) => {
+  const requestSignupCode = async (email: string, redirectUrl?: string) => {
     const result = await apiClient.requestSignupCode(email)
 
     if ('error' in result) {
@@ -251,6 +251,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           notice: 'signup_email_registered',
         })
+        if (redirectUrl) {
+          searchParams.set('redirect', redirectUrl)
+        }
 
         router.push(`/auth/login?${searchParams.toString()}`)
         return 'redirect_to_login'

@@ -6,10 +6,7 @@
     "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next build",
     "dev": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next dev",
     "lint": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true eslint .",
-    "start": "next start",
-    "i18n:sync": "tsx scripts/i18n-sync.ts",
-    "i18n:sync:clean": "tsx scripts/i18n-sync.ts --clean",
-    "refresh-baseline-browser-mapping": "pnpm add -D baseline-browser-mapping@latest"
+    "start": "next start"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
