@@ -10,7 +10,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/base/sheet"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
-import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 
 const featureKeys = [
   {
@@ -415,7 +414,6 @@ export function HomePageContent() {
         </div>
       </footer>
 
-      <CookieBannerProvider />
     </div>
   )
 }

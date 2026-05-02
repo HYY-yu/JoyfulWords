@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type { SilktideConfig } from "./types"
 import { BANNER_SUFFIX } from "./types"
+import { notifyAnalyticsConsentChanged } from "@/lib/analytics/cookie-consent"
 
 /**
  * CookieBannerProvider - Silktide Cookie Banner 包装组件
@@ -14,7 +15,7 @@ import { BANNER_SUFFIX } from "./types"
  * - 监听语言切换,动态更新配置
  * - 处理组件卸载和清理
  *
- * 位置: 仅在 AuthCard (登录/注册页) 中使用
+ * 位置: app/layout.tsx 全局使用
  */
 export function CookieBannerProvider() {
   const { t, locale } = useTranslation()
@@ -149,10 +150,12 @@ function buildSilktideConfig(t: (key: string) => string): SilktideConfig {
         defaultValue: false,
         onAccept: () => {
           console.debug("[Cookie Banner] Analytics cookies accepted")
+          notifyAnalyticsConsentChanged(true)
           // @tracking: cookie_consent_analytics_accepted
         },
         onReject: () => {
           console.debug("[Cookie Banner] Analytics cookies rejected")
+          notifyAnalyticsConsentChanged(false)
           // @tracking: cookie_consent_analytics_rejected
         },
       },

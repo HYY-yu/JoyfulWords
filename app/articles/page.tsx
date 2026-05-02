@@ -44,6 +44,8 @@ import { ArticleCreateModeDialog } from "@/components/article/article-create-mod
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
 import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
+import { trackProductEvent } from "@/lib/analytics/client"
+import { PRODUCT_ANALYTICS_EVENTS } from "@/lib/analytics/events"
 
 function BillingDialogQuerySync({
   onOpenBillingDialog,
@@ -184,6 +186,10 @@ export default function ArticlesPage() {
   const handleCreateManualArticle = async () => {
     setIsCreatingArticle(true)
     console.info("[ArticlesPage] Creating manual article from article manager")
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_CREATE_STARTED, {
+      source: "article_manager",
+      mode: "manual",
+    })
 
     try {
       const result = await articlesClient.createArticle({
@@ -198,6 +204,11 @@ export default function ArticlesPage() {
 
       console.info("[ArticlesPage] Manual article created successfully:", {
         articleId: result.id,
+      })
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_CREATED, {
+        source: "article_manager",
+        mode: "manual",
+        article_id: result.id,
       })
 
       toast({
@@ -230,6 +241,9 @@ export default function ArticlesPage() {
   }
 
   const handleOpenBillingDialog = useCallback(() => {
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.BILLING_OPENED, {
+      source: "articles_page",
+    })
     setBillingDialogOpen(true)
   }, [])
 
