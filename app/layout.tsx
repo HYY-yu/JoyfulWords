@@ -1,5 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { headers } from "next/headers"
 import Script from "next/script"
 import "./globals.css"
@@ -54,6 +55,8 @@ import { Toaster } from "@/components/ui/hooks/toaster"
 import { OpenTelemetryProvider } from "@/components/otel/client-tracing-provider"
 import { InsufficientCreditsRoot } from "@/lib/credits/index"
 import { WebSocketProvider } from "@/components/websocket/websocket-provider"
+import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
+import { ProductAnalyticsProvider } from "@/components/analytics/product-analytics-provider"
 
 export default async function RootLayout({
   children,
@@ -85,6 +88,10 @@ export default async function RootLayout({
               <InsufficientCreditsRoot>
                 {children}
                 <Toaster />
+                <CookieBannerProvider />
+                <Suspense fallback={null}>
+                  <ProductAnalyticsProvider />
+                </Suspense>
                 <OpenTelemetryProvider />
               </InsufficientCreditsRoot>
             </WebSocketProvider>

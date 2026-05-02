@@ -16,6 +16,8 @@ import { Label } from "@/components/ui/base/label"
 import { useToast } from "@/hooks/use-toast"
 import { LoaderIcon } from "lucide-react"
 import { articlesClient } from "@/lib/api/articles/client"
+import { trackProductEvent } from "@/lib/analytics/client"
+import { PRODUCT_ANALYTICS_EVENTS } from "@/lib/analytics/events"
 
 interface ArticleSaveDialogProps {
   open: boolean
@@ -49,6 +51,12 @@ export function ArticleSaveDialog({
     }
 
     setIsSaving(true)
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_CREATE_STARTED, {
+      source: "save_dialog",
+      mode: "editor_save",
+      has_category: Boolean(category),
+      has_tags: Boolean(tags),
+    })
 
     try {
       // 调用真实 API: POST /article
@@ -68,6 +76,12 @@ export function ArticleSaveDialog({
         throw new Error(result.error)
       }
 
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_SAVED, {
+        source: "save_dialog",
+        article_id: result.id,
+        has_category: Boolean(category),
+        tag_count: tagArray.length,
+      })
 
       toast({
         description: t("contentWriting.saveDialog.success"),

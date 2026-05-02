@@ -37,6 +37,11 @@ steps:
           --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="$(grep NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS .env | cut -d '=' -f2-)" \
           --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="$(grep NEXT_PUBLIC_FEATURE_SEO_GEO .env | cut -d '=' -f2-)" \
           --build-arg NEXT_PUBLIC_ENABLE_COOKIE_BANNER="$(grep NEXT_PUBLIC_ENABLE_COOKIE_BANNER .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_ENABLE_PRODUCT_ANALYTICS="$(grep NEXT_PUBLIC_ENABLE_PRODUCT_ANALYTICS .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN="$(grep NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_POSTHOG_TOKEN="$(grep NEXT_PUBLIC_POSTHOG_TOKEN .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_POSTHOG_HOST="$(grep NEXT_PUBLIC_POSTHOG_HOST .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_POSTHOG_ENABLE_REPLAY="$(grep NEXT_PUBLIC_POSTHOG_ENABLE_REPLAY .env | cut -d '=' -f2-)" \
           --build-arg NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS="$(grep NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS .env | cut -d '=' -f2-)" \
           --build-arg PORT="$(grep PORT .env | cut -d '=' -f2-)" \
           --build-arg OTEL_SERVICE_NAME="$(grep OTEL_SERVICE_NAME .env | cut -d '=' -f2-)" \

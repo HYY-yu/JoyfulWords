@@ -16,6 +16,8 @@ import { usePayment } from '@/lib/hooks/use-payment'
 import { Loader2Icon } from 'lucide-react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { getEnabledPaymentProviders } from '@/lib/config/payment-providers'
+import { trackProductEventAndFlush } from '@/lib/analytics/client'
+import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
 
 interface RechargeDialogProps {
   open: boolean
@@ -38,6 +40,11 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
     setSubmitting(true)
 
     try {
+      await trackProductEventAndFlush(PRODUCT_ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+        provider: selectedProvider,
+        credits: data.credits,
+      })
+
       const result = await createOrder(
         selectedProvider,
         data.credits

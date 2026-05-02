@@ -10,6 +10,8 @@ import { tokenStore } from '@/lib/tokens/token-store'
 import { isSignupEmailAlreadyRegisteredError } from '@/lib/auth/auth-error-resolver'
 import { saveOAuthState } from '@/lib/auth/oauth-state'
 import { shouldAttemptSessionRestore } from '@/lib/auth/session-policy'
+import { trackProductEvent } from '@/lib/analytics/client'
+import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
 import type { User } from '@/lib/api/types'
 
 const USER_STORAGE_KEY = 'auth_user'
@@ -214,6 +216,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     tokenStore.setAccessToken(result, 'auth_login')
     setAuthenticatedUser(result.user)
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.LOGIN_COMPLETED, {
+      method: 'email',
+      user_id: result.user.id,
+    })
 
     toast({
       title: t('auth.toast.loginSuccess'),
@@ -272,6 +278,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       description: t('auth.toast.checkYourEmail'),
     })
 
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.SIGNUP_STARTED, {
+      method: 'email',
+      redirect_url: redirectUrl || null,
+    })
+
     return 'code_sent'
   }
 
@@ -291,6 +302,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       title: t('auth.toast.signupSuccess'),
       description: t('auth.toast.pleaseLogin'),
     })
+
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+      method: 'email',
+    })
   }
 
   const signOut = async () => {
@@ -304,6 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         title: t('auth.toast.logoutSuccess'),
       })
 
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.LOGOUT_COMPLETED)
       router.push('/auth/login')
     }
   }
@@ -324,6 +340,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       title: t('auth.toast.verificationCodeSent'),
       description: t('auth.toast.resetCodeSent'),
     })
+
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PASSWORD_RESET_REQUESTED)
   }
 
   const verifyPasswordReset = async (email: string, code: string, password: string) => {

@@ -30,10 +30,10 @@
 - 语言切换监听
 - 完整的错误处理和日志
 
-#### 1.4 AuthCard 集成
-**文件**: `components/auth/auth-card.tsx` (修改)
-- 在语言切换器后添加 `<CookieBannerProvider />`
-- 导入 CookieBannerProvider 组件
+#### 1.4 全局 layout 集成
+**文件**: `app/layout.tsx` (修改)
+- 在全局 provider 树中添加 `<CookieBannerProvider />`
+- 为 PostHog 产品分析提供 analytics consent
 
 ### 2. 基础设施配置
 
@@ -181,21 +181,19 @@ middleware.ts                                           (+1行修改)
 - 临时在 middleware.ts 的 publicRoutes 添加 `/test-cookie-banner.html`
 
 ### 2. localStorage 管理
-- 使用 `_auth` 后缀隔离
+- 使用 `_global` 后缀隔离
 - 清除方法: localStorage.clear() 或删除特定键
 
-### 3. 未来扩展
-如需全局显示:
-- 移动 CookieBannerProvider 到 app/layout.tsx
-- 移除 BANNER_SUFFIX
-- 创建 `/lib/cookie-consent.ts` 统一管理
+### 3. 产品分析扩展
+- CookieBannerProvider 已移动到 app/layout.tsx
+- `lib/analytics/cookie-consent.ts` 统一管理 analytics consent
 
 ## 🚀 性能影响
 
 - **额外加载**: ~37KB (CSS + JS, gzipped)
 - **初始化时间**: ~50ms
 - **运行时更新**: ~10ms (语言切换)
-- **加载位置**: 仅在认证页面
+- **加载位置**: 全局 layout
 - **结论**: 性能影响可忽略
 
 ## 🔒 安全与合规
