@@ -1,9 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { trace } from '@opentelemetry/api'
 import { DEFAULT_LOCALE, getLocaleFromPathname, parseAcceptLanguageLocale } from '@/lib/i18n/route-locale'
 import { isPublicRoute } from '@/lib/auth/session-policy'
 
 const REFRESH_TOKEN_KEY = 'refresh_token'
 const LOCALE_COOKIE_KEY = 'locale'
+
+function withTraceServerTiming(response: NextResponse): NextResponse {
+  const spanContext = trace.getActiveSpan()?.spanContext()
+  if (!spanContext) return response
+
+  const traceFlags = spanContext.traceFlags.toString(16).padStart(2, '0')
+  response.headers.append(
+    'server-timing',
+    `traceparent;desc="00-${spanContext.traceId}-${spanContext.spanId}-${traceFlags}"`
+  )
+
+  return response
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -26,17 +40,17 @@ export async function proxy(request: NextRequest) {
   if (!isAuthenticated && !isPublic) {
     const url = new URL('/auth/login', request.url)
     url.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`)
-    return NextResponse.redirect(url)
+    return withTraceServerTiming(NextResponse.redirect(url))
   }
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-locale', requestLocale)
 
-  return NextResponse.next({
+  return withTraceServerTiming(NextResponse.next({
     request: {
       headers: requestHeaders,
     },
-  })
+  }))
 }
 
 export const config = {

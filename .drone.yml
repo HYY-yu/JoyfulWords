@@ -24,18 +24,30 @@ steps:
       - cp /home/admin/JoyfulWords/.env .env
       - |
         docker build -f Dockerfile.prod \
-          --build-arg NEXT_PUBLIC_API_BASE_URL="$(grep NEXT_PUBLIC_API_BASE_URL .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_APP_URL="$(grep NEXT_PUBLIC_APP_URL .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_ENABLE_TELEMETRY="$(grep NEXT_PUBLIC_ENABLE_TELEMETRY .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_OTEL_EXPORTER_URL="$(grep NEXT_PUBLIC_OTEL_EXPORTER_URL .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_FEATURE_IMAGE_GENERATION="$(grep NEXT_PUBLIC_FEATURE_IMAGE_GENERATION .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="$(grep NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="$(grep NEXT_PUBLIC_FEATURE_SEO_GEO .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_ENABLE_COOKIE_BANNER="$(grep NEXT_PUBLIC_ENABLE_COOKIE_BANNER .env | cut -d '=' -f2)" \
-          --build-arg NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS="$(grep NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS .env | cut -d '=' -f2)" \
-          --build-arg PORT="$(grep PORT .env | cut -d '=' -f2)" \
-          --build-arg OTEL_SERVICE_NAME="$(grep OTEL_SERVICE_NAME .env | cut -d '=' -f2)" \
-          --build-arg NEXT_OTEL_VERBOSE="$(grep NEXT_OTEL_VERBOSE .env | cut -d '=' -f2)" \
+          --build-arg NEXT_PUBLIC_API_BASE_URL="$(grep NEXT_PUBLIC_API_BASE_URL .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_APP_URL="$(grep NEXT_PUBLIC_APP_URL .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_ENABLE_TELEMETRY="$(grep NEXT_PUBLIC_ENABLE_TELEMETRY .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_OTEL_EXPORTER_URL="$(grep NEXT_PUBLIC_OTEL_EXPORTER_URL .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FARO_URL="$(grep NEXT_PUBLIC_FARO_URL .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FARO_APP_NAME="$(grep NEXT_PUBLIC_FARO_APP_NAME .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FARO_APP_NAMESPACE="$(grep NEXT_PUBLIC_FARO_APP_NAMESPACE .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FARO_APP_VERSION="$(grep NEXT_PUBLIC_FARO_APP_VERSION .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FARO_PROPAGATE_TRACE_URLS="$(grep NEXT_PUBLIC_FARO_PROPAGATE_TRACE_URLS .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FEATURE_IMAGE_GENERATION="$(grep NEXT_PUBLIC_FEATURE_IMAGE_GENERATION .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS="$(grep NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_FEATURE_SEO_GEO="$(grep NEXT_PUBLIC_FEATURE_SEO_GEO .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_ENABLE_COOKIE_BANNER="$(grep NEXT_PUBLIC_ENABLE_COOKIE_BANNER .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS="$(grep NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS .env | cut -d '=' -f2-)" \
+          --build-arg PORT="$(grep PORT .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_SERVICE_NAME="$(grep OTEL_SERVICE_NAME .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_SERVICE_NAMESPACE="$(grep OTEL_SERVICE_NAMESPACE .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_EXPORTER_OTLP_ENDPOINT="$(grep OTEL_EXPORTER_OTLP_ENDPOINT .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_EXPORTER_OTLP_PROTOCOL="$(grep OTEL_EXPORTER_OTLP_PROTOCOL .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_EXPORTER_OTLP_HEADERS="$(grep OTEL_EXPORTER_OTLP_HEADERS .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_TRACES_SAMPLER="$(grep OTEL_TRACES_SAMPLER .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_TRACES_SAMPLER_ARG="$(grep OTEL_TRACES_SAMPLER_ARG .env | cut -d '=' -f2-)" \
+          --build-arg OTEL_PROPAGATE_TRACE_URLS="$(grep OTEL_PROPAGATE_TRACE_URLS .env | cut -d '=' -f2-)" \
+          --build-arg NEXT_OTEL_VERBOSE="$(grep NEXT_OTEL_VERBOSE .env | cut -d '=' -f2-)" \
           -t joyful-words-frontend:latest .
       - rm .env
 
