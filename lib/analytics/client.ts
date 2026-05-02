@@ -40,7 +40,8 @@ function isProductAnalyticsEnabled() {
 
 function hasProductAnalyticsConfig() {
   return Boolean(
-    process.env.NEXT_PUBLIC_POSTHOG_TOKEN &&
+    (process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+      process.env.NEXT_PUBLIC_POSTHOG_TOKEN) &&
       process.env.NEXT_PUBLIC_POSTHOG_HOST
   )
 }
@@ -86,6 +87,13 @@ function captureProductEvent(
       send_instantly: options?.sendInstantly,
     }
   )
+
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[ProductAnalytics] Captured event", {
+      event,
+      properties: sanitizeProperties(properties),
+    })
+  }
 }
 
 function enqueueProductEvent(
@@ -163,6 +171,7 @@ export async function initializeProductAnalytics(
         autocapture: false,
         capture_pageview: false,
         capture_pageleave: true,
+        debug: process.env.NODE_ENV === "development",
         defaults: "2026-01-30",
         disable_session_recording:
           process.env.NEXT_PUBLIC_POSTHOG_ENABLE_REPLAY !== "true",
