@@ -21,6 +21,7 @@ import type { Article, ArticleStatus } from "@/lib/api/articles/types"
 import { getStatusVariant, formatDateTime } from "./article-types"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
+import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 
 interface ArticleEditorHeaderProps {
   article?: Article | null
@@ -168,6 +169,8 @@ export function ArticleEditorHeader({
 
         {/* Right: Clean + Save + Export (纯图标 + Tooltip) */}
         <div className="flex items-center gap-1">
+          <JoyfulThemeSwitcher variant="compact" />
+
           {/* Clean Button */}
           {onClean && (
             <Tooltip>
@@ -265,6 +268,8 @@ export function ArticleEditorHeader({
 
         {/* Right: Clean + Details Toggle + Export */}
         <div className="flex items-center gap-2 shrink-0">
+          <JoyfulThemeSwitcher variant="compact" />
+
           {/* Clean Button */}
           {onClean && (
             <Tooltip>

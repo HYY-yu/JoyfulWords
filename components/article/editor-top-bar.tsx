@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/base/button"
-import { Badge } from "@/components/ui/base/badge"
 import { Input } from "@/components/ui/base/input"
 import {
   DropdownMenu,
@@ -19,19 +18,20 @@ import {
 } from "@/components/ui/base/tooltip"
 import {
   ArrowLeftIcon,
-  SaveIcon,
   BookLockIcon,
   DownloadIcon,
   Trash2,
+  PencilLineIcon,
   LoaderIcon,
   CheckIcon,
   GitBranchIcon,
+  SendIcon,
 } from "lucide-react"
 import type { Article } from "@/lib/api/articles/types"
-import { getStatusVariant } from "./article-types"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
 import { VersionDialog } from "./version-dialog"
+import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 
 export type SaveState = "idle" | "saving" | "saved" | "error"
 
@@ -40,8 +40,10 @@ interface EditorTopBarProps {
   onSave?: (content: string, skipVersion?: boolean) => void
   onExport?: (format: "markdown" | "html") => void
   onClean?: () => void
+  onPublish?: () => void
   onArticleUpdated?: (article: Article) => void
   isSaving?: boolean
+  isPublishing?: boolean
   saveState?: SaveState
   currentContent?: string
   onVersionRollback?: (versionData: { content: string }) => void
@@ -52,8 +54,10 @@ export function EditorTopBar({
   onSave,
   onExport,
   onClean,
+  onPublish,
   onArticleUpdated,
   isSaving = false,
+  isPublishing = false,
   saveState = "idle",
   currentContent = "",
   onVersionRollback,
@@ -62,6 +66,7 @@ export function EditorTopBar({
   const { toast } = useToast()
   const router = useRouter()
   const canOpenVersionDialog = Boolean(article && onSave && onVersionRollback)
+  const canPublish = Boolean(article && article.status === "draft" && onPublish)
 
   // 历史版本对话框状态
   const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false)
@@ -188,16 +193,16 @@ export function EditorTopBar({
 
   return (
     <>
-      <div className="flex items-center justify-between px-4 py-2 bg-background shadow-[0_2px_6px_rgba(0,0,0,0.1)] relative z-10">
+    <div className="relative z-10 flex h-14 items-center justify-between px-4">
       {/* Left: Back button + Title + Status Badge */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
         {/* Back Button */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-9 w-9 shrink-0 rounded-xl text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
               onClick={handleBackClick}
             >
               <ArrowLeftIcon className="w-4 h-4" />
@@ -210,14 +215,14 @@ export function EditorTopBar({
 
         {/* Editable Title */}
         {isEditingTitle ? (
-          <div className="flex items-center gap-1 flex-1 min-w-0">
+          <div className="flex min-w-0 max-w-[520px] flex-1 items-center gap-1">
             <Input
               ref={inputRef}
               value={editingTitle}
               onChange={(e) => setEditingTitle(e.target.value)}
               onBlur={handleTitleSave}
               onKeyDown={handleTitleKeyDown}
-              className="h-8 text-sm font-semibold"
+              className="jw-soft-input h-9 text-sm font-semibold"
               disabled={isSavingTitle}
             />
             {isSavingTitle && (
@@ -225,28 +230,45 @@ export function EditorTopBar({
             )}
           </div>
         ) : (
-          <h3
-            className="text-sm font-semibold truncate cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5"
-            onClick={handleTitleClick}
-            title={article?.title}
-          >
-            {article?.title ?? t("contentWriting.editorHeader.newArticle")}
-          </h3>
-        )}
-
-        {/* Status Badge */}
-        {article && !isEditingTitle && (
-          <Badge
-            variant={getStatusVariant(article.status)}
-            className="shrink-0 text-xs"
-          >
-            {getStatusText(article.status)}
-          </Badge>
+          <div className="group/title flex min-w-0 flex-1 flex-col justify-center rounded-lg px-1 py-0.5">
+            <div className="min-w-0" title={article?.title}>
+              <div className="hidden min-w-0 items-center gap-1.5 text-[11px] font-medium leading-4 text-[var(--jw-editor-muted)] sm:flex">
+                <span className="truncate">JoyfulWords / Article Canvas</span>
+                {article && (
+                  <>
+                    <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--jw-accent)]" />
+                    <span className="shrink-0">{getStatusText(article.status)}</span>
+                  </>
+                )}
+              </div>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h3 className="truncate text-sm font-semibold leading-5 text-[var(--jw-editor-text)]">
+                  {article?.title ?? t("contentWriting.editorHeader.newArticle")}
+                </h3>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      className="h-7 w-7 shrink-0 rounded-lg text-[var(--jw-editor-muted)] opacity-70 hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)] group-hover/title:opacity-100"
+                      onClick={handleTitleClick}
+                    >
+                      <PencilLineIcon className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <span>{t("contentWriting.manager.editTitleAction")}</span>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Right: Action Buttons */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex shrink-0 items-center gap-1.5">
         {/* Clean Button */}
         {onClean && (
           <Tooltip>
@@ -254,7 +276,7 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-9 w-9 rounded-md text-destructive hover:bg-destructive/10 hover:text-destructive"
                 onClick={onClean}
               >
                 <Trash2 className="w-4 h-4" />
@@ -266,12 +288,19 @@ export function EditorTopBar({
           </Tooltip>
         )}
 
+        {/* Theme Dropdown */}
+        <JoyfulThemeSwitcher variant="compact" />
+
         {/* Export Dropdown */}
         <Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-md text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
+                >
                   <DownloadIcon className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
@@ -297,7 +326,7 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
                 onClick={() => setIsVersionDialogOpen(true)}
               >
                 <GitBranchIcon className="w-4 h-4" />
@@ -314,17 +343,43 @@ export function EditorTopBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
+                className="h-9 gap-2 rounded-lg bg-[var(--jw-accent)] px-3 text-[var(--jw-accent-foreground)] shadow-[var(--jw-accent-button-shadow)] hover:bg-[var(--jw-accent-hover)]"
                 onClick={() => onSave(currentContent)}
-                disabled={isSaving || saveState === "saving"}
+                disabled={isSaving || isPublishing || saveState === "saving"}
               >
                 {renderSaveIcon()}
+                <span>{isSaving || saveState === "saving" ? t("common.saving") : t("common.save")}</span>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <span>{getSaveTooltip()}</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Publish Button */}
+        {canPublish && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="h-9 gap-2 rounded-lg border border-[var(--jw-accent)] bg-[var(--jw-control-active-bg)] px-3 text-[var(--jw-accent)] shadow-sm hover:bg-[var(--jw-accent-soft)]"
+                onClick={onPublish}
+                disabled={isSaving || isPublishing || saveState === "saving"}
+              >
+                {isPublishing ? (
+                  <LoaderIcon className="w-4 h-4 animate-spin" />
+                ) : (
+                  <SendIcon className="w-4 h-4" />
+                )}
+                <span>
+                  {isPublishing
+                    ? t("contentWriting.editorHeader.publishing")
+                    : t("contentWriting.editorHeader.publish")}
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{t("contentWriting.editorHeader.publishTooltip")}</span>
             </TooltipContent>
           </Tooltip>
         )}

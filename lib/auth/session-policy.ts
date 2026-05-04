@@ -66,6 +66,10 @@ export function shouldAttemptSessionRestore({
   hasStoredUser,
   hasAccessToken,
 }: SessionRestorePolicyInput): boolean {
+  if (isAuthRoute(pathname)) {
+    return false
+  }
+
   if (hasStoredUser && hasAccessToken) {
     return false
   }

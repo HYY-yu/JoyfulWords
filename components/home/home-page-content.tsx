@@ -1,15 +1,29 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Globe, MenuIcon } from "lucide-react"
+import {
+  ArrowRightIcon,
+  BookOpenTextIcon,
+  FilePenLineIcon,
+  Globe,
+  ImagePlusIcon,
+  LibraryBigIcon,
+  MenuIcon,
+  PanelTopIcon,
+  SearchCheckIcon,
+  SparklesIcon,
+  WandSparklesIcon,
+} from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/base/accordion"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/base/sheet"
+import { BrandLogo } from "@/components/brand/brand-logo"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
+import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
+import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 
 const featureKeys = [
   {
@@ -38,24 +52,14 @@ const featureKeys = [
   },
 ] as const
 
-function Logo({ showWordmark = true }: { showWordmark?: boolean }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <Image
-        src="/logo.jpeg"
-        alt="JoyfulWords logo"
-        width={32}
-        height={32}
-        className="h-8 w-8 shrink-0 rounded-sm object-cover"
-      />
-      {showWordmark ? (
-        <span className="text-base font-semibold tracking-tight">
-          JoyfulWords
-        </span>
-      ) : null}
-    </div>
-  )
-}
+const featureIcons = {
+  aiWriting: WandSparklesIcon,
+  materialSearch: LibraryBigIcon,
+  imageGen: ImagePlusIcon,
+  knowledgeCards: BookOpenTextIcon,
+  seoGeo: PanelTopIcon,
+  competitors: SearchCheckIcon,
+} as const
 
 export function HomePageContent() {
   const router = useRouter()
@@ -104,26 +108,27 @@ export function HomePageContent() {
   }, [])
 
   return (
-    <div className="overflow-x-hidden">
-      <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b bg-background/90 px-4 backdrop-blur-2xl sm:px-6 md:px-10">
-        <Logo />
+    <div className="jw-app-shell overflow-x-hidden">
+      <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
+        <BrandLogo />
         <div className="flex-1" />
 
         <div className="hidden items-center gap-3 md:flex">
+          <JoyfulThemeSwitcher variant="compact" />
           <button
             onClick={() => {
               const nextLocale = locale === "zh" ? "en" : "zh"
               persistLocalePreference(nextLocale)
               router.replace(buildLocalizedPath(nextLocale))
             }}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+            className="jw-themed-link flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
           >
             <Globe className="h-4 w-4" />
             {locale === "zh" ? "EN" : "中文"}
           </button>
           <a
             href="#features"
-            className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
             {t("landing.nav.features")}
           </a>
@@ -135,15 +140,17 @@ export function HomePageContent() {
           </Link>
           <Link
             href={blogHref}
-            className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
             {t("landing.nav.blog")}
           </Link>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="jw-secondary-button rounded-full shadow-sm" asChild>
             <Link href="/articles">{t("landing.nav.myArticles")}</Link>
           </Button>
-          <Button size="sm" asChild>
-            <Link href="/articles">{t("landing.nav.startCreating")}</Link>
+          <Button size="sm" className="jw-primary-button rounded-full" asChild>
+            <Link href="/articles">
+              {t("landing.nav.startCreating")}
+            </Link>
           </Button>
         </div>
 
@@ -164,6 +171,9 @@ export function HomePageContent() {
             </SheetHeader>
 
             <nav className="flex flex-col gap-1 px-4 pb-6">
+              <div className="mb-2">
+                <JoyfulThemeSwitcher variant="compact" className="w-full justify-between" />
+              </div>
               <button
                 onClick={() => {
                   const nextLocale = locale === "zh" ? "en" : "zh"
@@ -222,51 +232,115 @@ export function HomePageContent() {
         </Sheet>
       </header>
 
-      <section className="flex min-h-screen flex-col items-center justify-center bg-[radial-gradient(ellipse_90%_60%_at_50%_0%,rgba(37,99,235,.07)_0%,transparent_70%),radial-gradient(ellipse_60%_40%_at_85%_60%,rgba(124,58,237,.05)_0%,transparent_60%)] px-6 pt-14 pb-20 text-center">
-        <div className="animate-fade-up mb-7 inline-flex items-center gap-2 rounded-full border border-blue-600/20 bg-blue-600/10 px-4 py-1.5 text-[13px] font-medium text-blue-600">
-          <span>✦</span> {t("landing.badge")}
-        </div>
+      <section className="relative isolate min-h-screen overflow-hidden px-6 pt-28 pb-16 md:px-10">
+        <div className="jw-hero-wash pointer-events-none absolute inset-0 -z-10" />
+        <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.22] [background-image:radial-gradient(circle_at_1px_1px,rgba(93,75,47,0.22)_1px,transparent_0)] [background-size:30px_30px]" />
 
-        <h1 className="animate-fade-up animate-delay-1 mb-6 font-serif text-6xl leading-tight tracking-tight md:text-7xl lg:text-8xl">
-          {t("landing.heading")}
-          <br />
-          <em className="text-primary">{t("landing.headingAccent")}</em>
-        </h1>
+        <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
+          <div className="text-center lg:text-left">
+            <div className="animate-fade-up mb-7 inline-flex items-center gap-2 rounded-full border border-[var(--jw-border)] bg-[var(--jw-accent-soft)] px-4 py-1.5 text-[13px] font-semibold text-[var(--jw-accent)] shadow-[var(--jw-soft-shadow)]">
+              <SparklesIcon className="h-3.5 w-3.5" />
+              {t("landing.badge")}
+            </div>
 
-        <p className="animate-fade-up animate-delay-2 mb-10 max-w-lg text-lg leading-relaxed text-muted-foreground">
-          {t("landing.description")}
-        </p>
+            <h1 className="jw-heading-text animate-fade-up animate-delay-1 mb-6 font-serif text-5xl leading-[1.08] tracking-tight md:text-7xl lg:text-[88px]">
+              {t("landing.heading")}
+              <br />
+              <em className="not-italic text-[var(--jw-accent)]">{t("landing.headingAccent")}</em>
+            </h1>
 
-        <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3">
-          <Button size="lg" asChild>
-            <Link href="/articles">
-              <span>✦</span> {t("landing.cta")}
-            </Link>
-          </Button>
-          <Button variant="outline" size="lg" asChild>
-            <Link href="/articles">{t("landing.viewArticles")}</Link>
-          </Button>
-        </div>
+            <p className="jw-muted-text animate-fade-up animate-delay-2 mx-auto mb-9 max-w-xl text-lg leading-relaxed lg:mx-0">
+              {t("landing.description")}
+            </p>
 
-        <div className="animate-fade-up animate-delay-4 mt-14 w-full max-w-md overflow-hidden rounded-2xl border bg-white shadow-[0_4px_32px_rgba(0,0,0,.06)] sm:mt-16 sm:max-w-2xl md:max-w-3xl">
-          <div className="grid grid-cols-1 divide-y sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-            {stats.map((stat) => (
-              <div key={stat.label} className="px-6 py-5 text-center sm:px-8 sm:py-6 md:px-11">
-                <div className="font-serif text-2xl tracking-tight sm:text-[28px]">
-                  {stat.value}
+            <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3 lg:justify-start">
+              <Button size="lg" className="jw-primary-button rounded-full px-6" asChild>
+                <Link href="/articles">
+                  <SparklesIcon className="h-4 w-4" />
+                  {t("landing.cta")}
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" className="jw-secondary-button rounded-full px-6 shadow-sm" asChild>
+                <Link href="/articles">
+                  {t("landing.viewArticles")}
+                  <ArrowRightIcon className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="jw-surface-card animate-fade-up animate-delay-4 mt-12 grid w-full max-w-xl grid-cols-3 overflow-hidden rounded-xl border">
+              {stats.map((stat) => (
+                <div key={stat.label} className="border-r border-[var(--jw-border)] px-4 py-4 text-center last:border-r-0">
+                  <div className="jw-heading-text font-serif text-2xl tracking-tight sm:text-[28px]">
+                    {stat.value}
+                  </div>
+                  <div className="jw-muted-text mt-1 text-xs">
+                    {stat.label}
+                  </div>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {stat.label}
+              ))}
+            </div>
+          </div>
+
+          <div className="animate-fade-up animate-delay-2 relative mx-auto w-full max-w-xl">
+            <div className="absolute -left-4 top-10 h-20 w-20 rounded-full bg-[#ffd66b]/40 blur-2xl" />
+            <div className="absolute -right-4 bottom-12 h-24 w-24 rounded-full bg-teal-300/25 blur-2xl" />
+            <div className="jw-surface-card relative overflow-hidden rounded-[28px] border p-4 backdrop-blur">
+              <div className="jw-surface-muted rounded-2xl border p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]">
+                      <FilePenLineIcon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">Article Canvas</p>
+                      <p className="jw-muted-text text-xs">Material → Draft → Visual</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-[var(--jw-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--jw-accent)]">
+                    Live
+                  </span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[0.9fr_1.1fr]">
+                  <div className="space-y-3">
+                    {[
+                      { icon: LibraryBigIcon, label: t("landing.features.materialSearch.title"), color: "bg-[#dcfce7] text-emerald-700" },
+                      { icon: WandSparklesIcon, label: t("landing.features.aiWriting.title"), color: "bg-[#fef3c7] text-amber-700" },
+                      { icon: ImagePlusIcon, label: t("landing.features.imageGen.title"), color: "bg-[#fce7f3] text-pink-700" },
+                    ].map((item) => {
+                      const Icon = item.icon
+                      return (
+                        <div key={item.label} className="jw-surface-strong flex items-center gap-3 rounded-xl border p-3">
+                          <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.color}`}>
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="text-sm font-medium text-[var(--jw-heading)]">{item.label}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="jw-surface-strong rounded-xl border p-4">
+                    <div className="mb-3 h-3 w-2/3 rounded-full bg-[var(--jw-border)]" />
+                    <div className="space-y-2">
+                      <div className="h-2.5 rounded-full bg-[var(--jw-surface-muted)]" />
+                      <div className="h-2.5 w-10/12 rounded-full bg-[var(--jw-surface-muted)]" />
+                      <div className="h-2.5 w-8/12 rounded-full bg-[var(--jw-surface-muted)]" />
+                    </div>
+                    <div className="mt-5 rounded-lg border-l-4 border-[var(--jw-accent)] bg-[var(--jw-accent-soft)] p-3 text-sm text-[var(--jw-heading)]">
+                      {t("landing.featuresSubheading")}
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
 
       <section
         id="features"
-        className="border-t bg-background px-6 py-24 md:px-10"
+        className="border-t border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-6 py-24 md:px-10"
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 max-w-2xl">
@@ -317,8 +391,12 @@ export function HomePageContent() {
 
                     <div className={`relative flex min-h-[16rem] flex-col justify-between gap-10 ${contentAlignClass} md:min-h-[19rem]`}>
                       <div className={`flex max-w-4xl flex-1 flex-col ${contentAlignClass}`}>
-                        <div className="mb-4 text-[11px] font-medium uppercase tracking-[0.34em] text-muted-foreground/75">
-                          {t(`landing.features.${feature.key}.eyebrow`)}
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--jw-surface-muted)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--jw-muted)]">
+                          {(() => {
+                            const Icon = featureIcons[feature.key]
+                            return <Icon className="h-3.5 w-3.5 text-[var(--jw-accent)]" />
+                          })()}
+                          <span>{t(`landing.features.${feature.key}.eyebrow`)}</span>
                         </div>
                         <h3 className="max-w-[16ch] font-serif text-4xl leading-[0.95] tracking-[-0.04em] md:text-6xl lg:text-7xl">
                           {t(`landing.features.${feature.key}.title`)}
@@ -342,28 +420,31 @@ export function HomePageContent() {
         </div>
       </section>
 
-      <section className="relative mx-10 my-16 overflow-hidden rounded-2xl bg-foreground px-16 py-20 text-center">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_80%_at_50%_50%,rgba(37,99,235,.2)_0%,transparent_70%)]" />
+      <section className="jw-cta-band relative mx-4 my-16 overflow-hidden rounded-[28px] border px-6 py-20 text-center shadow-[var(--jw-card-shadow)] md:mx-10 md:px-16">
+        <div className="pointer-events-none absolute inset-0 opacity-80" />
         <div className="relative">
-          <h2 className="mb-4 font-serif text-5xl tracking-tight text-white">
+          <h2 className="mb-4 font-serif text-5xl tracking-tight text-[var(--jw-cta-text)]">
             {t("landing.ctaHeading")}
           </h2>
-          <p className="mb-9 text-base text-white/50">
+          <p className="mb-9 text-base text-[var(--jw-cta-text)] opacity-75">
             {t("landing.ctaSubtitle")}
           </p>
           <Button
             size="lg"
-            className="bg-white text-foreground hover:bg-white/90"
+            className="rounded-full bg-[var(--jw-surface-strong)] text-[var(--jw-heading)] hover:bg-white"
             asChild
           >
-            <Link href="/articles">{t("landing.ctaCta")}</Link>
+            <Link href="/articles">
+              {t("landing.ctaCta")}
+              <ArrowRightIcon className="h-4 w-4" />
+            </Link>
           </Button>
         </div>
       </section>
 
-      <footer className="border-t px-4 py-6 sm:px-6 md:px-10">
+      <footer className="jw-app-header border-t px-4 py-6 sm:px-6 md:px-10">
         <div className="flex items-center justify-between gap-4">
-          <Logo showWordmark={false} />
+          <BrandLogo showWordmark={false} compact />
 
           <div className="hidden items-center gap-6 md:flex">
             <Link

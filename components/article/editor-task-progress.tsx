@@ -77,61 +77,48 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
   const isDone = task.status === "completed" || task.status === "failed"
   const canDelete = isDone && task.removable !== false && task.type === "task-center"
 
-  const taskGenMode =
-    task.taskCenterData?.details?.gen_mode ||
-    task.taskCenterData?.detail?.gen_mode ||
-    task.taskCenterData?.gen_mode
-
-  const typeIcon =
-    task.type === "image-generation" ? (
-      <ImageIcon className="h-4 w-4 shrink-0" />
-    ) : task.type === "task-center" && task.originalType === "image" ? (
-      taskGenMode === "split_images" ? (
-        <LayersIcon className="h-4 w-4 shrink-0" />
-      ) : taskGenMode === "creator" ? (
-        <ImageIcon className="h-4 w-4 shrink-0" />
-      ) : taskGenMode === "style" ? (
-        <PaletteIcon className="h-4 w-4 shrink-0" />
-      ) : (
-        <ImageIcon className="h-4 w-4 shrink-0" />
-      )
-    ) : task.type === "task-center" && task.originalType === "article" ? (
-      <PencilIcon className="h-4 w-4 shrink-0" />
-    ) : task.type === "task-center" && task.originalType === "infographic" ? (
-      <ClipboardListIcon className="h-4 w-4 shrink-0" />
-    ) : task.type === "task-center" && task.originalType === "presentation" ? (
-      <Presentation className="h-4 w-4 shrink-0" />
-    ) : (
-      <ClipboardListIcon className="h-4 w-4 shrink-0" />
-    )
-
   const statusIcon = () => {
     if (task.status === "completed") {
-      return <CheckIcon className="h-4 w-4 shrink-0 text-green-500" />
+      return <CheckIcon className="w-4 h-4 shrink-0 text-green-500" />
     }
     if (task.status === "failed") {
-      return <AlertCircleIcon className="h-4 w-4 shrink-0 text-red-500" />
+      return <AlertCircleIcon className="w-4 h-4 shrink-0 text-red-500" />
     }
-    return <LoaderIcon className="h-4 w-4 shrink-0 animate-spin text-blue-500" />
+    return <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-[var(--jw-accent)]" />
   }
 
+  const typeIcon = (() => {
+    if (task.type === "image-generation") {
+      return <ImageIcon className="h-4 w-4 shrink-0" />
+    }
+    switch (task.originalType) {
+      case "image":
+        return <ImageIcon className="h-4 w-4 shrink-0" />
+      case "infographic":
+        return <LayersIcon className="h-4 w-4 shrink-0" />
+      case "presentation":
+        return <Presentation className="h-4 w-4 shrink-0" />
+      case "article":
+        return <PencilIcon className="h-4 w-4 shrink-0" />
+      default:
+        return <ClipboardListIcon className="h-4 w-4 shrink-0" />
+    }
+  })()
+
   const borderClass = cn(
-    "rounded-lg border p-3 transition-colors",
-    task.status === "pending" && "border-blue-200 bg-blue-50/50 hover:bg-blue-50",
-    task.status === "completed" && "border-green-200 bg-green-50/50 hover:bg-green-50",
-    task.status === "failed" && "border-red-200 bg-red-50/50 hover:bg-red-50"
+    "group relative cursor-pointer rounded-lg border bg-[var(--jw-task-card-bg)] p-3 shadow-[0_10px_24px_-22px_rgba(0,0,0,0.28)] transition-colors",
+    task.status === "pending" && "border-[var(--jw-task-card-border)] hover:bg-[var(--jw-task-card-hover-bg)]",
+    task.status === "completed" && "border-emerald-200/80 hover:bg-emerald-50/45",
+    task.status === "failed" && "border-red-200/80 hover:bg-red-50/45"
   )
 
   return (
-    <div className="group relative overflow-hidden rounded-lg">
-      <div
-        className={cn(borderClass, "relative cursor-pointer")}
-        onClick={onClick}
-      >
+    <div className={borderClass} onClick={onClick}>
+      <div>
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              task.status === "pending" && "text-blue-500",
+              task.status === "pending" && "text-[var(--jw-accent)]",
               task.status === "completed" && "text-green-500",
               task.status === "failed" && "text-red-500"
             )}
@@ -188,7 +175,7 @@ export function EditorTaskProgress(props: EditorTaskProgressProps) {
 
   if (allTasks.length === 0) {
     return (
-      <div className="flex h-32 flex-col items-center justify-center gap-2 text-muted-foreground">
+      <div className="jw-task-empty mx-3 flex h-40 flex-col items-center justify-center gap-2 rounded-lg">
         <CheckIcon className="h-8 w-8 opacity-30" />
         <p className="text-sm">{t("contentWriting.taskProgress.empty")}</p>
       </div>

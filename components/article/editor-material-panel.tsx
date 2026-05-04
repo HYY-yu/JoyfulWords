@@ -314,7 +314,7 @@ function SearchCardShell({
   return (
     <div
       className={cn(
-        "rounded-[8px] border border-slate-200 bg-white shadow-[0_22px_48px_-34px_rgba(15,23,42,0.28)]",
+        "rounded-[8px] border border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)] shadow-[0_22px_48px_-34px_rgba(0,0,0,0.32)]",
         className
       )}
     >
@@ -340,15 +340,15 @@ function SearchStateCard({
 
   return (
     <SearchCardShell className="overflow-hidden">
-      <div className="border-b border-slate-100 px-4 py-4">
+      <div className="border-b border-[var(--jw-header-divider)] px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+            <div className="jw-icon-soft flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
               {icon}
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">{title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+              <p className="text-sm font-semibold text-foreground">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
             </div>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={onDelete} aria-label={t("contentWriting.materialPanel.deleteCard")}>
@@ -375,10 +375,10 @@ function SearchResultContent({
   const shouldCollapse = content.length > 180
 
   return (
-    <div className="rounded-2xl bg-slate-50/80 px-3 py-2.5">
+    <div className="rounded-2xl bg-[var(--jw-control-bg)] px-3 py-2.5">
       <p
         className={cn(
-          "whitespace-pre-wrap break-words text-xs leading-5 text-slate-600",
+          "whitespace-pre-wrap break-words text-xs leading-5 text-muted-foreground",
           !expanded && shouldCollapse && "line-clamp-4"
         )}
       >
@@ -411,12 +411,12 @@ function SearchResultListItem({
   const { t } = useTranslation()
 
   return (
-    <label className="flex cursor-pointer gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]">
+    <label className="flex cursor-pointer gap-3 rounded-lg border border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)] p-3 transition-colors hover:border-[var(--jw-action-hover-border)] hover:bg-[var(--jw-task-card-hover-bg)]">
       <Checkbox checked={checked} onCheckedChange={onCheckedChange} className="mt-1" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold leading-6 text-slate-900">{item.title}</p>
+        <p className="text-sm font-semibold leading-6 text-foreground">{item.title}</p>
         {item.published_date ? (
-          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
             {t("contentWriting.materialPanel.publishedAt")}: {formatDate(item.published_date)}
           </p>
         ) : null}
@@ -450,14 +450,14 @@ function SearchImageItem({
   const { t } = useTranslation()
 
   return (
-    <label className="group relative cursor-pointer overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+    <label className="group relative cursor-pointer overflow-hidden rounded-lg border border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={t("contentWriting.materialPanel.imageResultAlt")} className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
       <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
         <Checkbox
           checked={checked}
           onCheckedChange={onCheckedChange}
-          className="border-white/70 bg-white/90 shadow-sm"
+          className="bg-[var(--jw-control-active-bg)] shadow-sm"
         />
         <button
           type="button"
@@ -500,10 +500,10 @@ function SearchResultCard({
   return (
     <>
       <SearchCardShell className="overflow-hidden">
-        <div className="border-b border-slate-100 bg-[linear-gradient(135deg,rgba(248,250,252,1),rgba(255,255,255,1),rgba(239,246,255,0.7))] px-4 py-4">
+        <div className="jw-panel-header px-4 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-900">
+              <p className="text-sm font-semibold text-foreground">
                 {t("contentWriting.materialPanel.resultCardTitle")}
               </p>
             </div>
@@ -534,11 +534,11 @@ function SearchResultCard({
 
         <div className="flex flex-col gap-4 px-4 py-4">
           {result.material_type === "info" && result.ai_result?.ai_answer ? (
-            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+            <div className="rounded-lg border border-[var(--jw-task-card-border)] bg-[var(--jw-control-bg)] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
                 {t("contentWriting.materialPanel.aiSummary")}
               </p>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
                 {result.ai_result.ai_answer}
               </p>
             </div>
@@ -1409,7 +1409,7 @@ function MaterialTypeSwitcher({
             className={cn(
               "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
               isActive
-                ? "bg-slate-200/70 text-slate-900 ring-1 ring-slate-200"
+                ? "bg-[var(--jw-control-active-bg)] text-foreground ring-1 ring-[var(--jw-task-card-border)]"
                 : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
             )}
           >
@@ -1531,52 +1531,62 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
   }, [articleId, t, toast])
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden bg-background", className)}>
-      {/* Upload button — above tabs */}
-      <div className="px-3 pt-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full text-xs"
-          onClick={() => setShowUpload(true)}
-          disabled={!articleId}
-        >
-          <Upload className="mr-1.5 h-3.5 w-3.5" />
-          {t("contentWriting.materialPanel.uploadButton")}
-        </Button>
-      </div>
-
-      <div className="px-3 py-3">
-        <div className="mx-auto h-[2px] w-[calc(100%-2.5rem)] rounded-full bg-border/55" />
-      </div>
-
-      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as MaterialPanelView)} className="flex h-full flex-col gap-2">
-        <div className="mx-3 shrink-0 rounded-xl border border-border/70 bg-muted/35 p-1.5">
-          <div className="flex items-center gap-1.5">
-          <TabsList className="h-9 min-w-0 flex-1 bg-background/80 p-1 ring-1 ring-border/50">
-            <TabsTrigger value="search" className="flex-1 text-xs">
-              <Search className="mr-1.5 h-3.5 w-3.5" />
-              {t("contentWriting.materialPanel.searchTab")}
-            </TabsTrigger>
-            <TabsTrigger value="library" className="flex-1 text-xs">
-              <BookOpen className="mr-1.5 h-3.5 w-3.5" />
-              {t("contentWriting.materialPanel.libraryTab")}
-            </TabsTrigger>
-          </TabsList>
+    <div className={cn("flex h-full flex-col overflow-hidden bg-transparent", className)}>
+      <div className="jw-panel-header shrink-0 px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="jw-icon-soft flex h-7 w-7 items-center justify-center rounded-md">
+                <FileText className="h-4 w-4" />
+              </div>
+              <h2 className="truncate text-sm font-semibold text-foreground">
+                {t("contentWriting.materialPanel.sourceTitle")}
+              </h2>
+            </div>
+            <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+              {t("contentWriting.materialPanel.sourceSubtitle")}
+            </p>
+          </div>
           <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className={cn(
-              "h-9 w-9 shrink-0 rounded-md border border-border/50 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground",
-              activeView === "favorites" && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-            )}
-            onClick={() => setActiveView("favorites")}
-            aria-label={t("contentWriting.materialPanel.globalFavoriteButton")}
-            title={t("contentWriting.materialPanel.globalFavoriteButton")}
+            variant="outline"
+            size="sm"
+            className="jw-soft-input h-8 shrink-0 px-2.5 text-xs"
+            onClick={() => setShowUpload(true)}
+            disabled={!articleId}
           >
-            <Heart className={cn("h-4 w-4", activeView === "favorites" && "fill-current")} />
+            <Upload className="mr-1.5 h-3.5 w-3.5" />
+            {t("contentWriting.materialPanel.uploadButton")}
           </Button>
+        </div>
+      </div>
+
+      <Tabs value={activeView} onValueChange={(value) => setActiveView(value as "search" | "library" | "favorites")} className="flex h-full flex-col">
+        <div className="mx-3 mt-3 shrink-0">
+          <div className="jw-panel-control flex items-center gap-2 rounded-lg p-1">
+            <TabsList className="min-w-0 flex-1 bg-[var(--jw-control-bg)]">
+              <TabsTrigger value="search" className="flex-1 text-xs">
+                <Search className="mr-1.5 h-3.5 w-3.5" />
+                {t("contentWriting.materialPanel.searchTab")}
+              </TabsTrigger>
+              <TabsTrigger value="library" className="flex-1 text-xs">
+                <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                {t("contentWriting.materialPanel.libraryTab")}
+              </TabsTrigger>
+            </TabsList>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "h-9 w-9 shrink-0 rounded-md border border-border/50 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground",
+                activeView === "favorites" && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+              )}
+              onClick={() => setActiveView("favorites")}
+              aria-label={t("contentWriting.materialPanel.globalFavoriteButton")}
+              title={t("contentWriting.materialPanel.globalFavoriteButton")}
+            >
+              <Heart className={cn("h-4 w-4", activeView === "favorites" && "fill-current")} />
+            </Button>
           </div>
 
           {activeView === "search" || activeView === "library" ? (

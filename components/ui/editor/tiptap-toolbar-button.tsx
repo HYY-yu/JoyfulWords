@@ -1,6 +1,5 @@
 "use client";
 
-import { BoldIcon } from "lucide-react";
 import React from "react";
 
 import {
@@ -28,8 +27,8 @@ export const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonPr
         variant="ghost"
         size="icon"
         className={cn(
-          "h-8 w-8",
-          isActive && "bg-accent",
+          "h-8 w-8 rounded-md text-foreground/70 hover:bg-[var(--jw-control-bg)] hover:text-foreground hover:shadow-[0_1px_2px_rgba(84,64,38,0.08)]",
+          isActive && "jw-toolbar-button-active",
           className,
         )}
         onClick={onClick}

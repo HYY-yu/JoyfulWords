@@ -307,14 +307,19 @@ export const apiClient = {
    * Logout
    * POST /auth/logout
    */
-  async logout() {
+  async logout(options?: { signal?: AbortSignal; skipAuthRefresh?: boolean }) {
     const token = tokenStore.getAccessToken()
 
-    return apiRequest<MessageResponse | ErrorResponse>('/auth/logout', {
-      method: 'POST',
-      credentials: 'include',
-      headers: withAuthorizationHeader(undefined, token),
-    })
+    return apiRequest<MessageResponse | ErrorResponse>(
+      '/auth/logout',
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: withAuthorizationHeader(undefined, token),
+        signal: options?.signal,
+      },
+      options?.skipAuthRefresh
+    )
   },
 
   /**

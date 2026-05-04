@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { Markdown } from "@tiptap/markdown";
@@ -29,6 +29,13 @@ import type {
 } from "@/lib/api/taskcenter/types";
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks";
 
+const NON_TEXT_EDITOR_CONTENT_PATTERN = /<(img|video|table|hr|ul|ol|blockquote|pre)\b/i;
+
+function isContentEffectivelyEmpty(value: string) {
+  const text = value.replace(/<[^>]*>/g, "").trim();
+
+  return !text && !NON_TEXT_EDITOR_CONTENT_PATTERN.test(value);
+}
 
 interface TiptapEditorProps {
   content?: string;
@@ -57,6 +64,7 @@ export function TiptapEditor({
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isEditorEmpty, setIsEditorEmpty] = useState(() => isContentEffectivelyEmpty(content));
 
   // AI 改写对话框状态
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
@@ -163,7 +171,7 @@ export function TiptapEditor({
       autolink: true,
       linkOnPaste: true,
       HTMLAttributes: {
-        class: "text-blue-600 underline cursor-pointer",
+        class: "cursor-pointer underline",
       },
     }),
     Underline,
@@ -199,6 +207,12 @@ export function TiptapEditor({
     },
     []
   );
+
+  const syncEditorEmptyState = useCallback((nextEditor: Editor) => {
+    const text = nextEditor.getText().trim();
+    const html = nextEditor.getHTML();
+    setIsEditorEmpty(!text && !NON_TEXT_EDITOR_CONTENT_PATTERN.test(html));
+  }, []);
 
   const uploadAndInsertEditorImage = useCallback(
     async (view: EditorView, file: File, source: "drop" | "paste", insertPos?: number) => {
@@ -272,7 +286,7 @@ export function TiptapEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: "prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[400px] p-6 prose-headings:font-bold prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-700 dark:prose-a:text-blue-400 dark:hover:prose-a:text-blue-300",
+        class: `prose prose-lg dark:prose-invert max-w-none focus:outline-none prose-headings:font-bold prose-a:underline ${mode === "edit" ? "" : "min-h-[400px] p-6"}`,
         placeholder,
       },
       handleDrop(view, event) {
@@ -321,6 +335,7 @@ export function TiptapEditor({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const text = editor.getText();
+      syncEditorEmptyState(editor);
 
       onChange?.(text, html);
     },
@@ -351,8 +366,10 @@ export function TiptapEditor({
           isExternalUpdate.current = false;
         });
       }
+
+      syncEditorEmptyState(editor);
     }
-  }, [content, editor, normalizeHTML]);
+  }, [content, editor, normalizeHTML, syncEditorEmptyState]);
 
   const closeAIDialog = useCallback(() => {
     setIsAIDialogOpen(false);
@@ -710,7 +727,7 @@ export function TiptapEditor({
 
   const editorShellClassName =
     mode === "edit"
-      ? "flex h-full w-full flex-col overflow-hidden bg-transparent"
+      ? "jw-editor-shell flex h-full w-full flex-col overflow-hidden bg-transparent"
       : "flex h-full w-full flex-col overflow-hidden rounded-lg border bg-background";
 
   return (
@@ -723,13 +740,19 @@ export function TiptapEditor({
         mode={mode}
       />
       <div
-        className="flex-1 overflow-y-auto min-h-0"
+        className={mode === "edit" ? "jw-document-stage min-h-0 flex-1 overflow-y-auto px-4" : "min-h-0 flex-1 overflow-y-auto"}
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "copy";
         }}
       >
-        <EditorContent editor={editor} className="h-full" />
+        {mode === "edit" ? (
+          <div className={`jw-document-paper ${isEditorEmpty ? "is-empty" : ""}`}>
+            <EditorContent editor={editor} className="h-full" />
+          </div>
+        ) : (
+          <EditorContent editor={editor} className="h-full" />
+        )}
       </div>
       {editor && <ImageMenu editor={editor} />}
       {editor && <LinkMenu editor={editor} />}
