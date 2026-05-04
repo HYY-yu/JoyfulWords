@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/base/tooltip"
 import {
   ArrowLeftIcon,
-  SaveIcon,
   BookLockIcon,
   DownloadIcon,
   Trash2,
@@ -26,11 +25,13 @@ import {
   LoaderIcon,
   CheckIcon,
   GitBranchIcon,
+  SendIcon,
 } from "lucide-react"
 import type { Article } from "@/lib/api/articles/types"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
 import { VersionDialog } from "./version-dialog"
+import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 
 export type SaveState = "idle" | "saving" | "saved" | "error"
 
@@ -39,8 +40,10 @@ interface EditorTopBarProps {
   onSave?: (content: string, skipVersion?: boolean) => void
   onExport?: (format: "markdown" | "html") => void
   onClean?: () => void
+  onPublish?: () => void
   onArticleUpdated?: (article: Article) => void
   isSaving?: boolean
+  isPublishing?: boolean
   saveState?: SaveState
   currentContent?: string
   onVersionRollback?: (versionData: { content: string }) => void
@@ -51,8 +54,10 @@ export function EditorTopBar({
   onSave,
   onExport,
   onClean,
+  onPublish,
   onArticleUpdated,
   isSaving = false,
+  isPublishing = false,
   saveState = "idle",
   currentContent = "",
   onVersionRollback,
@@ -61,6 +66,7 @@ export function EditorTopBar({
   const { toast } = useToast()
   const router = useRouter()
   const canOpenVersionDialog = Boolean(article && onSave && onVersionRollback)
+  const canPublish = Boolean(article && article.status === "draft" && onPublish)
 
   // 历史版本对话框状态
   const [isVersionDialogOpen, setIsVersionDialogOpen] = useState(false)
@@ -196,7 +202,7 @@ export function EditorTopBar({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 shrink-0 rounded-xl text-[#4d453b] hover:bg-[#fffdf7]"
+              className="h-9 w-9 shrink-0 rounded-xl text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
               onClick={handleBackClick}
             >
               <ArrowLeftIcon className="w-4 h-4" />
@@ -226,17 +232,17 @@ export function EditorTopBar({
         ) : (
           <div className="group/title flex min-w-0 flex-1 flex-col justify-center rounded-lg px-1 py-0.5">
             <div className="min-w-0" title={article?.title}>
-              <div className="hidden min-w-0 items-center gap-1.5 text-[11px] font-medium leading-4 text-[#7a7165] sm:flex">
+              <div className="hidden min-w-0 items-center gap-1.5 text-[11px] font-medium leading-4 text-[var(--jw-editor-muted)] sm:flex">
                 <span className="truncate">JoyfulWords / Article Canvas</span>
                 {article && (
                   <>
-                    <span className="h-1 w-1 shrink-0 rounded-full bg-[#c7b99f]" />
+                    <span className="h-1 w-1 shrink-0 rounded-full bg-[var(--jw-accent)]" />
                     <span className="shrink-0">{getStatusText(article.status)}</span>
                   </>
                 )}
               </div>
               <div className="flex min-w-0 items-center gap-1.5">
-                <h3 className="truncate text-sm font-semibold leading-5 text-[#16130f]">
+                <h3 className="truncate text-sm font-semibold leading-5 text-[var(--jw-editor-text)]">
                   {article?.title ?? t("contentWriting.editorHeader.newArticle")}
                 </h3>
                 <Tooltip>
@@ -245,7 +251,7 @@ export function EditorTopBar({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      className="h-7 w-7 shrink-0 rounded-lg text-[#7a7165] opacity-70 hover:bg-[#f4eee1] hover:text-teal-800 group-hover/title:opacity-100"
+                      className="h-7 w-7 shrink-0 rounded-lg text-[var(--jw-editor-muted)] opacity-70 hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)] group-hover/title:opacity-100"
                       onClick={handleTitleClick}
                     >
                       <PencilLineIcon className="h-3.5 w-3.5" />
@@ -282,12 +288,19 @@ export function EditorTopBar({
           </Tooltip>
         )}
 
+        {/* Theme Dropdown */}
+        <JoyfulThemeSwitcher variant="compact" />
+
         {/* Export Dropdown */}
         <Tooltip>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-md hover:bg-[#fffdf7]">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 rounded-md text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
+                >
                   <DownloadIcon className="w-4 h-4" />
                 </Button>
               </TooltipTrigger>
@@ -313,7 +326,7 @@ export function EditorTopBar({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-8 w-8 text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
                 onClick={() => setIsVersionDialogOpen(true)}
               >
                 <GitBranchIcon className="w-4 h-4" />
@@ -330,9 +343,9 @@ export function EditorTopBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="h-9 gap-2 rounded-lg bg-teal-700 px-3 text-white shadow-[0_12px_24px_-18px_rgba(15,118,110,0.8)] hover:bg-teal-800"
+                className="h-9 gap-2 rounded-lg bg-[var(--jw-accent)] px-3 text-[var(--jw-accent-foreground)] shadow-[var(--jw-accent-button-shadow)] hover:bg-[var(--jw-accent-hover)]"
                 onClick={() => onSave(currentContent)}
-                disabled={isSaving || saveState === "saving"}
+                disabled={isSaving || isPublishing || saveState === "saving"}
               >
                 {renderSaveIcon()}
                 <span>{isSaving || saveState === "saving" ? t("common.saving") : t("common.save")}</span>
@@ -340,6 +353,33 @@ export function EditorTopBar({
             </TooltipTrigger>
             <TooltipContent>
               <span>{getSaveTooltip()}</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Publish Button */}
+        {canPublish && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="h-9 gap-2 rounded-lg border border-[var(--jw-accent)] bg-[var(--jw-control-active-bg)] px-3 text-[var(--jw-accent)] shadow-sm hover:bg-[var(--jw-accent-soft)]"
+                onClick={onPublish}
+                disabled={isSaving || isPublishing || saveState === "saving"}
+              >
+                {isPublishing ? (
+                  <LoaderIcon className="w-4 h-4 animate-spin" />
+                ) : (
+                  <SendIcon className="w-4 h-4" />
+                )}
+                <span>
+                  {isPublishing
+                    ? t("contentWriting.editorHeader.publishing")
+                    : t("contentWriting.editorHeader.publish")}
+                </span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{t("contentWriting.editorHeader.publishTooltip")}</span>
             </TooltipContent>
           </Tooltip>
         )}

@@ -28,14 +28,25 @@ test('public auth routes skip bootstrap restore when there is no local auth stat
   )
 })
 
-test('partial local auth state still triggers bootstrap restore', () => {
+test('public auth routes skip bootstrap restore even with partial local auth state', () => {
   assert.equal(
     shouldAttemptSessionRestore({
       pathname: '/auth/login',
       hasStoredUser: true,
       hasAccessToken: false,
     }),
-    true
+    false
+  )
+})
+
+test('oauth callback skips bootstrap restore even with stale local auth state', () => {
+  assert.equal(
+    shouldAttemptSessionRestore({
+      pathname: '/auth/google/callback',
+      hasStoredUser: true,
+      hasAccessToken: true,
+    }),
+    false
   )
 })
 

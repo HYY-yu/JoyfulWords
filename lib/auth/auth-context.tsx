@@ -9,12 +9,13 @@ import { setupTokenRefresh } from '@/lib/tokens/refresh'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { isSignupEmailAlreadyRegisteredError } from '@/lib/auth/auth-error-resolver'
 import { saveOAuthState } from '@/lib/auth/oauth-state'
-import { shouldAttemptSessionRestore } from '@/lib/auth/session-policy'
+import { isAuthRoute, shouldAttemptSessionRestore } from '@/lib/auth/session-policy'
 import type { User } from '@/lib/api/types'
 
 const USER_STORAGE_KEY = 'auth_user'
 const LEGACY_USER_STORAGE_KEY = 'user'
 type SignupCodeRequestResult = 'code_sent' | 'redirect_to_login'
+const OAUTH_SESSION_CLEANUP_TIMEOUT_MS = 2000
 
 interface AuthContextType {
   user: User | null
@@ -128,7 +129,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           hasAccessToken,
         })
 
-        persistUser(null)
+        if (isAuthRoute(currentPathname) && (hasStoredUser || hasAccessToken)) {
+          tokenStore.clear('auth_route_bootstrap_skipped')
+        } else {
+          persistUser(null)
+        }
+
         if (!isCancelled) {
           setUser(null)
           setLoading(false)
@@ -221,6 +227,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signInWithGoogle = async (redirectUrl?: string) => {
+    tokenStore.clear('google_login_start')
+    setAuthenticatedUser(null)
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => {
+      controller.abort()
+    }, OAUTH_SESSION_CLEANUP_TIMEOUT_MS)
+
+    try {
+      await apiClient.logout({
+        signal: controller.signal,
+        skipAuthRefresh: true,
+      })
+    } catch (error) {
+      console.warn('[Auth] Ignoring stale session cleanup failure before Google login', {
+        error,
+      })
+    } finally {
+      window.clearTimeout(timeoutId)
+    }
+
     const result = await apiClient.googleLogin(redirectUrl)
 
     if ('error' in result) {

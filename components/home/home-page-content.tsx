@@ -23,6 +23,7 @@ import { BrandLogo } from "@/components/brand/brand-logo"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
+import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 
 const featureKeys = [
   {
@@ -106,39 +107,40 @@ export function HomePageContent() {
   }, [])
 
   return (
-    <div className="overflow-x-hidden bg-[#fbf7ec] text-[#221f1a]">
-      <header className="fixed top-0 right-0 left-0 z-50 flex h-16 items-center gap-3 border-b border-[#ded4c4]/80 bg-[#fffdf7]/90 px-4 shadow-[0_10px_28px_-24px_rgba(84,64,38,0.45)] backdrop-blur-2xl sm:px-6 md:px-10">
+    <div className="jw-app-shell overflow-x-hidden">
+      <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
         <BrandLogo />
         <div className="flex-1" />
 
         <div className="hidden items-center gap-3 md:flex">
+          <JoyfulThemeSwitcher variant="compact" />
           <button
             onClick={() => {
               const nextLocale = locale === "zh" ? "en" : "zh"
               persistLocalePreference(nextLocale)
               router.replace(buildLocalizedPath(nextLocale))
             }}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm text-[#6b6255] transition-all hover:bg-[#f4eee1] hover:text-[#221f1a]"
+            className="jw-themed-link flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
           >
             <Globe className="h-4 w-4" />
             {locale === "zh" ? "EN" : "中文"}
           </button>
           <a
             href="#features"
-            className="rounded-full px-3.5 py-1.5 text-sm text-[#6b6255] transition-all hover:bg-[#f4eee1] hover:text-[#221f1a]"
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
             {t("landing.nav.features")}
           </a>
           <Link
             href={blogHref}
-            className="rounded-full px-3.5 py-1.5 text-sm text-[#6b6255] transition-all hover:bg-[#f4eee1] hover:text-[#221f1a]"
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
             {t("landing.nav.blog")}
           </Link>
-          <Button variant="outline" size="sm" className="rounded-full border-[#ded4c4] bg-[#fffdf7] shadow-sm" asChild>
+          <Button variant="outline" size="sm" className="jw-secondary-button rounded-full shadow-sm" asChild>
             <Link href="/articles">{t("landing.nav.myArticles")}</Link>
           </Button>
-          <Button size="sm" className="rounded-full bg-teal-700 text-white shadow-[0_12px_24px_-18px_rgba(15,118,110,0.8)] hover:bg-teal-800" asChild>
+          <Button size="sm" className="jw-primary-button rounded-full" asChild>
             <Link href="/articles">
               {t("landing.nav.startCreating")}
             </Link>
@@ -162,6 +164,9 @@ export function HomePageContent() {
             </SheetHeader>
 
             <nav className="flex flex-col gap-1 px-4 pb-6">
+              <div className="mb-2">
+                <JoyfulThemeSwitcher variant="compact" className="w-full justify-between" />
+              </div>
               <button
                 onClick={() => {
                   const nextLocale = locale === "zh" ? "en" : "zh"
@@ -213,34 +218,34 @@ export function HomePageContent() {
       </header>
 
       <section className="relative isolate min-h-screen overflow-hidden px-6 pt-28 pb-16 md:px-10">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_20%,rgba(255,214,107,0.24),transparent_30%),radial-gradient(circle_at_80%_12%,rgba(20,184,166,0.16),transparent_32%),linear-gradient(180deg,#fffdf7_0%,#fbf7ec_58%,#f5efe3_100%)]" />
+        <div className="jw-hero-wash pointer-events-none absolute inset-0 -z-10" />
         <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.22] [background-image:radial-gradient(circle_at_1px_1px,rgba(93,75,47,0.22)_1px,transparent_0)] [background-size:30px_30px]" />
 
         <div className="mx-auto grid min-h-[calc(100vh-7rem)] max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
           <div className="text-center lg:text-left">
-            <div className="animate-fade-up mb-7 inline-flex items-center gap-2 rounded-full border border-teal-700/18 bg-teal-50/90 px-4 py-1.5 text-[13px] font-semibold text-teal-800 shadow-[0_12px_28px_-24px_rgba(15,118,110,0.8)]">
-              <SparklesIcon className="h-3.5 w-3.5 text-[#d89916]" />
+            <div className="animate-fade-up mb-7 inline-flex items-center gap-2 rounded-full border border-[var(--jw-border)] bg-[var(--jw-accent-soft)] px-4 py-1.5 text-[13px] font-semibold text-[var(--jw-accent)] shadow-[var(--jw-soft-shadow)]">
+              <SparklesIcon className="h-3.5 w-3.5" />
               {t("landing.badge")}
             </div>
 
-            <h1 className="animate-fade-up animate-delay-1 mb-6 font-serif text-5xl leading-[1.08] tracking-tight text-[#16130f] md:text-7xl lg:text-[88px]">
+            <h1 className="jw-heading-text animate-fade-up animate-delay-1 mb-6 font-serif text-5xl leading-[1.08] tracking-tight md:text-7xl lg:text-[88px]">
               {t("landing.heading")}
               <br />
-              <em className="not-italic text-teal-700">{t("landing.headingAccent")}</em>
+              <em className="not-italic text-[var(--jw-accent)]">{t("landing.headingAccent")}</em>
             </h1>
 
-            <p className="animate-fade-up animate-delay-2 mx-auto mb-9 max-w-xl text-lg leading-relaxed text-[#6b6255] lg:mx-0">
+            <p className="jw-muted-text animate-fade-up animate-delay-2 mx-auto mb-9 max-w-xl text-lg leading-relaxed lg:mx-0">
               {t("landing.description")}
             </p>
 
             <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3 lg:justify-start">
-              <Button size="lg" className="rounded-full bg-teal-700 px-6 text-white shadow-[0_16px_30px_-20px_rgba(15,118,110,0.9)] hover:bg-teal-800" asChild>
+              <Button size="lg" className="jw-primary-button rounded-full px-6" asChild>
                 <Link href="/articles">
                   <SparklesIcon className="h-4 w-4" />
                   {t("landing.cta")}
                 </Link>
               </Button>
-              <Button variant="outline" size="lg" className="rounded-full border-[#ded4c4] bg-[#fffdf7]/90 px-6 shadow-sm" asChild>
+              <Button variant="outline" size="lg" className="jw-secondary-button rounded-full px-6 shadow-sm" asChild>
                 <Link href="/articles">
                   {t("landing.viewArticles")}
                   <ArrowRightIcon className="h-4 w-4" />
@@ -248,13 +253,13 @@ export function HomePageContent() {
               </Button>
             </div>
 
-            <div className="animate-fade-up animate-delay-4 mt-12 grid w-full max-w-xl grid-cols-3 overflow-hidden rounded-xl border border-[#ded4c4] bg-[#fffdf7]/86 shadow-[0_20px_60px_-44px_rgba(84,64,38,0.55)]">
+            <div className="jw-surface-card animate-fade-up animate-delay-4 mt-12 grid w-full max-w-xl grid-cols-3 overflow-hidden rounded-xl border">
               {stats.map((stat) => (
-                <div key={stat.label} className="border-r border-[#ded4c4]/80 px-4 py-4 text-center last:border-r-0">
-                  <div className="font-serif text-2xl tracking-tight text-[#16130f] sm:text-[28px]">
+                <div key={stat.label} className="border-r border-[var(--jw-border)] px-4 py-4 text-center last:border-r-0">
+                  <div className="jw-heading-text font-serif text-2xl tracking-tight sm:text-[28px]">
                     {stat.value}
                   </div>
-                  <div className="mt-1 text-xs text-[#7a7165]">
+                  <div className="jw-muted-text mt-1 text-xs">
                     {stat.label}
                   </div>
                 </div>
@@ -265,19 +270,19 @@ export function HomePageContent() {
           <div className="animate-fade-up animate-delay-2 relative mx-auto w-full max-w-xl">
             <div className="absolute -left-4 top-10 h-20 w-20 rounded-full bg-[#ffd66b]/40 blur-2xl" />
             <div className="absolute -right-4 bottom-12 h-24 w-24 rounded-full bg-teal-300/25 blur-2xl" />
-            <div className="relative overflow-hidden rounded-[28px] border border-[#ded4c4] bg-[#fffdf7]/88 p-4 shadow-[0_32px_80px_-46px_rgba(84,64,38,0.58)] backdrop-blur">
-              <div className="rounded-2xl border border-[#e5dbc9] bg-[#fbf7ec] p-4">
+            <div className="jw-surface-card relative overflow-hidden rounded-[28px] border p-4 backdrop-blur">
+              <div className="jw-surface-muted rounded-2xl border p-4">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-700 text-white">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]">
                       <FilePenLineIcon className="h-4 w-4" />
                     </span>
                     <div>
                       <p className="text-sm font-semibold">Article Canvas</p>
-                      <p className="text-xs text-[#7a7165]">Material → Draft → Visual</p>
+                      <p className="jw-muted-text text-xs">Material → Draft → Visual</p>
                     </div>
                   </div>
-                  <span className="rounded-full bg-[#e9fff7] px-2.5 py-1 text-xs font-semibold text-teal-800">
+                  <span className="rounded-full bg-[var(--jw-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--jw-accent)]">
                     Live
                   </span>
                 </div>
@@ -291,23 +296,23 @@ export function HomePageContent() {
                     ].map((item) => {
                       const Icon = item.icon
                       return (
-                        <div key={item.label} className="flex items-center gap-3 rounded-xl border border-[#e5dbc9] bg-[#fffdf7] p-3">
+                        <div key={item.label} className="jw-surface-strong flex items-center gap-3 rounded-xl border p-3">
                           <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.color}`}>
                             <Icon className="h-4 w-4" />
                           </span>
-                          <span className="text-sm font-medium text-[#342f27]">{item.label}</span>
+                          <span className="text-sm font-medium text-[var(--jw-heading)]">{item.label}</span>
                         </div>
                       )
                     })}
                   </div>
-                  <div className="rounded-xl border border-[#e5dbc9] bg-[#fffef9] p-4">
-                    <div className="mb-3 h-3 w-2/3 rounded-full bg-[#d8cdbb]" />
+                  <div className="jw-surface-strong rounded-xl border p-4">
+                    <div className="mb-3 h-3 w-2/3 rounded-full bg-[var(--jw-border)]" />
                     <div className="space-y-2">
-                      <div className="h-2.5 rounded-full bg-[#eee6d7]" />
-                      <div className="h-2.5 w-10/12 rounded-full bg-[#eee6d7]" />
-                      <div className="h-2.5 w-8/12 rounded-full bg-[#eee6d7]" />
+                      <div className="h-2.5 rounded-full bg-[var(--jw-surface-muted)]" />
+                      <div className="h-2.5 w-10/12 rounded-full bg-[var(--jw-surface-muted)]" />
+                      <div className="h-2.5 w-8/12 rounded-full bg-[var(--jw-surface-muted)]" />
                     </div>
-                    <div className="mt-5 rounded-lg border-l-4 border-teal-600 bg-teal-50/70 p-3 text-sm text-teal-900">
+                    <div className="mt-5 rounded-lg border-l-4 border-[var(--jw-accent)] bg-[var(--jw-accent-soft)] p-3 text-sm text-[var(--jw-heading)]">
                       {t("landing.featuresSubheading")}
                     </div>
                   </div>
@@ -320,7 +325,7 @@ export function HomePageContent() {
 
       <section
         id="features"
-        className="border-t border-[#ded4c4]/80 bg-[#fffdf7] px-6 py-24 md:px-10"
+        className="border-t border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-6 py-24 md:px-10"
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 max-w-2xl">
@@ -371,10 +376,10 @@ export function HomePageContent() {
 
                     <div className={`relative flex min-h-[16rem] flex-col justify-between gap-10 ${contentAlignClass} md:min-h-[19rem]`}>
                       <div className={`flex max-w-4xl flex-1 flex-col ${contentAlignClass}`}>
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#fbf7ec] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a7165]">
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[var(--jw-surface-muted)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--jw-muted)]">
                           {(() => {
                             const Icon = featureIcons[feature.key]
-                            return <Icon className="h-3.5 w-3.5 text-teal-700" />
+                            return <Icon className="h-3.5 w-3.5 text-[var(--jw-accent)]" />
                           })()}
                           <span>{t(`landing.features.${feature.key}.eyebrow`)}</span>
                         </div>
@@ -400,18 +405,18 @@ export function HomePageContent() {
         </div>
       </section>
 
-      <section className="relative mx-4 my-16 overflow-hidden rounded-[28px] border border-teal-700/15 bg-teal-800 px-6 py-20 text-center shadow-[0_30px_80px_-48px_rgba(15,118,110,0.8)] md:mx-10 md:px-16">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,214,107,.28),transparent_28%),radial-gradient(circle_at_78%_68%,rgba(45,212,191,.26),transparent_34%)]" />
+      <section className="jw-cta-band relative mx-4 my-16 overflow-hidden rounded-[28px] border px-6 py-20 text-center shadow-[var(--jw-card-shadow)] md:mx-10 md:px-16">
+        <div className="pointer-events-none absolute inset-0 opacity-80" />
         <div className="relative">
-          <h2 className="mb-4 font-serif text-5xl tracking-tight text-[#fffdf7]">
+          <h2 className="mb-4 font-serif text-5xl tracking-tight text-[var(--jw-cta-text)]">
             {t("landing.ctaHeading")}
           </h2>
-          <p className="mb-9 text-base text-teal-50/75">
+          <p className="mb-9 text-base text-[var(--jw-cta-text)] opacity-75">
             {t("landing.ctaSubtitle")}
           </p>
           <Button
             size="lg"
-            className="rounded-full bg-[#fffdf7] text-teal-900 hover:bg-white"
+            className="rounded-full bg-[var(--jw-surface-strong)] text-[var(--jw-heading)] hover:bg-white"
             asChild
           >
             <Link href="/articles">
@@ -422,7 +427,7 @@ export function HomePageContent() {
         </div>
       </section>
 
-      <footer className="border-t border-[#ded4c4]/80 bg-[#fffdf7] px-4 py-6 sm:px-6 md:px-10">
+      <footer className="jw-app-header border-t px-4 py-6 sm:px-6 md:px-10">
         <div className="flex items-center justify-between gap-4">
           <BrandLogo showWordmark={false} compact />
 

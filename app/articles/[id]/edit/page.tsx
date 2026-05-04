@@ -47,6 +47,7 @@ export default function ArticleEditPage() {
   const [loadingArticle, setLoadingArticle] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isManualSaving, setIsManualSaving] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
 
   // ---- Editor state ----
   const editorState = useEditorState()
@@ -202,6 +203,56 @@ export default function ArticleEditPage() {
     }
   }, [article?.id, autoSave, editorState, isManualSaving, t, toast])
 
+  const handlePublish = useCallback(async () => {
+    if (!article?.id || article.status !== "draft" || isManualSaving || isPublishing) return
+
+    setIsPublishing(true)
+    autoSave.cancelPendingSave()
+
+    try {
+      const content = editorState.content.html
+
+      const saveResult = await articlesClient.updateArticleContent(article.id, {
+        content,
+      })
+
+      if ("error" in saveResult) {
+        throw new Error(saveResult.error)
+      }
+
+      const publishResult = await articlesClient.updateArticleStatus(article.id, {
+        status: "published",
+      })
+
+      if ("error" in publishResult) {
+        throw new Error(publishResult.error)
+      }
+
+      editorState.markSaved()
+      setArticle((current) =>
+        current
+          ? {
+              ...current,
+              content,
+              status: "published",
+            }
+          : current
+      )
+
+      toast({
+        title: t("contentWriting.editorHeader.publishSuccess"),
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.editorHeader.publishFailed"),
+        description: error instanceof Error ? error.message : String(error),
+      })
+    } finally {
+      setIsPublishing(false)
+    }
+  }, [article, autoSave, editorState, isManualSaving, isPublishing, t, toast])
+
   // ==================== Export ====================
 
   const handleExport = useCallback(
@@ -305,8 +356,10 @@ export default function ArticleEditPage() {
       article={article}
       onSave={autoSave.triggerSave}
       onExport={handleExport}
+      onPublish={handlePublish}
       onArticleUpdated={handleArticleUpdated}
       isSaving={isManualSaving}
+      isPublishing={isPublishing}
       saveState={
         autoSave.saveState.status === "saving"
           ? "saving"

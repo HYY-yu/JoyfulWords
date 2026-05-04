@@ -258,7 +258,7 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
 
       {/* 自动保存状态指示灯 - 固定在工具栏最右侧 */}
       {saveStatus && (
-        <div className="hidden shrink-0 rounded-full border border-[#ded4c4] bg-[#fffdf7]/82 px-2.5 py-1 shadow-[0_1px_2px_rgba(84,64,38,0.05)] sm:block">
+        <div className="jw-editor-status-pill hidden shrink-0 rounded-full border px-2.5 py-1 sm:block">
           <SaveStatusIndicator saveStatus={saveStatus} />
         </div>
       )}

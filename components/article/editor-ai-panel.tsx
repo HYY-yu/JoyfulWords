@@ -99,63 +99,63 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     id: "ai-edit",
     labelKey: "tiptapEditor.aiPanel.aiEdit",
     icon: WandSparklesIcon,
-    bgColor: "bg-teal-50 ring-teal-100",
-    iconColor: "text-teal-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "writing",
   },
   {
     id: "mindmap",
     labelKey: "tiptapEditor.aiPanel.mindmap",
     icon: BrainCircuitIcon,
-    bgColor: "bg-emerald-50 ring-emerald-100",
-    iconColor: "text-emerald-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
   },
   {
     id: "create-image",
     labelKey: "tiptapEditor.aiPanel.createImage",
     icon: ImagePlusIcon,
-    bgColor: "bg-sky-50 ring-sky-100",
-    iconColor: "text-sky-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "visual",
   },
   {
     id: "reversal-mode",
     labelKey: "tiptapEditor.aiPanel.reversalMode",
     icon: GalleryHorizontalEndIcon,
-    bgColor: "bg-rose-50 ring-rose-100",
-    iconColor: "text-rose-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "visual",
   },
   {
     id: "image-style",
     labelKey: "tiptapEditor.aiPanel.imageStyle",
     icon: PaletteIcon,
-    bgColor: "bg-amber-50 ring-amber-100",
-    iconColor: "text-amber-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "visual",
   },
   {
     id: "infographic",
     labelKey: "tiptapEditor.aiPanel.infographic",
     icon: ChartNoAxesCombinedIcon,
-    bgColor: "bg-cyan-50 ring-cyan-100",
-    iconColor: "text-cyan-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
   },
   {
     id: "presentation",
     labelKey: "tiptapEditor.aiPanel.generatePpt",
     icon: PresentationIcon,
-    bgColor: "bg-violet-50 ring-violet-100",
-    iconColor: "text-violet-700",
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
   },
   {
     id: "video",
     labelKey: "tiptapEditor.aiPanel.generateVideo",
     icon: FilmIcon,
-    bgColor: "bg-stone-100 ring-stone-200",
+    bgColor: "bg-[var(--jw-control-bg)] ring-[var(--jw-border-subtle)]",
     iconColor: "text-stone-400",
     groupKey: "visual",
     disabled: true,
@@ -520,7 +520,7 @@ export function EditorAIPanel({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="shrink-0 bg-[linear-gradient(180deg,#fffef9_0%,#fbf6eb_100%)] px-4 py-4 shadow-[inset_0_-1px_0_rgba(219,208,190,0.34)]">
+      <div className="jw-panel-header shrink-0 px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-foreground">
@@ -572,7 +572,7 @@ export function EditorAIPanel({
                         "jw-action-card group flex min-h-20 w-full flex-col items-start justify-between rounded-lg p-3 text-left transition-all duration-150",
                         btn.disabled
                           ? "cursor-not-allowed opacity-55"
-                          : "cursor-pointer hover:-translate-y-0.5 hover:border-teal-500/35"
+                          : "cursor-pointer hover:-translate-y-0.5 hover:border-[var(--jw-action-hover-border)]"
                       )}
                     >
                       <span
@@ -589,7 +589,7 @@ export function EditorAIPanel({
                           )}
                         />
                         {!btn.disabled && (
-                          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#fffdf7] text-amber-500 shadow-[0_4px_12px_-8px_rgba(84,64,38,0.65)]">
+                          <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--jw-control-active-bg)] text-[var(--jw-accent)] shadow-sm">
                             <SparklesIcon className="h-2.5 w-2.5" />
                           </span>
                         )}
@@ -627,7 +627,7 @@ export function EditorAIPanel({
         })}
       </div>
 
-      <div className="flex min-h-[260px] flex-[1.05] flex-col overflow-hidden bg-[#fffdf7]/82 shadow-[inset_0_1px_0_rgba(219,208,190,0.34)]">
+      <div className="jw-task-progress-shell flex min-h-[260px] flex-[1.05] flex-col overflow-hidden">
         <div className="px-4 py-3">
           <h4 className="text-xs font-semibold text-foreground">
             {t("tiptapEditor.aiPanel.taskProgress")}

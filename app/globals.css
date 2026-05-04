@@ -121,6 +121,155 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+:root,
+:root[data-joyful-theme="blue-white"] {
+  --background: oklch(0.985 0.012 255);
+  --foreground: oklch(0.18 0.03 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.03 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.03 258);
+  --primary: oklch(0.54 0.18 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.018 252);
+  --secondary-foreground: oklch(0.2 0.04 258);
+  --muted: oklch(0.96 0.014 252);
+  --muted-foreground: oklch(0.47 0.045 258);
+  --accent: oklch(0.95 0.028 250);
+  --accent-foreground: oklch(0.24 0.075 258);
+  --border: oklch(0.9 0.03 252);
+  --input: oklch(0.9 0.03 252);
+  --ring: oklch(0.58 0.17 260);
+  --jw-accent: #2563eb;
+  --jw-accent-hover: #1d4ed8;
+  --jw-accent-foreground: #ffffff;
+  --jw-accent-soft: rgba(219, 234, 254, 0.78);
+  --jw-muted: rgba(48, 63, 93, 0.72);
+  --jw-heading: #111827;
+  --jw-page-text: #172033;
+  --jw-page-bg:
+    radial-gradient(circle at 12% 10%, rgba(96, 165, 250, 0.18), transparent 30%),
+    linear-gradient(180deg, #f9fcff 0%, #f0f6ff 56%, #e8f1ff 100%);
+  --jw-header-bg: rgba(249, 252, 255, 0.9);
+  --jw-header-divider: rgba(183, 205, 238, 0.56);
+  --jw-border: rgba(169, 194, 231, 0.52);
+  --jw-border-subtle: rgba(169, 194, 231, 0.28);
+  --jw-surface: rgba(255, 255, 255, 0.88);
+  --jw-surface-strong: rgba(255, 255, 255, 0.96);
+  --jw-surface-muted: rgba(239, 246, 255, 0.78);
+  --jw-card-shadow: 0 24px 64px -48px rgba(37, 99, 235, 0.36);
+  --jw-soft-shadow: 0 12px 26px -20px rgba(37, 99, 235, 0.42);
+  --jw-hero-bg:
+    radial-gradient(circle at 18% 20%, rgba(96, 165, 250, 0.24), transparent 30%),
+    radial-gradient(circle at 80% 12%, rgba(45, 212, 191, 0.14), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #f4f8ff 58%, #e8f1ff 100%);
+  --jw-cta-bg:
+    radial-gradient(circle at 20% 20%, rgba(147, 197, 253, 0.28), transparent 28%),
+    radial-gradient(circle at 78% 68%, rgba(125, 211, 252, 0.24), transparent 34%),
+    linear-gradient(135deg, #1d4ed8, #0f766e);
+  --jw-cta-text: #ffffff;
+  --jw-theme-menu-bg: rgba(255, 255, 255, 0.96);
+}
+
+:root[data-joyful-theme="paper"] {
+  --background: oklch(0.985 0.012 85);
+  --foreground: oklch(0.19 0.018 82);
+  --card: oklch(0.99 0.008 85);
+  --card-foreground: oklch(0.19 0.018 82);
+  --popover: oklch(0.99 0.008 85);
+  --popover-foreground: oklch(0.19 0.018 82);
+  --primary: oklch(0.45 0.095 176);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.955 0.018 85);
+  --secondary-foreground: oklch(0.2 0.02 82);
+  --muted: oklch(0.95 0.018 85);
+  --muted-foreground: oklch(0.49 0.026 82);
+  --accent: oklch(0.94 0.022 85);
+  --accent-foreground: oklch(0.21 0.025 82);
+  --border: oklch(0.86 0.032 82);
+  --input: oklch(0.86 0.032 82);
+  --ring: oklch(0.45 0.095 176);
+  --jw-accent: #007f6d;
+  --jw-accent-hover: #006b5d;
+  --jw-accent-foreground: #ffffff;
+  --jw-accent-soft: rgba(204, 251, 241, 0.68);
+  --jw-muted: rgba(91, 80, 65, 0.76);
+  --jw-heading: #19150f;
+  --jw-page-text: #27231d;
+  --jw-page-bg:
+    radial-gradient(circle at 14% 10%, rgba(255, 214, 107, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffdf7 0%, #fbf7ec 54%, #f5efe3 100%);
+  --jw-header-bg: rgba(255, 253, 247, 0.9);
+  --jw-header-divider: rgba(222, 212, 196, 0.78);
+  --jw-border: rgba(222, 212, 196, 0.82);
+  --jw-border-subtle: rgba(229, 219, 201, 0.55);
+  --jw-surface: rgba(255, 253, 247, 0.88);
+  --jw-surface-strong: rgba(255, 253, 247, 0.97);
+  --jw-surface-muted: rgba(250, 246, 236, 0.78);
+  --jw-card-shadow: 0 24px 64px -48px rgba(84, 64, 38, 0.48);
+  --jw-soft-shadow: 0 12px 26px -20px rgba(15, 118, 110, 0.42);
+  --jw-hero-bg:
+    radial-gradient(circle at 18% 20%, rgba(255, 214, 107, 0.24), transparent 30%),
+    radial-gradient(circle at 80% 12%, rgba(20, 184, 166, 0.16), transparent 32%),
+    linear-gradient(180deg, #fffdf7 0%, #fbf7ec 58%, #f5efe3 100%);
+  --jw-cta-bg:
+    radial-gradient(circle at 20% 20%, rgba(255, 214, 107, 0.28), transparent 28%),
+    radial-gradient(circle at 78% 68%, rgba(45, 212, 191, 0.26), transparent 34%),
+    #115e55;
+  --jw-cta-text: #fffdf7;
+  --jw-theme-menu-bg: rgba(255, 253, 247, 0.96);
+}
+
+:root[data-joyful-theme="black-gold"] {
+  --background: oklch(0.13 0.018 78);
+  --foreground: oklch(0.92 0.028 82);
+  --card: oklch(0.18 0.018 78);
+  --card-foreground: oklch(0.92 0.028 82);
+  --popover: oklch(0.16 0.018 78);
+  --popover-foreground: oklch(0.92 0.028 82);
+  --primary: oklch(0.74 0.13 82);
+  --primary-foreground: oklch(0.15 0.02 78);
+  --secondary: oklch(0.22 0.02 78);
+  --secondary-foreground: oklch(0.9 0.03 82);
+  --muted: oklch(0.23 0.02 78);
+  --muted-foreground: oklch(0.72 0.035 82);
+  --accent: oklch(0.25 0.026 78);
+  --accent-foreground: oklch(0.88 0.09 82);
+  --border: oklch(0.34 0.034 78);
+  --input: oklch(0.34 0.034 78);
+  --ring: oklch(0.74 0.13 82);
+  --jw-accent: #d6a84f;
+  --jw-accent-hover: #f0c978;
+  --jw-accent-foreground: #17130c;
+  --jw-accent-soft: rgba(214, 168, 79, 0.16);
+  --jw-muted: rgba(239, 226, 199, 0.68);
+  --jw-heading: #f7ead0;
+  --jw-page-text: #f2e7d0;
+  --jw-page-bg:
+    radial-gradient(circle at 15% 0%, rgba(214, 168, 79, 0.16), transparent 32%),
+    radial-gradient(circle at 85% 16%, rgba(240, 201, 120, 0.08), transparent 28%),
+    linear-gradient(180deg, #14120d 0%, #1c1710 55%, #0f0d0a 100%);
+  --jw-header-bg: rgba(19, 16, 11, 0.88);
+  --jw-header-divider: rgba(214, 168, 79, 0.26);
+  --jw-border: rgba(214, 168, 79, 0.28);
+  --jw-border-subtle: rgba(214, 168, 79, 0.16);
+  --jw-surface: rgba(27, 23, 16, 0.84);
+  --jw-surface-strong: rgba(33, 28, 19, 0.94);
+  --jw-surface-muted: rgba(214, 168, 79, 0.08);
+  --jw-card-shadow: 0 28px 74px -50px rgba(0, 0, 0, 0.88);
+  --jw-soft-shadow: 0 14px 30px -18px rgba(214, 168, 79, 0.52);
+  --jw-hero-bg:
+    radial-gradient(circle at 20% 18%, rgba(214, 168, 79, 0.18), transparent 31%),
+    radial-gradient(circle at 80% 12%, rgba(240, 201, 120, 0.08), transparent 32%),
+    linear-gradient(180deg, #17130c 0%, #120f0a 58%, #0d0b08 100%);
+  --jw-cta-bg:
+    radial-gradient(circle at 20% 20%, rgba(240, 201, 120, 0.28), transparent 28%),
+    radial-gradient(circle at 78% 68%, rgba(214, 168, 79, 0.16), transparent 34%),
+    #15110b;
+  --jw-cta-text: #f7ead0;
+  --jw-theme-menu-bg: rgba(27, 23, 16, 0.96);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -142,6 +291,115 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
   }
+}
+
+.jw-app-shell {
+  background: var(--jw-page-bg);
+  color: var(--jw-page-text);
+  transition:
+    background 220ms ease,
+    color 220ms ease;
+}
+
+.jw-app-header {
+  border-color: var(--jw-header-divider);
+  background: var(--jw-header-bg);
+  box-shadow: 0 10px 30px -26px color-mix(in srgb, var(--jw-accent) 42%, transparent);
+}
+
+.jw-surface-card {
+  border-color: var(--jw-border);
+  background: var(--jw-surface);
+  box-shadow: var(--jw-card-shadow);
+}
+
+.jw-surface-strong {
+  border-color: var(--jw-border);
+  background: var(--jw-surface-strong);
+}
+
+.jw-surface-muted {
+  border-color: var(--jw-border-subtle);
+  background: var(--jw-surface-muted);
+}
+
+.jw-heading-text {
+  color: var(--jw-heading);
+}
+
+.jw-muted-text {
+  color: var(--jw-muted);
+}
+
+.jw-themed-link {
+  color: var(--jw-muted);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.jw-themed-link:hover {
+  background: var(--jw-accent-soft);
+  color: var(--jw-heading);
+}
+
+.jw-primary-button {
+  background: var(--jw-accent);
+  color: var(--jw-accent-foreground);
+  box-shadow: var(--jw-soft-shadow);
+}
+
+.jw-primary-button:hover {
+  background: var(--jw-accent-hover);
+}
+
+.jw-secondary-button {
+  border-color: var(--jw-border);
+  background: var(--jw-surface-strong);
+  color: var(--jw-heading);
+}
+
+.jw-secondary-button:hover {
+  background: var(--jw-surface-muted);
+}
+
+.jw-themed-input {
+  border-color: var(--jw-border);
+  background: var(--jw-surface-strong);
+  color: var(--jw-heading);
+}
+
+.jw-themed-input::placeholder {
+  color: var(--jw-muted);
+}
+
+.jw-brand-mark {
+  border-color: color-mix(in srgb, var(--jw-accent) 20%, transparent);
+  background: var(--jw-surface-strong);
+  color: var(--jw-accent);
+  box-shadow: var(--jw-soft-shadow);
+}
+
+.jw-brand-spark {
+  background: color-mix(in srgb, var(--jw-accent-hover) 72%, #ffd66b);
+  color: var(--jw-accent-foreground);
+}
+
+.jw-theme-menu {
+  border-color: var(--jw-border);
+  background: var(--jw-theme-menu-bg);
+  color: var(--jw-page-text);
+}
+
+.jw-hero-wash {
+  background: var(--jw-hero-bg);
+}
+
+.jw-cta-band {
+  border-color: color-mix(in srgb, var(--jw-accent) 30%, transparent);
+  background: var(--jw-cta-bg);
+  color: var(--jw-cta-text);
 }
 
 /* Tiptap Editor Image Styles */
@@ -264,10 +522,14 @@
 
 /* 链接样式 */
 .ProseMirror a {
-  @apply text-teal-700 underline hover:text-teal-800 dark:text-teal-300 dark:hover:text-teal-200;
   @apply transition-colors cursor-pointer;
+  color: var(--jw-accent, var(--primary));
   text-decoration-style: solid;
   text-underline-offset: 2px;
+}
+
+.ProseMirror a:hover {
+  color: var(--jw-accent-hover, var(--primary));
 }
 
 /* 文本对齐 */
@@ -612,10 +874,216 @@
    ======================================== */
 
 .jw-editor-workspace {
-  background:
+  --background: oklch(0.985 0.012 255);
+  --foreground: oklch(0.18 0.03 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.03 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.03 258);
+  --primary: oklch(0.54 0.18 260);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.018 252);
+  --secondary-foreground: oklch(0.2 0.04 258);
+  --muted: oklch(0.96 0.014 252);
+  --muted-foreground: oklch(0.47 0.045 258);
+  --accent: oklch(0.95 0.028 250);
+  --accent-foreground: oklch(0.24 0.075 258);
+  --border: oklch(0.9 0.03 252);
+  --input: oklch(0.9 0.03 252);
+  --ring: oklch(0.58 0.17 260);
+  --jw-accent: #2563eb;
+  --jw-accent-hover: #1d4ed8;
+  --jw-accent-foreground: #ffffff;
+  --jw-accent-soft: rgba(219, 234, 254, 0.76);
+  --jw-accent-button-shadow: 0 12px 24px -18px rgba(37, 99, 235, 0.78);
+  --jw-workspace-bg:
+    linear-gradient(180deg, rgba(249, 252, 255, 0.98) 0%, rgba(241, 247, 255, 0.98) 50%, rgba(232, 241, 255, 0.98) 100%),
+    linear-gradient(90deg, rgba(37, 99, 235, 0.045), rgba(14, 165, 233, 0.035) 46%, rgba(255, 255, 255, 0) 100%),
+    #f2f7ff;
+  --jw-workspace-pattern:
+    radial-gradient(circle at 1px 1px, rgba(37, 99, 235, 0.1) 1px, transparent 0),
+    linear-gradient(rgba(37, 99, 235, 0.022) 1px, transparent 1px);
+  --jw-workspace-pattern-opacity: 0.18;
+  --jw-topbar-bg: rgba(249, 252, 255, 0.94);
+  --jw-divider: rgba(183, 205, 238, 0.52);
+  --jw-panel-bg: rgba(255, 255, 255, 0.9);
+  --jw-panel-inner-bg: rgba(255, 255, 255, 0.84);
+  --jw-panel-ring: rgba(169, 194, 231, 0.38);
+  --jw-panel-shadow: 0 20px 54px -44px rgba(37, 99, 235, 0.3);
+  --jw-header-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(242, 247, 255, 0.9));
+  --jw-header-divider: rgba(183, 205, 238, 0.32);
+  --jw-soft-input-border: rgba(169, 194, 231, 0.58);
+  --jw-soft-input-bg: rgba(255, 255, 255, 0.9);
+  --jw-editor-shell-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 255, 0.96));
+  --jw-toolbar-bg: rgba(255, 255, 255, 0.94);
+  --jw-toolbar-divider: rgba(183, 205, 238, 0.38);
+  --jw-stage-bg:
+    linear-gradient(180deg, rgba(237, 245, 255, 0.88), rgba(226, 237, 255, 0.98)),
+    #edf5ff;
+  --jw-paper-bg: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  --jw-paper-border: rgba(169, 194, 231, 0.34);
+  --jw-paper-shadow:
+    0 18px 42px -38px rgba(37, 99, 235, 0.28),
+    0 1px 1px rgba(37, 99, 235, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+  --jw-editor-text: #172033;
+  --jw-editor-muted: rgba(23, 32, 51, 0.72);
+  --jw-editor-placeholder: rgba(72, 91, 124, 0.5);
+  --jw-blockquote-bg: rgba(37, 99, 235, 0.06);
+  --jw-blockquote-border: rgba(37, 99, 235, 0.48);
+  --jw-action-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(243, 248, 255, 0.64));
+  --jw-action-border: rgba(169, 194, 231, 0.3);
+  --jw-action-hover-border: rgba(37, 99, 235, 0.26);
+  --jw-action-hover-bg: #ffffff;
+  --jw-control-bg: rgba(239, 246, 255, 0.74);
+  --jw-control-active-bg: #ffffff;
+  --jw-task-card-bg: rgba(255, 255, 255, 0.84);
+  --jw-task-card-border: rgba(169, 194, 231, 0.34);
+  --jw-task-card-hover-bg: rgba(239, 246, 255, 0.72);
+  --jw-status-pill-bg: rgba(255, 255, 255, 0.78);
+  background: var(--jw-workspace-bg);
+  color: var(--jw-editor-text);
+}
+
+.jw-editor-workspace[data-editor-theme="paper"] {
+  --background: oklch(0.985 0.012 85);
+  --foreground: oklch(0.19 0.018 82);
+  --card: oklch(0.99 0.008 85);
+  --card-foreground: oklch(0.19 0.018 82);
+  --popover: oklch(0.99 0.008 85);
+  --popover-foreground: oklch(0.19 0.018 82);
+  --primary: oklch(0.45 0.095 176);
+  --primary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.955 0.018 85);
+  --secondary-foreground: oklch(0.2 0.02 82);
+  --muted: oklch(0.95 0.018 85);
+  --muted-foreground: oklch(0.49 0.026 82);
+  --accent: oklch(0.94 0.022 85);
+  --accent-foreground: oklch(0.21 0.025 82);
+  --border: oklch(0.86 0.032 82);
+  --input: oklch(0.86 0.032 82);
+  --ring: oklch(0.45 0.095 176);
+  --jw-accent: #007f6d;
+  --jw-accent-hover: #006b5d;
+  --jw-accent-foreground: #ffffff;
+  --jw-accent-soft: rgba(204, 251, 241, 0.68);
+  --jw-accent-button-shadow: 0 12px 24px -18px rgba(0, 127, 109, 0.78);
+  --jw-workspace-bg:
     linear-gradient(180deg, rgba(255, 254, 248, 0.96) 0%, rgba(250, 246, 236, 0.98) 46%, rgba(245, 239, 226, 0.98) 100%),
     linear-gradient(90deg, rgba(15, 118, 110, 0.04), rgba(181, 142, 82, 0.035) 48%, rgba(255, 255, 255, 0) 100%),
     #f8f3e8;
+  --jw-workspace-pattern:
+    radial-gradient(circle at 1px 1px, rgba(93, 75, 47, 0.1) 1px, transparent 0),
+    linear-gradient(rgba(93, 75, 47, 0.025) 1px, transparent 1px);
+  --jw-workspace-pattern-opacity: 0.2;
+  --jw-topbar-bg: rgba(255, 253, 247, 0.92);
+  --jw-divider: rgba(232, 221, 204, 0.55);
+  --jw-panel-bg: rgba(255, 253, 247, 0.9);
+  --jw-panel-inner-bg: rgba(255, 253, 247, 0.86);
+  --jw-panel-ring: rgba(216, 203, 184, 0.38);
+  --jw-panel-shadow: 0 20px 54px -44px rgba(84, 64, 38, 0.34);
+  --jw-header-bg: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(251, 247, 238, 0.92));
+  --jw-header-divider: rgba(219, 208, 190, 0.34);
+  --jw-soft-input-border: rgba(211, 199, 178, 0.62);
+  --jw-soft-input-bg: rgba(255, 253, 247, 0.92);
+  --jw-editor-shell-bg: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(250, 246, 236, 0.96));
+  --jw-toolbar-bg: rgba(255, 253, 247, 0.94);
+  --jw-toolbar-divider: rgba(219, 208, 190, 0.38);
+  --jw-stage-bg:
+    linear-gradient(180deg, rgba(246, 240, 228, 0.86), rgba(243, 235, 220, 0.98)),
+    #f5efe3;
+  --jw-paper-bg: linear-gradient(180deg, #fffef9 0%, #fffdf5 100%);
+  --jw-paper-border: rgba(211, 197, 174, 0.34);
+  --jw-paper-shadow:
+    0 18px 42px -38px rgba(84, 64, 38, 0.22),
+    0 1px 1px rgba(84, 64, 38, 0.045),
+    0 1px 0 rgba(255, 255, 255, 0.86) inset;
+  --jw-editor-text: #27231d;
+  --jw-editor-muted: rgba(39, 35, 29, 0.72);
+  --jw-editor-placeholder: rgba(93, 75, 47, 0.5);
+  --jw-blockquote-bg: rgba(15, 118, 110, 0.055);
+  --jw-blockquote-border: rgba(15, 118, 110, 0.55);
+  --jw-action-bg: linear-gradient(180deg, rgba(255, 254, 249, 0.82), rgba(250, 246, 236, 0.62));
+  --jw-action-border: rgba(211, 199, 178, 0.3);
+  --jw-action-hover-border: rgba(15, 118, 110, 0.28);
+  --jw-action-hover-bg: #fffef9;
+  --jw-control-bg: rgba(244, 238, 225, 0.76);
+  --jw-control-active-bg: #fffdf7;
+  --jw-task-card-bg: rgba(255, 254, 249, 0.84);
+  --jw-task-card-border: rgba(211, 199, 178, 0.34);
+  --jw-task-card-hover-bg: rgba(250, 246, 236, 0.78);
+  --jw-status-pill-bg: rgba(255, 253, 247, 0.82);
+}
+
+.jw-editor-workspace[data-editor-theme="black-gold"] {
+  color-scheme: dark;
+  --background: oklch(0.13 0.018 78);
+  --foreground: oklch(0.92 0.028 82);
+  --card: oklch(0.18 0.018 78);
+  --card-foreground: oklch(0.92 0.028 82);
+  --popover: oklch(0.16 0.018 78);
+  --popover-foreground: oklch(0.92 0.028 82);
+  --primary: oklch(0.74 0.13 82);
+  --primary-foreground: oklch(0.15 0.02 78);
+  --secondary: oklch(0.22 0.02 78);
+  --secondary-foreground: oklch(0.9 0.03 82);
+  --muted: oklch(0.23 0.02 78);
+  --muted-foreground: oklch(0.72 0.035 82);
+  --accent: oklch(0.25 0.026 78);
+  --accent-foreground: oklch(0.88 0.09 82);
+  --border: oklch(0.34 0.034 78);
+  --input: oklch(0.34 0.034 78);
+  --ring: oklch(0.74 0.13 82);
+  --jw-accent: #d6a84f;
+  --jw-accent-hover: #f0c978;
+  --jw-accent-foreground: #17130c;
+  --jw-accent-soft: rgba(214, 168, 79, 0.16);
+  --jw-accent-button-shadow: 0 14px 30px -18px rgba(214, 168, 79, 0.8);
+  --jw-workspace-bg:
+    radial-gradient(circle at 20% 0%, rgba(214, 168, 79, 0.14), transparent 34%),
+    linear-gradient(180deg, #14120d 0%, #1c1710 52%, #0f0d0a 100%);
+  --jw-workspace-pattern:
+    radial-gradient(circle at 1px 1px, rgba(240, 201, 120, 0.16) 1px, transparent 0),
+    linear-gradient(rgba(240, 201, 120, 0.03) 1px, transparent 1px);
+  --jw-workspace-pattern-opacity: 0.14;
+  --jw-topbar-bg: rgba(19, 16, 11, 0.92);
+  --jw-divider: rgba(214, 168, 79, 0.24);
+  --jw-panel-bg: rgba(27, 23, 16, 0.88);
+  --jw-panel-inner-bg: rgba(24, 21, 15, 0.78);
+  --jw-panel-ring: rgba(214, 168, 79, 0.22);
+  --jw-panel-shadow: 0 28px 70px -48px rgba(0, 0, 0, 0.9);
+  --jw-header-bg: linear-gradient(180deg, rgba(28, 24, 17, 0.96), rgba(24, 21, 15, 0.86));
+  --jw-header-divider: rgba(214, 168, 79, 0.18);
+  --jw-soft-input-border: rgba(214, 168, 79, 0.28);
+  --jw-soft-input-bg: rgba(18, 15, 10, 0.74);
+  --jw-editor-shell-bg: linear-gradient(180deg, rgba(27, 23, 16, 0.96), rgba(20, 17, 12, 0.96));
+  --jw-toolbar-bg: rgba(21, 18, 13, 0.9);
+  --jw-toolbar-divider: rgba(214, 168, 79, 0.16);
+  --jw-stage-bg:
+    radial-gradient(circle at 50% 0%, rgba(214, 168, 79, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(17, 14, 10, 0.96), rgba(12, 10, 8, 0.98)),
+    #11100d;
+  --jw-paper-bg: linear-gradient(180deg, #211c13 0%, #19150f 100%);
+  --jw-paper-border: rgba(214, 168, 79, 0.34);
+  --jw-paper-shadow:
+    0 22px 52px -40px rgba(0, 0, 0, 0.86),
+    0 0 0 1px rgba(214, 168, 79, 0.08) inset,
+    0 1px 0 rgba(240, 201, 120, 0.12) inset;
+  --jw-editor-text: #f4ead7;
+  --jw-editor-muted: rgba(244, 234, 215, 0.74);
+  --jw-editor-placeholder: rgba(244, 234, 215, 0.42);
+  --jw-blockquote-bg: rgba(214, 168, 79, 0.09);
+  --jw-blockquote-border: rgba(214, 168, 79, 0.7);
+  --jw-action-bg: linear-gradient(180deg, rgba(32, 27, 18, 0.88), rgba(19, 16, 11, 0.68));
+  --jw-action-border: rgba(214, 168, 79, 0.2);
+  --jw-action-hover-border: rgba(240, 201, 120, 0.48);
+  --jw-action-hover-bg: rgba(33, 28, 19, 0.96);
+  --jw-control-bg: rgba(214, 168, 79, 0.12);
+  --jw-control-active-bg: rgba(214, 168, 79, 0.22);
+  --jw-task-card-bg: rgba(27, 23, 16, 0.82);
+  --jw-task-card-border: rgba(214, 168, 79, 0.18);
+  --jw-task-card-hover-bg: rgba(214, 168, 79, 0.1);
+  --jw-status-pill-bg: rgba(28, 24, 17, 0.88);
 }
 
 .jw-editor-workspace::before {
@@ -623,96 +1091,170 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.2;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(93, 75, 47, 0.1) 1px, transparent 0),
-    linear-gradient(rgba(93, 75, 47, 0.025) 1px, transparent 1px);
+  opacity: var(--jw-workspace-pattern-opacity);
+  background-image: var(--jw-workspace-pattern);
   background-size: 28px 28px, 42px 42px;
   mask-image: linear-gradient(to bottom, black 0%, transparent 72%);
 }
 
+.jw-editor-topbar-shell {
+  border-bottom: 1px solid var(--jw-divider);
+  background: var(--jw-topbar-bg);
+}
+
 .jw-editor-panel {
-  border-color: transparent;
+  background: var(--jw-panel-bg);
+  box-shadow:
+    var(--jw-panel-shadow),
+    0 0 0 1px var(--jw-panel-ring);
+}
+
+.jw-editor-panel-inner {
+  background: var(--jw-panel-inner-bg);
 }
 
 .jw-panel-header {
-  box-shadow: inset 0 -1px 0 rgba(219, 208, 190, 0.38);
-  background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(251, 247, 238, 0.92));
+  box-shadow: inset 0 -1px 0 var(--jw-header-divider);
+  background: var(--jw-header-bg);
+}
+
+.jw-resize-handle {
+  background: var(--jw-divider);
+}
+
+.group:hover .jw-resize-handle {
+  background: color-mix(in srgb, var(--jw-accent) 35%, transparent);
+}
+
+.group:active .jw-resize-handle {
+  background: color-mix(in srgb, var(--jw-accent) 50%, transparent);
 }
 
 .jw-soft-input {
-  border-color: rgba(211, 199, 178, 0.62);
-  background: rgba(255, 253, 247, 0.92);
+  border-color: var(--jw-soft-input-border);
+  background: var(--jw-soft-input-bg);
   box-shadow: 0 1px 2px rgba(84, 64, 38, 0.045);
 }
 
+.jw-panel-control {
+  border-color: var(--jw-border-subtle);
+  background: var(--jw-control-bg);
+  box-shadow: inset 0 0 0 1px var(--jw-border-subtle);
+}
+
+.jw-panel-control-strong {
+  border-color: var(--jw-border-subtle);
+  background: var(--jw-control-active-bg);
+}
+
+.jw-icon-soft {
+  background: var(--jw-accent-soft);
+  color: var(--jw-accent);
+}
+
+.jw-editor-status-pill {
+  border-color: var(--jw-soft-input-border);
+  background: var(--jw-status-pill-bg);
+  color: var(--jw-editor-text);
+  box-shadow: 0 1px 2px rgba(84, 64, 38, 0.05);
+}
+
+.jw-task-progress-shell {
+  background: var(--jw-panel-inner-bg);
+  box-shadow: inset 0 1px 0 var(--jw-header-divider);
+}
+
+.jw-task-empty {
+  background: var(--jw-task-card-bg);
+  color: var(--jw-editor-muted);
+  box-shadow: inset 0 0 0 1px var(--jw-task-card-border);
+}
+
+.jw-toolbar-button-active {
+  background: var(--jw-accent-soft);
+  color: var(--jw-accent);
+  box-shadow: 0 1px 2px rgba(84, 64, 38, 0.08);
+}
+
 .jw-editor-shell {
-  background: linear-gradient(180deg, rgba(255, 254, 249, 0.98), rgba(250, 246, 236, 0.96));
+  background: var(--jw-editor-shell-bg);
 }
 
 .jw-editor-toolbar {
   border-bottom: 0;
-  background: rgba(255, 253, 247, 0.94);
+  background: var(--jw-toolbar-bg);
   backdrop-filter: blur(18px);
-  box-shadow: inset 0 -1px 0 rgba(219, 208, 190, 0.42);
+  box-shadow: inset 0 -1px 0 var(--jw-toolbar-divider);
 }
 
 .jw-document-stage {
-  background:
-    linear-gradient(180deg, rgba(246, 240, 228, 0.86), rgba(243, 235, 220, 0.98)),
-    #f5efe3;
+  background: var(--jw-stage-bg);
 }
 
 .jw-document-paper {
+  position: relative;
   width: min(100%, 900px);
   min-height: calc(100% - 48px);
   margin: 24px auto;
-  border: 1px solid rgba(211, 197, 174, 0.38);
+  border: 1px solid var(--jw-paper-border);
   border-radius: 8px;
-  background: linear-gradient(180deg, #fffef9 0%, #fffdf5 100%);
-  box-shadow:
-    0 18px 42px -38px rgba(84, 64, 38, 0.22),
-    0 1px 1px rgba(84, 64, 38, 0.045),
-    0 1px 0 rgba(255, 255, 255, 0.96) inset;
+  background: var(--jw-paper-bg);
+  box-shadow: var(--jw-paper-shadow);
+}
+
+.jw-document-paper.is-empty .ProseMirror::before {
+  content: attr(placeholder);
+  position: absolute;
+  left: 76px;
+  top: 64px;
+  max-width: min(520px, calc(100% - 152px));
+  color: var(--jw-editor-placeholder);
+  font-size: 1rem;
+  line-height: 1.75;
+  pointer-events: none;
 }
 
 .jw-document-paper .ProseMirror {
+  position: relative;
   min-height: 720px;
   padding: 64px 76px 84px;
-  color: #27231d;
+  color: var(--jw-editor-text);
+  caret-color: var(--jw-accent);
 }
 
 .jw-document-paper .ProseMirror p {
   margin-bottom: 1rem;
-  color: rgba(39, 35, 29, 0.9);
+  color: var(--jw-editor-muted);
 }
 
 .jw-document-paper .ProseMirror h1 {
   margin-top: 0;
   font-size: 2.1rem;
   letter-spacing: 0;
+  color: var(--jw-editor-text);
 }
 
 .jw-document-paper .ProseMirror h2 {
   letter-spacing: 0;
+  color: var(--jw-editor-text);
 }
 
 .jw-document-paper .ProseMirror blockquote {
-  border-left-color: rgba(15, 118, 110, 0.55);
-  background: rgba(15, 118, 110, 0.055);
+  border-left-color: var(--jw-blockquote-border);
+  background: var(--jw-blockquote-bg);
   border-radius: 0 8px 8px 0;
   padding: 0.85rem 1rem;
 }
 
 .jw-action-card {
-  border: 1px solid rgba(211, 199, 178, 0.34);
-  background: linear-gradient(180deg, rgba(255, 254, 249, 0.82), rgba(250, 246, 236, 0.62));
+  border: 1px solid var(--jw-action-border);
+  background: var(--jw-action-bg);
   box-shadow: none;
 }
 
 .jw-action-card:hover {
-  border-color: rgba(15, 118, 110, 0.28);
-  background: #fffef9;
+  border-color: var(--jw-action-hover-border);
+  background: var(--jw-action-hover-bg);
   box-shadow: 0 14px 34px -32px rgba(84, 64, 38, 0.32);
 }
 
@@ -725,5 +1267,11 @@
   .jw-document-paper .ProseMirror {
     min-height: 560px;
     padding: 32px 24px 56px;
+  }
+
+  .jw-document-paper.is-empty .ProseMirror::before {
+    left: 24px;
+    top: 32px;
+    max-width: calc(100% - 48px);
   }
 }

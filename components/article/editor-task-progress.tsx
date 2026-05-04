@@ -84,7 +84,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
     if (task.status === "failed") {
       return <AlertCircleIcon className="w-4 h-4 shrink-0 text-red-500" />
     }
-    return <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-teal-600" />
+    return <LoaderIcon className="w-4 h-4 shrink-0 animate-spin text-[var(--jw-accent)]" />
   }
 
   const typeIcon = (() => {
@@ -106,8 +106,8 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
   })()
 
   const borderClass = cn(
-    "group relative cursor-pointer rounded-lg border bg-[#fffef9]/88 p-3 shadow-[0_10px_24px_-22px_rgba(84,64,38,0.22)] transition-colors",
-    task.status === "pending" && "border-teal-200/80 hover:bg-teal-50/45",
+    "group relative cursor-pointer rounded-lg border bg-[var(--jw-task-card-bg)] p-3 shadow-[0_10px_24px_-22px_rgba(0,0,0,0.28)] transition-colors",
+    task.status === "pending" && "border-[var(--jw-task-card-border)] hover:bg-[var(--jw-task-card-hover-bg)]",
     task.status === "completed" && "border-emerald-200/80 hover:bg-emerald-50/45",
     task.status === "failed" && "border-red-200/80 hover:bg-red-50/45"
   )
@@ -118,7 +118,7 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         <div className="flex items-center gap-2">
           <span
             className={cn(
-              task.status === "pending" && "text-teal-600",
+              task.status === "pending" && "text-[var(--jw-accent)]",
               task.status === "completed" && "text-green-500",
               task.status === "failed" && "text-red-500"
             )}
@@ -175,7 +175,7 @@ export function EditorTaskProgress(props: EditorTaskProgressProps) {
 
   if (allTasks.length === 0) {
     return (
-      <div className="mx-3 flex h-40 flex-col items-center justify-center gap-2 rounded-lg bg-[#fffef9]/58 text-muted-foreground shadow-[inset_0_0_0_1px_rgba(216,205,187,0.38)]">
+      <div className="jw-task-empty mx-3 flex h-40 flex-col items-center justify-center gap-2 rounded-lg">
         <CheckIcon className="h-8 w-8 opacity-30" />
         <p className="text-sm">{t("contentWriting.taskProgress.empty")}</p>
       </div>

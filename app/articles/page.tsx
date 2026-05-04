@@ -41,6 +41,7 @@ import {
   PencilLineIcon,
   SearchIcon,
   SparklesIcon,
+  SendIcon,
 } from "lucide-react"
 import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
@@ -59,12 +60,23 @@ import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen
 import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
 import { cn } from "@/lib/utils"
+import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
+import { type JoyfulTheme, useJoyfulTheme } from "@/lib/theme/joyful-theme"
 
 function getArticlePlainText(content: string) {
   return content.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
 }
 
-const DEFAULT_ARTICLE_THUMBNAIL = "/article-default-thumbnail.svg"
+const DEFAULT_ARTICLE_THUMBNAILS: Record<JoyfulTheme, string> = {
+  "blue-white": "/article-default-thumbnail-blue-white.svg",
+  paper: "/article-default-thumbnail-paper.svg",
+  "black-gold": "/article-default-thumbnail-black-gold.svg",
+}
+
+const DEFAULT_ARTICLE_THUMBNAIL_PATHS = new Set<string>([
+  "/article-default-thumbnail.svg",
+  ...Object.values(DEFAULT_ARTICLE_THUMBNAILS),
+])
 
 function getFirstArticleImage(content: string) {
   const htmlImageMatch = content.match(/<img[^>]+src=(["'])(.*?)\1/i)
@@ -74,14 +86,18 @@ function getFirstArticleImage(content: string) {
   return markdownImageMatch?.[1] ?? null
 }
 
-function getArticleThumbnail(article: Article) {
+function getArticleThumbnail(article: Article, theme: JoyfulTheme) {
   return (
     getFirstArticleImage(article.content) ??
     article.materials
       ?.find((material) => material.type === "image" && material.content?.trim())
       ?.content?.trim() ??
-    DEFAULT_ARTICLE_THUMBNAIL
+    DEFAULT_ARTICLE_THUMBNAILS[theme]
   )
+}
+
+function isDefaultArticleThumbnail(url: string) {
+  return DEFAULT_ARTICLE_THUMBNAIL_PATHS.has(url)
 }
 
 function toCssBackgroundImage(url: string) {
@@ -156,6 +172,7 @@ function TaskCenterDialogQuerySync({
 
 export default function ArticlesPage() {
   const { t, locale, setLocale } = useTranslation()
+  const { theme } = useJoyfulTheme()
   const { user, loading: authLoading, signOut } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
@@ -177,9 +194,12 @@ export default function ArticlesPage() {
     setTitleFilter,
     setStatusFilter,
     handleDelete,
+    handleStatusChange,
     handleRefresh,
     handlePageChange,
     handlePageSizeChange,
+    deletingId,
+    statusUpdatingId,
   } = useArticles()
 
   // Dialog states
@@ -197,12 +217,18 @@ export default function ArticlesPage() {
     router.push(`/articles/${article.id}/edit`)
   }
 
-  const confirmDeleteArticle = () => {
+  const confirmDeleteArticle = async () => {
     if (selectedArticle) {
-      handleDelete(selectedArticle.id)
+      await handleDelete(selectedArticle.id)
       setDeleteConfirmOpen(false)
       setSelectedArticle(null)
     }
+  }
+
+  const handlePublishArticle = async (article: Article) => {
+    if (article.status !== "draft") return
+
+    await handleStatusChange(article.id, "published")
   }
 
   const saveTitle = async (articleId: number, newTitle: string) => {
@@ -323,7 +349,7 @@ export default function ArticlesPage() {
   const latestArticle = articles[0]
 
   return (
-    <div className="flex h-screen flex-col bg-[#fbf7ec] text-[#221f1a]">
+    <div className="jw-app-shell flex h-screen flex-col">
       <Suspense fallback={null}>
         <BillingDialogQuerySync onOpenBillingDialog={handleOpenBillingDialog} />
       </Suspense>
@@ -332,7 +358,7 @@ export default function ArticlesPage() {
       </Suspense>
 
       {/* Top Navigation Bar */}
-      <header className="shrink-0 border-b border-[#ded4c4]/85 bg-[#fffdf7]/92 backdrop-blur-xl">
+      <header className="jw-app-header shrink-0 border-b backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between px-6">
           <button
             onClick={() => router.push("/articles")}
@@ -347,26 +373,26 @@ export default function ArticlesPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2 rounded-full text-sm text-[#6b6255] hover:bg-[#f4eee1] hover:text-[#221f1a]"
+              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
               onClick={() => setTaskCenterOpen(true)}
             >
-              <CheckSquareIcon className="w-4 h-4 text-teal-700" />
+              <CheckSquareIcon className="w-4 h-4 text-[var(--jw-accent)]" />
               {t("contentWriting.taskCenter.title")}
             </Button>
 
             {/* Feedback */}
             <FeedbackErrorBoundary>
-              <TallyFeedbackButton className="h-8 w-auto rounded-full py-0 text-sm text-[#6b6255] hover:bg-[#f4eee1] hover:text-[#221f1a]" />
+              <TallyFeedbackButton className="jw-themed-link h-8 w-auto rounded-full py-0 text-sm" />
             </FeedbackErrorBoundary>
 
             {/* Language */}
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2 rounded-full text-sm text-[#6b6255] hover:bg-[#f4eee1] hover:text-[#221f1a]"
+              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
               onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
             >
-              <Globe className="w-4 h-4 text-amber-700" />
+              <Globe className="w-4 h-4 text-[var(--jw-accent)]" />
               {locale === "zh" ? "English" : "中文"}
             </Button>
 
@@ -374,17 +400,19 @@ export default function ArticlesPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2 rounded-full text-sm text-[#6b6255] hover:bg-[#f4eee1] hover:text-[#221f1a]"
+              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
               onClick={() => setBillingDialogOpen(true)}
             >
-              <Wallet className="w-4 h-4 text-pink-700" />
+              <Wallet className="w-4 h-4 text-[var(--jw-accent)]" />
               {t("sidebar.billing")}
             </Button>
+
+            <JoyfulThemeSwitcher variant="compact" />
 
             {/* User Avatar */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm" className="rounded-full hover:bg-[#f4eee1]">
+                <Button variant="ghost" size="icon-sm" className="jw-themed-link rounded-full">
                   <UserCircleIcon className="!size-5 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
@@ -423,17 +451,17 @@ export default function ArticlesPage() {
       <main className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto flex min-h-full max-w-[1500px] flex-col px-6 py-6">
           {/* Page Title + Actions */}
-          <div className="mb-5 rounded-[28px] border border-[#ded4c4]/85 bg-[#fffdf7]/88 p-5 shadow-[0_22px_60px_-48px_rgba(84,64,38,0.55)]">
+          <div className="jw-surface-card mb-5 rounded-[28px] border p-5">
             <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
               <div className="min-w-0">
-                <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-[var(--jw-accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--jw-accent)]">
                   <SparklesIcon className="h-3.5 w-3.5" />
                   Article Workspace
                 </div>
-                <h1 className="text-3xl font-bold tracking-tight text-[#16130f]">
+                <h1 className="jw-heading-text text-3xl font-bold tracking-tight">
                   {t("contentWriting.tabs.articleManager")}
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6b6255]">
+                <p className="jw-muted-text mt-2 max-w-2xl text-sm leading-6">
                   {t("contentWriting.manager.workspaceSubtitle")}
                 </p>
               </div>
@@ -447,12 +475,12 @@ export default function ArticlesPage() {
                 ].map((item) => {
                   const Icon = item.icon
                   return (
-                    <div key={item.label} className="rounded-xl border border-[#e5dbc9] bg-[#fffdf7] p-3">
+                    <div key={item.label} className="jw-surface-strong rounded-xl border p-3">
                       <div className={cn("mb-2 flex h-8 w-8 items-center justify-center rounded-lg", item.color)}>
                         <Icon className="h-4 w-4" />
                       </div>
-                      <div className="truncate text-lg font-bold text-[#16130f]">{item.value}</div>
-                      <div className="truncate text-[11px] text-[#7a7165]">{item.label}</div>
+                      <div className="jw-heading-text truncate text-lg font-bold">{item.value}</div>
+                      <div className="jw-muted-text truncate text-[11px]">{item.label}</div>
                     </div>
                   )
                 })}
@@ -460,15 +488,15 @@ export default function ArticlesPage() {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[#ded4c4]/85 bg-[#fffdf7]/82 p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+          <div className="jw-surface-card mb-4 flex flex-col gap-3 rounded-xl border p-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative min-w-0 flex-1 lg:max-w-md">
-                <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7a7165]" />
+                <SearchIcon className="jw-muted-text absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
                 <Input
                   value={titleFilter}
                   onChange={(event) => setTitleFilter(event.target.value)}
                   placeholder={t("contentWriting.manager.searchTitlePlaceholder")}
-                  className="h-10 rounded-lg border-[#ded4c4] bg-[#fffef9] pl-9"
+                  className="jw-themed-input h-10 rounded-lg pl-9"
                 />
               </div>
               <Select
@@ -477,7 +505,7 @@ export default function ArticlesPage() {
                   setStatusFilter(value as any)
                 }}
               >
-                <SelectTrigger className="h-10 w-full rounded-lg border-[#ded4c4] bg-[#fffef9] sm:w-[150px]">
+                <SelectTrigger className="jw-themed-input h-10 w-full rounded-lg sm:w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -495,14 +523,14 @@ export default function ArticlesPage() {
                 onClick={handleRefresh}
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 rounded-lg border-[#ded4c4] bg-[#fffef9]"
+                className="jw-secondary-button h-10 w-10 rounded-lg"
                 disabled={loading}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
               <Button
                 onClick={() => setCreateModeDialogOpen(true)}
-                className="h-10 gap-2 rounded-lg bg-teal-700 text-white shadow-[0_14px_26px_-18px_rgba(15,118,110,0.8)] hover:bg-teal-800"
+                className="jw-primary-button h-10 gap-2 rounded-lg"
               >
                 <PlusIcon className="w-4 h-4" />
                 {t("contentWriting.editorHeader.newArticle")}
@@ -511,7 +539,7 @@ export default function ArticlesPage() {
           </div>
 
           {/* Article Rows */}
-          <div className="min-h-0 flex-1 rounded-[18px] border border-[#ded4c4]/85 bg-[#fffdf7]/72 p-3 shadow-[0_20px_60px_-52px_rgba(84,64,38,0.45)]">
+          <div className="jw-surface-card min-h-0 flex-1 rounded-[18px] border p-3">
             {loading ? (
               <div className="flex min-h-[320px] items-center justify-center">
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -521,7 +549,7 @@ export default function ArticlesPage() {
               </div>
             ) : visibleArticles.length === 0 ? (
               <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d8cdbb] text-muted-foreground">
-                <BookOpenTextIcon className="mb-3 h-10 w-10 text-teal-700/55" />
+                <BookOpenTextIcon className="mb-3 h-10 w-10 text-[var(--jw-accent)] opacity-55" />
                 <p className="text-lg">
                   {normalizedTitleFilter
                     ? t("contentWriting.manager.emptySearchTitle")
@@ -531,13 +559,19 @@ export default function ArticlesPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {visibleArticles.map((article) => {
-                  const thumbnailUrl = getArticleThumbnail(article)
-                  const isDefaultThumbnail = thumbnailUrl === DEFAULT_ARTICLE_THUMBNAIL
+                  const thumbnailUrl = getArticleThumbnail(article, theme)
+                  const isDefaultThumbnail = isDefaultArticleThumbnail(thumbnailUrl)
+                  const isDeleting = deletingId === article.id
+                  const isStatusUpdating = statusUpdatingId === article.id
+                  const canPublish = article.status === "draft"
 
                   return (
                     <div
                       key={article.id}
-                      className="group grid cursor-pointer gap-4 rounded-xl border border-[#e5dbc9] bg-[#fffef9] p-4 transition-all hover:-translate-y-0.5 hover:border-teal-700/30 hover:shadow-[0_18px_36px_-30px_rgba(15,118,110,0.55)] sm:grid-cols-[164px_1fr] lg:grid-cols-[176px_1fr_auto]"
+                      className={cn(
+                        "group jw-surface-strong grid cursor-pointer gap-4 rounded-xl border p-4 transition-all hover:-translate-y-0.5 hover:border-[var(--jw-accent)] hover:shadow-[var(--jw-soft-shadow)] sm:grid-cols-[164px_1fr] lg:grid-cols-[176px_1fr_auto]",
+                        isDeleting && "pointer-events-none opacity-55"
+                      )}
                       onClick={() => handleEditArticle(article)}
                     >
                       <div
@@ -547,7 +581,7 @@ export default function ArticlesPage() {
                       >
                         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,247,0)_25%,rgba(31,29,25,0.36)_100%)] opacity-80 transition-opacity group-hover:opacity-60" />
                         {isDefaultThumbnail && (
-                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-[#fffdf7]/90 px-2.5 py-1 text-[11px] font-semibold text-teal-800 shadow-sm">
+                          <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-[var(--jw-surface-strong)] px-2.5 py-1 text-[11px] font-semibold text-[var(--jw-accent)] shadow-sm">
                             <SparklesIcon className="h-3 w-3" />
                             JoyfulWords
                           </div>
@@ -559,22 +593,22 @@ export default function ArticlesPage() {
                           <Badge variant={getStatusVariant(article.status)} className="text-xs">
                             {t(`contentWriting.manager.status.${article.status}`)}
                           </Badge>
-                          <span className="text-xs text-[#7a7165]">
+                          <span className="jw-muted-text text-xs">
                             {formatShortDate(article.updated_at)}
                           </span>
                         </div>
 
                         <div className="mb-2 flex min-w-0 items-center gap-2">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--jw-accent-soft)] text-[var(--jw-accent)]">
                             <FilePenLineIcon className="h-4 w-4" />
                           </span>
-                          <h3 className="min-w-0 truncate text-lg font-bold text-[#16130f] transition-colors group-hover:text-teal-800">
+                          <h3 className="jw-heading-text min-w-0 truncate text-lg font-bold transition-colors group-hover:text-[var(--jw-accent)]">
                             {article.title}
                           </h3>
                           <Button
                             variant="outline"
                             size="icon-sm"
-                            className="h-8 w-8 shrink-0 rounded-lg border-[#ded4c4] bg-[#fffdf7] text-[#6b6255] hover:bg-teal-50 hover:text-teal-800"
+                            className="jw-secondary-button h-8 w-8 shrink-0 rounded-lg"
                             title={t("contentWriting.manager.editTitleAction")}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -586,7 +620,7 @@ export default function ArticlesPage() {
                           </Button>
                         </div>
 
-                        <p className="line-clamp-2 max-w-4xl text-sm leading-6 text-[#62594d]">
+                        <p className="jw-muted-text line-clamp-2 max-w-4xl text-sm leading-6">
                           {getArticlePlainText(article.content) ||
                             t("contentWriting.writing.editorPlaceholder")}
                         </p>
@@ -600,7 +634,7 @@ export default function ArticlesPage() {
                             .map((tag) => (
                               <span
                                 key={tag}
-                                className="rounded-full bg-[#f4eee1] px-2.5 py-1 text-xs text-[#7a7165]"
+                                className="rounded-full bg-[var(--jw-surface-muted)] px-2.5 py-1 text-xs text-[var(--jw-muted)]"
                               >
                                 {tag}
                               </span>
@@ -608,9 +642,10 @@ export default function ArticlesPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-3 border-t border-[#e5dbc9] pt-3 sm:col-span-2 lg:col-span-1 lg:min-w-[220px] lg:flex-col lg:items-end lg:justify-center lg:border-t-0 lg:pt-0">
+                      <div className="flex items-center justify-between gap-3 border-t border-[var(--jw-border-subtle)] pt-3 sm:col-span-2 lg:col-span-1 lg:min-w-[190px] lg:flex-col lg:items-end lg:justify-center lg:border-t-0 lg:pt-0">
                         <Button
-                          className="h-9 gap-2 rounded-lg bg-teal-700 text-white hover:bg-teal-800"
+                          className="jw-primary-button h-9 w-full gap-2 rounded-lg lg:w-[142px]"
+                          disabled={isStatusUpdating}
                           onClick={(e) => {
                             e.stopPropagation()
                             handleEditArticle(article)
@@ -619,18 +654,52 @@ export default function ArticlesPage() {
                           <EditIcon className="w-3.5 h-3.5" />
                           {t("contentWriting.manager.openEditor")}
                         </Button>
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <div
+                          className="grid w-full grid-cols-2 overflow-hidden rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-control-active-bg)] shadow-sm lg:w-[142px]"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {canPublish && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="h-8 w-full rounded-none text-[var(--jw-accent)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
+                              title={t("contentWriting.editorHeader.publish")}
+                              aria-label={t("contentWriting.editorHeader.publish")}
+                              disabled={isStatusUpdating || isDeleting}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                void handlePublishArticle(article)
+                              }}
+                            >
+                              {isStatusUpdating ? (
+                                <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <SendIcon className="w-3.5 h-3.5" />
+                              )}
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-destructive hover:bg-red-50 hover:text-destructive"
+                            size="icon-sm"
+                            className={cn(
+                              "h-8 w-full rounded-none text-destructive hover:bg-red-50 hover:text-destructive",
+                              canPublish && "border-l border-[var(--jw-border-subtle)]",
+                              !canPublish && "col-span-2"
+                            )}
+                            title={t("common.delete")}
+                            aria-label={t("common.delete")}
+                            disabled={isDeleting || isStatusUpdating}
                             onClick={(e) => {
                               e.stopPropagation()
                               setSelectedArticle(article)
                               setDeleteConfirmOpen(true)
                             }}
                           >
-                            <TrashIcon className="w-3.5 h-3.5" />
+                            {isDeleting ? (
+                              <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <TrashIcon className="w-3.5 h-3.5" />
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -645,9 +714,9 @@ export default function ArticlesPage() {
 
       {/* Pagination - 固定在底部 */}
       {displayedTotal > 0 && (
-        <footer className="shrink-0 border-t border-[#ded4c4]/85 bg-[#fffdf7]/92">
+        <footer className="jw-app-header shrink-0 border-t">
           <div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-4">
-            <div className="text-sm text-[#7a7165]">
+            <div className="jw-muted-text text-sm">
               {t("contentWriting.manager.totalCount", {
                 total: displayedTotal,
                 page: pagination.page,
@@ -658,7 +727,7 @@ export default function ArticlesPage() {
                 value={String(pagination.pageSize)}
                 onValueChange={(value) => handlePageSizeChange(Number(value))}
               >
-                <SelectTrigger className="h-9 w-[76px] rounded-lg border-[#ded4c4] bg-[#fffef9]">
+                <SelectTrigger className="jw-themed-input h-9 w-[76px] rounded-lg">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -670,19 +739,19 @@ export default function ArticlesPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 rounded-lg border-[#ded4c4] bg-[#fffef9]"
+                className="jw-secondary-button h-9 w-9 rounded-lg"
                 onClick={() => handlePageChange(pagination.page - 1)}
                 disabled={normalizedTitleFilter.length > 0 || pagination.page <= 1 || loading}
               >
                 <ChevronLeftIcon className="w-4 h-4" />
               </Button>
-              <div className="min-w-[80px] text-center text-sm text-[#221f1a]">
+              <div className="jw-heading-text min-w-[80px] text-center text-sm">
                 {pagination.page} / {totalPages}
               </div>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 rounded-lg border-[#ded4c4] bg-[#fffef9]"
+                className="jw-secondary-button h-9 w-9 rounded-lg"
                 onClick={() => handlePageChange(pagination.page + 1)}
                 disabled={normalizedTitleFilter.length > 0 || pagination.page >= totalPages || loading}
               >

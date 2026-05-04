@@ -74,6 +74,12 @@ export default async function RootLayout({
   return (
     <html lang={getHtmlLang(initialLocale)} className="h-full" suppressHydrationWarning>
       <body className="font-sans antialiased h-full">
+        <script
+          id="joyfulwords-theme-init"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var key="joyfulwords-theme";var legacy="joyfulwords-editor-theme";var theme=localStorage.getItem(key)||localStorage.getItem(legacy)||"blue-white";if(!/^(blue-white|black-gold|paper)$/.test(theme)){theme="blue-white"}document.documentElement.dataset.joyfulTheme=theme;document.documentElement.style.colorScheme=theme==="black-gold"?"dark":"light"}catch(error){document.documentElement.dataset.joyfulTheme="blue-white";document.documentElement.style.colorScheme="light"}})();`,
+          }}
+        />
         <Script
           id="joyfulwords-organization-schema"
           type="application/ld+json"

@@ -63,6 +63,7 @@ export function useArticles() {
   // 编辑和删除状态
   const [editingArticle, setEditingArticle] = useState<Article | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null)
 
   // ==================== 数据获取 ====================
 
@@ -131,12 +132,10 @@ export function useArticles() {
   // ==================== CRUD 操作 ====================
 
   const handleDelete = useCallback(async (id: number) => {
-    setLoading(true)
     setDeletingId(id)
 
     const result = await articlesClient.deleteArticle(id)
 
-    setLoading(false)
     setDeletingId(null)
 
     if ("error" in result) {
@@ -154,12 +153,13 @@ export function useArticles() {
 
     // 从列表中移除
     setArticles((prev) => prev.filter((a) => a.id !== id))
-
-    // 刷新列表
-    await fetchArticles()
+    setPagination((prev) => ({
+      ...prev,
+      total: Math.max(0, prev.total - 1),
+    }))
 
     return true
-  }, [toast, fetchArticles, t])
+  }, [toast, t])
 
   const handleEdit = useCallback((article: Article) => {
     setEditingArticle(article)
@@ -203,13 +203,13 @@ export function useArticles() {
   // ==================== 状态更新 ====================
 
   const handleStatusChange = useCallback(async (id: number, newStatus: ArticleStatus) => {
-    setLoading(true)
+    setStatusUpdatingId(id)
 
     const result = await articlesClient.updateArticleStatus(id, {
       status: newStatus,
     })
 
-    setLoading(false)
+    setStatusUpdatingId(null)
 
     if ("error" in result) {
       toast({
@@ -285,6 +285,7 @@ export function useArticles() {
     pagination,
     editingArticle,
     deletingId,
+    statusUpdatingId,
     titleFilter,
     statusFilter,
 

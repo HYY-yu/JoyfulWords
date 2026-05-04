@@ -27,8 +27,8 @@ export const ToolbarButton = React.forwardRef<HTMLButtonElement, ToolbarButtonPr
         variant="ghost"
         size="icon"
         className={cn(
-          "h-8 w-8 rounded-md text-foreground/70 hover:bg-[#fffef9] hover:text-foreground hover:shadow-[0_1px_2px_rgba(84,64,38,0.08)]",
-          isActive && "bg-teal-50 text-teal-700 shadow-[0_1px_2px_rgba(84,64,38,0.08)]",
+          "h-8 w-8 rounded-md text-foreground/70 hover:bg-[var(--jw-control-bg)] hover:text-foreground hover:shadow-[0_1px_2px_rgba(84,64,38,0.08)]",
+          isActive && "jw-toolbar-button-active",
           className,
         )}
         onClick={onClick}
