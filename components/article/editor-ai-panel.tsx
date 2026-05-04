@@ -163,6 +163,29 @@ const FEATURE_BUTTONS: FeatureButton[] = [
   },
 ]
 
+function getCaughtErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+
+  if (typeof error === "string") {
+    return error || fallback
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === "string" && message) {
+      return message
+    }
+  }
+
+  try {
+    return JSON.stringify(error) || fallback
+  } catch {
+    return String(error) || fallback
+  }
+}
+
 interface EditorAIPanelProps {
   articleId?: number | null
   submissionTick?: number
@@ -305,13 +328,12 @@ export function EditorAIPanel({
       setTaskDetail(result)
       setIsTaskDetailOpen(true)
     } catch (error) {
-      console.error("[EditorAIPanel] Failed to fetch task detail", {
-        taskRef,
+      const errorMessage = getCaughtErrorMessage(
         error,
-      })
-      setTaskDetailError(
-        error instanceof Error ? error.message : t("contentWriting.taskCenter.detailLoadFailed")
+        t("contentWriting.taskCenter.detailLoadFailed")
       )
+      console.error("[EditorAIPanel] Failed to fetch task detail", errorMessage, { taskRef })
+      setTaskDetailError(errorMessage)
       setTaskDetail(null)
       setIsTaskDetailOpen(true)
     } finally {
@@ -661,7 +683,7 @@ export function EditorAIPanel({
         <DialogContent
           className={
             selectedTaskRef?.type === "presentation"
-              ? "flex h-[calc(100vh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col overflow-hidden sm:max-w-none"
+              ? "flex h-[82vh] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(50vw,880px)] md:!max-w-[880px]"
               : "flex max-h-[80vh] flex-col sm:max-w-[720px]"
           }
         >

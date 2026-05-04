@@ -67,6 +67,7 @@ export function HomePageContent() {
   const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const blogHref = buildLocalizedPath(locale, "/blog")
+  const mcpHref = buildLocalizedPath(locale, "/mcp")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -132,6 +133,12 @@ export function HomePageContent() {
             {t("landing.nav.features")}
           </a>
           <Link
+            href={mcpHref}
+            className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+          >
+            {t("landing.nav.mcp")}
+          </Link>
+          <Link
             href={blogHref}
             className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
@@ -187,6 +194,14 @@ export function HomePageContent() {
               >
                 {t("landing.nav.features")}
               </a>
+
+              <Link
+                href={mcpHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.mcp")}
+              </Link>
 
               <Link
                 href={blogHref}
@@ -480,7 +495,6 @@ export function HomePageContent() {
         </div>
       </footer>
 
-      <CookieBannerProvider />
     </div>
   )
 }

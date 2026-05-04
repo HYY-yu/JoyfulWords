@@ -63,6 +63,7 @@ export interface ErrorResponse {
   error: string
   status?: number
   reason?: string
+  error_description?: string
 }
 
 export interface AccessTokenSession {

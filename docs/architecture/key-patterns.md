@@ -20,17 +20,7 @@ The application uses a two-level tab system:
 > - `knowledge-cards` - 知识卡片
 > - `seo-geo` - SEO/GEO 优化
 >
-> **Before deploying to production:**
-> 1. Ensure these modules are set to `doing` status in `.env`:
->    ```bash
->    NEXT_PUBLIC_FEATURE_IMAGE_GENERATION=doing
->    NEXT_PUBLIC_FEATURE_KNOWLEDGE_CARDS=doing
->    NEXT_PUBLIC_FEATURE_SEO_GEO=doing
->    ```
-> 2. Replace all mock data with real API integrations
-> 3. Test thoroughly before changing to `show` status
->
-> **Feature Control:** See `lib/config.ts` for implementation details.
+> **Before deploying to production:** replace all mock data with real API integrations and test these modules thoroughly.
 
 **Nested tabs within content-writing:**
 - `material-search`

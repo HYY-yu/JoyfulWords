@@ -13,6 +13,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/terms-of-use',
   '/privacy-policy',
   '/blog',
+  '/mcp',
 ] as const
 
 const EXACT_PUBLIC_ROUTES = ['/', '/sitemap.xml', '/robots.txt'] as const

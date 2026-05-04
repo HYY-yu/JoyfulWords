@@ -63,4 +63,4 @@ declare global {
 }
 
 export const LOCAL_STORAGE_KEY_PREFIX = "silktideCookieChoice_"
-export const BANNER_SUFFIX = "_auth"
+export const BANNER_SUFFIX = "_global"

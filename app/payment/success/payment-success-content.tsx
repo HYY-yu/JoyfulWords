@@ -7,6 +7,8 @@ import { useTranslation } from '@/lib/i18n/i18n-context'
 import { Loader2Icon, CheckCircle2Icon, XCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/base/button'
 import { detectPaymentProvider, getProviderDescription, getLastOrderNo, clearLastOrderNo } from '@/lib/payment'
+import { trackProductEvent } from '@/lib/analytics/client'
+import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
 
 type OrderStatus = 'loading' | 'pending' | 'success' | 'failed' | 'timeout' | 'processing'
 
@@ -152,6 +154,10 @@ export function PaymentSuccessContent() {
       } else {
         // 超时
         console.warn('[PaymentSuccess] 订单状态查询超时', { orderNo: currentOrderNo, MAX_RETRIES })
+        trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          provider: detectionRef.current?.provider || null,
+          order_status: 'timeout',
+        })
         shouldContinuePollingRef.current = false
         setOrderStatus('timeout')
       }
@@ -167,6 +173,11 @@ export function PaymentSuccessContent() {
 
     if (result.status === 'completed') {
       console.info('[PaymentSuccess] 订单已完成', { orderNo: currentOrderNo, credits: result.credits })
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
+        provider: detectionRef.current?.provider || null,
+        credits: result.credits,
+        order_status: result.status,
+      })
       shouldContinuePollingRef.current = false
       setOrderStatus('success')
 
@@ -186,12 +197,20 @@ export function PaymentSuccessContent() {
       } else {
         // 超时
         console.warn('[PaymentSuccess] 订单处理超时', { orderNo: currentOrderNo, status: result.status })
+        trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
+          provider: detectionRef.current?.provider || null,
+          order_status: 'timeout',
+        })
         shouldContinuePollingRef.current = false
         setOrderStatus('timeout')
       }
     } else {
       // failed, cancelled, compensation_needed
       console.warn('[PaymentSuccess] 订单失败', { orderNo: currentOrderNo, status: result.status })
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
+        provider: detectionRef.current?.provider || null,
+        order_status: result.status,
+      })
       shouldContinuePollingRef.current = false
       setOrderStatus('failed')
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import {
   AlertDialog,
@@ -11,6 +12,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/base/alert-dialog'
+import { trackProductEvent } from '@/lib/analytics/client'
+import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
 
 /**
  * 积分不足响应数据结构
@@ -53,8 +56,26 @@ export function InsufficientCreditsDialog({
 }: InsufficientCreditsDialogProps) {
   const { t } = useTranslation()
 
+  useEffect(() => {
+    if (!open || !data) return
+
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.INSUFFICIENT_CREDITS_SHOWN, {
+      current_credits: data.current_credits,
+      required_credits: data.required_credits,
+      shortage_credits: data.shortage_credits,
+      recommended_recharge: data.recommended_recharge,
+    })
+  }, [data, open])
+
   const handleGoToRecharge = () => {
     if (!data) return
+    trackProductEvent(
+      PRODUCT_ANALYTICS_EVENTS.INSUFFICIENT_CREDITS_RECHARGE_CLICKED,
+      {
+        shortage_credits: data.shortage_credits,
+        recommended_recharge: data.recommended_recharge,
+      }
+    )
 
     // 设置推荐充值金额到 localStorage，供 BillingPage 使用
     localStorage.setItem('billing-recommended-amount', data.recommended_recharge_usd)

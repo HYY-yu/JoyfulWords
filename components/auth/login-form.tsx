@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
+import { normalizeAuthRedirect } from "@/lib/auth/redirect"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/base/button"
@@ -22,6 +23,7 @@ export function LoginForm() {
   const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const redirectTarget = normalizeAuthRedirect(searchParams.get("redirect"))
   const handledNoticeRef = useRef<string | null>(null)
   const googleLoginPendingRef = useRef(false)
 
@@ -64,13 +66,16 @@ export function LoginForm() {
     if (prefilledEmail) {
       nextSearchParams.set("email", prefilledEmail)
     }
+    if (redirectTarget !== "/articles") {
+      nextSearchParams.set("redirect", redirectTarget)
+    }
 
     const nextUrl = nextSearchParams.toString()
       ? `/auth/login?${nextSearchParams.toString()}`
       : "/auth/login"
 
     router.replace(nextUrl)
-  }, [router, searchParams, t, toast])
+  }, [redirectTarget, router, searchParams, t, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,7 +87,7 @@ export function LoginForm() {
         title: t("auth.loginSuccess"),
         description: t("auth.redirecting"),
       })
-      router.push("/articles")
+      router.push(redirectTarget)
     } catch (error: any) {
       // Toast is already shown in the auth context
     } finally {
@@ -98,7 +103,7 @@ export function LoginForm() {
     googleLoginPendingRef.current = true
     setGoogleLoading(true)
     try {
-      await signInWithGoogle('/articles')
+      await signInWithGoogle(redirectTarget)
     } catch (error: any) {
       // Toast is already shown
     } finally {
@@ -209,7 +214,12 @@ export function LoginForm() {
       {/* Sign Up Link */}
       <p className="text-center text-sm text-muted-foreground">
         {t("auth.noAccount")}{" "}
-        <Link href="/auth/signup" className="text-primary hover:underline">
+        <Link
+          href={redirectTarget === "/articles"
+            ? "/auth/signup"
+            : `/auth/signup?redirect=${encodeURIComponent(redirectTarget)}`}
+          className="text-primary hover:underline"
+        >
           {t("auth.signup")}
         </Link>
       </p>

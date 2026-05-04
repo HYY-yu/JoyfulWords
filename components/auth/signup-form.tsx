@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
+import { normalizeAuthRedirect } from "@/lib/auth/redirect"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
@@ -22,6 +24,8 @@ export function SignupForm() {
   const { requestSignupCode } = useAuth()
   const { toast } = useToast()
   const { t, locale } = useTranslation()
+  const searchParams = useSearchParams()
+  const redirectTarget = normalizeAuthRedirect(searchParams.get("redirect"))
   const termsOfUseHref = buildLocalizedPath(locale, "/terms-of-use")
   const privacyPolicyHref = buildLocalizedPath(locale, "/privacy-policy")
 
@@ -50,7 +54,10 @@ export function SignupForm() {
         termsAgreed: true,
       })
 
-      const result = await requestSignupCode(email)
+      const result = await requestSignupCode(
+        email,
+        redirectTarget === "/articles" ? undefined : redirectTarget
+      )
       if (result !== "code_sent") {
         return
       }
@@ -69,6 +76,9 @@ export function SignupForm() {
       email,
       notice: "signup_success",
     })
+    if (redirectTarget !== "/articles") {
+      searchParams.set("redirect", redirectTarget)
+    }
 
     window.location.href = `/auth/login?${searchParams.toString()}`
   }
@@ -167,7 +177,12 @@ export function SignupForm() {
       {/* Login Link */}
       <p className="text-center text-sm text-muted-foreground">
         {t("auth.hasAccount")}{" "}
-        <Link href="/auth/login" className="text-primary hover:underline">
+        <Link
+          href={redirectTarget === "/articles"
+            ? "/auth/login"
+            : `/auth/login?redirect=${encodeURIComponent(redirectTarget)}`}
+          className="text-primary hover:underline"
+        >
           {t("auth.login")}
         </Link>
       </p>

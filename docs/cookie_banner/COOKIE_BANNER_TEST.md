@@ -9,7 +9,7 @@
 
 ✅ Phase 2: 核心组件
 - [x] 创建 CookieBannerProvider (`components/cookie-banner/cookie-banner-provider.tsx`)
-- [x] 集成到 AuthCard (`components/auth/auth-card.tsx`)
+- [x] 集成到全局 layout (`app/layout.tsx`)
 - [x] 静态文件部署到 `public/components/cookie-banner/`
 - [x] 更新 middleware.ts 以允许访问 .css 和 .js 文件
 
@@ -23,9 +23,9 @@ pnpm dev
 
 服务器应运行在 http://localhost:3000
 
-### 2. 访问登录页
+### 2. 访问任意页面
 
-打开浏览器访问: http://localhost:3000/auth/login
+打开浏览器访问: http://localhost:3000/auth/login 或任意公开页面。
 
 ### 3. 验证 Cookie Banner 显示
 
@@ -43,9 +43,9 @@ pnpm dev
 - Banner 应消失
 - 右下角应显示 Cookie Icon
 - localStorage 应包含以下键:
-  - `silktideCookieChoice_necessary_auth`
-  - `silktideCookieChoice_analytics_auth`
-  - `silktideCookieBanner_InitialChoice_auth`
+  - `silktideCookieChoice_necessary_global`
+  - `silktideCookieChoice_analytics_global`
+  - `silktideCookieBanner_InitialChoice_global`
 
 #### 4.2 刷新页面
 - Banner 不应再显示
@@ -80,16 +80,16 @@ pnpm dev
 打开浏览器控制台,执行:
 
 ```javascript
-localStorage.removeItem('silktideCookieChoice_necessary_auth')
-localStorage.removeItem('silktideCookieChoice_analytics_auth')
-localStorage.removeItem('silktideCookieBanner_InitialChoice_auth')
+localStorage.removeItem('silktideCookieChoice_necessary_global')
+localStorage.removeItem('silktideCookieChoice_analytics_global')
+localStorage.removeItem('silktideCookieBanner_InitialChoice_global')
 ```
 
 刷新页面,Banner 应重新显示。
 
-### 7. 测试注册页
+### 7. 测试全局可用性
 
-访问: http://localhost:3000/auth/signup
+访问: http://localhost:3000/auth/signup 和其他公开页面。
 
 重复步骤 3-6,验证行为一致。
 
@@ -123,9 +123,9 @@ localStorage.removeItem('silktideCookieBanner_InitialChoice_auth')
 #### Local Storage
 应包含:
 ```
-silktideCookieChoice_necessary_auth: "true"
-silktideCookieChoice_analytics_auth: "true" (或 "false")
-silktideCookieBanner_InitialChoice_auth: "true"
+silktideCookieChoice_necessary_global: "true"
+silktideCookieChoice_analytics_global: "true" (或 "false")
+silktideCookieBanner_InitialChoice_global: "true"
 ```
 
 ## 常见问题排查

@@ -2,13 +2,13 @@
 
 ## 概述
 
-JoyfulWords 项目已成功集成 Silktide Cookie Banner,完全集成到现有的 i18n 系统,支持中英双语切换。
+JoyfulWords 项目已成功集成 Silktide Cookie Banner,完全集成到现有的 i18n 系统,支持中英双语切换。当前 Cookie Banner 在全局 layout 中加载,用于控制 PostHog 等产品分析工具的 analytics consent。
 
 ## 架构设计
 
 ### 集成位置
-- **组件**: `AuthCard` (`components/auth/auth-card.tsx`)
-- **显示页面**: 仅在登录页(`/auth/login`)和注册页(`/auth/signup`)显示
+- **组件**: `CookieBannerProvider` (`components/cookie-banner/cookie-banner-provider.tsx`)
+- **显示页面**: 全局显示
 - **语言支持**: 完全集成到项目 i18n 系统
 
 ### 核心组件
@@ -39,8 +39,8 @@ React 包装组件,负责:
 ```
 JoyfulWords/
 ├── components/
-│   ├── auth/
-│   │   └── auth-card.tsx                    # 集成 CookieBannerProvider
+│   ├── analytics/
+│   │   └── product-analytics-provider.tsx   # PostHog 产品分析 Provider
 │   └── cookie-banner/
 │       ├── types.ts                         # TypeScript 类型定义
 │       ├── cookie-banner-provider.tsx       # React 包装组件
@@ -48,6 +48,10 @@ JoyfulWords/
 │       ├── silktide-consent-manager.js      # Silktide 脚本
 │       └── README.txt                       # Silktide 原始文档
 ├── lib/
+│   ├── analytics/
+│   │   ├── client.ts                        # 产品分析统一封装
+│   │   ├── cookie-consent.ts                # analytics consent 状态
+│   │   └── events.ts                        # 产品分析事件名
 │   └── i18n/
 │       └── locales/
 │           ├── zh.ts                        # 中文翻译
@@ -120,7 +124,7 @@ useEffect(() => {
 ```typescript
 function buildSilktideConfig(t: (key: string) => string): SilktideConfig {
   return {
-    bannerSuffix: BANNER_SUFFIX,  // "_auth" 隔离 localStorage 键
+    bannerSuffix: BANNER_SUFFIX,  // "_global" 隔离 localStorage 键
     cookieTypes: [
       {
         id: "necessary",
@@ -217,7 +221,7 @@ export const config = {
 - **额外加载**: ~37KB (CSS + JS, gzipped)
 - **初始化时间**: ~50ms
 - **运行时更新**: ~10ms (语言切换)
-- **加载位置**: 仅在认证页面加载
+- **加载位置**: 全局 layout 加载
 
 ## 安全与合规
 
@@ -254,20 +258,16 @@ export const config = {
 **方法:**
 ```javascript
 // 在浏览器控制台执行
-localStorage.removeItem('silktideCookieChoice_necessary_auth')
-localStorage.removeItem('silktideCookieChoice_analytics_auth')
-localStorage.removeItem('silktideCookieBanner_InitialChoice_auth')
+localStorage.removeItem('silktideCookieChoice_necessary_global')
+localStorage.removeItem('silktideCookieChoice_analytics_global')
+localStorage.removeItem('silktideCookieBanner_InitialChoice_global')
 ```
 
 ## 未来扩展
 
 ### 全局 Cookie Banner
 
-如果需要在所有页面显示:
-
-1. 将 `CookieBannerProvider` 从 `AuthCard` 移到 `app/layout.tsx`
-2. 移除 `BANNER_SUFFIX`,使用默认 localStorage 键
-3. 考虑创建 `/lib/cookie-consent.ts` 统一管理
+Cookie Banner 已在 `app/layout.tsx` 全局加载,并通过 `lib/analytics/cookie-consent.ts` 向产品分析模块广播 analytics consent 变化。
 
 ### 更多 Cookie 类型
 
@@ -298,7 +298,7 @@ localStorage.removeItem('silktideCookieBanner_InitialChoice_auth')
 
 1. ✅ **完全集成到现有 i18n 系统**: 无需单独管理翻译
 2. ✅ **类型安全**: 完整的 TypeScript 类型定义
-3. ✅ **性能优化**: 动态加载,异步初始化,仅在认证页面加载
+3. ✅ **性能优化**: 动态加载,异步初始化,全局仅加载一次
 4. ✅ **可观测性**: 关键操作添加日志和追踪注释
 5. ✅ **错误降级**: 失败时不影响页面功能
 6. ✅ **易于维护**: 清晰的文件结构和代码组织

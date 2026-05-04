@@ -4,7 +4,6 @@ import { ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 import { cn } from "@/lib/utils"
-import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 import Link from "next/link"
 
 interface AuthCardProps {
@@ -98,9 +97,6 @@ export function AuthCard({ children, title, subtitle }: AuthCardProps) {
             {t("legal.cookiePolicy")}
           </Link>
         </div>
-
-        {/* Cookie Banner (仅在认证页面显示) */}
-        <CookieBannerProvider />
       </div>
     </div>
   )

@@ -655,7 +655,7 @@ export function PresentationTaskDetail({ detail }: PresentationTaskDetailProps) 
 
   if (detail.task_kind === "layout_generate") {
     return (
-      <div className="flex min-h-[calc(100vh-11rem)] flex-col overflow-hidden rounded-2xl border bg-background">
+      <div className="flex min-h-[320px] max-h-[calc(82vh-12rem)] flex-col overflow-hidden rounded-2xl border bg-background">
         <div className="min-h-0 flex-1 overflow-y-auto">
           {htmlError ? (
             <Alert variant="destructive" className="m-4">
