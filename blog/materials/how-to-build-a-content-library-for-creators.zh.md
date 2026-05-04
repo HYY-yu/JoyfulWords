@@ -8,7 +8,7 @@ locale: "zh"
 
 这就是为什么内容素材库很重要。它不是一个单纯存文件的地方，而是创作者的长期记忆层：把网页、图片、引用、案例、搜索结果和灵感集中起来，让每一次研究都能在下一篇文章里继续发挥价值。
 
-![JoyfulWords material search and image collection workflow](https://cdn.joyword.link/materials/2/1b1ebe2774db667c4d22cb532f5b225f.png)
+![JoyfulWords material search and image collection workflow](https://cdn.joyword.link/materials/2/a4f4347c54e4d16822fa9388fb8d0d4f.png)
 
 
 ## 什么是内容素材库

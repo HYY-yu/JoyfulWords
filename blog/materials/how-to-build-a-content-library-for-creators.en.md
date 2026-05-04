@@ -12,7 +12,7 @@ One link lives in your bookmarks. One screenshot sits on your desktop. A useful 
 
 That is why a content library matters. A content library is not just a storage folder. It is the memory layer of a repeatable writing workflow. It keeps web pages, images, quotes, examples, search results, and ideas close enough to be reused in future articles.
 
-![JoyfulWords material search and image collection workflow](https://cdn.joyword.link/materials/2/1b1ebe2774db667c4d22cb532f5b225f.png)
+![JoyfulWords material search and image collection workflow](https://cdn.joyword.link/materials/2/a4f4347c54e4d16822fa9388fb8d0d4f.png)
 
 ## What Is a Content Library?
 
