@@ -30,7 +30,7 @@ Every `NEXT_PUBLIC_*` variable must also be declared in `Dockerfile.prod` and pa
 
 ## Code entry points
 
-- `components/analytics/product-analytics-provider.tsx`: initializes PostHog after analytics consent, tracks page views, and identifies logged-in users by internal user ID.
+- `components/analytics/product-analytics-provider.tsx`: initializes PostHog after analytics consent, tracks the JoyfulWords `page_viewed` funnel event, and identifies logged-in users by internal user ID.
 - `lib/analytics/client.ts`: PostHog facade. Business code should use this instead of importing `posthog-js`.
 - `lib/analytics/events.ts`: canonical product event names.
 - `lib/analytics/cookie-consent.ts`: reads and broadcasts analytics consent changes.
@@ -90,6 +90,8 @@ Billing:
 Page:
 
 - `page_viewed`
+
+PostHog native web analytics also captures `$pageview` with `capture_pageview: "history_change"` and `$pageleave` with `capture_pageleave: true`. Keep `page_viewed` for JoyfulWords product funnels, and use PostHog native `$pageview` / `$pageleave` for Web Analytics installation checks, paths, bounce rate, session duration, and scroll-depth properties.
 
 ## First dashboards and funnels
 

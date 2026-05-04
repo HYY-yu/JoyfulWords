@@ -169,7 +169,7 @@ export async function initializeProductAnalytics(
       posthog.init(token, {
         api_host: apiHost,
         autocapture: false,
-        capture_pageview: false,
+        capture_pageview: "history_change",
         capture_pageleave: true,
         debug: process.env.NODE_ENV === "development",
         defaults: "2026-01-30",
