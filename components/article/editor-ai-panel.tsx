@@ -125,6 +125,29 @@ const FEATURE_BUTTONS: FeatureButton[] = [
   },
 ]
 
+function getCaughtErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+
+  if (typeof error === "string") {
+    return error || fallback
+  }
+
+  if (error && typeof error === "object" && "message" in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === "string" && message) {
+      return message
+    }
+  }
+
+  try {
+    return JSON.stringify(error) || fallback
+  } catch {
+    return String(error) || fallback
+  }
+}
+
 interface EditorAIPanelProps {
   articleId?: number | null
   submissionTick?: number
@@ -267,13 +290,12 @@ export function EditorAIPanel({
       setTaskDetail(result)
       setIsTaskDetailOpen(true)
     } catch (error) {
-      console.error("[EditorAIPanel] Failed to fetch task detail", {
-        taskRef,
+      const errorMessage = getCaughtErrorMessage(
         error,
-      })
-      setTaskDetailError(
-        error instanceof Error ? error.message : t("contentWriting.taskCenter.detailLoadFailed")
+        t("contentWriting.taskCenter.detailLoadFailed")
       )
+      console.error("[EditorAIPanel] Failed to fetch task detail", errorMessage, { taskRef })
+      setTaskDetailError(errorMessage)
       setTaskDetail(null)
       setIsTaskDetailOpen(true)
     } finally {
