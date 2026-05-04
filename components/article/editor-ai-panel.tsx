@@ -585,7 +585,7 @@ export function EditorAIPanel({
         <DialogContent
           className={
             selectedTaskRef?.type === "presentation"
-              ? "flex h-[calc(100vh-1rem)] w-[calc(100vw-1rem)] max-w-none flex-col overflow-hidden sm:max-w-none"
+              ? "flex h-[82vh] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(50vw,880px)] md:!max-w-[880px]"
               : "flex max-h-[80vh] flex-col sm:max-w-[720px]"
           }
         >
