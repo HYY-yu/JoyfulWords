@@ -57,6 +57,67 @@ const INITIAL_RECONNECT_DELAY_MS = 1_000
 const MAX_RECONNECT_DELAY_MS = 30_000
 const TASK_EVENT_DEDUPE_WINDOW_MS = 1_500
 
+function formatLogValue(value: unknown): string {
+  if (value instanceof Error) {
+    return value.message || value.name
+  }
+
+  if (typeof Event !== "undefined" && value instanceof Event) {
+    return `type=${value.type}`
+  }
+
+  if (typeof value === "string") {
+    return value
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    value === null ||
+    value === undefined
+  ) {
+    return String(value)
+  }
+
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return String(value)
+  }
+}
+
+function formatLogContext(context?: Record<string, unknown>): string {
+  if (!context) return ""
+
+  const fields = Object.entries(context).map(
+    ([key, value]) => `${key}=${formatLogValue(value)}`
+  )
+
+  return fields.length > 0 ? ` ${fields.join(" ")}` : ""
+}
+
+function logWebSocket(
+  level: "debug" | "info" | "warn" | "error",
+  message: string,
+  context?: Record<string, unknown>
+) {
+  const line = `[WebSocket] ${message}${formatLogContext(context)}`
+  switch (level) {
+    case "debug":
+      console.debug(line)
+      break
+    case "info":
+      console.info(line)
+      break
+    case "warn":
+      console.warn(line)
+      break
+    case "error":
+      console.error(line)
+      break
+  }
+}
+
 function buildWebSocketUrl(token: string, articleId?: number): string {
   const url = new URL(API_BASE_URL)
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
@@ -108,14 +169,14 @@ class WebSocketService {
           }
         })
 
-        console.info("[WebSocket] Updated channel tokens after refresh", {
+        logWebSocket("info", "Updated channel tokens after refresh", {
           channelCount: this.channels.size,
           source: event.source,
         })
       }
 
       if (event.type === "token:cleared") {
-        console.info("[WebSocket] Closing channels after token cleared", {
+        logWebSocket("info", "Closing channels after token cleared", {
           channelCount: this.channels.size,
           source: event.source,
         })
@@ -238,7 +299,7 @@ class WebSocketService {
     }
 
     const wsUrl = buildWebSocketUrl(channel.token, channel.articleId)
-    console.info("[WebSocket] Connecting", {
+    logWebSocket("info", "Connecting", {
       key: channel.key,
       articleId: channel.articleId ?? null,
       url: wsUrl.replace(channel.token, "***"),
@@ -254,7 +315,7 @@ class WebSocketService {
         channel.reconnectAttempts = 0
         this.startHeartbeat(channel)
 
-        console.info("[WebSocket] Connected", {
+        logWebSocket("info", "Connected", {
           key: channel.key,
           articleId: channel.articleId ?? null,
           reconnect: isReconnect,
@@ -279,10 +340,11 @@ class WebSocketService {
       }
 
       ws.onerror = (event) => {
-        console.warn("[WebSocket] Socket error", {
+        logWebSocket("warn", "Socket error", {
           key: channel.key,
           articleId: channel.articleId ?? null,
-          event,
+          eventType: event.type,
+          readyState: ws.readyState,
         })
       }
 
@@ -290,7 +352,7 @@ class WebSocketService {
         const isReauthenticating = channel.reauthenticating
         channel.reauthenticating = false
 
-        console.info("[WebSocket] Closed", {
+        logWebSocket("info", "Closed", {
           key: channel.key,
           articleId: channel.articleId ?? null,
           code: event.code,
@@ -315,7 +377,7 @@ class WebSocketService {
         this.scheduleReconnect(channel)
       }
     } catch (error) {
-      console.error("[WebSocket] Failed to connect", {
+      logWebSocket("error", "Failed to connect", {
         key: channel.key,
         articleId: channel.articleId ?? null,
         error,
@@ -334,7 +396,7 @@ class WebSocketService {
     )
     channel.reconnectAttempts += 1
 
-    console.warn("[WebSocket] Scheduling reconnect", {
+    logWebSocket("warn", "Scheduling reconnect", {
       key: channel.key,
       articleId: channel.articleId ?? null,
       delay,
@@ -360,7 +422,7 @@ class WebSocketService {
     channel.reconnectAttempts = 0
     this.stopHeartbeat(channel)
 
-    console.info("[WebSocket] Reauthenticating channel after token update", {
+    logWebSocket("info", "Reauthenticating channel after token update", {
       key: channel.key,
       articleId: channel.articleId ?? null,
     })
@@ -422,7 +484,7 @@ class WebSocketService {
       const message = JSON.parse(event.data) as WebSocketMessage
 
       if (message.type === WebSocketMessageType.WELCOME) {
-        console.debug("[WebSocket] Welcome received", {
+        logWebSocket("debug", "Welcome received", {
           key: channel.key,
           articleId: channel.articleId ?? null,
           payload: message.payload,
@@ -431,7 +493,7 @@ class WebSocketService {
       }
 
       if (message.type === WebSocketMessageType.PONG) {
-        console.debug("[WebSocket] Pong received", {
+        logWebSocket("debug", "Pong received", {
           key: channel.key,
           articleId: channel.articleId ?? null,
           payload: message.payload,
@@ -440,7 +502,7 @@ class WebSocketService {
       }
 
       if (!isTaskMessageType(message.type)) {
-        console.warn("[WebSocket] Unknown message type", {
+        logWebSocket("warn", "Unknown message type", {
           key: channel.key,
           type: message.type,
         })
@@ -449,7 +511,7 @@ class WebSocketService {
 
       const payload = message.payload as TaskUpdatePayload
       if (!payload || typeof payload.task_id !== "number" || !payload.task_type) {
-        console.warn("[WebSocket] Invalid task payload", {
+        logWebSocket("warn", "Invalid task payload", {
           key: channel.key,
           messageType: message.type,
           payload: message.payload,
@@ -477,7 +539,7 @@ class WebSocketService {
         this.showTaskToast("error", payload)
       }
     } catch (error) {
-      console.error("[WebSocket] Failed to parse message", {
+      logWebSocket("error", "Failed to parse message", {
         key: channel.key,
         articleId: channel.articleId ?? null,
         error,
@@ -508,7 +570,7 @@ class WebSocketService {
 
     const previousTimestamp = this.recentTaskEvents.get(dedupeKey)
     if (previousTimestamp && now - previousTimestamp <= TASK_EVENT_DEDUPE_WINDOW_MS) {
-      console.debug("[WebSocket] Deduped task event", { dedupeKey })
+      logWebSocket("debug", "Deduped task event", { dedupeKey })
       return false
     }
 
@@ -629,7 +691,7 @@ class WebSocketService {
       try {
         callback(data)
       } catch (error) {
-        console.error("[WebSocket] Event listener failed", {
+        logWebSocket("error", "Event listener failed", {
           event,
           error,
         })
