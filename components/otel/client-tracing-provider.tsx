@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
 import { initClientTracing } from '@/lib/otel/client-instrumentation'
 
 /**
@@ -12,11 +11,9 @@ import { initClientTracing } from '@/lib/otel/client-instrumentation'
  * Telemetry is only enabled when NEXT_PUBLIC_ENABLE_TELEMETRY is set to "true".
  */
 export function OpenTelemetryProvider() {
-  useEffect(() => {
-    if (process.env.NEXT_PUBLIC_ENABLE_TELEMETRY === 'true') {
-      initClientTracing()
-    }
-  }, [])
+  if (process.env.NEXT_PUBLIC_ENABLE_TELEMETRY === 'true') {
+    initClientTracing()
+  }
 
   return null
 }

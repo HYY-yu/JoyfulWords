@@ -88,6 +88,7 @@ export default async function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
+        <OpenTelemetryProvider />
         <I18nProvider initialLocale={initialLocale}>
           <AuthProvider>
             <WebSocketProvider>
@@ -98,7 +99,6 @@ export default async function RootLayout({
                 <Suspense fallback={null}>
                   <ProductAnalyticsProvider />
                 </Suspense>
-                <OpenTelemetryProvider />
               </InsufficientCreditsRoot>
             </WebSocketProvider>
           </AuthProvider>

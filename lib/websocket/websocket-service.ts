@@ -396,7 +396,7 @@ class WebSocketService {
     )
     channel.reconnectAttempts += 1
 
-    logWebSocket("warn", "Scheduling reconnect", {
+    logWebSocket("debug", "Scheduling reconnect", {
       key: channel.key,
       articleId: channel.articleId ?? null,
       delay,
