@@ -13,6 +13,7 @@ function parsePatterns(value: string | undefined): Array<string | RegExp> {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean)
+    .map(urlPatternFromConfig)
 }
 
 function getApiOrigin(): string | null {
@@ -23,12 +24,27 @@ function getApiOrigin(): string | null {
   }
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function urlPatternFromConfig(value: string): string | RegExp {
+  try {
+    const url = new URL(value)
+    const path = url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, '')
+
+    return new RegExp(`^${escapeRegExp(`${url.origin}${path}`)}(?:[/?#]|$)`)
+  } catch {
+    return value
+  }
+}
+
 function getTracePropagationUrls(): Array<string | RegExp> {
   const apiOrigin = getApiOrigin()
 
   return [
     ...parsePatterns(process.env.NEXT_PUBLIC_FARO_PROPAGATE_TRACE_URLS),
-    ...(apiOrigin ? [apiOrigin] : []),
+    ...(apiOrigin ? [urlPatternFromConfig(apiOrigin)] : []),
     /^https?:\/\/localhost(?::\d+)?/,
     /^https?:\/\/127\.0\.0\.1(?::\d+)?/,
   ]
