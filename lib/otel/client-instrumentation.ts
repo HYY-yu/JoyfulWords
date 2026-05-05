@@ -1,7 +1,7 @@
 'use client'
 
 import { faro, getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk'
-import { TracingInstrumentation } from '@grafana/faro-web-tracing'
+import { getDefaultOTELInstrumentations, TracingInstrumentation } from '@grafana/faro-web-tracing'
 import { API_BASE_URL } from '@/lib/config'
 
 let isInitialized = false
@@ -28,15 +28,32 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function urlPatternFromConfig(value: string): string | RegExp {
+function getUrlPrefix(value: string): string | null {
   try {
     const url = new URL(value)
     const path = url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, '')
 
-    return new RegExp(`^${escapeRegExp(`${url.origin}${path}`)}(?:[/?#]|$)`)
+    return `${url.origin}${path}`
   } catch {
-    return value
+    return null
   }
+}
+
+function urlPatternFromConfig(value: string): string | RegExp {
+  const prefix = getUrlPrefix(value)
+  return prefix ? new RegExp(`^${escapeRegExp(prefix)}(?:[/?#]|$)`) : value
+}
+
+function getTraceAllowedPrefixes(): string[] {
+  const configuredPrefixes = parsePatterns(process.env.NEXT_PUBLIC_FARO_PROPAGATE_TRACE_URLS)
+    .filter((pattern): pattern is RegExp => pattern instanceof RegExp)
+    .map((pattern) => pattern.source)
+
+  const apiOrigin = getApiOrigin()
+  const apiPrefix = apiOrigin ? getUrlPrefix(apiOrigin) : null
+  const apiPattern = apiPrefix ? `^${escapeRegExp(apiPrefix)}(?:[/?#]|$)` : null
+
+  return Array.from(new Set([...configuredPrefixes, ...(apiPattern ? [apiPattern] : [])]))
 }
 
 function getTracePropagationUrls(): Array<string | RegExp> {
@@ -48,6 +65,16 @@ function getTracePropagationUrls(): Array<string | RegExp> {
     /^https?:\/\/localhost(?::\d+)?/,
     /^https?:\/\/127\.0\.0\.1(?::\d+)?/,
   ]
+}
+
+function getTraceIgnoreUrls(): RegExp[] {
+  const allowedPrefixes = getTraceAllowedPrefixes()
+
+  if (allowedPrefixes.length === 0) {
+    return []
+  }
+
+  return [new RegExp(`^(?!(?:${allowedPrefixes.join('|')})).*`)]
 }
 
 function getAppEnvironment(): string {
@@ -88,9 +115,10 @@ export function initClientTracing() {
       instrumentations: [
         ...getWebInstrumentations(),
         new TracingInstrumentation({
-          instrumentationOptions: {
+          instrumentations: getDefaultOTELInstrumentations({
+            ignoreUrls: getTraceIgnoreUrls(),
             propagateTraceHeaderCorsUrls: getTracePropagationUrls(),
-          },
+          }),
         }),
       ],
     })
@@ -103,6 +131,7 @@ export function initClientTracing() {
         service: process.env.NEXT_PUBLIC_FARO_APP_NAME || 'joyful-words-browser',
         namespace: process.env.NEXT_PUBLIC_FARO_APP_NAMESPACE || 'joyfulwords',
         propagateTraceHeaderCorsUrls: getTracePropagationUrls().map((pattern) => pattern.toString()),
+        traceIgnoreUrls: getTraceIgnoreUrls().map((pattern) => pattern.toString()),
       })
     }
   } catch (error) {
