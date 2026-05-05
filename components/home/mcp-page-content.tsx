@@ -30,7 +30,7 @@ function McpLogo({ href }: { href: string }) {
         height={32}
         className="h-8 w-8 shrink-0 rounded-sm object-cover"
       />
-      <span className="text-base font-semibold tracking-tight">JoyfulWords</span>
+      <span className="text-base font-semibold tracking-tight text-[var(--jw-heading)]">JoyfulWords</span>
     </Link>
   )
 }
@@ -78,28 +78,28 @@ export function McpPageContent() {
   ]
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-background text-foreground">
-      <header className="fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b bg-background/92 px-4 backdrop-blur-2xl sm:px-6 md:px-10">
+    <main className="jw-app-shell min-h-screen overflow-x-hidden">
+      <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
         <McpLogo href={homeHref} />
         <div className="flex-1" />
 
         <Link
           href={homeHref}
-          className="hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground sm:flex"
+          className="jw-themed-link hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-all sm:flex"
         >
           <ArrowLeftIcon className="size-4" />
           {t("mcpPage.nav.backHome")}
         </Link>
 
-        <div className="flex items-center gap-1 rounded-lg border bg-background px-1 py-1">
-          <GlobeIcon className="ml-2 size-4 text-muted-foreground" />
+        <div className="flex items-center gap-1 rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-1 py-1 shadow-[var(--jw-soft-shadow)]">
+          <GlobeIcon className="ml-2 size-4 text-[var(--jw-muted)]" />
           <button
             type="button"
             onClick={() => handleLocaleChange("zh")}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
               locale === "zh"
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]"
+                : "text-[var(--jw-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
             }`}
           >
             中文
@@ -109,8 +109,8 @@ export function McpPageContent() {
             onClick={() => handleLocaleChange("en")}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
               locale === "en"
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]"
+                : "text-[var(--jw-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
             }`}
           >
             EN
@@ -118,22 +118,22 @@ export function McpPageContent() {
         </div>
       </header>
 
-      <section className="relative isolate border-b pt-14">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_78%_48%_at_50%_0%,rgba(37,99,235,.10)_0%,transparent_70%),linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(244,244,245,.82)_100%)]" />
+      <section className="relative isolate border-b border-[var(--jw-border-subtle)] pt-14">
+        <div className="absolute inset-0 -z-10 bg-[var(--jw-hero-bg)]" />
         <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] max-w-6xl items-center gap-10 px-5 py-10 sm:px-6 sm:py-14 md:px-10 lg:grid-cols-[0.88fr_1.12fr] lg:py-16">
           <div className="max-w-xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[13px] font-medium text-primary">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--jw-border)] bg-[var(--jw-accent-soft)] px-4 py-1.5 text-[13px] font-medium text-[var(--jw-accent)]">
               <ServerIcon className="size-4" />
               {t("mcpPage.eyebrow")}
             </div>
 
-            <h1 className="font-serif text-5xl leading-[0.98] tracking-tight sm:text-6xl md:text-7xl">
+            <h1 className="font-serif text-5xl leading-[0.98] tracking-tight text-[var(--jw-heading)] sm:text-6xl md:text-7xl">
               {t("mcpPage.heading")}
             </h1>
-            <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
+            <p className="mt-6 max-w-lg text-base leading-7 text-[var(--jw-muted)] sm:text-lg">
               {t("mcpPage.description")}
             </p>
-            <p className="mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
+            <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--jw-muted)]">
               {t("mcpPage.agentHint")}
             </p>
 
@@ -146,7 +146,7 @@ export function McpPageContent() {
           </div>
 
           <div className="relative min-w-0">
-            <div className="min-w-0 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 text-white shadow-[0_24px_80px_rgba(15,23,42,0.18)]">
+            <div className="min-w-0 overflow-hidden rounded-xl border border-[var(--jw-border)] bg-zinc-950 text-white shadow-[var(--jw-card-shadow)]">
               <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div className="flex items-center gap-2 text-xs font-medium text-white/58">
                   <TerminalIcon className="size-3.5" />
@@ -162,21 +162,21 @@ export function McpPageContent() {
             </div>
 
             <div className="mt-8">
-              <p className="text-xs font-medium uppercase tracking-[0.32em] text-muted-foreground">
+              <p className="text-xs font-medium uppercase tracking-[0.32em] text-[var(--jw-muted)]">
                 {t("mcpPage.stepsLabel")}
               </p>
-              <h2 className="mt-3 font-serif text-3xl tracking-tight sm:text-4xl">
+              <h2 className="mt-3 font-serif text-3xl tracking-tight text-[var(--jw-heading)] sm:text-4xl">
                 {t("mcpPage.stepsHeading")}
               </h2>
 
               <div className="mt-7 grid gap-5 sm:grid-cols-3">
                 {steps.map((step) => (
-                  <article key={step.number} className="border-t pt-4">
-                    <div className="mb-4 font-mono text-3xl text-foreground/10">
+                  <article key={step.number} className="border-t border-[var(--jw-border)] pt-4">
+                    <div className="mb-4 font-mono text-3xl text-[var(--jw-accent)] opacity-30">
                       {step.number}
                     </div>
-                    <h3 className="text-lg font-semibold tracking-tight">{step.title}</h3>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                    <h3 className="text-lg font-semibold tracking-tight text-[var(--jw-heading)]">{step.title}</h3>
+                    <p className="mt-3 text-sm leading-7 text-[var(--jw-muted)]">
                       {step.description}
                     </p>
                   </article>
