@@ -1389,9 +1389,20 @@ function MaterialTypeSwitcher({
 }) {
   const { t } = useTranslation()
   const tabs = mode === "search" ? SEARCH_TYPE_TABS : CATEGORY_TABS
+  const activeIndex = Math.max(0, tabs.findIndex((tab) => tab.id === value))
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="relative grid items-center gap-1" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-0 rounded-md bg-[var(--jw-control-active-bg)] ring-1 ring-[var(--jw-task-card-border)]"
+        style={{
+          width: `${100 / tabs.length}%`,
+          transform: `translateX(${activeIndex * 100}%)`,
+          transition: "transform 260ms cubic-bezier(0.34, 1.45, 0.64, 1), opacity 180ms ease",
+          opacity: disabled ? 0.55 : 1,
+        }}
+      />
       {tabs.map((tab) => {
         const Icon = tab.icon
         const isActive = value === tab.id
@@ -1407,10 +1418,10 @@ function MaterialTypeSwitcher({
             onClick={() => onValueChange(tab.id)}
             disabled={disabled}
             className={cn(
-              "flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              "relative z-10 flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
               isActive
-                ? "bg-[var(--jw-control-active-bg)] text-foreground ring-1 ring-[var(--jw-task-card-border)]"
-                : "text-muted-foreground hover:bg-background/80 hover:text-foreground"
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <Icon className="h-3.5 w-3.5" />
@@ -1533,72 +1544,68 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
   return (
     <div className={cn("flex h-full flex-col overflow-hidden bg-transparent", className)}>
       <div className="jw-panel-header shrink-0 px-4 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="jw-icon-soft flex h-7 w-7 items-center justify-center rounded-md">
-                <FileText className="h-4 w-4" />
-              </div>
-              <h2 className="truncate text-sm font-semibold text-foreground">
-                {t("contentWriting.materialPanel.sourceTitle")}
-              </h2>
-            </div>
-            <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-              {t("contentWriting.materialPanel.sourceSubtitle")}
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="jw-soft-input h-8 shrink-0 px-2.5 text-xs"
-            onClick={() => setShowUpload(true)}
-            disabled={!articleId}
-          >
-            <Upload className="mr-1.5 h-3.5 w-3.5" />
-            {t("contentWriting.materialPanel.uploadButton")}
-          </Button>
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-semibold text-foreground">
+            {t("contentWriting.materialPanel.sourceTitle")}
+          </h2>
         </div>
+      </div>
+
+      <div className="shrink-0 px-3 pt-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="jw-soft-input h-9 w-full justify-center px-3 text-xs transition-shadow hover:shadow-[0_10px_24px_rgba(15,23,42,0.16)]"
+          onClick={() => setShowUpload(true)}
+          disabled={!articleId}
+        >
+          <Upload className="mr-1.5 h-3.5 w-3.5" />
+          {t("contentWriting.materialPanel.uploadButton")}
+        </Button>
       </div>
 
       <Tabs value={activeView} onValueChange={(value) => setActiveView(value as "search" | "library" | "favorites")} className="flex h-full flex-col">
         <div className="mx-3 mt-3 shrink-0">
-          <div className="jw-panel-control flex items-center gap-2 rounded-lg p-1">
-            <TabsList className="min-w-0 flex-1 bg-[var(--jw-control-bg)]">
-              <TabsTrigger value="search" className="flex-1 text-xs">
-                <Search className="mr-1.5 h-3.5 w-3.5" />
-                {t("contentWriting.materialPanel.searchTab")}
-              </TabsTrigger>
-              <TabsTrigger value="library" className="flex-1 text-xs">
-                <BookOpen className="mr-1.5 h-3.5 w-3.5" />
-                {t("contentWriting.materialPanel.libraryTab")}
-              </TabsTrigger>
-            </TabsList>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className={cn(
-                "h-9 w-9 shrink-0 rounded-md border border-border/50 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground",
-                activeView === "favorites" && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
-              )}
-              onClick={() => setActiveView("favorites")}
-              aria-label={t("contentWriting.materialPanel.globalFavoriteButton")}
-              title={t("contentWriting.materialPanel.globalFavoriteButton")}
-            >
-              <Heart className={cn("h-4 w-4", activeView === "favorites" && "fill-current")} />
-            </Button>
-          </div>
-
-          {activeView === "search" || activeView === "library" ? (
-            <div className="mt-1.5 rounded-lg bg-background/65 p-1 ring-1 ring-border/50">
-              <MaterialTypeSwitcher
-                mode={activeView}
-                value={activeView === "search" ? searchType : libraryActiveCategory}
-                disabled={activeView === "search" && isSearchTypeLocked}
-                onValueChange={handleMaterialTypeChange}
-              />
+          <div className="jw-panel-control rounded-xl border border-[var(--jw-border-subtle)] p-1.5">
+            <div className="flex items-center gap-2">
+              <TabsList className="min-w-0 flex-1 border border-transparent bg-[var(--jw-control-bg)] transition-colors hover:border-dashed hover:border-[var(--jw-accent)]">
+                <TabsTrigger value="search" className="flex-1 text-xs">
+                  <Search className="mr-1.5 h-3.5 w-3.5" />
+                  {t("contentWriting.materialPanel.searchTab")}
+                </TabsTrigger>
+                <TabsTrigger value="library" className="flex-1 text-xs">
+                  <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                  {t("contentWriting.materialPanel.libraryTab")}
+                </TabsTrigger>
+              </TabsList>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className={cn(
+                  "h-9 w-9 shrink-0 rounded-md border border-border/50 bg-background/80 text-muted-foreground hover:bg-background hover:text-foreground",
+                  "transition-shadow hover:shadow-[0_8px_18px_rgba(15,23,42,0.18)]",
+                  activeView === "favorites" && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                )}
+                onClick={() => setActiveView("favorites")}
+                aria-label={t("contentWriting.materialPanel.globalFavoriteButton")}
+                title={t("contentWriting.materialPanel.globalFavoriteButton")}
+              >
+                <Heart className={cn("h-4 w-4", activeView === "favorites" && "fill-current")} />
+              </Button>
             </div>
-          ) : null}
+
+            {activeView === "search" || activeView === "library" ? (
+              <div className="mt-1.5 border-t border-[var(--jw-border-subtle)] pt-1.5">
+                <MaterialTypeSwitcher
+                  mode={activeView}
+                  value={activeView === "search" ? searchType : libraryActiveCategory}
+                  disabled={activeView === "search" && isSearchTypeLocked}
+                  onValueChange={handleMaterialTypeChange}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <TabsContent value="search" className="mt-0 flex-1 overflow-hidden px-3 pb-3 pt-1">

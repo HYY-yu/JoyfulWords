@@ -336,6 +336,9 @@ export const en = {
             cleanSuccess: "All content cleared",
             saveMetadataSuccess: "Saved successfully",
             saveMetadataFailed: "Save failed",
+            saving: "Saving...",
+            saved: "Saved",
+            saveAsNewReversion: "Save as new version",
             categoryPlaceholder: "Optional",
             tagsPlaceholder: "Optional, e.g.: AI, Tech, Future",
             backToList: "Back to article list",
@@ -506,7 +509,6 @@ export const en = {
         },
         materialPanel: {
             sourceTitle: "Source Context",
-            sourceSubtitle: "Search, upload, and drag sources into the article canvas.",
             search: "Search",
             library: "Library",
             searchPlaceholder: "Search materials...",
@@ -1400,7 +1402,6 @@ export const en = {
         aiPanel: {
             title: "AI Features",
             studioTitle: "AI Studio",
-            studioSubtitle: "Generate edits, visuals, and structured artifacts for this article.",
             groups: {
                 writing: "Writing Boost",
                 visual: "Visual Generation",
@@ -1423,7 +1424,7 @@ export const en = {
             generateVideo: "Generate Video",
             generateVideoComingSoon: "Feature in development. Coming soon.",
             taskProgress: "Task Progress",
-            taskProgressSubtitle: "Completed outputs can be imported to materials or inserted into the article.",
+            taskProgressSubtitle: "Track task progress here. Click a task to view details.",
         },
     },
     presentation: {

@@ -336,6 +336,9 @@ export const zh = {
             cleanSuccess: "已清空所有内容",
             saveMetadataSuccess: "保存成功",
             saveMetadataFailed: "保存失败",
+            saving: "保存中...",
+            saved: "已保存",
+            saveAsNewReversion: "保存为新版本",
             categoryPlaceholder: "可选",
             tagsPlaceholder: "可选，例如：AI,科技,未来",
             backToList: "返回文章列表",
@@ -506,7 +509,6 @@ export const zh = {
         },
         materialPanel: {
             sourceTitle: "素材上下文",
-            sourceSubtitle: "搜索、上传并拖拽素材到文章画布。",
             search: "搜索",
             library: "素材库",
             searchPlaceholder: "搜索素材...",
@@ -1400,7 +1402,6 @@ export const zh = {
         aiPanel: {
             title: "AI 功能",
             studioTitle: "AI 工作室",
-            studioSubtitle: "围绕当前文章生成改写、视觉和结构化产物。",
             groups: {
                 writing: "写作增强",
                 visual: "视觉生成",
@@ -1423,7 +1424,7 @@ export const zh = {
             generateVideo: "生成视频",
             generateVideoComingSoon: "功能开发中，敬请期待",
             taskProgress: "任务进度",
-            taskProgressSubtitle: "生成结果完成后可导入素材库或插入文章。",
+            taskProgressSubtitle: "在这里跟踪任务进度，点击任务可查看详情。",
         },
     },
     presentation: {
