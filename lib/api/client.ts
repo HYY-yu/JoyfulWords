@@ -44,16 +44,44 @@ export function getLanguageHeader(): string {
   return locale.startsWith('zh') ? 'zh-CN' : 'en-US'
 }
 
+function randomHex(byteLength: number): string | null {
+  if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
+    return null
+  }
+
+  const bytes = new Uint8Array(byteLength)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function isAllZeroHex(value: string): boolean {
+  return /^0+$/.test(value)
+}
+
+function createFallbackTraceParent(): string | null {
+  const traceId = randomHex(16)
+  const spanId = randomHex(8)
+
+  if (!traceId || !spanId || isAllZeroHex(traceId) || isAllZeroHex(spanId)) {
+    return null
+  }
+
+  return `00-${traceId}-${spanId}-01`
+}
+
 /**
- * Inject OpenTelemetry trace headers for distributed tracing
+ * Inject W3C trace headers for distributed tracing.
  *
- * This function extracts the current trace context and injects it into
- * outgoing HTTP requests using the W3C Trace Context format.
- *
- * @returns Headers object with traceparent header if tracing is active
+ * Faro fetch instrumentation is the primary path. This fallback keeps API
+ * requests trace-propagatable when the request happens before Faro patches
+ * fetch, or when there is no active OpenTelemetry span in React event context.
  */
 function injectTraceHeaders(): HeadersInit {
   const headers: HeadersInit = {}
+
+  if (process.env.NEXT_PUBLIC_ENABLE_TELEMETRY !== 'true') {
+    return headers
+  }
 
   try {
     // Get current trace context
@@ -68,12 +96,16 @@ function injectTraceHeaders(): HeadersInit {
       if (spanContext.traceId && spanContext.spanId) {
         const traceParent = `00-${spanContext.traceId}-${spanContext.spanId}-0${spanContext.traceFlags || 1}`
         headers['traceparent'] = traceParent
+        return headers
       }
     }
   } catch (error) {
-    // Silently fail if OpenTelemetry is not initialized
-    // This prevents breaking the app when tracing is disabled
     console.debug('[Trace] Failed to inject trace headers:', error)
+  }
+
+  const fallbackTraceParent = createFallbackTraceParent()
+  if (fallbackTraceParent) {
+    headers['traceparent'] = fallbackTraceParent
   }
 
   return headers
