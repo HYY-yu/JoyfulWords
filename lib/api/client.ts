@@ -1,5 +1,4 @@
 import { API_BASE_URL } from '@/lib/config'
-import { trace, context } from '@opentelemetry/api'
 import type { InsufficientCreditsData } from '@/components/credits/insufficient-credits-dialog'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { shouldAttemptAuthRefresh } from '@/lib/auth/session-policy'
@@ -42,73 +41,6 @@ export function getLanguageHeader(): string {
 
   const locale = localStorage.getItem('locale') || navigator.language || 'en-US'
   return locale.startsWith('zh') ? 'zh-CN' : 'en-US'
-}
-
-function randomHex(byteLength: number): string | null {
-  if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
-    return null
-  }
-
-  const bytes = new Uint8Array(byteLength)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
-}
-
-function isAllZeroHex(value: string): boolean {
-  return /^0+$/.test(value)
-}
-
-function createFallbackTraceParent(): string | null {
-  const traceId = randomHex(16)
-  const spanId = randomHex(8)
-
-  if (!traceId || !spanId || isAllZeroHex(traceId) || isAllZeroHex(spanId)) {
-    return null
-  }
-
-  return `00-${traceId}-${spanId}-01`
-}
-
-/**
- * Inject W3C trace headers for distributed tracing.
- *
- * Faro fetch instrumentation is the primary path. This fallback keeps API
- * requests trace-propagatable when the request happens before Faro patches
- * fetch, or when there is no active OpenTelemetry span in React event context.
- */
-function injectTraceHeaders(): HeadersInit {
-  const headers: HeadersInit = {}
-
-  if (process.env.NEXT_PUBLIC_ENABLE_TELEMETRY !== 'true') {
-    return headers
-  }
-
-  try {
-    // Get current trace context
-    const currentContext = context.active()
-    const span = trace.getSpan(currentContext)
-
-    if (span) {
-      const spanContext = span.spanContext()
-
-      // Inject W3C traceparent header
-      // Format: 00-{trace_id}-{span_id}-{trace_flags}
-      if (spanContext.traceId && spanContext.spanId) {
-        const traceParent = `00-${spanContext.traceId}-${spanContext.spanId}-0${spanContext.traceFlags || 1}`
-        headers['traceparent'] = traceParent
-        return headers
-      }
-    }
-  } catch (error) {
-    console.debug('[Trace] Failed to inject trace headers:', error)
-  }
-
-  const fallbackTraceParent = createFallbackTraceParent()
-  if (fallbackTraceParent) {
-    headers['traceparent'] = fallbackTraceParent
-  }
-
-  return headers
 }
 
 function mergeHeaders(...headerSets: Array<HeadersInit | undefined>): Headers {
@@ -154,7 +86,6 @@ export async function apiRequest<T>(
   const headers = mergeHeaders(
     DEFAULT_HEADERS,
     { 'Accept-Language': getLanguageHeader() },
-    injectTraceHeaders(), // Inject distributed tracing headers
     options.headers
   )
   const hasAuthorizationHeader = headers.has('Authorization')
