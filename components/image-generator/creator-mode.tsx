@@ -58,6 +58,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   const [layers, setLayers] = useState<Layer[]>([])
   const [showResetDialog, setShowResetDialog] = useState(false)
   const [showJsonPreview, setShowJsonPreview] = useState(false)
+  const [quickPrompt, setQuickPrompt] = useState("")
 
   // 图片生成相关状态
   const [isGenerating, setIsGenerating] = useState(false)
@@ -437,6 +438,14 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   }
 
   const handleGenerateJson = () => {
+    if (quickPrompt.trim().length === 0 && layers.length === 0) {
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.validation.missingPromptOrLayer"),
+      })
+      return
+    }
+
     // 验证所有图层是否都有描述
     const layersWithoutDescription = layers.filter(layer => !layer.description || layer.description.trim() === "")
 
@@ -455,6 +464,18 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   }
 
   const buildCreatorConfig = useCallback((): CreatorConfig => {
+    const trimmedPrompt = quickPrompt.trim()
+    const promptLayer = trimmedPrompt
+      ? [{
+          id: "scene-prompt",
+          description: trimmedPrompt,
+          spatial_layout: {
+            box_2d: [0, 0, metaSettings.width, metaSettings.high] as [number, number, number, number],
+            z_index: 0,
+          },
+        }]
+      : []
+
     // 将 layers 转换为 CreatorLayer 格式
     const creatorLayers = layers.map((layer) => ({
       id: layer.id,
@@ -462,7 +483,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       reference_image: layer.reference_image,  // 使用图层自己的 reference_image
       spatial_layout: {
         box_2d: [layer.x, layer.y, layer.width, layer.height] as [number, number, number, number],
-        z_index: layer.zIndex,
+        z_index: layer.zIndex + promptLayer.length,
       },
     }))
 
@@ -491,12 +512,12 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
           intensity: compositionSettings.lighting.intensity,
         },
       },
-      layers: creatorLayers,
+      layers: [...promptLayer, ...creatorLayers],
     }
 
     console.log("生成的 Creator JSON:", JSON.stringify(creatorConfig, null, 2))
     return creatorConfig
-  }, [layers, metaSettings, globalStyleSettings, compositionSettings])
+  }, [layers, metaSettings, globalStyleSettings, compositionSettings, quickPrompt])
 
   const handleGenerateImageFromPrompt = useCallback(async (prompt: string) => {
     // TRACE: 生成入口 - 使用专业提示词生成图片
@@ -567,6 +588,13 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
 
   const handleGenerateImage = async () => {
     const creatorConfig = buildCreatorConfig()
+
+    if (creatorConfig.layers.length === 0) {
+      taskToast.showFailure({
+        title: t("imageGeneration.validation.missingPromptOrLayer"),
+      })
+      return
+    }
 
     // TRACE: 生成入口 - 使用 CreatorConfig 生成图片（页面按钮）
     console.info('[ImageGeneration] Generating image from config:', {
@@ -712,6 +740,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
     setGeneratedImageUrl(null)
     setShowGeneratedImage(true)
     setShowResetDialog(false)
+    setQuickPrompt("")
 
     // 重置元数据
     setMetaSettings(DEFAULT_META_SETTINGS)
@@ -758,6 +787,8 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         showGeneratedImage={showGeneratedImage}
         isGenerating={isGenerating}
         generatingMessage={generatingMessage}
+        quickPrompt={quickPrompt}
+        onQuickPromptChange={setQuickPrompt}
         onCanvasClick={handleCanvasClick}
         onLayerClick={handleLayerClick}
         onLayerPositionChange={handleLayerPositionChange}
