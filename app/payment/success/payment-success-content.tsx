@@ -19,7 +19,7 @@ export function PaymentSuccessContent() {
   const { getOrderStatus } = usePayment()
 
   // 检测支付供应商
-  const detection = detectPaymentProvider(searchParams)
+  const detection = searchParams ? detectPaymentProvider(searchParams) : null
 
   // Debug 日志：记录供应商检测信息
   useEffect(() => {
@@ -32,7 +32,7 @@ export function PaymentSuccessContent() {
       })
     } else {
       console.debug('[PaymentSuccess] 未能识别支付信息', {
-        params: Object.fromEntries(searchParams.entries()),
+        params: Object.fromEntries(searchParams?.entries() ?? []),
       })
     }
   }, [detection, searchParams])

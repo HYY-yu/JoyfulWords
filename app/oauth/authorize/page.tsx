@@ -39,13 +39,17 @@ function MCPOAuthAuthorizeContent() {
   const [action, setAction] = useState<"approve" | "deny" | null>(null)
 
   const request = useMemo(() => {
+    if (!searchParams) {
+      return readMCPOAuthAuthorizationRequest(new URLSearchParams())
+    }
+
     return readMCPOAuthAuthorizationRequest(searchParams)
   }, [searchParams])
 
   const missingFields = useMemo(() => getMCPOAuthMissingFields(request), [request])
 
   const returnPath = useMemo(() => {
-    const query = searchParams.toString()
+    const query = searchParams?.toString() ?? ""
     return query ? `/oauth/authorize?${query}` : "/oauth/authorize"
   }, [searchParams])
 

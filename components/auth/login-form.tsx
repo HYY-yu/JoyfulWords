@@ -23,12 +23,12 @@ export function LoginForm() {
   const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTarget = normalizeAuthRedirect(searchParams.get("redirect"))
+  const redirectTarget = normalizeAuthRedirect(searchParams?.get("redirect"))
   const handledNoticeRef = useRef<string | null>(null)
   const googleLoginPendingRef = useRef(false)
 
   useEffect(() => {
-    const prefilledEmail = searchParams.get("email")
+    const prefilledEmail = searchParams?.get("email")
 
     if (!prefilledEmail) {
       return
@@ -38,8 +38,8 @@ export function LoginForm() {
   }, [searchParams])
 
   useEffect(() => {
-    const notice = searchParams.get("notice")
-    const prefilledEmail = searchParams.get("email")
+    const notice = searchParams?.get("notice")
+    const prefilledEmail = searchParams?.get("email")
     const noticeKey = `${notice ?? ""}:${prefilledEmail ?? ""}`
 
     if (!notice || handledNoticeRef.current === noticeKey) {

@@ -56,7 +56,7 @@ export type DetectionResult = ProviderDetectionResult | GenericDetectionResult
  * ```
  */
 export function detectPaymentProvider(
-  searchParams: URLSearchParams
+  searchParams: Pick<URLSearchParams, 'get' | 'has'>
 ): DetectionResult | null {
   // 1. 首先检查是否有 order_no
   const orderNo = searchParams.get('order_no')

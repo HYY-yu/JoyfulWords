@@ -115,7 +115,7 @@ function BillingDialogQuerySync({
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const tab = searchParams.get("tab")
+    const tab = searchParams?.get("tab")
     if (tab === "billing") {
       console.info("[ArticlesPage] Opening billing dialog from query param")
       onOpenBillingDialog()
@@ -147,9 +147,9 @@ function TaskCenterDialogQuerySync({
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const shouldOpenTaskCenter = searchParams.get("taskCenter") === "1"
-    const taskId = searchParams.get("taskId")
-    const taskType = searchParams.get("taskType")
+    const shouldOpenTaskCenter = searchParams?.get("taskCenter") === "1"
+    const taskId = searchParams?.get("taskId")
+    const taskType = searchParams?.get("taskType")
 
     if (!shouldOpenTaskCenter && (!taskId || !taskType)) {
       return

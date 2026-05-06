@@ -9,16 +9,19 @@ export function isLocale(value: string | null | undefined): value is Locale {
   return value === "zh" || value === "en"
 }
 
-export function getLocaleFromPathname(pathname: string): Locale | null {
+export function getLocaleFromPathname(pathname: string | null | undefined): Locale | null {
+  if (!pathname) return null
+
   const match = pathname.match(LOCALE_PREFIX)
   return match ? (match[1] as Locale) : null
 }
 
-export function stripLocalePrefix(pathname: string): string {
-  const match = pathname.match(LOCALE_PREFIX)
-  if (!match) return pathname
+export function stripLocalePrefix(pathname: string | null | undefined): string {
+  const currentPathname = pathname || "/"
+  const match = currentPathname.match(LOCALE_PREFIX)
+  if (!match) return currentPathname
 
-  const remainder = pathname.slice(match[0].length)
+  const remainder = currentPathname.slice(match[0].length)
   if (!remainder) return "/"
   return remainder.startsWith("/") ? remainder : `/${remainder}`
 }
@@ -29,7 +32,7 @@ export function buildLocalizedPath(locale: Locale, path = "/"): string {
   return `/${locale}${normalizedPath.startsWith("/") ? normalizedPath : `/${normalizedPath}`}`
 }
 
-export function switchLocalePathname(pathname: string, locale: Locale): string {
+export function switchLocalePathname(pathname: string | null | undefined, locale: Locale): string {
   const normalizedPath = stripLocalePrefix(pathname)
   if (normalizedPath === "/") return `/${locale}`
   return `/${locale}${normalizedPath}`

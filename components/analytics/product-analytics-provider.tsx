@@ -27,9 +27,10 @@ export function ProductAnalyticsProvider() {
   const [hasConsent, setHasConsent] = useState(false)
   const [isReady, setIsReady] = useState(false)
 
-  const routeSearch = searchParams.toString()
+  const routeSearch = searchParams?.toString() ?? ""
   const routePath = useMemo(() => {
-    return routeSearch ? `${pathname}?${routeSearch}` : pathname
+    const currentPathname = pathname ?? ""
+    return routeSearch ? `${currentPathname}?${routeSearch}` : currentPathname
   }, [pathname, routeSearch])
 
   useEffect(() => {

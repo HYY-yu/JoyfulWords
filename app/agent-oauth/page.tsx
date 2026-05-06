@@ -63,7 +63,7 @@ function AgentOAuthContent() {
   const { t, locale } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const queryUserCode = searchParams.get("user_code")
+  const queryUserCode = searchParams?.get("user_code") ?? null
   const [userCode, setUserCode] = useState(() => formatUserCode(queryUserCode ?? ""))
   const [authorization, setAuthorization] = useState<AgentOAuthAuthorization | null>(null)
   const [error, setError] = useState<ErrorResponse | null>(null)

@@ -25,7 +25,7 @@ export function SignupForm() {
   const { toast } = useToast()
   const { t, locale } = useTranslation()
   const searchParams = useSearchParams()
-  const redirectTarget = normalizeAuthRedirect(searchParams.get("redirect"))
+  const redirectTarget = normalizeAuthRedirect(searchParams?.get("redirect"))
   const termsOfUseHref = buildLocalizedPath(locale, "/terms-of-use")
   const privacyPolicyHref = buildLocalizedPath(locale, "/privacy-policy")
 
