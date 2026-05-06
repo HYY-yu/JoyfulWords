@@ -86,5 +86,7 @@ test('public route matcher stays aligned with auth and legal pages', () => {
   assert.equal(isPublicRoute('/privacy-policy'), true)
   assert.equal(isPublicRoute('/mcp'), true)
   assert.equal(isPublicRoute('/zh/mcp'), true)
+  assert.equal(isPublicRoute('/pricing'), true)
+  assert.equal(isPublicRoute('/en/pricing'), true)
   assert.equal(isPublicRoute('/articles'), false)
 })

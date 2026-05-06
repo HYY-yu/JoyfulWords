@@ -2000,6 +2000,7 @@ export const zh = {
         nav: {
             menu: "菜单",
             features: "功能",
+            pricing: "价格",
             blog: "博客",
             mcp: "MCP",
             myArticles: "我的文章",
@@ -2065,6 +2066,109 @@ export const zh = {
             version: "内容创作与管理工具 · v1.0.0",
             privacyPolicy: "隐私政策",
             termsOfUse: "服务条款",
+        },
+    },
+    pricing: {
+        nav: {
+            backHome: "返回首页",
+        },
+        eyebrow: "无需订阅，随用随充",
+        heading: "Pay as you go",
+        description: "只在真正使用 AI 写作、生图、搜索或 PPT 生成时消耗积分。没有月费，没有套餐锁定，充值后按实际用量扣除。",
+        exchangeRate: "小提示：1 积分 = 1 美分。",
+        cta: {
+            recharge: "充值积分",
+            viewRates: "查看明细",
+        },
+        visual: {
+            label: "Cost Estimate",
+            title: "预估消耗",
+            estimates: {
+                subscription: {
+                    value: "0",
+                    label: "订阅费",
+                    description: "随时充值，不绑套餐。",
+                },
+                article: {
+                    value: "20-80 积分",
+                    label: "写一篇优质文章预计",
+                    description: "视长度、素材量和改写轮次浮动。",
+                },
+                ppt: {
+                    value: "1 积分",
+                    label: "生成 PPT 仅",
+                    description: "基础生成只需 1 积分。",
+                },
+                image: {
+                    value: "3.5-10 积分",
+                    label: "图片生成",
+                    description: "主流模型单张生成区间。",
+                },
+            },
+        },
+        detailLabel: "价格明细",
+        detailHeading: "每一类消耗都被准确记录",
+        table: {
+            module: "模块",
+            item: "子计费项",
+            price: "价格",
+        },
+        units: {
+            credits: "积分",
+            perKInput: "积分/k token input",
+            perKOutput: "积分/k token output",
+            perImage: "积分/张",
+            perSearch: "积分/次",
+            perGeneration: "积分/次",
+        },
+        sections: {
+            ai: {
+                eyebrow: "文字模型",
+                title: "AI 写作与编辑",
+                description: "输入和输出分开计费，适合长文、改写、大纲、摘要等不同长度任务。",
+                standard: {
+                    name: "普通模型",
+                    description: "适合日常写作、整理、摘要和轻量改写。",
+                    input: "普通模型 · input",
+                    output: "普通模型 · output",
+                },
+                premium: {
+                    name: "高级模型",
+                    description: "适合复杂推理、长上下文、精修和高质量生成。",
+                    input: "高级模型 · input",
+                    output: "高级模型 · output",
+                },
+            },
+            image: {
+                eyebrow: "视觉生成",
+                title: "AI 生图",
+                description: "不同模型按单张图片扣费，便于在质量、速度和成本之间选择。",
+            },
+            layer: {
+                title: "图层拆分",
+                description: "对单张图片做图层拆分，适合后续编辑、重组和设计复用。",
+            },
+            materials: {
+                eyebrow: "素材能力",
+                title: "素材搜索与演示输出",
+                description: "搜索按次数扣费，PPT 生成单次扣费，适合边找资料边完成内容交付。",
+            },
+            search: {
+                info: "Info 搜索",
+                news: "News 搜索",
+                image: "Image 搜索",
+            },
+            ppt: {
+                title: "PPT 生成",
+                item: "PPT 生成",
+                description: "基于内容生成演示结构，按每次生成扣费。",
+            },
+        },
+        finalCta: {
+            label: "开始使用",
+            title: "先充值，再按实际创作消耗",
+            description: "价格页只展示消耗规则。进入工作台后可以在计费管理中充值、查看余额和使用记录。",
+            button: "前往充值",
         },
     },
     mcpPage: {

@@ -68,6 +68,7 @@ export function HomePageContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const blogHref = buildLocalizedPath(locale, "/blog")
   const mcpHref = buildLocalizedPath(locale, "/mcp")
+  const pricingHref = buildLocalizedPath(locale, "/pricing")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -113,7 +114,7 @@ export function HomePageContent() {
         <BrandLogo />
         <div className="flex-1" />
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-3 lg:flex">
           <JoyfulThemeSwitcher variant="compact" />
           <button
             onClick={() => {
@@ -132,6 +133,12 @@ export function HomePageContent() {
           >
             {t("landing.nav.features")}
           </a>
+          <Link
+            href={pricingHref}
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
+          >
+            {t("landing.nav.pricing")}
+          </Link>
           <Link
             href={mcpHref}
             className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
@@ -159,7 +166,7 @@ export function HomePageContent() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="lg:hidden"
               aria-label={t("landing.nav.menu")}
             >
               <MenuIcon className="size-5" />
@@ -194,6 +201,14 @@ export function HomePageContent() {
               >
                 {t("landing.nav.features")}
               </a>
+
+              <Link
+                href={pricingHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.pricing")}
+              </Link>
 
               <Link
                 href={mcpHref}

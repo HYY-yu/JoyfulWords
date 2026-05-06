@@ -2000,6 +2000,7 @@ export const en = {
         nav: {
             menu: "Menu",
             features: "Features",
+            pricing: "Pricing",
             blog: "Blog",
             mcp: "MCP",
             myArticles: "My Articles",
@@ -2065,6 +2066,109 @@ export const en = {
             version: "Content Creation Tool · v1.0.0",
             privacyPolicy: "Privacy Policy",
             termsOfUse: "Terms of Use",
+        },
+    },
+    pricing: {
+        nav: {
+            backHome: "Back Home",
+        },
+        eyebrow: "No subscription. Recharge anytime.",
+        heading: "Pay as you go",
+        description: "Credits are consumed only when you use AI writing, image generation, search, or PPT generation. No monthly fee, no plan lock-in, just recharge and use.",
+        exchangeRate: "Small note: 1 credit = 1 cent.",
+        cta: {
+            recharge: "Recharge Credits",
+            viewRates: "View Rates",
+        },
+        visual: {
+            label: "Cost Estimate",
+            title: "Usage estimates",
+            estimates: {
+                subscription: {
+                    value: "0",
+                    label: "Subscription fee",
+                    description: "Recharge anytime. No plan lock-in.",
+                },
+                article: {
+                    value: "20-80 credits",
+                    label: "Quality article estimate",
+                    description: "Varies by length, materials, and rewrite rounds.",
+                },
+                ppt: {
+                    value: "1 credit",
+                    label: "PPT generation",
+                    description: "A basic generation costs only 1 credit.",
+                },
+                image: {
+                    value: "3.5-10 credits",
+                    label: "Image generation",
+                    description: "Typical per-image range for main models.",
+                },
+            },
+        },
+        detailLabel: "Pricing Detail",
+        detailHeading: "Every usage type is accurately recorded",
+        table: {
+            module: "Module",
+            item: "Billable item",
+            price: "Price",
+        },
+        units: {
+            credits: "credits",
+            perKInput: "credits / 1K input tokens",
+            perKOutput: "credits / 1K output tokens",
+            perImage: "credits / image",
+            perSearch: "credits / search",
+            perGeneration: "credits / run",
+        },
+        sections: {
+            ai: {
+                eyebrow: "Text Models",
+                title: "AI Writing and Editing",
+                description: "Input and output are billed separately, so long-form writing, rewriting, outlines, and summaries stay predictable.",
+                standard: {
+                    name: "Standard models",
+                    description: "For everyday writing, organization, summaries, and lightweight rewriting.",
+                    input: "Standard models · input",
+                    output: "Standard models · output",
+                },
+                premium: {
+                    name: "Premium models",
+                    description: "For complex reasoning, long context, refinement, and high-quality generation.",
+                    input: "Premium models · input",
+                    output: "Premium models · output",
+                },
+            },
+            image: {
+                eyebrow: "Visual Generation",
+                title: "AI Image Generation",
+                description: "Each model is billed per generated image, making quality, speed, and cost easy to compare.",
+            },
+            layer: {
+                title: "Layer splitting",
+                description: "Split one image into editable layers for follow-up editing, recomposition, and design reuse.",
+            },
+            materials: {
+                eyebrow: "Material Tools",
+                title: "Search and Presentation Output",
+                description: "Search is billed per request, and PPT generation is billed per run for research-to-delivery workflows.",
+            },
+            search: {
+                info: "Info search",
+                news: "News search",
+                image: "Image search",
+            },
+            ppt: {
+                title: "PPT generation",
+                item: "PPT generation",
+                description: "Generate a presentation structure from your content, billed per run.",
+            },
+        },
+        finalCta: {
+            label: "Start",
+            title: "Recharge first, then spend by actual usage",
+            description: "This page shows the usage rules. In the workspace, Billing lets you recharge, check balance, and review usage records.",
+            button: "Go to Recharge",
         },
     },
     mcpPage: {

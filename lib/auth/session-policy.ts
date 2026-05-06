@@ -14,6 +14,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/privacy-policy',
   '/blog',
   '/mcp',
+  '/pricing',
 ] as const
 
 const EXACT_PUBLIC_ROUTES = ['/', '/sitemap.xml', '/robots.txt'] as const
