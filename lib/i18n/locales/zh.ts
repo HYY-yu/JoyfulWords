@@ -632,6 +632,7 @@ export const zh = {
             delete: "删除",
             template: "模板",
             templateHint: "快速加载常用图片结构",
+            tools: "画布区域",
             reset: "重置画布",
         },
         modeTabs: {
@@ -652,6 +653,13 @@ export const zh = {
         canvas: {
             advancedMode: "高级模式",
             addLayerFirst: "请先添加至少一个图层",
+            addPromptOrLayerFirst: "请先填写画面描述或添加图层",
+            promptLabel: "描述你想生成的图片",
+            promptPlaceholder: "例如：一张适合公众号封面的图片，清晨书桌上有一杯咖啡、笔记本和柔和窗光，画面干净、有高级感...",
+            layoutAreas: "区域",
+            status: "状态",
+            ready: "可生成",
+            waiting: "待描述",
             toolHints: {
                 select: "点击选择图层，拖动移动位置",
                 rectangle: "点击画布添加矩形",
@@ -665,7 +673,7 @@ export const zh = {
             showGeneratedImage: "显示生成的图片",
             emptyState: {
                 title: "画布空白",
-                description: "从左侧选择模板或矩形工具开始创作",
+                description: "直接填写上方描述生成，或从左侧添加区域精细控制画面",
             },
             layerLabel: "图层 {number}",
         },
@@ -674,10 +682,10 @@ export const zh = {
             descriptionPlaceholder: "输入图层描述...",
             descriptionRequired: "描述为必填项，用于生成图片内容",
             // 节标题
-            metadata: "元数据",
-            selectedLayer: "选中图层属性",
-            globalStyle: "全局样式",
-            composition: "构图设置",
+            metadata: "画面尺寸",
+            selectedLayer: "当前区域",
+            globalStyle: "风格与色调",
+            composition: "镜头与灯光",
 
             // 元数据
             sizePreset: "常用尺寸",
@@ -705,7 +713,7 @@ export const zh = {
             materialsLoading: "正在加载素材...",
             noMoreMaterials: "已加载全部素材",
             zIndex: "层级",
-            infoBox: "提示: 选中画布中的矩形图层可编辑其属性",
+            infoBox: "画布区域用于精细控制局部内容；只想快速出图时，填写上方描述即可。",
 
             // 全局样式
             medium: "艺术媒介",
@@ -806,6 +814,7 @@ export const zh = {
         validation: {
             missingDescription: "图层描述不能为空",
             missingDescriptionDesc: "有 {{count}} 个图层缺少描述，请先填写描述后再进入高级模式",
+            missingPromptOrLayer: "请先填写画面描述或添加图层",
         },
         jsonPreviewDialog: {
             title: "高级模式",

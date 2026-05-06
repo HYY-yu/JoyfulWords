@@ -632,6 +632,7 @@ export const en = {
             delete: "Delete",
             template: "Templates",
             templateHint: "Load common layout structures quickly",
+            tools: "Canvas Areas",
             reset: "Reset Canvas",
         },
         modeTabs: {
@@ -652,6 +653,13 @@ export const en = {
         canvas: {
             advancedMode: "Advanced Mode",
             addLayerFirst: "Please add at least one layer first",
+            addPromptOrLayerFirst: "Add an image description or a layer first",
+            promptLabel: "Describe the image you want",
+            promptPlaceholder: "Example: a polished cover image for a blog post, morning desk with coffee, notebook, and soft window light, clean and premium...",
+            layoutAreas: "Areas",
+            status: "Status",
+            ready: "Ready",
+            waiting: "Waiting",
             toolHints: {
                 select: "Click to select layer, drag to move position",
                 rectangle: "Click on canvas to add rectangle",
@@ -665,7 +673,7 @@ export const en = {
             showGeneratedImage: "Show Generated Image",
             emptyState: {
                 title: "Canvas Empty",
-                description: "Start with a template or add rectangles from the left toolbar",
+                description: "Write a description above, or add areas from the left for precise layout control",
             },
             layerLabel: "Layer {number}",
         },
@@ -674,10 +682,10 @@ export const en = {
             descriptionPlaceholder: "Enter layer description...",
             descriptionRequired: "Description is required for generating image content",
             // 节标题
-            metadata: "Metadata",
-            selectedLayer: "Selected Layer Properties",
-            globalStyle: "Global Style",
-            composition: "Composition Settings",
+            metadata: "Image Size",
+            selectedLayer: "Current Area",
+            globalStyle: "Style and Color",
+            composition: "Camera and Lighting",
 
             // 元数据
             sizePreset: "Common Sizes",
@@ -705,7 +713,7 @@ export const en = {
             materialsLoading: "Loading materials...",
             noMoreMaterials: "All materials loaded",
             zIndex: "Z-Index",
-            infoBox: "Hint: Select a rectangle layer on the canvas to edit its properties",
+            infoBox: "Canvas areas give you precise local control; for a quick image, the description above is enough.",
 
             // 全局样式
             medium: "Art Medium",
@@ -806,6 +814,7 @@ export const en = {
         validation: {
             missingDescription: "Layer description cannot be empty",
             missingDescriptionDesc: "{{count}} layer(s) missing description, please fill them in before entering Advanced Mode",
+            missingPromptOrLayer: "Add an image description or a layer first",
         },
         jsonPreviewDialog: {
             title: "Advanced Mode",

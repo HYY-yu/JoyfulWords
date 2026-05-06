@@ -6,6 +6,7 @@ export type JoyfulTheme = "blue-white" | "black-gold" | "paper"
 
 export const JOYFUL_THEME_STORAGE_KEY = "joyfulwords-theme"
 const LEGACY_EDITOR_THEME_STORAGE_KEY = "joyfulwords-editor-theme"
+const DEFAULT_JOYFUL_THEME: JoyfulTheme = "blue-white"
 
 export const JOYFUL_THEMES: JoyfulTheme[] = ["blue-white", "black-gold", "paper"]
 
@@ -14,13 +15,13 @@ export function isJoyfulTheme(value: string | null): value is JoyfulTheme {
 }
 
 export function readStoredJoyfulTheme(): JoyfulTheme {
-  if (typeof window === "undefined") return "blue-white"
+  if (typeof window === "undefined") return DEFAULT_JOYFUL_THEME
 
   const storedTheme =
     window.localStorage.getItem(JOYFUL_THEME_STORAGE_KEY) ??
     window.localStorage.getItem(LEGACY_EDITOR_THEME_STORAGE_KEY)
 
-  return isJoyfulTheme(storedTheme) ? storedTheme : "blue-white"
+  return isJoyfulTheme(storedTheme) ? storedTheme : DEFAULT_JOYFUL_THEME
 }
 
 export function applyJoyfulTheme(theme: JoyfulTheme) {
@@ -31,7 +32,7 @@ export function applyJoyfulTheme(theme: JoyfulTheme) {
 }
 
 export function useJoyfulTheme() {
-  const [theme, setThemeState] = useState<JoyfulTheme>(() => readStoredJoyfulTheme())
+  const [theme, setThemeState] = useState<JoyfulTheme>(DEFAULT_JOYFUL_THEME)
 
   useEffect(() => {
     const nextTheme = readStoredJoyfulTheme()

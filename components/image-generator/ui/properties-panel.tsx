@@ -96,11 +96,11 @@ export function PropertiesPanel({
   }
 
   return (
-    <div className="w-80 border-l border-border bg-background overflow-auto">
-      <div className="p-6 space-y-6">
+    <div className="w-[360px] shrink-0 border-l border-border bg-muted/20 overflow-auto">
+      <div className="p-4 space-y-4">
         {/* 新增: 模型选择器 */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
+        <div className="rounded-lg border border-border bg-background p-4 space-y-4">
+          <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-primary" />
             <h3 className="font-semibold text-foreground">{t("imageGeneration.model.title")}</h3>
           </div>
@@ -113,8 +113,8 @@ export function PropertiesPanel({
         </div>
 
         {/* Section 1: 元数据设置 */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
+        <div className="rounded-lg border border-border bg-background p-4 space-y-4">
+          <div className="flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-primary" />
             <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.metadata")}</h3>
           </div>
@@ -190,8 +190,8 @@ export function PropertiesPanel({
 
         {/* Section 2: 选中图层属性 (仅选中时显示) */}
         {selectedLayer && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-border">
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-4">
+            <div className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-primary" />
               <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.selectedLayer")}</h3>
             </div>
@@ -289,8 +289,8 @@ export function PropertiesPanel({
         )}
 
         {/* Section 3: 全局样式 */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
+        <div className="rounded-lg border border-border bg-background p-4 space-y-4">
+          <div className="flex items-center gap-2">
             <Palette className="w-4 h-4 text-primary" />
             <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.globalStyle")}</h3>
           </div>
@@ -387,13 +387,15 @@ export function PropertiesPanel({
         </div>
 
         {/* Section 4: 构图设置 */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-border">
+        <details className="rounded-lg border border-border bg-background p-4">
+          <summary className="cursor-pointer font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2">
             <Camera className="w-4 h-4 text-primary" />
-            <h3 className="font-semibold text-foreground">{t("imageGeneration.properties.composition")}</h3>
-          </div>
+            {t("imageGeneration.properties.composition")}
+            </span>
+          </summary>
 
-          <div className="space-y-3">
+          <div className="mt-4 space-y-3">
             {/* 相机设置 */}
             <div className="space-y-2">
               <Label className="text-xs font-medium text-foreground/80">{t("imageGeneration.properties.camera")}</Label>
@@ -571,10 +573,10 @@ export function PropertiesPanel({
               </div>
             </div>
           </div>
-        </div>
+        </details>
 
         {/* Info Box */}
-        <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
+        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
           <p className="text-sm text-muted-foreground">
             {t("imageGeneration.properties.infoBox")}
           </p>

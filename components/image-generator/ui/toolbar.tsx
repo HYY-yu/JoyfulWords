@@ -1,14 +1,8 @@
 "use client"
 
 import type { ToolType } from "../types"
-import { useState } from "react"
 import { LayoutTemplate, MousePointer2, Square, Trash2, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/base/popover"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -32,7 +26,6 @@ export function Toolbar({
   onReset,
 }: ToolbarProps) {
   const { t } = useTranslation()
-  const [templateOpen, setTemplateOpen] = useState(false)
 
   const renderTemplatePreview = (templateId: string) => {
     if (templateId === "sideBySide") {
@@ -68,81 +61,68 @@ export function Toolbar({
   ]
 
   return (
-    <div className="w-16 border-r border-border bg-muted/30 flex flex-col items-center py-4 gap-2">
-      {toolButtons.map((tool) => (
-        <Button
-          key={tool.id}
-          variant={selectedTool === tool.id ? "default" : "ghost"}
-          size="icon"
-          className={cn(
-            "h-12 w-12 rounded-xl transition-all duration-200",
-            selectedTool === tool.id
-              ? "bg-primary text-primary-foreground shadow-md"
-              : "hover:bg-muted-foreground/10"
-          )}
-          onClick={() => onToolSelect(tool.id)}
-          title={tool.label}
-        >
-          <tool.icon className="w-5 h-5" />
-        </Button>
-      ))}
-
-      <Popover open={templateOpen} onOpenChange={setTemplateOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-12 w-12 rounded-xl transition-all duration-200 hover:bg-muted-foreground/10"
-            title={t("imageGeneration.toolbar.template")}
-          >
-            <LayoutTemplate className="w-5 h-5" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent side="right" align="start" className="w-72 p-2">
-          <div className="space-y-2">
-            <div className="px-2 pt-1">
-              <div className="text-sm font-semibold text-foreground">
-                {t("imageGeneration.toolbar.template")}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t("imageGeneration.toolbar.templateHint")}
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              {templateOptions.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
-                  onClick={() => {
-                    onApplyTemplate?.(template.id)
-                    setTemplateOpen(false)
-                  }}
-                >
-                  <div className="mt-0.5 shrink-0">{renderTemplatePreview(template.id)}</div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-foreground">{template.title}</div>
-                    <p className="text-xs leading-5 text-muted-foreground">
-                      {template.description}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
+    <aside className="w-56 shrink-0 border-r border-border bg-muted/30 p-4">
+      <div className="flex h-full flex-col gap-5">
+        <section className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <LayoutTemplate className="h-4 w-4 text-primary" />
+            {t("imageGeneration.toolbar.template")}
           </div>
-        </PopoverContent>
-      </Popover>
+          <div className="space-y-2">
+            {templateOptions.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                className="flex w-full items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 text-left shadow-xs transition-colors hover:border-primary/50 hover:bg-primary/5"
+                onClick={() => onApplyTemplate?.(template.id)}
+              >
+                <div className="shrink-0">{renderTemplatePreview(template.id)}</div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-foreground">{template.title}</div>
+                  <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                    {template.description}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-12 w-12 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200"
-        onClick={onReset}
-        title={t("imageGeneration.toolbar.reset")}
-      >
-        <RotateCcw className="w-5 h-5" />
-      </Button>
-    </div>
+        <section className="space-y-3">
+          <div className="text-sm font-semibold text-foreground">
+            {t("imageGeneration.toolbar.tools")}
+          </div>
+          <div className="grid gap-2">
+            {toolButtons.map((tool) => (
+              <Button
+                key={tool.id}
+                variant={selectedTool === tool.id ? "default" : "outline"}
+                className={cn(
+                  "h-10 justify-start px-3",
+                  selectedTool === tool.id
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-background"
+                )}
+                onClick={() => onToolSelect(tool.id)}
+                title={tool.label}
+              >
+                <tool.icon className="h-4 w-4" />
+                <span>{tool.label}</span>
+              </Button>
+            ))}
+          </div>
+        </section>
+
+        <Button
+          variant="ghost"
+          className="mt-auto justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          onClick={onReset}
+          title={t("imageGeneration.toolbar.reset")}
+        >
+          <RotateCcw className="h-4 w-4" />
+          {t("imageGeneration.toolbar.reset")}
+        </Button>
+      </div>
+    </aside>
   )
 }

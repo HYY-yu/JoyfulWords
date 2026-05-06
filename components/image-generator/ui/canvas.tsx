@@ -5,8 +5,10 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import type { Layer, ToolType, ResizeHandle } from "../types"
 import type { MetaSettings } from "../types"
-import { Code, Sparkles, Loader2 } from "lucide-react"
+import { Code, Sparkles, Loader2, WandSparkles } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
+import { Label } from "@/components/ui/base/label"
+import { Textarea } from "@/components/ui/base/textarea"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -19,6 +21,8 @@ interface CanvasProps {
   showGeneratedImage: boolean
   isGenerating: boolean
   generatingMessage: string
+  quickPrompt: string
+  onQuickPromptChange: (prompt: string) => void
   onCanvasClick: (x: number, y: number) => void
   onLayerClick: (e: React.MouseEvent, layer: Layer) => void
   onLayerPositionChange: (layerId: string, x: number, y: number) => void
@@ -39,6 +43,8 @@ export function Canvas({
   showGeneratedImage,
   isGenerating,
   generatingMessage,
+  quickPrompt,
+  onQuickPromptChange,
   onCanvasClick,
   onLayerClick,
   onLayerPositionChange,
@@ -63,6 +69,8 @@ export function Canvas({
   const imageMenuRef = useRef<HTMLDivElement>(null)
   const animationFrameRef = useRef<number | null>(null)
   const pendingUpdateRef = useRef<(() => void) | null>(null)
+  const hasPrompt = quickPrompt.trim().length > 0
+  const canGenerate = hasPrompt || layers.length > 0
 
   const scheduleCanvasUpdate = useCallback((update: () => void) => {
     pendingUpdateRef.current = update
@@ -249,10 +257,72 @@ export function Canvas({
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      {/* Prompt Composer */}
+      <div className="border-b border-border bg-background px-5 py-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="image-quick-prompt" className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
+                  1
+                </span>
+                {t("imageGeneration.canvas.promptLabel")}
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                {metaSettings.width} x {metaSettings.high}
+              </span>
+            </div>
+            <Textarea
+              id="image-quick-prompt"
+              value={quickPrompt}
+              onChange={(event) => onQuickPromptChange(event.target.value)}
+              placeholder={t("imageGeneration.canvas.promptPlaceholder")}
+              className="min-h-[84px] resize-none bg-card text-sm leading-6"
+              disabled={isGenerating}
+            />
+          </div>
+
+          <div className="flex flex-col justify-between gap-3">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-md border border-border bg-card px-3 py-2">
+                <div className="text-muted-foreground">{t("imageGeneration.canvas.layoutAreas")}</div>
+                <div className="mt-1 text-base font-semibold text-foreground">{layers.length}</div>
+              </div>
+              <div className="rounded-md border border-border bg-card px-3 py-2">
+                <div className="text-muted-foreground">{t("imageGeneration.canvas.status")}</div>
+                <div className="mt-1 truncate text-sm font-semibold text-foreground">
+                  {hasPrompt ? t("imageGeneration.canvas.ready") : t("imageGeneration.canvas.waiting")}
+                </div>
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="h-11 gap-2"
+              onClick={onGenerateImage}
+              disabled={!canGenerate || isGenerating}
+              title={!canGenerate ? t("imageGeneration.canvas.addPromptOrLayerFirst") : undefined}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="truncate">{generatingMessage || t("imageGeneration.canvas.generating")}</span>
+                </>
+              ) : (
+                <>
+                  <WandSparkles className="w-4 h-4" />
+                  {t("imageGeneration.canvas.generateImage")}
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Action Bar */}
-      <div className="h-14 border-b border-border bg-background flex items-center justify-between px-6">
-        <div className="text-sm text-muted-foreground">
-          {getToolHint()}
+      <div className="h-12 border-b border-border bg-muted/30 flex items-center justify-between px-5">
+        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+          <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+          <span className="truncate">{getToolHint()}</span>
         </div>
         <div className="flex gap-2">
           <Button
@@ -260,30 +330,11 @@ export function Canvas({
             size="sm"
             className="gap-2"
             onClick={onGenerateJson}
-            disabled={layers.length === 0}
-            title={layers.length === 0 ? t("imageGeneration.canvas.addLayerFirst") : undefined}
+            disabled={!canGenerate}
+            title={!canGenerate ? t("imageGeneration.canvas.addPromptOrLayerFirst") : undefined}
           >
             <Code className="w-4 h-4" />
             {t("imageGeneration.canvas.advancedMode")}
-          </Button>
-          <Button
-            size="sm"
-            className="gap-2 bg-primary hover:bg-primary/90"
-            onClick={onGenerateImage}
-            disabled={layers.length === 0 || isGenerating}
-            title={layers.length === 0 ? t("imageGeneration.canvas.addLayerFirst") : undefined}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {generatingMessage || t("imageGeneration.canvas.generating")}
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                {t("imageGeneration.canvas.generateImage")}
-              </>
-            )}
           </Button>
         </div>
       </div>
