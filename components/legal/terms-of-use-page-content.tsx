@@ -54,8 +54,6 @@ export function TermsOfUsePageContent() {
               <li>{t("termsOfUse.services.features.1")}</li>
               <li>{t("termsOfUse.services.features.2")}</li>
               <li>{t("termsOfUse.services.features.3")}</li>
-              <li>{t("termsOfUse.services.features.4")}</li>
-              <li>{t("termsOfUse.services.features.5")}</li>
             </ul>
           </section>
 
@@ -71,6 +69,7 @@ export function TermsOfUsePageContent() {
               <li>{t("termsOfUse.responsibilities.items.1")}</li>
               <li>{t("termsOfUse.responsibilities.items.2")}</li>
               <li>{t("termsOfUse.responsibilities.items.3")}</li>
+              <li>{t("termsOfUse.responsibilities.items.4")}</li>
             </ul>
           </section>
 

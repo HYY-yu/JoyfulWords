@@ -1864,12 +1864,10 @@ export const en = {
             title: "Our Services",
             description: "JoyfulWords is a content creation tool platform that provides the following features:",
             features: [
-                "Material search and management",
-                "Competitor tracking and analysis",
+                "Web material search and management",
                 "AI-assisted article writing",
-                "Knowledge card generation",
-                "Image generation tools",
-                "SEO/GEO analysis"
+                "AI one-click image generation",
+                "AI one-click PPT generation"
             ]
         },
         responsibilities: {
@@ -1879,7 +1877,8 @@ export const en = {
                 "Provide accurate and complete registration information",
                 "Maintain account security and be responsible for all activities under your account",
                 "Comply with all applicable laws and regulations",
-                "Not abuse the service or interfere with other users' experience"
+                "Not abuse the service or interfere with other users' experience",
+                "Not use the services to generate, upload, publish, or distribute prohibited content, including adult/NSFW, violent, or illegal content"
             ]
         },
         intellectualProperty: {
