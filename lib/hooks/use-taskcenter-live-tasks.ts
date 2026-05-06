@@ -32,11 +32,17 @@ function mergeTaskFromSocketEvent(
   currentTask: TaskCenterTaskListItem,
   event: TaskSocketEvent
 ): TaskCenterTaskListItem {
+  const socketDetails = {
+    ...(event.payload.outputs && typeof event.payload.outputs === "object"
+      ? event.payload.outputs
+      : {}),
+    ...(event.payload.error_code ? { error_code: event.payload.error_code } : {}),
+  }
   const mergedDetails =
-    event.payload.outputs && typeof event.payload.outputs === "object"
+    Object.keys(socketDetails).length > 0
       ? {
           ...currentTask.details,
-          ...event.payload.outputs,
+          ...socketDetails,
         }
       : currentTask.details
 

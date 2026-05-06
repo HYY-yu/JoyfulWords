@@ -498,6 +498,7 @@ export const zh = {
                 sourceText: "原始文本",
                 resultText: "改写结果",
                 settlement: "结算状态",
+                billing: "计费状态",
                 error: "错误信息",
                 outputImages: "结果图片",
                 referenceImages: "参考图片",
@@ -506,6 +507,15 @@ export const zh = {
                 settled: "已结算",
                 unsettled: "未结算",
             },
+            billing: {
+                noCharge: "本次不会扣费",
+            },
+            imageErrors: {
+                img_gen_prompt_rejected: "你的提示词无法处理，请修改后重新生成。本次不会扣费。",
+                img_gen_moderation_unavailable: "提示词审核服务暂时不可用，请稍后重试。本次不会扣费。",
+                generation_failed: "图片生成失败。本次不会扣费，请稍后重试。",
+            },
+            imageErrorCta: "修改提示词后重新生成",
         },
         materialPanel: {
             sourceTitle: "素材上下文",

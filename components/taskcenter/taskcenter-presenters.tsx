@@ -5,6 +5,7 @@
 import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
 import { PresentationTaskDetail } from "@/components/taskcenter/presentation-task-detail"
+import { getImageTaskErrorMessageKey } from "@/lib/api/taskcenter/image-error-messages"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
   TaskCenterPresentationSlideSummary,
@@ -97,12 +98,53 @@ function getPresentationSlideSummaryStage(summary: TaskCenterPresentationSlideSu
   return "slides_processing"
 }
 
-export function getTaskCenterTaskSummary(task: TaskCenterTaskListItem): string {
+type TaskCenterTranslate = (key: string, params?: Record<string, any>) => string
+
+function getImageTaskErrorCode(detail: {
+  error_code?: string
+  status?: string
+}): string | undefined {
+  return detail.status === "failed" ? detail.error_code : undefined
+}
+
+function getImageTaskBillingCharged(detail: {
+  billing_charged?: boolean
+}): boolean | undefined {
+  return detail.billing_charged
+}
+
+function getImageTaskUserErrorMessage(
+  t: TaskCenterTranslate,
+  detail: {
+    error_code?: string
+    status?: string
+  }
+): string | null {
+  if (detail.status !== "failed") return null
+
+  return t(getImageTaskErrorMessageKey(getImageTaskErrorCode(detail)))
+}
+
+function shouldShowImageNoCharge(detail: {
+  billing_charged?: boolean
+  status?: string
+}): boolean {
+  return detail.status === "failed" || getImageTaskBillingCharged(detail) === false
+}
+
+export function getTaskCenterTaskSummary(
+  task: TaskCenterTaskListItem,
+  t?: TaskCenterTranslate
+): string {
   if (task.type === "article") {
     return task.details.req_text || task.details.resp_text || task.details.exec_id
   }
 
   if (task.type === "image") {
+    if (task.status === "failed" && t) {
+      return t(getImageTaskErrorMessageKey(task.details.error_code))
+    }
+
     return task.details.prompt || task.details.model_name || "-"
   }
 
@@ -204,6 +246,27 @@ export function TaskCenterTaskDetailView({
       : []
   const articleId = "article_id" in detail ? detail.article_id : null
   const status = "status" in detail ? detail.status : null
+  const imageTaskErrorMessage =
+    taskRef.type === "image"
+      ? getImageTaskUserErrorMessage(t, {
+          error_code: "error_code" in detail ? detail.error_code : undefined,
+          status: status || undefined,
+        })
+      : null
+  const rawErrorMessage =
+    taskRef.type === "image"
+      ? null
+      : ("error" in detail && detail.error) ||
+        ("error_message" in detail && detail.error_message) ||
+        null
+  const imageNoCharge =
+    taskRef.type === "image"
+      ? shouldShowImageNoCharge({
+          billing_charged:
+            "billing_charged" in detail ? detail.billing_charged : undefined,
+          status: status || undefined,
+        })
+      : false
   const presentationDownloadUrl =
     taskRef.type === "presentation"
       ? getTaskCenterPresentationDownloadUrl(detail as TaskCenterPresentationTaskDetail)
@@ -322,7 +385,7 @@ export function TaskCenterTaskDetailView({
             className="sm:col-span-2"
           />
         ) : null}
-        {"is_settle" in detail ? (
+        {"is_settle" in detail && !(taskRef.type === "image" && status === "failed") ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.settlement")}
             value={
@@ -330,6 +393,12 @@ export function TaskCenterTaskDetailView({
                 ? t("contentWriting.taskCenter.settlement.settled")
                 : t("contentWriting.taskCenter.settlement.unsettled")
             }
+          />
+        ) : null}
+        {imageNoCharge ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.billing")}
+            value={t("contentWriting.taskCenter.billing.noCharge")}
           />
         ) : null}
         {taskRef.type === "presentation" &&
@@ -342,14 +411,19 @@ export function TaskCenterTaskDetailView({
         ) : null}
       </div>
 
-      {("error" in detail && detail.error) || ("error_message" in detail && detail.error_message) ? (
+      {imageTaskErrorMessage || rawErrorMessage ? (
         <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-4">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-destructive">
             {t("contentWriting.taskCenter.fields.error")}
           </p>
           <p className="mt-2 text-sm leading-6 text-destructive">
-            {("error" in detail && detail.error) || ("error_message" in detail && detail.error_message)}
+            {imageTaskErrorMessage || rawErrorMessage}
           </p>
+          {imageTaskErrorMessage ? (
+            <p className="mt-2 text-sm font-medium text-destructive">
+              {t("contentWriting.taskCenter.imageErrorCta")}
+            </p>
+          ) : null}
         </div>
       ) : null}
 
