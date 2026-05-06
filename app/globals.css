@@ -273,6 +273,8 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-color: var(--jw-scrollbar-thumb) var(--jw-scrollbar-track);
+    scrollbar-width: thin;
   }
   html,
   body {
@@ -281,6 +283,41 @@
   }
   body {
     min-height: 100vh;
+  }
+
+  :root {
+    --jw-scrollbar-thumb: color-mix(in oklch, var(--jw-accent, var(--primary)) 46%, transparent);
+    --jw-scrollbar-thumb-hover: color-mix(in oklch, var(--jw-accent-hover, var(--jw-accent, var(--primary))) 58%, transparent);
+    --jw-scrollbar-track: color-mix(in oklch, var(--background) 94%, transparent);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--jw-scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--jw-scrollbar-thumb);
+    border: 2px solid var(--jw-scrollbar-track);
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--jw-scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: var(--jw-scrollbar-track);
+  }
+
+  @media (forced-colors: active) {
+    * {
+      scrollbar-color: auto;
+    }
   }
 }
 
