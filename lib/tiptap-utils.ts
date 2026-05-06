@@ -29,6 +29,10 @@ marked.use({
 export function detectContentFormat(content: string): 'markdown' | 'html' | 'text' {
   if (!content) return 'text'
 
+  if (parseMarkdownTableRows(content)) {
+    return 'markdown'
+  }
+
   const markdownPatterns = [
     /^#{1,6}\s+/m,         // 标题 #, ##, ###
     /^\*{3,}$/m,           // 分隔线 ***
@@ -37,7 +41,7 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
     /^\*{1,2}.+?\*{1,2}/m, // 粗体/斜体 *text* or **text**
     /^[-*+]\s+/m,          // 无序列表 - * +
     /^\d+\.\s+/m,          // 有序列表 1. 2. 3.
-    /!\[.*?\]\(.*?\)/m     // 图片 ![alt](url)
+    /!\[.*?\]\(.*?\)/m,    // 图片 ![alt](url)
   ]
 
 
@@ -53,6 +57,162 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
   }
 
   return 'text'
+}
+
+function escapeHTML(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function splitMarkdownTableRow(line: string): string[] {
+  let current = ''
+  let escaped = false
+  const cells: string[] = []
+  const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '')
+
+  for (const char of trimmed) {
+    if (escaped) {
+      current += char
+      escaped = false
+      continue
+    }
+
+    if (char === '\\') {
+      escaped = true
+      continue
+    }
+
+    if (char === '|') {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  cells.push(current.trim())
+
+  return cells
+}
+
+function isMarkdownTableSeparatorRow(cells: string[]): boolean {
+  return (
+    cells.length >= 2 &&
+    cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s+/g, '')))
+  )
+}
+
+function normalizeTableRows(rows: string[][], columnCount: number): string[][] {
+  return rows.map((row) =>
+    Array.from({ length: columnCount }, (_, index) => row[index]?.trim() ?? '')
+  )
+}
+
+export function parseMarkdownTableRows(markdown: string): string[][] | null {
+  const lines = markdown
+    .trim()
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  if (lines.length < 2) {
+    return null
+  }
+
+  const header = splitMarkdownTableRow(lines[0])
+  const separator = splitMarkdownTableRow(lines[1])
+
+  if (
+    header.length < 2 ||
+    separator.length !== header.length ||
+    !isMarkdownTableSeparatorRow(separator)
+  ) {
+    return null
+  }
+
+  const body = lines.slice(2).map(splitMarkdownTableRow)
+  const hasInvalidBodyRow = body.some((row) => row.length > header.length)
+
+  if (hasInvalidBodyRow) {
+    return null
+  }
+
+  return normalizeTableRows([header, ...body], header.length)
+}
+
+export function parseTSVTableRows(text: string): string[][] | null {
+  const normalized = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/^\n+|\n+$/g, '')
+
+  if (!normalized.trim()) {
+    return null
+  }
+
+  const rows = normalized
+    .split('\n')
+    .map((line) => line.replace(/\r$/, '').split('\t').map((cell) => cell.trim()))
+    .filter((row) => row.some((cell) => cell.length > 0))
+
+  if (rows.length < 2) {
+    return null
+  }
+
+  const columnCount = rows[0]?.length ?? 0
+
+  if (columnCount < 2 || rows.some((row) => row.length !== columnCount)) {
+    return null
+  }
+
+  return rows
+}
+
+function tableRowsToHTML(rows: string[][], options: { headerRow: boolean }): string {
+  const renderCells = (row: string[], tagName: 'td' | 'th') =>
+    row.map((cell) => `<${tagName}>${escapeHTML(cell)}</${tagName}>`).join('')
+
+  if (options.headerRow) {
+    const [header, ...body] = rows
+
+    return [
+      '<table>',
+      '<thead>',
+      `<tr>${renderCells(header ?? [], 'th')}</tr>`,
+      '</thead>',
+      '<tbody>',
+      ...body.map((row) => `<tr>${renderCells(row, 'td')}</tr>`),
+      '</tbody>',
+      '</table>',
+    ].join('')
+  }
+
+  return [
+    '<table>',
+    '<tbody>',
+    ...rows.map((row) => `<tr>${renderCells(row, 'td')}</tr>`),
+    '</tbody>',
+    '</table>',
+  ].join('')
+}
+
+export function clipboardTableTextToHTML(text: string): string | null {
+  const markdownRows = parseMarkdownTableRows(text)
+  if (markdownRows) {
+    return tableRowsToHTML(markdownRows, { headerRow: true })
+  }
+
+  const tsvRows = parseTSVTableRows(text)
+  if (tsvRows) {
+    return tableRowsToHTML(tsvRows, { headerRow: false })
+  }
+
+  return null
 }
 
 /**

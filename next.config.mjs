@@ -12,6 +12,10 @@ const nextConfig = {
     unoptimized: true,
   },
   async headers() {
+    if (process.env.NODE_ENV !== 'production') {
+      return []
+    }
+
     return [
       {
         source: '/:locale(zh|en)',

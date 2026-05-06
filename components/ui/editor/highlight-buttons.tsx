@@ -9,19 +9,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/base/popover";
+import { HIGHLIGHT_COLORS } from "@/lib/editor-color-palette";
 
 interface HighlightButtonsProps {
   editor: Editor | null;
 }
-
-// Macaron color palette - soft, pastel colors
-const HIGHLIGHT_COLORS = [
-  { color: '#FFE4E6', label: '粉色', value: '#FFE4E6' },   // Pink
-  { color: '#FEF3C7', label: '黄色', value: '#FEF3C7' },  // Yellow
-  { color: '#D1FAE5', label: '绿色', value: '#D1FAE5' },  // Green
-  { color: '#DBEAFE', label: '蓝色', value: '#DBEAFE' },  // Blue
-  { color: '#EDE9FE', label: '紫色', value: '#EDE9FE' },  // Purple
-];
 
 export function HighlightButtons({ editor }: HighlightButtonsProps) {
   const [isOpen, setIsOpen] = useState(false);

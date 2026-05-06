@@ -1376,6 +1376,7 @@ export const zh = {
             quote: "引用",
             codeBlock: "代码块",
             horizontalRule: "水平线",
+            table: "表格",
             link: "链接",
             linkUrlPrompt: "输入链接 URL:",
             image: "图片",

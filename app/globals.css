@@ -591,6 +591,278 @@
   @apply my-4 border-t border-border;
 }
 
+/* 表格 */
+.ProseMirror .jw-table-wrapper {
+  @apply my-4;
+  overflow: visible;
+  position: relative;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.ProseMirror .jw-editor-table {
+  margin: 0;
+}
+
+.ProseMirror .tableWrapper table {
+  margin: 0;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  height: 2.25rem;
+  min-width: 4rem;
+  padding: 0.375rem 0.5rem;
+  position: relative;
+  vertical-align: top;
+}
+
+.ProseMirror th {
+  background: color-mix(in srgb, var(--muted) 28%, transparent);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.ProseMirror td {
+  background: transparent;
+}
+
+.ProseMirror th p,
+.ProseMirror td p {
+  margin: 0;
+  min-height: 1.375rem;
+}
+
+.ProseMirror .selectedCell::after {
+  background: color-mix(in srgb, var(--jw-accent, var(--primary)) 14%, transparent);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.ProseMirror .column-resize-handle {
+  background-color: var(--jw-accent, var(--primary));
+  bottom: -1px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 4px;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.ProseMirror .jw-table-control,
+.ProseMirror .jw-table-handle {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  z-index: 2;
+}
+
+.ProseMirror .jw-table-cell-selection {
+  border: 2px solid var(--primary);
+  box-sizing: border-box;
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+}
+
+.ProseMirror .jw-table-has-active-cell .jw-table-cell-selection {
+  display: block;
+}
+
+.ProseMirror .jw-table-control {
+  background: color-mix(in srgb, var(--muted) 52%, transparent);
+  border: 0;
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.ProseMirror .jw-table-control:hover {
+  background: color-mix(in srgb, var(--muted) 86%, transparent);
+  color: var(--foreground);
+}
+
+.ProseMirror .jw-table-add-column {
+  bottom: 0;
+  right: -1rem;
+  top: 0;
+  width: 0.875rem;
+}
+
+.ProseMirror .jw-table-add-row {
+  bottom: -1rem;
+  height: 0.875rem;
+  left: 0;
+  right: 0;
+}
+
+.ProseMirror .jw-table-handle {
+  background: var(--background);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, transparent);
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  color: color-mix(in srgb, var(--muted-foreground) 78%, transparent);
+  cursor: pointer;
+  height: 1.375rem;
+  line-height: 1;
+  padding: 0 0.3125rem;
+  width: 1.875rem;
+}
+
+.ProseMirror .jw-table-handle:hover,
+.ProseMirror .jw-table-menu-open .jw-table-handle {
+  background: color-mix(in srgb, var(--muted) 32%, var(--background));
+  color: var(--muted-foreground);
+}
+
+.ProseMirror .jw-table-handle svg {
+  display: block;
+  fill: currentColor;
+  height: 0.5rem;
+  width: 1.125rem;
+}
+
+.ProseMirror .jw-table-handle-top {
+  left: 50%;
+  top: -1.625rem;
+  transform: translateX(-50%);
+}
+
+.ProseMirror .jw-table-handle-left {
+  left: -1.875rem;
+  top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+.ProseMirror .jw-table-has-active-cell .jw-table-handle,
+.ProseMirror .jw-table-menu-open .jw-table-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ProseMirror .jw-table-menu {
+  background: var(--popover);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+  color: var(--popover-foreground);
+  min-width: 12.5rem;
+  padding: 0.375rem;
+  position: absolute;
+  z-index: 8;
+}
+
+.ProseMirror .jw-table-menu[hidden] {
+  display: none;
+}
+
+.ProseMirror .jw-table-menu[data-side="top"] {
+  transform: translate(-50%, calc(-100% - 0.5rem));
+}
+
+.ProseMirror .jw-table-menu[data-side="left"] {
+  transform: translate(calc(-100% - 0.5rem), -50%);
+}
+
+.ProseMirror .jw-table-menu-section {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0.25rem 0;
+}
+
+.ProseMirror .jw-table-menu-section + .jw-table-menu-section {
+  border-top: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+}
+
+.ProseMirror .jw-table-menu-title {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.375rem 0.5rem 0.25rem;
+  text-transform: uppercase;
+}
+
+.ProseMirror .jw-table-menu-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.375rem;
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.8125rem;
+  height: 1.875rem;
+  line-height: 1;
+  padding: 0 0.5rem;
+  text-align: left;
+  width: 100%;
+}
+
+.ProseMirror .jw-table-menu-item:hover {
+  background: color-mix(in srgb, var(--muted) 58%, transparent);
+}
+
+.ProseMirror .jw-table-menu-item:disabled {
+  color: color-mix(in srgb, var(--muted-foreground) 52%, transparent);
+  cursor: not-allowed;
+}
+
+.ProseMirror .jw-table-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.ProseMirror .jw-table-menu-colors {
+  display: grid;
+  gap: 0.375rem;
+  grid-template-columns: repeat(5, 1.5rem);
+  padding: 0.25rem 0.5rem 0.375rem;
+}
+
+.ProseMirror .jw-table-menu-color {
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  height: 1.5rem;
+  width: 1.5rem;
+}
+
+.ProseMirror .jw-table-menu-color:hover {
+  outline: 2px solid color-mix(in srgb, var(--jw-accent, var(--primary)) 38%, transparent);
+  outline-offset: 1px;
+}
+
+.ProseMirror .jw-table-wrapper:hover .jw-table-control,
+.ProseMirror .jw-table-wrapper:hover .jw-table-handle,
+.ProseMirror .jw-table-wrapper:focus-within .jw-table-control,
+.ProseMirror .jw-table-wrapper:focus-within .jw-table-handle {
+  opacity: 1;
+}
+
+.ProseMirror .jw-table-wrapper:hover .jw-table-control,
+.ProseMirror .jw-table-wrapper:focus-within .jw-table-control {
+  pointer-events: auto;
+}
+
 /* Dark mode specific adjustments */
 .dark .ProseMirror {
   @apply text-foreground;
@@ -616,6 +888,19 @@
 
 .dark .ProseMirror pre {
   @apply bg-muted/30 border-border;
+}
+
+.dark .ProseMirror th {
+  @apply bg-muted/50;
+}
+
+.dark .ProseMirror td {
+  @apply bg-background/80;
+}
+
+.dark .ProseMirror .jw-table-control,
+.dark .ProseMirror .jw-table-handle {
+  background: var(--background);
 }
 
 /* 高亮文本深色模式 */

@@ -1376,6 +1376,7 @@ export const en = {
             quote: "Quote",
             codeBlock: "Code Block",
             horizontalRule: "Horizontal Rule",
+            table: "Table",
             link: "Link",
             linkUrlPrompt: "Enter link URL:",
             image: "Image",

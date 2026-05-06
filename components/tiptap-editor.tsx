@@ -4,10 +4,19 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { Markdown } from "@tiptap/markdown";
+import { TableRow } from "@tiptap/extension-table";
 import type { EditorView } from "@tiptap/pm/view";
+import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/editor/tiptap-toolbar";
-import { CustomImage, CustomHighlight, CustomTextAlign, CustomLink } from "@/lib/tiptap-extensions";
+import {
+  CustomImage,
+  CustomHighlight,
+  CustomTextAlign,
+  CustomLink,
+  TableCellWithBackground,
+  TableHeaderWithBackground,
+} from "@/lib/tiptap-extensions";
 import { ImageMenu } from "./ui/editor/image-menu";
 import { LinkMenu } from "./ui/editor/link-menu";
 import { AIRewriteDialog } from "./ui/ai/ai-rewrite-dialog";
@@ -16,7 +25,8 @@ import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
-import { markdownToHTML } from "@/lib/tiptap-utils";
+import { clipboardTableTextToHTML, markdownToHTML } from "@/lib/tiptap-utils";
+import { TableWithControls } from "@/lib/tiptap-table-node-view";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
 import {
   getImageFileFromClipboardData,
@@ -182,6 +192,10 @@ export function TiptapEditor({
         class: "max-w-full h-auto rounded-lg",
       },
     }),
+    TableWithControls,
+    TableRow,
+    TableHeaderWithBackground,
+    TableCellWithBackground,
     CustomHighlight,  // Text highlighting with colors
     CustomTextAlign,  // Text alignment (left, center, right, justify)
     Markdown,         // Markdown extension for export functionality
@@ -207,6 +221,19 @@ export function TiptapEditor({
     },
     []
   );
+
+  const insertHTMLToView = useCallback((view: EditorView, html: string) => {
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const slice = ProseMirrorDOMParser
+      .fromSchema(view.state.schema)
+      .parseSlice(container);
+    const transaction = view.state.tr.replaceSelection(slice).scrollIntoView();
+
+    view.dispatch(transaction);
+    view.focus();
+  }, []);
 
   const syncEditorEmptyState = useCallback((nextEditor: Editor) => {
     const text = nextEditor.getText().trim();
@@ -322,12 +349,26 @@ export function TiptapEditor({
         }
 
         const pastedImageFile = getImageFileFromClipboardData(event.clipboardData);
-        if (!pastedImageFile) {
+        if (pastedImageFile) {
+          event.preventDefault();
+          void uploadAndInsertEditorImage(view, pastedImageFile, "paste");
+
+          return true;
+        }
+
+        const clipboardHTML = event.clipboardData.getData("text/html");
+        if (/<table[\s>]/i.test(clipboardHTML)) {
+          return false;
+        }
+
+        const tableHTML = clipboardTableTextToHTML(event.clipboardData.getData("text/plain"));
+        if (!tableHTML) {
           return false;
         }
 
         event.preventDefault();
-        void uploadAndInsertEditorImage(view, pastedImageFile, "paste");
+        insertHTMLToView(view, tableHTML);
+        console.info("[TiptapEditor] Clipboard table inserted into editor");
 
         return true;
       },

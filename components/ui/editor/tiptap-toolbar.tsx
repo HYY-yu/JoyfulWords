@@ -16,6 +16,7 @@ import {
   Redo2Icon,
   SeparatorHorizontalIcon,
   Loader2Icon,
+  TableIcon,
 } from "lucide-react";
 import { Editor } from "@tiptap/react";
 import { useCallback } from "react";
@@ -224,6 +225,13 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
       >
         <SeparatorHorizontalIcon className="h-4 w-4" />
+      </ToolbarButton>
+
+      <ToolbarButton
+        tooltip={t("tiptapEditor.toolbar.table")}
+        onClick={() => editor.chain().focus().insertTable({ rows: 2, cols: 2, withHeaderRow: false }).run()}
+      >
+        <TableIcon className="h-4 w-4" />
       </ToolbarButton>
 
       <div className="w-px h-8 bg-border/40 mx-1" />

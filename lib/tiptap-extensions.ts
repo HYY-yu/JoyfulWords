@@ -3,6 +3,7 @@ import Image from "@tiptap/extension-image";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import Link from "@tiptap/extension-link";
+import { TableCell, TableHeader } from "@tiptap/extension-table";
 import { mergeAttributes } from "@tiptap/react";
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 
@@ -136,6 +137,42 @@ export const CustomImage = Image.extend({
 export const CustomHighlight = Highlight.configure({
   multicolor: true,
 });
+
+const tableCellBackgroundAttribute = {
+  backgroundColor: {
+    default: null,
+    parseHTML: (element: HTMLElement) =>
+      element.getAttribute("data-background-color") || element.style.backgroundColor || null,
+    renderHTML: (attributes: { backgroundColor?: string | null }) => {
+      if (!attributes.backgroundColor) {
+        return {}
+      }
+
+      return {
+        "data-background-color": attributes.backgroundColor,
+        style: `background-color: ${attributes.backgroundColor}`,
+      }
+    },
+  },
+}
+
+export const TableCellWithBackground = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      ...tableCellBackgroundAttribute,
+    }
+  },
+})
+
+export const TableHeaderWithBackground = TableHeader.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      ...tableCellBackgroundAttribute,
+    }
+  },
+})
 
 // TextAlignment extension for paragraphs and headings
 export const CustomTextAlign = TextAlign.configure({
