@@ -189,12 +189,7 @@ function MCPOAuthAuthorizeContent() {
                       {authorization.resource_name}
                     </span>
                   </div>
-                  <div className="grid gap-1">
-                    <span className="text-muted-foreground">{t("auth.mcpOAuth.redirectUri")}</span>
-                    <span className="break-all font-mono text-xs text-foreground">
-                      {authorization.redirect_uri}
-                    </span>
-                  </div>
+                  
                 </div>
 
                 <div className="space-y-3">
