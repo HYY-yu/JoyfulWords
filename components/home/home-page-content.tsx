@@ -141,7 +141,7 @@ export function HomePageContent() {
           </Link>
           <Link
             href={mcpHref}
-            className="rounded-lg px-3.5 py-1.5 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
             {t("landing.nav.mcp")}
           </Link>
