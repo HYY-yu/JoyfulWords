@@ -11,6 +11,7 @@ import { PaymentProviderSelector } from './payment-provider-selector'
 import { PaymentFormPaypal } from './payment-form-paypal'
 import { PaymentFormOxapay } from './payment-form-oxapay'
 import { PaymentFormStripe } from './payment-form-stripe'
+import { PaymentFormCardWallets } from './payment-form-card-wallets'
 import { PaymentProvider } from '@/lib/api/payment/types'
 import { usePayment } from '@/lib/hooks/use-payment'
 import { Loader2Icon } from 'lucide-react'
@@ -105,6 +106,14 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
                 )}
                 {selectedProvider === 'stripe' && (
                   <PaymentFormStripe
+                    onSubmit={(data) => handleSubmit(data)}
+                    loading={submitting}
+                    t={t}
+                    initialCredits={initialCredits}
+                  />
+                )}
+                {selectedProvider === 'creem' && (
+                  <PaymentFormCardWallets
                     onSubmit={(data) => handleSubmit(data)}
                     loading={submitting}
                     t={t}

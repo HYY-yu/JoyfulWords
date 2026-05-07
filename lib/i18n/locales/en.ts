@@ -498,6 +498,7 @@ export const en = {
                 sourceText: "Source Text",
                 resultText: "Rewrite Result",
                 settlement: "Settlement",
+                billing: "Billing",
                 error: "Error",
                 outputImages: "Output Images",
                 referenceImages: "Reference Images",
@@ -506,6 +507,15 @@ export const en = {
                 settled: "Settled",
                 unsettled: "Unsettled",
             },
+            billing: {
+                noCharge: "This attempt was not charged",
+            },
+            imageErrors: {
+                img_gen_prompt_rejected: "Your prompt could not be processed. Please revise it and generate again. This attempt was not charged.",
+                img_gen_moderation_unavailable: "Prompt review is temporarily unavailable. Please try again later. This attempt was not charged.",
+                generation_failed: "Image generation failed. This attempt was not charged. Please try again later.",
+            },
+            imageErrorCta: "Revise prompt and generate again",
         },
         materialPanel: {
             sourceTitle: "Source Context",
@@ -2263,6 +2273,7 @@ export const en = {
                 paypal: "PayPal",
                 oxapay: "Crypto",
                 stripe: "Stripe",
+                creem: "Card & Wallets",
             },
             form: {
                 selectTier: "Select Recharge Tier",
@@ -2289,6 +2300,8 @@ export const en = {
                 paypalSecure: "Secure PayPal payment",
                 payWithStripe: "Pay with Stripe",
                 stripeSecure: "Secure payment powered by Stripe",
+                payWithCardWallets: "Pay with Card & Wallets",
+                cardWalletsSecure: "Secure hosted checkout",
                 submitting: "Processing...",
             },
             processing: "Processing order...",

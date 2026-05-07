@@ -1,7 +1,7 @@
 "use client"
 
 import { PaymentProvider } from '@/lib/api/payment/types'
-import { CreditCardIcon, WalletIcon, CoinsIcon, BanknoteIcon } from 'lucide-react'
+import { BanknoteIcon, CoinsIcon, CreditCardIcon, WalletCardsIcon } from 'lucide-react'
 import { getEnabledPaymentProviders } from '@/lib/config/payment-providers'
 
 interface PaymentProviderSelectorProps {
@@ -22,6 +22,10 @@ const PROVIDERS = {
   stripe: {
     icon: BanknoteIcon,
     labelKey: 'billing.payment.providers.stripe',
+  },
+  creem: {
+    icon: WalletCardsIcon,
+    labelKey: 'billing.payment.providers.creem',
   },
 } as const
 

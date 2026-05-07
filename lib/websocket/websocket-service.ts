@@ -2,6 +2,7 @@
 
 import { API_BASE_URL } from "@/lib/config"
 import type { TaskCenterTaskType } from "@/lib/api/taskcenter/types"
+import { getImageTaskErrorMessage } from "@/lib/api/taskcenter/image-error-messages"
 import { tokenStore } from "@/lib/tokens/token-store"
 
 export enum WebSocketMessageType {
@@ -25,6 +26,7 @@ export interface TaskUpdatePayload {
   status: string
   outputs?: Record<string, unknown> | null
   error?: string
+  error_code?: string
 }
 
 export interface TaskSocketEvent {
@@ -644,10 +646,24 @@ class WebSocketService {
         ? locale === "zh"
           ? `#${payload.task_id} ${taskTypeLabel}`
           : `#${payload.task_id} ${taskTypeLabel}`
+        : payload.task_type === "image"
+        ? getImageTaskErrorMessage(
+            payload.error_code ?? payload.outputs?.error_code,
+            locale
+          )
         : payload.error ||
           (locale === "zh"
             ? `#${payload.task_id} ${taskTypeLabel}`
             : `#${payload.task_id} ${taskTypeLabel}`)
+
+    if (kind === "error" && payload.task_type === "image") {
+      logWebSocket("warn", "Image task failed", {
+        taskId: payload.task_id,
+        articleId: payload.article_id ?? null,
+        errorCode: payload.error_code ?? payload.outputs?.error_code ?? null,
+        error: payload.error ?? null,
+      })
+    }
 
     this.toast({
       title,

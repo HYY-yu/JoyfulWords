@@ -32,12 +32,15 @@ export interface TaskCenterImageListDetails {
   image_urls?: string | string[]
   reference_image_urls?: string | string[]
   is_settle?: boolean
+  billing_charged?: boolean
   completed_at?: string | null
   gen_mode?: string
   article_id?: number
   source_image?: string
   num_layers?: number
   model_reference_id?: string
+  error?: string
+  error_code?: string
 }
 
 export interface TaskCenterInfographicListDetails {
@@ -151,7 +154,9 @@ export interface TaskCenterImageTaskDetail {
   image_urls?: string | string[]
   status: TaskCenterImageStatus
   error?: string
+  error_code?: string
   is_settle?: boolean
+  billing_charged?: boolean
   completed_at?: string | null
   created_at: string
   updated_at: string

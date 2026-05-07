@@ -87,7 +87,7 @@ function TaskCard({ task, selected, removable, onClick, onRemove }: TaskCardProp
                 {t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`)}
               </p>
               <p className="line-clamp-2 text-sm text-muted-foreground">
-                {getTaskCenterTaskSummary(task)}
+                {getTaskCenterTaskSummary(task, t)}
               </p>
             </div>
           </div>

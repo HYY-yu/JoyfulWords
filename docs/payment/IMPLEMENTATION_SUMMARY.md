@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档记录了 JoyfulWords（创作者工具箱）支付功能的完整实现。支付功能支持三种支付提供商（PayPal、Payin、Paydify），提供完整的充值流程和支付结果确认。
+本文档记录了 JoyfulWords（创作者工具箱）支付功能的完整实现。支付功能支持多种支付提供商（PayPal、OxaPay、Stripe、Creem），提供完整的充值流程和支付结果确认。
 
 **实现日期**: 2025-02-09
 
@@ -32,8 +32,9 @@
 | 提供商 | 描述 | 特殊要求 |
 |--------|------|----------|
 | **PayPal** | 全球支付平台 | 无 |
-| **Payin** | 加密货币支付 | 需选择网络（TRC20/ERC20） |
-| **Paydify** | 支付服务提供商 | 无 |
+| **OxaPay** | 加密货币支付 | 无 |
+| **Stripe** | Stripe Checkout 托管支付页 | 无 |
+| **Creem** | Card & Wallets 托管支付页 | UI 不展示 Creem 品牌，内部提交 `provider: creem` |
 
 ### 核心功能
 
@@ -75,8 +76,9 @@ components/
     recharge-dialog.tsx           # 充值弹窗主组件
     payment-provider-selector.tsx # 支付商选择器（Tab）
     payment-form-paypal.tsx       # PayPal 表单
-    payment-form-payin.tsx       # Payin 表单（含网络选择）
-    payment-form-paydify.tsx      # Paydify 表单
+    payment-form-oxapay.tsx       # OxaPay 加密货币表单
+    payment-form-stripe.tsx       # Stripe Checkout 表单
+    payment-form-card-wallets.tsx # Card & Wallets 表单（Creem provider）
     billing-page.tsx             # Billing 页面（已集成）
 
 app/
@@ -141,14 +143,14 @@ sequenceDiagram
     U->>B: 点击"充值"按钮
     B->>D: 打开充值弹窗
     U->>D: 选择支付提供商
-    U->>D: 填写积分数（Payin 需选择网络）
+    U->>D: 填写积分数
     U->>D: 点击"前往支付"
-    D->>H: createOrder(provider, credits, network?)
+    D->>H: createOrder(provider, credits)
     H->>A: POST /payment/orders/create
     A-->>H: 返回 approval_url
     H->>U: 跳转到 approval_url
     U->>P: 完成支付
-    P->>U: 跳转到 /payment/success?order_no=xxx
+    P->>U: 跳转到 /payment/success（有参数时优先 URL，无参数时使用 localStorage 订单号回退）
 ```
 
 ### 2. 支付确认流程
@@ -266,7 +268,7 @@ return result
 
 **特性**:
 - 手动实现的 Tab 切换（参考 billing-page.tsx）
-- 显示 PayPal / Payin / Paydify 三个选项
+- 根据 `NEXT_PUBLIC_ENABLED_PAYMENT_PROVIDERS` 显示 PayPal / OxaPay / Stripe / Card & Wallets
 - 使用 lucide-react 图标
 - 活跃状态高亮显示
 
@@ -299,28 +301,34 @@ return result
 **验证规则**:
 ```typescript
 z.number()
-  .min(100, '最小充值 100 积分')
+  .min(200, '最小充值 200 积分')
   .max(100000, '最大充值 100,000 积分')
   .refine((val) => val % 100 === 0, '积分数必须是 100 的倍数')
 ```
 
-#### Payin 表单
+#### OxaPay 表单
 
-**文件**: `components/billing/payment-form-payin.tsx`
+**文件**: `components/billing/payment-form-oxapay.tsx`
 
 **字段**:
 - `credits` (number): 积分数
-- `network` (TRC20 | ERC20): 网络类型
 
-**特殊点**:
-- 使用 Select 组件选择网络
-- 提交时添加 `metadata: { network }`
+与 PayPal 表单相同，复用积分验证逻辑。
 
-#### Paydify 表单
+#### Stripe 表单
 
-**文件**: `components/billing/payment-form-paydify.tsx`
+**文件**: `components/billing/payment-form-stripe.tsx`
 
 与 PayPal 表单相同，复用验证逻辑。
+
+#### Card & Wallets 表单
+
+**文件**: `components/billing/payment-form-card-wallets.tsx`
+
+**特殊点**:
+- UI 展示为 `Card & Wallets`
+- 内部提交 `provider: creem`
+- 不在充值弹窗里展示 Creem 供应商品牌
 
 ### 3. 充值弹窗
 
@@ -334,7 +342,7 @@ const [submitting, setSubmitting] = useState(false)
 
 **提交流程**:
 1. 用户填写表单
-2. 调用 `createOrder(provider, credits, network?)`
+2. 调用 `createOrder(provider, credits)`
 3. 获取 `approval_url`
 4. 使用 `window.location.href` 跳转到支付页面
 
@@ -356,8 +364,9 @@ billing: {
     dialog: { title: "充值积分" },
     providers: {
       paypal: "PayPal",
-      payin: "加密货币",
-      paydify: "Paydify",
+      oxapay: "加密货币",
+      stripe: "Stripe",
+      creem: "Card & Wallets",
     },
     form: {
       credits: {
@@ -428,19 +437,20 @@ toast({
 
 #### 2. PayPal 表单
 - [ ] 输入积分数，金额预览实时更新
-- [ ] 输入小于 100 的值，显示错误
+- [ ] 输入小于 200 的值，显示错误
 - [ ] 输入大于 100000 的值，显示错误
 - [ ] 输入非 100 倍数的值，显示错误
 - [ ] 提交时显示 loading 状态
 
-#### 3. Payin 表单
-- [ ] 网络选择正常工作
+#### 3. Card & Wallets 表单
+- [ ] Tab 显示为 `Card & Wallets`
 - [ ] 表单验证正确
-- [ ] 提交时正确包含 network 参数
+- [ ] 提交时内部 provider 为 `creem`
 
 #### 4. 支付流程
 - [ ] 提交后跳转到 `approval_url`
-- [ ] 支付完成后跳转到 `/payment/success?order_no=xxx`
+- [ ] 支付完成后跳转到 `/payment/success`
+- [ ] 成功页可使用 localStorage 中的订单号继续轮询
 - [ ] 取消支付跳转到 `/payment/cancel`
 
 #### 5. 结果页轮询
@@ -530,23 +540,9 @@ if (retryCount < MAX_RETRIES - 1) {
 }
 ```
 
-### 5. Payin 网络
+### 5. Creem 显示
 
-**重要**: Payin 必须包含 `metadata.network` 参数。
-
-```typescript
-const request: CreateOrderRequest = {
-  credits,
-  provider,
-  return_url,
-  cancel_url,
-  timestamp: Date.now() / 1000,
-}
-
-if (provider === 'payin' && network) {
-  request.metadata = { network }
-}
-```
+**重要**: Creem 是内部支付 provider 名称；充值弹窗用户侧显示为 `Card & Wallets`，避免把不知名供应商品牌直接暴露给用户。
 
 ### 6. 表单验证
 

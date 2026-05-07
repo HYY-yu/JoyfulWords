@@ -193,7 +193,7 @@ function mapTaskCenterTaskToProgressItem(
     type: "task-center",
     status,
     label: t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`),
-    description: getTaskCenterTaskSummary(task),
+    description: getTaskCenterTaskSummary(task, t),
     startedAt: new Date(task.created_at).getTime(),
     removable: removable && (task.status === "success" || task.status === "failed"),
     taskCenterData: task,
