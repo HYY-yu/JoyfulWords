@@ -2263,6 +2263,7 @@ export const en = {
                 paypal: "PayPal",
                 oxapay: "Crypto",
                 stripe: "Stripe",
+                creem: "Card & Wallets",
             },
             form: {
                 selectTier: "Select Recharge Tier",
@@ -2289,6 +2290,8 @@ export const en = {
                 paypalSecure: "Secure PayPal payment",
                 payWithStripe: "Pay with Stripe",
                 stripeSecure: "Secure payment powered by Stripe",
+                payWithCardWallets: "Pay with Card & Wallets",
+                cardWalletsSecure: "Secure hosted checkout",
                 submitting: "Processing...",
             },
             processing: "Processing order...",
