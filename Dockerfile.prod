@@ -57,9 +57,9 @@ ENV OTEL_TRACES_SAMPLER_ARG=${OTEL_TRACES_SAMPLER_ARG}
 ENV OTEL_PROPAGATE_TRACE_URLS=${OTEL_PROPAGATE_TRACE_URLS}
 ENV NEXT_OTEL_VERBOSE=${NEXT_OTEL_VERBOSE}
 
-# 安装pnpm以及依赖
-RUN corepack enable && corepack prepare pnpm@latest --activate
-COPY package.json pnpm-lock.yaml* ./
+# 安装 pnpm 10，避免 CI/镜像构建漂移到 pnpm 11
+RUN corepack enable && corepack prepare pnpm@10.26.0 --activate
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 RUN pnpm install
 
 # 拷贝源码并构建 (此时环境变量已设置)

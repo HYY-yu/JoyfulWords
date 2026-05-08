@@ -9,6 +9,8 @@ platform:
 steps:
   - name: install
     commands:
+      - corepack enable
+      - corepack prepare pnpm@10.26.0 --activate
       - pnpm install
     environment:
       PATH: /home/admin/.nvm/versions/node/v22.22.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
