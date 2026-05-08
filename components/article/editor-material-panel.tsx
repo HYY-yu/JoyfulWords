@@ -607,9 +607,13 @@ function SearchTab({
   const [bannerStatus, setBannerStatus] = useState<"triggered" | "polling" | null>(null)
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
   const [isImporting, setIsImporting] = useState(false)
+  const [isTriggeringSearch, setIsTriggeringSearch] = useState(false)
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const networkFailCountRef = useRef(0)
+  const searchTriggerLockedRef = useRef(false)
+  const activeSearchLogIdRef = useRef<number | null>(null)
+  const searchRequestSeqRef = useRef(0)
 
   const persistTask = useCallback(
     (task: PersistedMaterialSearchTask | null) => {
@@ -634,11 +638,15 @@ function SearchTab({
 
   const clearSearchTask = useCallback(() => {
     console.info("[MaterialSearch] clearing active card")
+    searchRequestSeqRef.current += 1
+    searchTriggerLockedRef.current = false
+    activeSearchLogIdRef.current = null
     stopPolling()
     setActiveTask(null)
     setDetail(null)
     setBannerStatus(null)
     setSelectedUrls(new Set())
+    setIsTriggeringSearch(false)
     if (userId && articleId) {
       clearPersistedMaterialSearchTask(userId, articleId)
     }
@@ -652,6 +660,13 @@ function SearchTab({
     async (task: PersistedMaterialSearchTask) => {
       console.debug("[MaterialSearch] polling detail", { logId: task.logId, query: task.query })
       const response = await materialsClient.getSearchLogDetail(task.logId)
+      if (activeSearchLogIdRef.current !== task.logId) {
+        console.debug("[MaterialSearch] ignoring stale poll result", {
+          logId: task.logId,
+          activeLogId: activeSearchLogIdRef.current,
+        })
+        return
+      }
 
       if ("error" in response) {
         networkFailCountRef.current += 1
@@ -712,6 +727,8 @@ function SearchTab({
       logId: storedTask.logId,
     })
     setActiveTask(storedTask)
+    activeSearchLogIdRef.current = storedTask.logId
+    searchTriggerLockedRef.current = true
     onSearchTypeChange(storedTask.materialType)
     setSearchText(storedTask.query)
     setBannerStatus("polling")
@@ -723,13 +740,17 @@ function SearchTab({
   useEffect(() => stopPolling, [stopPolling])
 
   useEffect(() => {
-    onSearchLockedChange?.(Boolean(activeTask))
-  }, [activeTask, onSearchLockedChange])
+    onSearchLockedChange?.(Boolean(activeTask) || isTriggeringSearch)
+  }, [activeTask, isTriggeringSearch, onSearchLockedChange])
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
-    if (!trimmed || !userId || !articleId || activeTask) return
+    if (!trimmed || !userId || !articleId || activeTask || searchTriggerLockedRef.current) return
 
+    const requestSeq = searchRequestSeqRef.current + 1
+    searchRequestSeqRef.current = requestSeq
+    searchTriggerLockedRef.current = true
+    setIsTriggeringSearch(true)
     stopPolling()
     setDetail(null)
     setSelectedUrls(new Set())
@@ -750,6 +771,13 @@ function SearchTab({
     })
 
     const searchResult = await materialsClient.searchV2(searchType, trimmed)
+    if (searchRequestSeqRef.current !== requestSeq) {
+      console.debug("[MaterialSearch] ignoring stale trigger response", {
+        materialType: searchType,
+        query: trimmed,
+      })
+      return
+    }
 
     if ("error" in searchResult) {
       console.warn("[MaterialSearch] trigger failed", {
@@ -762,6 +790,8 @@ function SearchTab({
         title: t("contentWriting.materialPanel.searchFailed"),
         description: searchResult.error,
       })
+      searchTriggerLockedRef.current = false
+      setIsTriggeringSearch(false)
       setBannerStatus(null)
       return
     }
@@ -771,9 +801,11 @@ function SearchTab({
       logId: searchResult.id,
     }
 
+    activeSearchLogIdRef.current = task.logId
     persistTask(task)
     setActiveTask(task)
     setBannerStatus("triggered")
+    setIsTriggeringSearch(false)
     void handlePollResult(task)
   }, [activeTask, articleId, handlePollResult, persistTask, searchText, searchType, stopPolling, t, toast, userId])
 
@@ -836,7 +868,7 @@ function SearchTab({
     setIsImporting(false)
   }, [activeTask, clearSearchTask, onImportSuccess, selectedUrls, t, toast])
 
-  const isSearchLocked = Boolean(activeTask)
+  const isSearchLocked = Boolean(activeTask) || isTriggeringSearch
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
@@ -858,7 +890,7 @@ function SearchTab({
             onClick={() => void handleSearch()}
             disabled={isSearchLocked || !searchText.trim()}
           >
-            {bannerStatus ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {isSearchLocked ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
 
