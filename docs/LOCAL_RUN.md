@@ -96,12 +96,7 @@ NEXT_PUBLIC_API_BASE_URL=https://api.joyword.link
 
 ```bash
 cd /Volumes/GW/codes/frontendProject/JoyfulWords
-pnpm dev -- \
-  --hostname local.joyword.link \
-  --port 3000 \
-  --experimental-https \
-  --experimental-https-key ./certificates/local.joyword.link-key.pem \
-  --experimental-https-cert ./certificates/local.joyword.link.pem
+pnpm dev
 ```
 
 启动后访问：

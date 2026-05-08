@@ -17,6 +17,7 @@ import type {
 } from "mind-elixir"
 import { Button } from "@/components/ui/base/button"
 import {
+  DownloadIcon,
   Loader2Icon,
   SaveIcon,
   SparklesIcon,
@@ -25,7 +26,7 @@ import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { mindMapClient } from "@/lib/api/articles/mindmap-client"
-import type { MindMapDocument } from "@/lib/api/articles/types"
+import type { MindMapDocument, MindMapNode } from "@/lib/api/articles/types"
 import { fromMindElixirData, toMindElixirData } from "@/lib/mindmap/mind-elixir-adapter"
 import styles from "./ai-mindmap-dialog.module.css"
 
@@ -48,7 +49,7 @@ const JOYFUL_MINDMAP_THEME: Theme = {
     "--main-bgcolor": "rgba(255, 255, 255, 0.96)",
     "--main-bgcolor-transparent": "rgba(255, 255, 255, 0.82)",
     "--color": "#344256",
-    "--bgcolor": "transparent",
+    "--bgcolor": "#f6f8fc",
     "--selected": "#2F6FED",
     "--accent-color": "#2F6FED",
     "--root-color": "#ffffff",
@@ -62,6 +63,208 @@ const JOYFUL_MINDMAP_THEME: Theme = {
     "--panel-border-color": "rgba(148, 163, 184, 0.22)",
     "--map-padding": "90px 120px",
   },
+}
+
+type XMindTopic = {
+  id: string
+  class: "topic"
+  title: string
+  structureClass?: string
+  children?: {
+    attached: XMindTopic[]
+  }
+  notes?: {
+    plain: {
+      content: string
+    }
+  }
+}
+
+const CRC32_TABLE = Array.from({ length: 256 }, (_, index) => {
+  let value = index
+  for (let bit = 0; bit < 8; bit += 1) {
+    value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1
+  }
+  return value >>> 0
+})
+
+function createDownloadFileName(mindmap: MindMapDocument): string {
+  const title = mindmap.title || mindmap.root.text || "mind-map"
+  const safeTitle = title
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, "-")
+    .slice(0, 60) || "mind-map"
+
+  return `${safeTitle}-${Date.now()}.xmind`
+}
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
+function createXMindId(prefix: string, seed: string): string {
+  const safeSeed = seed.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 48) || "node"
+  return `${prefix}-${safeSeed}`
+}
+
+function toXMindTopic(node: MindMapNode, isRoot = false): XMindTopic {
+  const children = node.children.map((child) => toXMindTopic(child))
+  const topic: XMindTopic = {
+    id: createXMindId("topic", node.id),
+    class: "topic",
+    title: node.text || "Untitled",
+    ...(isRoot ? { structureClass: "org.xmind.ui.map.unbalanced" } : {}),
+    ...(children.length > 0 ? { children: { attached: children } } : {}),
+  }
+
+  if (node.meta?.note) {
+    topic.notes = {
+      plain: {
+        content: node.meta.note,
+      },
+    }
+  }
+
+  return topic
+}
+
+function encodeZipText(value: unknown): Uint8Array {
+  return new TextEncoder().encode(`${JSON.stringify(value, null, 2)}\n`)
+}
+
+function getCrc32(bytes: Uint8Array): number {
+  let crc = 0xffffffff
+  for (const byte of bytes) {
+    crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8)
+  }
+  return (crc ^ 0xffffffff) >>> 0
+}
+
+function writeUint16(target: Uint8Array, offset: number, value: number) {
+  target[offset] = value & 0xff
+  target[offset + 1] = (value >>> 8) & 0xff
+}
+
+function writeUint32(target: Uint8Array, offset: number, value: number) {
+  target[offset] = value & 0xff
+  target[offset + 1] = (value >>> 8) & 0xff
+  target[offset + 2] = (value >>> 16) & 0xff
+  target[offset + 3] = (value >>> 24) & 0xff
+}
+
+function createStoredZip(files: Array<{ name: string; content: Uint8Array }>): Blob {
+  const encoder = new TextEncoder()
+  const localParts: Uint8Array[] = []
+  const centralParts: Uint8Array[] = []
+  let offset = 0
+
+  for (const file of files) {
+    const nameBytes = encoder.encode(file.name)
+    const crc32 = getCrc32(file.content)
+    const localHeader = new Uint8Array(30 + nameBytes.length)
+
+    writeUint32(localHeader, 0, 0x04034b50)
+    writeUint16(localHeader, 4, 20)
+    writeUint16(localHeader, 6, 0)
+    writeUint16(localHeader, 8, 0)
+    writeUint16(localHeader, 10, 0)
+    writeUint16(localHeader, 12, 0)
+    writeUint32(localHeader, 14, crc32)
+    writeUint32(localHeader, 18, file.content.length)
+    writeUint32(localHeader, 22, file.content.length)
+    writeUint16(localHeader, 26, nameBytes.length)
+    writeUint16(localHeader, 28, 0)
+    localHeader.set(nameBytes, 30)
+
+    localParts.push(localHeader, file.content)
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length)
+    writeUint32(centralHeader, 0, 0x02014b50)
+    writeUint16(centralHeader, 4, 20)
+    writeUint16(centralHeader, 6, 20)
+    writeUint16(centralHeader, 8, 0)
+    writeUint16(centralHeader, 10, 0)
+    writeUint16(centralHeader, 12, 0)
+    writeUint16(centralHeader, 14, 0)
+    writeUint32(centralHeader, 16, crc32)
+    writeUint32(centralHeader, 20, file.content.length)
+    writeUint32(centralHeader, 24, file.content.length)
+    writeUint16(centralHeader, 28, nameBytes.length)
+    writeUint16(centralHeader, 30, 0)
+    writeUint16(centralHeader, 32, 0)
+    writeUint16(centralHeader, 34, 0)
+    writeUint16(centralHeader, 36, 0)
+    writeUint32(centralHeader, 38, 0)
+    writeUint32(centralHeader, 42, offset)
+    centralHeader.set(nameBytes, 46)
+
+    centralParts.push(centralHeader)
+    offset += localHeader.length + file.content.length
+  }
+
+  const centralOffset = offset
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0)
+  const endHeader = new Uint8Array(22)
+  writeUint32(endHeader, 0, 0x06054b50)
+  writeUint16(endHeader, 4, 0)
+  writeUint16(endHeader, 6, 0)
+  writeUint16(endHeader, 8, files.length)
+  writeUint16(endHeader, 10, files.length)
+  writeUint32(endHeader, 12, centralSize)
+  writeUint32(endHeader, 16, centralOffset)
+  writeUint16(endHeader, 20, 0)
+
+  const zipParts = [...localParts, ...centralParts, endHeader]
+  const zipSize = zipParts.reduce((sum, part) => sum + part.length, 0)
+  const zipContent = new Uint8Array(zipSize)
+  let cursor = 0
+  for (const part of zipParts) {
+    zipContent.set(part, cursor)
+    cursor += part.length
+  }
+
+  return new Blob([zipContent.buffer], {
+    type: "application/vnd.xmind.workbook",
+  })
+}
+
+function createXMindBlob(mindmap: MindMapDocument): Blob {
+  const sheetId = createXMindId("sheet", String(mindmap.article_id || "default"))
+  const content = [
+    {
+      id: sheetId,
+      class: "sheet",
+      title: mindmap.title || mindmap.root.text || "Mind Map",
+      rootTopic: toXMindTopic(mindmap.root, true),
+    },
+  ]
+  const metadata = {
+    creator: {
+      name: "JoyfulWords",
+      version: "1.0.0",
+    },
+    activeSheetId: sheetId,
+  }
+  const manifest = {
+    "file-entries": {
+      "content.json": {},
+      "metadata.json": {},
+    },
+  }
+
+  return createStoredZip([
+    { name: "content.json", content: encodeZipText(content) },
+    { name: "metadata.json", content: encodeZipText(metadata) },
+    { name: "manifest.json", content: encodeZipText(manifest) },
+  ])
 }
 
 function logOperation(operation: Operation) {
@@ -120,6 +323,7 @@ export function AIMindMapDialog({
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [mindmap, setMindmap] = useState<MindMapDocument | null>(null)
   const [isDirty, setIsDirty] = useState(false)
   const [canvasVersion, setCanvasVersion] = useState(0)
@@ -398,6 +602,42 @@ export function AIMindMapDialog({
     }
   }, [applyExternalMindmap, articleId, t, toast])
 
+  const handleDownload = useCallback(async () => {
+    const instance = instanceRef.current
+    const currentMindmap = mindmapRef.current
+
+    if (!instance || !currentMindmap) {
+      toast({
+        variant: "destructive",
+        title: t("aiMindmap.toast.downloadFailed"),
+      })
+      return
+    }
+
+    setIsDownloading(true)
+
+    try {
+      instance.clearSelection()
+      instance.cancelFocus()
+
+      const exportMindmap = fromMindElixirData(instance.getData(), currentMindmap)
+
+      downloadBlob(createXMindBlob(exportMindmap), createDownloadFileName(exportMindmap))
+      toast({ title: t("aiMindmap.toast.downloadSuccess") })
+    } catch (error) {
+      console.error("[MindMap] Download failed", {
+        articleId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      toast({
+        variant: "destructive",
+        title: t("aiMindmap.toast.downloadFailed"),
+      })
+    } finally {
+      setIsDownloading(false)
+    }
+  }, [articleId, t, toast])
+
   return (
     <AIFeatureDialogShell
       open={open}
@@ -432,6 +672,22 @@ export function AIMindMapDialog({
                 >
                   <SparklesIcon className="mr-1 h-4 w-4" />
                   {t("aiMindmap.actions.regenerateFull")}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={styles.floatingAction}
+                  onClick={() => void handleDownload()}
+                  disabled={isLoading || isDownloading || !mindmap}
+                >
+                  {isDownloading ? (
+                    <Loader2Icon className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <DownloadIcon className="mr-1 h-4 w-4" />
+                  )}
+                  {t("aiMindmap.actions.download")}
                 </Button>
 
                 <Button
