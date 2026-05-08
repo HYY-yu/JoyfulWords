@@ -5,7 +5,8 @@
   "packageManager": "pnpm@10.26.0",
   "scripts": {
     "build": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next build --webpack",
-    "dev": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next dev",
+    "dev": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next dev --hostname local.joyword.link --port 3000 --experimental-https --experimental-https-key ./certificates/local.joyword.link-key.pem --experimental-https-cert ./certificates/local.joyword.link.pem",
+    "dev:http": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true next dev",
     "lint": "BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true eslint .",
     "start": "next start"
   },
