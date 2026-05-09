@@ -18,12 +18,53 @@ import {
   validateOAuthState,
 } from '@/lib/auth/oauth-state'
 
+type ExpectedOAuthCallbackReason =
+  | 'missing'
+  | 'expired'
+  | 'invalid'
+  | 'state_missing'
+  | 'state_expired'
+
+class ExpectedOAuthCallbackError extends Error {
+  reason: ExpectedOAuthCallbackReason
+
+  constructor(message: string, reason: ExpectedOAuthCallbackReason) {
+    super(message)
+    this.name = 'ExpectedOAuthCallbackError'
+    this.reason = reason
+  }
+}
+
+function isExpectedOAuthCallbackReason(reason: unknown): reason is ExpectedOAuthCallbackReason {
+  return (
+    reason === 'missing' ||
+    reason === 'expired' ||
+    reason === 'invalid' ||
+    reason === 'state_missing' ||
+    reason === 'state_expired'
+  )
+}
+
+function getCaughtErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message || fallback
+  }
+
+  if (typeof error === 'string') {
+    return error
+  }
+
+  return fallback
+}
+
 function getOAuthErrorMessage(t: (key: string) => string, reason?: string, fallback?: string): string {
   switch (reason) {
     case 'state_expired':
+    case 'expired':
       return t('auth.oauth.stateExpired')
     case 'state_missing':
     case 'missing':
+    case 'invalid':
       return t('auth.oauth.stateMissing')
     case 'state_processing':
       return t('auth.oauth.callbackInProgress')
@@ -61,7 +102,10 @@ export default function GoogleCallbackPage() {
 
         const stateValidation = validateOAuthState(state)
         if (!stateValidation.ok) {
-          throw new Error(getOAuthErrorMessage(t, stateValidation.reason))
+          throw new ExpectedOAuthCallbackError(
+            getOAuthErrorMessage(t, stateValidation.reason),
+            stateValidation.reason
+          )
         }
 
         if (!beginOAuthCallbackProcessing(state)) {
@@ -90,6 +134,12 @@ export default function GoogleCallbackPage() {
           if (data.reason === 'state_expired' || data.reason === 'state_missing') {
             clearOAuthState(state)
           }
+          if (isExpectedOAuthCallbackReason(data.reason)) {
+            throw new ExpectedOAuthCallbackError(
+              getOAuthErrorMessage(t, data.reason, data.error),
+              data.reason
+            )
+          }
           throw new Error(getOAuthErrorMessage(t, data.reason, data.error))
         }
 
@@ -115,14 +165,22 @@ export default function GoogleCallbackPage() {
         setTimeout(() => {
           router.push(redirect)
         }, 500)
-      } catch (error: any) {
-        console.error('Google OAuth callback error:', error)
+      } catch (error: unknown) {
+        const message = getCaughtErrorMessage(error, t('auth.oauth.loginFailed'))
+        if (error instanceof ExpectedOAuthCallbackError) {
+          console.warn('Google OAuth callback warning:', {
+            reason: error.reason,
+            message,
+          })
+        } else {
+          console.error('Google OAuth callback error:', error)
+        }
         setStatus('error')
-        setErrorMessage(error.message || t('auth.oauth.loginFailed'))
+        setErrorMessage(message)
         toast({
           variant: 'destructive',
           title: t('auth.toast.googleLoginFailed'),
-          description: error.message || t('auth.toast.pleaseTryAgain'),
+          description: message || t('auth.toast.pleaseTryAgain'),
         })
 
         // Redirect to login page after delay

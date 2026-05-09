@@ -15,7 +15,6 @@ import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
 import type { User } from '@/lib/api/types'
 
 const USER_STORAGE_KEY = 'auth_user'
-const LEGACY_USER_STORAGE_KEY = 'user'
 type SignupCodeRequestResult = 'code_sent' | 'redirect_to_login'
 const OAUTH_SESSION_CLEANUP_TIMEOUT_MS = 2000
 
@@ -53,17 +52,7 @@ function readStoredUser(): User | null {
 
   const storedUser = parseStoredUser(localStorage.getItem(USER_STORAGE_KEY))
   if (storedUser) return storedUser
-
-  const legacyUser = parseStoredUser(localStorage.getItem(LEGACY_USER_STORAGE_KEY))
-  if (!legacyUser) {
-    return null
-  }
-
-  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(legacyUser))
-  localStorage.removeItem(LEGACY_USER_STORAGE_KEY)
-
-  console.info('[Auth] Migrated legacy user storage to auth_user')
-  return legacyUser
+  return null 
 }
 
 function persistUser(user: User | null): void {

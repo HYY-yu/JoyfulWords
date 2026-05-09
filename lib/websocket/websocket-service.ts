@@ -120,6 +120,20 @@ function logWebSocket(
   }
 }
 
+function getSocketErrorLogLevel(channel: SocketChannel, ws: WebSocket): "debug" | "warn" {
+  const socketIsClosing =
+    ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED
+
+  if (
+    socketIsClosing &&
+    (channel.hasOpenedOnce || channel.manuallyClosed || channel.reauthenticating)
+  ) {
+    return "debug"
+  }
+
+  return "warn"
+}
+
 function buildWebSocketUrl(token: string, articleId?: number): string {
   const url = new URL(API_BASE_URL)
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
@@ -342,11 +356,14 @@ class WebSocketService {
       }
 
       ws.onerror = (event) => {
-        logWebSocket("warn", "Socket error", {
+        logWebSocket(getSocketErrorLogLevel(channel, ws), "Socket error", {
           key: channel.key,
           articleId: channel.articleId ?? null,
           eventType: event.type,
           readyState: ws.readyState,
+          hasOpenedOnce: channel.hasOpenedOnce,
+          manuallyClosed: channel.manuallyClosed,
+          reauthenticating: channel.reauthenticating,
         })
       }
 
