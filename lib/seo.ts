@@ -6,7 +6,7 @@ import type { Locale } from "@/lib/i18n/shared"
 export const SITE_NAME = "JoyfulWords"
 export const SITE_URL = APP_URL.startsWith("http") ? APP_URL : "https://joyword.link"
 export const SITE_ORIGIN = new URL(SITE_URL)
-export const DEFAULT_OG_IMAGE = "/og/default.png"
+export const DEFAULT_OG_IMAGE = "/og/default.webp"
 
 interface BuildMetadataOptions {
   title: string

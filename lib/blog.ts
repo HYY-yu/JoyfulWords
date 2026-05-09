@@ -15,6 +15,7 @@ interface BlogFrontmatter {
   date: string
   summary: string
   locale: Locale
+  image?: string
 }
 
 interface RawBlogPost extends BlogFrontmatter {
@@ -39,6 +40,14 @@ export interface BlogSitemapEntry {
   locale: Locale
   date: string
   availableLocales: Locale[]
+}
+
+const TOPIC_OG_IMAGES: Record<string, string> = {
+  "ai-writing": "/og/topics/ai-writing.webp",
+  "seo-content": "/og/topics/seo-content.webp",
+  "content-workflow": "/og/topics/content-workflow.webp",
+  "ai-visuals": "/og/topics/ai-visuals.webp",
+  materials: "/og/topics/materials.webp",
 }
 
 function parseFrontmatter(markdown: string): {
@@ -77,7 +86,7 @@ function validateFrontmatter(
   fileName: string,
   localeFromFile: Locale,
 ): BlogFrontmatter {
-  const { title, date, summary, locale } = frontmatter
+  const { title, date, summary, locale, image } = frontmatter
 
   if (!title || !date || !summary) {
     throw new Error(`Missing required frontmatter fields in ${fileName}`)
@@ -99,7 +108,18 @@ function validateFrontmatter(
     date,
     summary,
     locale: localeFromFile,
+    image: normalizeBlogImage(image),
   }
+}
+
+function normalizeBlogImage(image: string | undefined): string | undefined {
+  if (!image) return undefined
+  if (image.startsWith("https://") || image.startsWith("http://")) return image
+  return image.startsWith("/") ? image : `/${image}`
+}
+
+function getTopicOgImage(topic: string): string | undefined {
+  return TOPIC_OG_IMAGES[topic]
 }
 
 const getRawBlogPosts = cache(async (): Promise<RawBlogPost[]> => {
@@ -229,6 +249,8 @@ export const getBlogList = cache(async (locale: Locale): Promise<BlogListItem[]>
 
       if (!selectedPost) return null
 
+      const image = selectedPost.image ?? getTopicOgImage(selectedPost.topic)
+
       return {
         slug,
         topic: selectedPost.topic,
@@ -238,6 +260,7 @@ export const getBlogList = cache(async (locale: Locale): Promise<BlogListItem[]>
         locale: selectedPost.locale,
         availableLocales: (Object.keys(locales) as Locale[]).sort(),
         isFallback: selectedPost.locale !== locale,
+        ...(image ? { image } : {}),
       }
     })
     .filter((post): post is BlogListItem => post !== null)
@@ -263,6 +286,8 @@ export const getBlogPostBySlug = cache(async (
 
   const html = await markdownToHTML(selectedPost.content)
 
+  const image = selectedPost.image ?? getTopicOgImage(selectedPost.topic)
+
   return {
     slug,
     topic: selectedPost.topic,
@@ -273,5 +298,6 @@ export const getBlogPostBySlug = cache(async (
     availableLocales: (Object.keys(locales) as Locale[]).sort(),
     isFallback: selectedPost.locale !== locale,
     html,
+    ...(image ? { image } : {}),
   }
 })

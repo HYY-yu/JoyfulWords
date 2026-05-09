@@ -1,9 +1,18 @@
 import type { MetadataRoute } from "next"
+import { headers } from "next/headers"
 import { getBlogSitemapEntries } from "@/lib/blog"
 import { buildLocalizedPath, getHreflang, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
 import { buildCanonicalUrl } from "@/lib/seo"
 
+export const dynamic = "force-dynamic"
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const requestHeaders = await headers()
+  const host = requestHeaders.get("host")?.toLowerCase().split(":")[0] ?? ""
+  if (host === "console.joyword.link") {
+    return []
+  }
+
   const now = new Date()
   const blogEntries = await getBlogSitemapEntries()
 

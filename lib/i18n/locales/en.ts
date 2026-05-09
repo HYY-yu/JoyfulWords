@@ -2063,8 +2063,8 @@ export const en = {
             },
             seoGeo: {
                 eyebrow: "Presentation Output",
-                title: "Auto PPT|PDF Generation",
-                desc: "Generate presentation-ready PPT and PDF files in one click for demos, reports, and delivery.",
+                title: "Auto PPT Generation",
+                desc: "Generate presentation-ready PPT files in one click for demos, reports, and delivery.",
             },
             knowledgeCards: {
                 eyebrow: "Content Extraction",

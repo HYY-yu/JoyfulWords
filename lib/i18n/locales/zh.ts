@@ -2063,8 +2063,8 @@ export const zh = {
             },
             seoGeo: {
                 eyebrow: "演示输出",
-                title: "自动 PPT|PDF 生成",
-                desc: "一键生成可演示的 PPT 和 PDF，方便汇报、展示和交付。",
+                title: "自动 PPT 生成",
+                desc: "一键生成可演示的 PPT，方便汇报、展示和交付。",
             },
             knowledgeCards: {
                 eyebrow: "内容提炼",

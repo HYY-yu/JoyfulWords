@@ -15,7 +15,6 @@ export const metadata: Metadata = {
     template: `%s`,
   },
   description: "AI content creation workspace for writing, visuals, material management, and SEO optimization.",
-  generator: "v0.app",
   applicationName: SITE_NAME,
   openGraph: {
     siteName: SITE_NAME,
@@ -73,6 +72,24 @@ export default async function RootLayout({
     url: APP_URL,
     email: "support@joyword.link",
   }
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    alternateName: ["JoyfulWords AI Writing Workspace", "JoyfulWords AI Content Workspace"],
+    url: APP_URL,
+    inLanguage: ["en-US", "zh-CN"],
+  }
+  const softwareApplicationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: SITE_NAME,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    url: APP_URL,
+    description:
+      "AI writing workspace for blog writing, SEO content creation, material management, AI visuals, and PPT generation.",
+  }
 
   return (
     <html lang={getHtmlLang(initialLocale)} className="h-full" suppressHydrationWarning>
@@ -87,6 +104,16 @@ export default async function RootLayout({
           id="joyfulwords-organization-schema"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <Script
+          id="joyfulwords-website-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <Script
+          id="joyfulwords-software-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareApplicationJsonLd) }}
         />
         <OpenTelemetryProvider />
         <I18nProvider initialLocale={initialLocale}>

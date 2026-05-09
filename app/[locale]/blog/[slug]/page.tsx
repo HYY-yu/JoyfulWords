@@ -66,7 +66,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       en: buildLocalizedPath("en", `/blog/${slug}`),
     },
     type: "article",
-    image: DEFAULT_OG_IMAGE,
+    image: post.image,
   })
 }
 
@@ -91,7 +91,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const blogUrl = buildCanonicalUrl(blogPath)
   const homeUrl = buildCanonicalUrl(homePath)
   const organizationUrl = buildCanonicalUrl("/")
-  const imageUrl = buildCanonicalUrl(DEFAULT_OG_IMAGE)
+  const imageUrl = buildCanonicalUrl(post.image ?? DEFAULT_OG_IMAGE)
+  const publisherLogoUrl = buildCanonicalUrl("/apple-icon.png")
   const dateIso = new Date(post.date).toISOString()
   const blogPostingJsonLd = {
     "@context": "https://schema.org",
@@ -117,7 +118,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       url: organizationUrl,
       logo: {
         "@type": "ImageObject",
-        url: imageUrl,
+        url: publisherLogoUrl,
       },
     },
   }

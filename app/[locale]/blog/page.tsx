@@ -1,13 +1,14 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import Script from "next/script"
 import { notFound } from "next/navigation"
 import { ArrowLeft, Compass, Sparkles } from "lucide-react"
 import { BlogLanguageToggle } from "@/components/blog/blog-language-toggle"
 import { getBlogList } from "@/lib/blog"
 import { getBlogTopics } from "@/lib/blog-topics"
 import { getServerDictionary } from "@/lib/i18n/server"
-import { buildLocalizedPath, isLocale, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
-import { buildMetadata } from "@/lib/seo"
+import { buildLocalizedPath, getHtmlLang, isLocale, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
+import { buildCanonicalUrl, buildMetadata, SITE_NAME } from "@/lib/seo"
 
 interface LocalePageProps {
   params: Promise<{
@@ -69,6 +70,33 @@ export default async function BlogPage({ params }: LocalePageProps) {
   const posts = await getBlogList(locale)
   const topicSections = await getBlogTopics(locale, posts)
   const starterPosts = posts.slice(0, 3)
+  const blogUrl = buildCanonicalUrl(buildLocalizedPath(locale, "/blog"))
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: locale === "zh" ? "JoyfulWords 博客文章" : "JoyfulWords Blog Articles",
+    description: dict.blog.list.subtitle,
+    url: blogUrl,
+    inLanguage: getHtmlLang(locale),
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: buildCanonicalUrl("/"),
+    },
+    itemListElement: posts.map((post, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      item: {
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: post.summary,
+        url: buildCanonicalUrl(buildLocalizedPath(locale, `/blog/${post.slug}`)),
+        datePublished: new Date(post.date).toISOString(),
+        inLanguage: getHtmlLang(post.locale),
+        image: post.image ? buildCanonicalUrl(post.image) : undefined,
+      },
+    })),
+  }
   const intro =
     locale === "zh"
       ? {
@@ -95,6 +123,11 @@ export default async function BlogPage({ params }: LocalePageProps) {
       id="top"
       className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.95))]"
     >
+      <Script
+        id={`blog-itemlist-jsonld-${locale}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
       <div className="mx-auto flex max-w-5xl flex-col gap-10 px-6 py-8 md:px-10 md:py-12">
         <header className="flex flex-col gap-6 rounded-[2rem] border border-border/70 bg-background/90 p-8 shadow-[0_16px_80px_rgba(15,23,42,0.06)] backdrop-blur">
           <div className="flex flex-wrap items-center justify-between gap-4">
