@@ -12,6 +12,7 @@ import {
   PencilIcon,
   LayersIcon,
   Presentation,
+  BarChart3Icon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -98,6 +99,8 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         return <LayersIcon className="h-4 w-4 shrink-0" />
       case "presentation":
         return <Presentation className="h-4 w-4 shrink-0" />
+      case "echarts":
+        return <BarChart3Icon className="h-4 w-4 shrink-0" />
       case "article":
         return <PencilIcon className="h-4 w-4 shrink-0" />
       default:

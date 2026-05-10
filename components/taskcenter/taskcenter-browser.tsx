@@ -37,7 +37,7 @@ import {
   getTaskCenterTaskTitle,
 } from "./taskcenter-presenters"
 
-const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = ["article", "image", "infographic", "presentation"]
+const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = ["article", "image", "infographic", "presentation", "echarts"]
 
 interface TaskCenterBrowserProps {
   articleId?: number
@@ -239,7 +239,7 @@ export function TaskCenterBrowser({
 
   const handleDeleteTask = useCallback(
     async (task: TaskCenterTaskListItem) => {
-      if (task.status === "success") {
+      if (task.status === "success" || task.status === "succeeded") {
         const confirmed = window.confirm(t("contentWriting.taskCenter.deleteSuccessConfirm"))
         if (!confirmed) {
           return
@@ -389,7 +389,7 @@ export function TaskCenterBrowser({
                 tasks.map((task) => {
                   const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
                   const removable =
-                    (task.status === "success" || task.status === "failed") &&
+                    (task.status === "success" || task.status === "succeeded" || task.status === "failed") &&
                     !deletingTaskKeys.has(taskKey)
 
                   return (

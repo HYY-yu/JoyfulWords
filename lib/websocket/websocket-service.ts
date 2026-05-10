@@ -706,12 +706,14 @@ class WebSocketService {
         image: "图片任务",
         infographic: "信息图任务",
         presentation: "演示任务",
+        echarts: "图表任务",
       },
       en: {
         article: "article job",
         image: "image job",
         infographic: "infographic job",
         presentation: "presentation job",
+        echarts: "chart job",
       },
     } as const
 

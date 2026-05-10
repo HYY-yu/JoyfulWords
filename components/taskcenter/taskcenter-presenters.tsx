@@ -5,11 +5,13 @@
 import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
 import { PresentationTaskDetail } from "@/components/taskcenter/presentation-task-detail"
+import { EChartsTaskDetail } from "@/components/taskcenter/echarts-task-detail"
 import { getImageTaskErrorMessageKey } from "@/lib/api/taskcenter/image-error-messages"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
   TaskCenterPresentationSlideSummary,
   TaskCenterPresentationTaskDetail,
+  TaskCenterEChartsTaskDetail,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
@@ -28,6 +30,7 @@ import {
   LayersIcon,
   LayoutTemplateIcon,
   Presentation,
+  BarChart3Icon,
 } from "lucide-react"
 
 const STATUS_VARIANTS: Record<
@@ -37,6 +40,7 @@ const STATUS_VARIANTS: Record<
   pending: "outline",
   processing: "secondary",
   success: "default",
+  succeeded: "default",
   failed: "destructive",
 }
 
@@ -59,6 +63,8 @@ export function getTaskCenterTypeIcon(type: TaskCenterTaskType) {
       return LayoutTemplateIcon
     case "presentation":
       return Presentation
+    case "echarts":
+      return BarChart3Icon
     default:
       return FileTextIcon
   }
@@ -83,6 +89,7 @@ export function getTaskCenterTaskTitle(
   }
 
   if (task.type === "infographic") return "infographic"
+  if (task.type === "echarts") return "echarts"
   if (task.type === "presentation") {
     const taskKind = task.details.task_kind
     if (taskKind === "storycard_generate") return "presentationStorycard"
@@ -167,6 +174,10 @@ export function getTaskCenterTaskSummary(
     ].filter(Boolean)
 
     return summaryParts.join(" / ") || task.details.model_name || "-"
+  }
+
+  if (task.type === "echarts") {
+    return task.details.title || task.details.prompt || task.details.chart_type || "-"
   }
 
   return task.details.card_name || task.details.card_type || "-"
@@ -431,6 +442,8 @@ export function TaskCenterTaskDetailView({
         <PresentationTaskDetail
           detail={detail as TaskCenterPresentationTaskDetail}
         />
+      ) : taskRef.type === "echarts" ? (
+        <EChartsTaskDetail detail={detail as TaskCenterEChartsTaskDetail} />
       ) : null}
 
       {imageUrls.length > 0 ? (

@@ -1,6 +1,6 @@
 "use client"
 
-export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "presentation"] as const
+export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "presentation", "echarts"] as const
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
 
@@ -9,12 +9,14 @@ export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "fa
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
 export type TaskCenterPresentationStatus = "pending" | "processing" | "success" | "failed"
+export type TaskCenterEChartsStatus = "pending" | "processing" | "success" | "failed" | "succeeded"
 
 export type TaskCenterTaskStatus =
   | TaskCenterArticleStatus
   | TaskCenterImageStatus
   | TaskCenterInfographicStatus
   | TaskCenterPresentationStatus
+  | TaskCenterEChartsStatus
 
 export interface TaskCenterArticleListDetails {
   article_id: number
@@ -79,11 +81,24 @@ export interface TaskCenterPresentationListDetails {
   error?: string
 }
 
+export interface TaskCenterEChartsListDetails {
+  article_id?: number
+  prompt?: string
+  chart_type?: string
+  title?: string
+  schema_version?: string
+  error?: string
+  error_code?: string
+  error_message?: string
+  completed_at?: string | null
+}
+
 export type TaskCenterTaskListDetails =
   | TaskCenterArticleListDetails
   | TaskCenterImageListDetails
   | TaskCenterInfographicListDetails
   | TaskCenterPresentationListDetails
+  | TaskCenterEChartsListDetails
 
 interface TaskCenterTaskListItemBase<TType extends TaskCenterTaskType, TDetails> {
   id: number
@@ -113,11 +128,17 @@ export type TaskCenterPresentationTaskListItem = TaskCenterTaskListItemBase<
   TaskCenterPresentationListDetails
 >
 
+export type TaskCenterEChartsTaskListItem = TaskCenterTaskListItemBase<
+  "echarts",
+  TaskCenterEChartsListDetails
+>
+
 export type TaskCenterTaskListItem =
   | TaskCenterArticleTaskListItem
   | TaskCenterImageTaskListItem
   | TaskCenterInfographicTaskListItem
   | TaskCenterPresentationTaskListItem
+  | TaskCenterEChartsTaskListItem
 
 export interface TaskCenterTasksQuery {
   type?: TaskCenterTaskType
@@ -222,11 +243,31 @@ export interface TaskCenterPresentationTaskDetail {
   completed_at?: string | null
 }
 
+export interface TaskCenterEChartsTaskDetail {
+  id: number
+  user_id?: number
+  article_id?: number
+  prompt: string
+  schema_version?: string
+  chart_type?: string
+  title?: string
+  status: TaskCenterEChartsStatus
+  spec?: unknown
+  error_code?: string
+  error_message?: string
+  error?: string
+  version: number
+  created_at: string
+  updated_at: string
+  completed_at?: string | null
+}
+
 export type TaskCenterTaskDetailResponse =
   | TaskCenterArticleTaskDetail
   | TaskCenterImageTaskDetail
   | TaskCenterInfographicTaskDetail
   | TaskCenterPresentationTaskDetail
+  | TaskCenterEChartsTaskDetail
 
 export interface TaskCenterTaskReference {
   id: number
@@ -312,5 +353,5 @@ export function getTaskCenterTaskArticleId(task: TaskCenterTaskListItem): number
 }
 
 export function isTaskCenterTerminalStatus(status: TaskCenterTaskStatus): boolean {
-  return status === "success" || status === "failed"
+  return status === "success" || status === "succeeded" || status === "failed"
 }

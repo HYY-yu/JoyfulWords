@@ -38,6 +38,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 import {
   BrainCircuitIcon,
+  BarChart3Icon,
   ChartNoAxesCombinedIcon,
   GalleryHorizontalEndIcon,
   ImagePlusIcon,
@@ -51,6 +52,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
 import { PresentationDialog } from "./presentation-dialog"
+import { EChartsDialog } from "./echarts-dialog"
 
 type ActiveDialog =
   | "ai-edit"
@@ -59,6 +61,7 @@ type ActiveDialog =
   | "reversal-mode"
   | "image-style"
   | "infographic"
+  | "echarts"
   | "presentation"
   | null
 
@@ -138,6 +141,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     groupKey: "structure",
   },
   {
+    id: "echarts",
+    labelKey: "tiptapEditor.aiPanel.aiCharts",
+    icon: BarChart3Icon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "structure",
+  },
+  {
     id: "presentation",
     labelKey: "tiptapEditor.aiPanel.generatePpt",
     icon: PresentationIcon,
@@ -182,7 +193,7 @@ function mapTaskCenterTaskToProgressItem(
   removable = true
 ): TaskItem {
   const status =
-    task.status === "success"
+    task.status === "success" || task.status === "succeeded"
       ? "completed"
       : task.status === "failed"
       ? "failed"
@@ -195,7 +206,7 @@ function mapTaskCenterTaskToProgressItem(
     label: t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`),
     description: getTaskCenterTaskSummary(task, t),
     startedAt: new Date(task.created_at).getTime(),
-    removable: removable && (task.status === "success" || task.status === "failed"),
+    removable: removable && (task.status === "success" || task.status === "succeeded" || task.status === "failed"),
     taskCenterData: task,
     originalType: task.type,
   }
@@ -220,8 +231,10 @@ export function EditorAIPanel({
   const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
   const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
   const [isInfographicOpen, setIsInfographicOpen] = useState(false)
+  const [isEChartsOpen, setIsEChartsOpen] = useState(false)
   const [isPresentationOpen, setIsPresentationOpen] = useState(false)
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
+  const [selectedEChartsText, setSelectedEChartsText] = useState("")
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
 
   const { tasks: liveTasks, refetch, setTasks: setLiveTasks } = useTaskCenterLiveTasks({
@@ -501,6 +514,9 @@ export function EditorAIPanel({
 
       setSelectedInfographicText(selectedText)
       setIsInfographicOpen(true)
+    } else if (id === "echarts") {
+      setSelectedEChartsText(getSelectedEditorText().trim())
+      setIsEChartsOpen(true)
     } else if (id === "presentation") {
       setIsPresentationOpen(true)
     }
@@ -753,6 +769,20 @@ export function EditorAIPanel({
         onOpenChange={setIsInfographicOpen}
         articleId={articleId}
         selectedText={selectedInfographicText}
+      />
+
+      <EChartsDialog
+        open={isEChartsOpen}
+        onOpenChange={setIsEChartsOpen}
+        articleId={articleId}
+        selectedText={selectedEChartsText}
+        onTasksSubmitted={(taskRefs) => {
+          void refetch({ silent: true })
+          console.info("[EditorAIPanel] Submitted echarts tasks", {
+            taskCount: taskRefs.length,
+            articleId,
+          })
+        }}
       />
 
       <PresentationDialog
