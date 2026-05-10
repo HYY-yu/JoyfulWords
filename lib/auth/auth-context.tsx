@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { apiClient } from '@/lib/api/client'
-import { setupTokenRefresh } from '@/lib/tokens/refresh'
+import { refreshAccessSession, setupTokenRefresh } from '@/lib/tokens/refresh'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { isSignupEmailAlreadyRegisteredError } from '@/lib/auth/auth-error-resolver'
 import { saveOAuthState } from '@/lib/auth/oauth-state'
@@ -139,26 +139,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasAccessToken,
       })
 
-      const result = await apiClient.refreshToken()
+      const result = await refreshAccessSession('auth_bootstrap_restore')
 
       if (isCancelled) {
         return
       }
 
-      if ('error' in result) {
+      if (!result) {
         console.warn('[Auth] Session restore failed', {
           pathname: currentPathname,
-          status: result.status,
-          error: result.error,
         })
 
-        tokenStore.clear('auth_bootstrap_restore_failed')
         setUser(null)
         setLoading(false)
         return
       }
 
-      tokenStore.setAccessToken(result, 'auth_bootstrap_restore')
       setAuthenticatedUser(result.user)
       setLoading(false)
 
@@ -222,26 +218,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signInWithGoogle = async (redirectUrl?: string) => {
+    const hasLocalSession = Boolean(user || tokenStore.getAccessToken())
+
+    if (hasLocalSession) {
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => {
+        controller.abort()
+      }, OAUTH_SESSION_CLEANUP_TIMEOUT_MS)
+
+      try {
+        await apiClient.logout({
+          signal: controller.signal,
+          skipAuthRefresh: true,
+        })
+      } catch (error) {
+        console.warn('[Auth] Ignoring stale session cleanup failure before Google login', {
+          error,
+        })
+      } finally {
+        window.clearTimeout(timeoutId)
+      }
+    }
+
     tokenStore.clear('google_login_start')
     setAuthenticatedUser(null)
-
-    const controller = new AbortController()
-    const timeoutId = window.setTimeout(() => {
-      controller.abort()
-    }, OAUTH_SESSION_CLEANUP_TIMEOUT_MS)
-
-    try {
-      await apiClient.logout({
-        signal: controller.signal,
-        skipAuthRefresh: true,
-      })
-    } catch (error) {
-      console.warn('[Auth] Ignoring stale session cleanup failure before Google login', {
-        error,
-      })
-    } finally {
-      window.clearTimeout(timeoutId)
-    }
 
     const result = await apiClient.googleLogin(redirectUrl)
 

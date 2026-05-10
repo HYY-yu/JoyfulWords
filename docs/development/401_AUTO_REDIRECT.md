@@ -2,13 +2,27 @@
 
 ## 功能概述
 
-当 **已认证请求** 的 access token 过期时，系统会自动尝试刷新 token。如果刷新成功，会自动重试原请求；如果刷新失败，会自动跳转到登录页。
+当 **已认证请求** 缺少 access token 或 access token 过期时，系统会先尝试用 HttpOnly `refresh_token` Cookie 刷新 token，再发送业务请求。若业务请求仍返回 401，会再次按策略尝试刷新并重试；刷新失败则跳转到登录页。
 
 这个机制不应该影响登录、注册、重置密码等公开 auth 接口。
 
 ## 实现细节
 
-### 1. `apiRequest` 函数增强 (lib/api/client.ts:74-139)
+### 1. `authenticatedApiRequest` 前置恢复
+
+`authenticatedApiRequest` 不再只同步读取 `tokenStore`。发起业务请求前会先检查：
+
+1. 本地是否有 `access_token`
+2. `access_token` 是否已经接近过期
+3. 如缺失或过期，先调用 `refreshAccessToken()`
+
+刷新成功后，原业务请求再带 `Authorization: Bearer <token>` 发出。刷新失败时，不会继续发送无凭证的业务请求。
+
+所有 `authenticatedApiRequest` 发出的业务请求都显式设置 `credentials: "include"`，保证 `joyword.link` 与 `api.joyword.link` 这类跨子域请求的 Cookie 策略一致。
+
+`getValidAccessToken()` 也复用同一条 refresh-cookie 恢复链路，避免支付等旧调用点在 cookie-only session 下提前误判未登录。
+
+### 2. `apiRequest` 401 兜底处理
 
 添加了第三个参数 `skipAuthRefresh`：
 
@@ -33,7 +47,7 @@ export async function apiRequest<T>(
 4. **如果禁止刷新** (`skipAuthRefresh = true`)：
    - 直接返回错误，不做任何处理
 
-### 2. 避免无限循环 (lib/api/client.ts:183-195)
+### 3. 避免无限循环
 
 在 `apiClient.refreshToken` 方法中：
 
@@ -58,13 +72,12 @@ async refreshToken() {
 ### 普通 API 调用（自动处理 401）
 
 ```typescript
-// 只有 authenticatedApiRequest / 带 Authorization 的请求
-// 才会进入自动 refresh 流程
+// authenticatedApiRequest 会先确保 access token 可用
 const result = await authenticatedApiRequest('/api/user/profile')
 
-// 如果 token 过期：
-// 1. 自动刷新 token
-// 2. 自动重试请求
+// 如果 token 缺失或过期：
+// 1. 先用 refresh cookie 刷新 token
+// 2. 带 Authorization 发送业务请求
 // 3. 返回正确结果
 ```
 
@@ -97,13 +110,13 @@ await apiRequest('/auth/token/refresh', options, true)
 
 ```
 ┌─────────────────┐
-│  API 调用       │
-│  (401 错误)     │
+│ authenticated   │
+│ API 调用        │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│ skipAuthRefresh?│
+│ token 可用?     │
 └────────┬────────┘
          │
     ┌────┴────┐
@@ -112,8 +125,8 @@ await apiRequest('/auth/token/refresh', options, true)
     │         │
     ▼         ▼
 ┌─────────┐  ┌──────────┐
-│ 尝试    │  │ 直接返回 │
-│ 刷新    │  │ 错误     │
+│ 尝试    │  │ 直接发送 │
+│ 刷新    │  │ 请求     │
 │ token   │  └──────────┘
 └────┬────┘
      │
@@ -129,7 +142,7 @@ await apiRequest('/auth/token/refresh', options, true)
   │     │
   ▼     ▼
 ┌─────┐ ┌──────┐
-│ 重试 │ │ 跳转 │
+│ 发送 │ │ 跳转 │
 │ 请求 │ │ 登录 │
 └─────┘ └──────┘
 ```
@@ -139,17 +152,17 @@ await apiRequest('/auth/token/refresh', options, true)
 ### 场景 1：Access token 过期，Refresh token 有效
 
 1. 用户登录后，access token 过期
-2. 发起 API 请求 → 收到 401
-3. 自动刷新 token → 成功
-4. 用新 token 重试请求 → 成功返回数据
+2. 发起 `authenticatedApiRequest`
+3. 前置刷新 token → 成功
+4. 用新 token 发送请求 → 成功返回数据
 5. ✅ 用户无感知，继续正常使用
 
 ### 场景 2：Refresh token 也过期
 
 1. 用户长期未登录，refresh token 过期
-2. 发起 API 请求 → 收到 401
-3. 尝试刷新 token → 失败
-4. 自动跳转到 `/auth/login?reason=token_expired`
+2. 发起 `authenticatedApiRequest`
+3. 前置刷新 token → 失败
+4. 不发送无凭证业务请求，自动跳转到 `/auth/login?reason=token_expired`
 5. ✅ 用户被引导到登录页重新登录
 
 ### 场景 3：登录失败不触发 refresh
@@ -180,4 +193,4 @@ await apiRequest('/auth/token/refresh', options, true)
 2. **不会影响服务端准入**：`proxy.ts` 仍然只认 `refresh_token` Cookie
 3. **并发请求处理**：`refreshAccessToken` 使用 Promise 锁，多个并发请求只会触发一次刷新
 4. **公开 auth 接口不能接入此流程**：否则会误伤登录、注册、重置密码
-5. **启动期会话恢复是另一条链路**：详见 `AUTH_SESSION_BOOTSTRAP.md`
+5. **启动期会话恢复仍然存在**：`AuthProvider` 负责恢复 `user` 状态；`authenticatedApiRequest` 负责防止业务请求在恢复完成前裸奔

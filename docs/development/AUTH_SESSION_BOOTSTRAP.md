@@ -19,6 +19,7 @@
 2. **客户端运行态**
    - `tokenStore` 持有 `access_token`
    - `AuthProvider` 持有当前 `user`
+   - `authenticatedApiRequest` 在业务请求前确保 `access_token` 可用
 
 只要两层不一致，就可能出现“服务端放行了，但客户端把用户踢回登录页”的问题。
 
@@ -64,12 +65,26 @@
 
 因此，受保护页面的首次启动必须允许一次“用 refresh cookie 换回运行态”的恢复动作。
 
+## 业务请求保护
+
+页面组件的 effect 可能早于 `AuthProvider` 完成启动恢复。为了避免业务接口在这个窗口内裸发请求，`authenticatedApiRequest` 也承担一层保护：
+
+1. 业务请求前先检查本地 `access_token`
+2. 缺失或过期时，先调用 `/auth/token/refresh`
+3. 刷新成功后，带 `Authorization` 发送原请求
+4. 刷新失败时，不继续发送原业务请求，并跳转登录
+
+这条链路解决的是“页面已经被 `proxy.ts` 放行，但客户端运行态尚未恢复”的竞态。
+
+旧的显式 token helper `getValidAccessToken()` 也必须走同一套 refresh-cookie 恢复逻辑。支付等历史调用点不能只检查本地 `access_token`，否则会绕过 `authenticatedApiRequest` 的保护。
+
 ## 维护要求
 
 - 不要让 `proxy.ts` 和 `AuthProvider` 使用不同的公开路由判定规则
 - 新增 auth 页面或公开页面时，同时更新 `lib/auth/session-policy.ts`
 - 如果后端修改 `/auth/token/refresh` 返回体，必须同步检查：
   - `lib/auth/auth-context.tsx`
+  - `lib/api/client.ts`
   - `lib/tokens/refresh.ts`
   - `docs/api/AUTH_API.md`
 

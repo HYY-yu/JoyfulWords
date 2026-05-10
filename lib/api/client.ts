@@ -70,6 +70,31 @@ function withAuthorizationHeader(headers: HeadersInit | undefined, token: string
   return mergedHeaders
 }
 
+async function getAccessTokenForAuthenticatedRequest(endpoint: string): Promise<string | null> {
+  let accessToken = tokenStore.getAccessToken()
+  const tokenExpired = accessToken ? tokenStore.isTokenExpired() : true
+
+  if (accessToken && !tokenExpired) {
+    return accessToken
+  }
+
+  console.info('[API] Refreshing access token before authenticated request', {
+    endpoint,
+    hasAccessToken: Boolean(accessToken),
+    tokenExpired,
+  })
+  // TODO(observability): add a metric for proactive auth refresh attempts and failures.
+
+  const { refreshAccessToken } = await import('@/lib/tokens/refresh')
+  const refreshed = await refreshAccessToken()
+  if (!refreshed) {
+    return null
+  }
+
+  accessToken = tokenStore.getAccessToken()
+  return accessToken
+}
+
 /**
  * Make API request with error handling
  * @param endpoint - API endpoint path
@@ -197,12 +222,25 @@ export async function authenticatedApiRequest<T>(
   options: RequestInit = {},
   skipAuthRefresh = false
 ): Promise<T> {
-  const accessToken = tokenStore.getAccessToken()
+  const accessToken = await getAccessTokenForAuthenticatedRequest(endpoint)
+
+  if (!accessToken) {
+    console.warn('[API] Authenticated request blocked because access token is unavailable', {
+      endpoint,
+    })
+
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login?reason=token_expired'
+    }
+
+    return { error: 'Session expired', status: 401 } as T
+  }
 
   return apiRequest<T>(
     endpoint,
     {
       ...options,
+      credentials: 'include',
       headers: withAuthorizationHeader(options.headers, accessToken),
     },
     skipAuthRefresh

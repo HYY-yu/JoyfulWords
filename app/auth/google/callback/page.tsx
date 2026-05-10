@@ -11,6 +11,7 @@ import { useTranslation } from '@/lib/i18n/i18n-context'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { useAuth } from '@/lib/auth/auth-context'
 import { API_BASE_URL } from '@/lib/config'
+import type { User } from '@/lib/api/types'
 import {
   beginOAuthCallbackProcessing,
   clearOAuthCallbackProcessing,
@@ -45,6 +46,40 @@ function isExpectedOAuthCallbackReason(reason: unknown): reason is ExpectedOAuth
   )
 }
 
+type OAuthCallbackResponse = {
+  access_token: string
+  expires_in: number
+  user: User
+  error?: unknown
+  error_description?: unknown
+  message?: unknown
+  reason?: unknown
+}
+
+function stringifyLogValue(value: unknown): string | undefined {
+  if (value == null) {
+    return undefined
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value)
+  }
+
+  if (value instanceof Error) {
+    return value.stack || `${value.name}: ${value.message}`
+  }
+
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return Object.prototype.toString.call(value)
+  }
+}
+
 function getCaughtErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     return error.message || fallback
@@ -55,6 +90,11 @@ function getCaughtErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback
+}
+
+function getOAuthCallbackResponseMessage(data: OAuthCallbackResponse, fallback: string): string {
+  const directMessage = data.error ?? data.error_description ?? data.message
+  return stringifyLogValue(directMessage) || fallback
 }
 
 function getOAuthErrorMessage(t: (key: string) => string, reason?: string, fallback?: string): string {
@@ -124,23 +164,24 @@ export default function GoogleCallbackPage() {
           },
         })
 
-        const data = await response.json()
+        const data = (await response.json()) as OAuthCallbackResponse
+        const reason = typeof data.reason === 'string' ? data.reason : undefined
 
         if (!response.ok || data.error) {
-          console.warn('[GoogleOAuth] Backend callback rejected', {
-            status: response.status,
-            reason: data.reason,
-          })
-          if (data.reason === 'state_expired' || data.reason === 'state_missing') {
+          const backendMessage = getOAuthCallbackResponseMessage(data, t('auth.oauth.loginFailed'))
+          console.warn(
+            `[GoogleOAuth] Backend callback rejected status=${response.status} reason=${reason ?? 'unknown'} message=${backendMessage}`
+          )
+          if (reason === 'state_expired' || reason === 'state_missing') {
             clearOAuthState(state)
           }
-          if (isExpectedOAuthCallbackReason(data.reason)) {
+          if (isExpectedOAuthCallbackReason(reason)) {
             throw new ExpectedOAuthCallbackError(
-              getOAuthErrorMessage(t, data.reason, data.error),
-              data.reason
+              getOAuthErrorMessage(t, reason, backendMessage),
+              reason
             )
           }
-          throw new Error(getOAuthErrorMessage(t, data.reason, data.error))
+          throw new Error(getOAuthErrorMessage(t, reason, backendMessage))
         }
 
         // Store tokens
@@ -168,10 +209,7 @@ export default function GoogleCallbackPage() {
       } catch (error: unknown) {
         const message = getCaughtErrorMessage(error, t('auth.oauth.loginFailed'))
         if (error instanceof ExpectedOAuthCallbackError) {
-          console.warn('Google OAuth callback warning:', {
-            reason: error.reason,
-            message,
-          })
+          console.warn(`[GoogleOAuth] Callback expected warning reason=${error.reason} message=${message}`)
         } else {
           console.error('Google OAuth callback error:', error)
         }
