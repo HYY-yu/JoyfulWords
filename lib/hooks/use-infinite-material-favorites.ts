@@ -5,6 +5,8 @@ import { materialsClient } from "@/lib/api/materials/client"
 import type { MaterialFavorite } from "@/lib/api/materials/types"
 import { useInfiniteScroll } from "./use-infinite-scroll"
 
+const getMaterialFavoriteKey = (favorite: MaterialFavorite) => favorite.id
+
 export interface UseInfiniteMaterialFavoritesOptions {
   pageSize?: number
   enabled?: boolean
@@ -36,6 +38,7 @@ export function useInfiniteMaterialFavorites(options: UseInfiniteMaterialFavorit
     fetchFn: fetchFavorites,
     pageSize,
     enabled,
+    getItemKey: getMaterialFavoriteKey,
   })
 
   return {

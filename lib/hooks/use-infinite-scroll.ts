@@ -32,6 +32,11 @@ export interface UseInfiniteScrollOptions<T> {
    * 是否启用无限滚动，默认 true
    */
   enabled?: boolean
+
+  /**
+   * 列表项唯一键。提供后，追加新页时会跳过已经存在的项。
+   */
+  getItemKey?: (item: T) => string | number
 }
 
 export interface UseInfiniteScrollReturn<T> {
@@ -116,6 +121,7 @@ export function useInfiniteScroll<T>({
   pageSize = 20,
   debounceMs = 300,
   enabled = true,
+  getItemKey,
 }: UseInfiniteScrollOptions<T>): UseInfiniteScrollReturn<T> {
   // ==================== 状态管理 ====================
 
@@ -133,6 +139,7 @@ export function useInfiniteScroll<T>({
   const isLoadingRef = useRef(false)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const hasInitializedRef = useRef(false)
+  const requestVersionRef = useRef(0)
 
   // ==================== 计算属性 ====================
 
@@ -151,6 +158,7 @@ export function useInfiniteScroll<T>({
     }
 
     // 标记加载中
+    const requestVersion = requestVersionRef.current
     isLoadingRef.current = true
     setIsLoading(true)
     setIsError(false)
@@ -158,28 +166,55 @@ export function useInfiniteScroll<T>({
 
     try {
       const result = await fetchFn(page, pageSize)
+      if (requestVersion !== requestVersionRef.current) {
+        return
+      }
 
       if ("error" in result) {
         setIsError(true)
         setError(result.error)
       } else {
-        setItems((prev) => [...prev, ...result.list])
+        setItems((prev) => {
+          if (!getItemKey) {
+            return [...prev, ...result.list]
+          }
+
+          const existingKeys = new Set(prev.map(getItemKey))
+          const uniqueItems = result.list.filter((item) => {
+            const key = getItemKey(item)
+            if (existingKeys.has(key)) {
+              return false
+            }
+
+            existingKeys.add(key)
+            return true
+          })
+
+          return [...prev, ...uniqueItems]
+        })
         setTotal(result.total)
         setPage((prev) => prev + 1)
       }
     } catch (err) {
+      if (requestVersion !== requestVersionRef.current) {
+        return
+      }
+
       const errorMessage = err instanceof Error ? err.message : "加载失败"
       setIsError(true)
       setError(errorMessage)
     } finally {
-      isLoadingRef.current = false
-      setIsLoading(false)
+      if (requestVersion === requestVersionRef.current) {
+        isLoadingRef.current = false
+        setIsLoading(false)
+      }
     }
-  }, [fetchFn, page, pageSize, hasMore, enabled])
+  }, [fetchFn, page, pageSize, hasMore, enabled, getItemKey])
 
   // ==================== 重置功能 ====================
 
   const reset = useCallback(() => {
+    requestVersionRef.current += 1
     setItems([])
     setPage(1)
     setIsLoading(false)

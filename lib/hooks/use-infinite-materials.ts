@@ -3,6 +3,8 @@ import { useInfiniteScroll } from "./use-infinite-scroll"
 import { materialsClient } from "@/lib/api/materials/client"
 import type { Material, MaterialType } from "@/lib/api/materials/types"
 
+const getMaterialKey = (material: Material) => material.id
+
 /**
  * 素材无限滚动 Hook 的配置选项
  */
@@ -102,6 +104,7 @@ export function useInfiniteMaterials(options: UseInfiniteMaterialsOptions = {}) 
     fetchFn: fetchMaterials,
     pageSize,
     enabled,
+    getItemKey: getMaterialKey,
   })
   const { reset } = infiniteScroll
 

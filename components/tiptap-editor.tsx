@@ -28,9 +28,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context";
 import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 import { clipboardTableTextToHTML, markdownToHTML } from "@/lib/tiptap-utils";
 import { TableWithControls } from "@/lib/tiptap-table-node-view";
-import { JoyChart } from "@/lib/tiptap-chart-extension";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
-import type { JoyChartDisplay, JoyChartReferenceContext, JoyChartSpec } from "@/lib/api/echarts/types";
 import {
   getImageFileFromClipboardData,
   getImageFileFromDataTransfer,
@@ -42,30 +40,22 @@ import type {
 } from "@/lib/api/taskcenter/types";
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks";
 
-const NON_TEXT_EDITOR_CONTENT_PATTERN = /<(img|video|table|hr|ul|ol|blockquote|pre)\b|data-type=["']joy-chart["']/i;
+const NON_TEXT_EDITOR_CONTENT_PATTERN = /<(img|video|table|hr|ul|ol|blockquote|pre)\b/i;
 
-type JoyChartEditorNodeAttrs = {
-  localId?: string;
-  logId?: number | null;
-  version?: number | null;
-  status?: "loading" | "ready" | "failed";
-  sourceMode?: "selection" | "article";
-  chartType?: string;
-  title?: string;
-  spec?: JoyChartSpec | null;
-  display?: JoyChartDisplay | null;
-  errorMessage?: string | null;
+type EditorImageReferenceContext = {
+  anchor_text?: string;
+  placement_hint?: "before" | "after" | string;
 }
 
 declare global {
   interface Window {
-    joyfulWordsCharts?: {
-      insertChart: (attrs: JoyChartEditorNodeAttrs) => string | null;
-      updateChart: (localId: string, attrs: Partial<JoyChartEditorNodeAttrs>) => boolean;
-      insertChartAtReference: (
-        attrs: JoyChartEditorNodeAttrs,
-        referenceContext?: JoyChartReferenceContext | null
-      ) => { localId: string | null; anchorFound: boolean };
+    joyfulWordsEditorImages?: {
+      insertImage: (imageUrl: string, altText?: string) => boolean;
+      insertImageAtReference: (
+        imageUrl: string,
+        altText?: string,
+        referenceContext?: EditorImageReferenceContext | null
+      ) => { inserted: boolean; anchorFound: boolean };
     }
   }
 }
@@ -229,7 +219,6 @@ export function TiptapEditor({
     TaskItem.configure({
       nested: true,
     }),
-    JoyChart,
     CustomHighlight,  // Text highlighting with colors
     CustomTextAlign,  // Text alignment (left, center, right, justify)
     Markdown,         // Markdown extension for export functionality
@@ -499,76 +488,16 @@ export function TiptapEditor({
     return { from, to };
   }, [editor]);
 
-  const insertJoyChartNode = useCallback((attrs: JoyChartEditorNodeAttrs, insertPos?: number) => {
-    if (!editor) return null;
-
-    const localId =
-      attrs.localId ||
-      `joy-chart-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    const nodeAttrs: JoyChartEditorNodeAttrs = {
-      status: "ready",
-      sourceMode: "selection",
-      ...attrs,
-      localId,
-    };
-    const chartNode = {
-      type: "joyChart",
-      attrs: nodeAttrs,
-    };
-
-    const command = editor.chain().focus();
-    const inserted =
-      typeof insertPos === "number"
-        ? command.insertContentAt(insertPos, chartNode).run()
-        : command.insertContent(chartNode).run();
-
-    if (!inserted) {
-      console.warn("[TiptapEditor] Failed to insert joyChart node", {
-        localId,
-        logId: attrs.logId ?? null,
-      });
-      return null;
-    }
-
-    console.info("[TiptapEditor] Inserted joyChart node", {
-      localId,
-      logId: attrs.logId ?? null,
-      sourceMode: attrs.sourceMode ?? "selection",
-    });
-
-    return localId;
-  }, [editor]);
-
-  const updateJoyChartNode = useCallback((localId: string, attrs: Partial<JoyChartEditorNodeAttrs>) => {
+  const insertEditorImage = useCallback((imageUrl: string, altText = "", insertPos?: number) => {
     if (!editor) return false;
 
-    let updated = false;
-    const transaction = editor.state.tr;
-    editor.state.doc.descendants((node, pos) => {
-      if (updated || node.type.name !== "joyChart" || node.attrs.localId !== localId) {
-        return true;
-      }
+    return insertImageNodeToView(editor.view, imageUrl, altText, insertPos);
+  }, [editor, insertImageNodeToView]);
 
-      transaction.setNodeMarkup(pos, undefined, {
-        ...node.attrs,
-        ...attrs,
-      });
-      updated = true;
-      return false;
-    });
-
-    if (!updated) {
-      console.warn("[TiptapEditor] joyChart node not found for update", { localId });
-      return false;
-    }
-
-    editor.view.dispatch(transaction.scrollIntoView());
-    return true;
-  }, [editor]);
-
-  const insertJoyChartAtReference = useCallback((
-    attrs: JoyChartEditorNodeAttrs,
-    referenceContext?: JoyChartReferenceContext | null
+  const insertEditorImageAtReference = useCallback((
+    imageUrl: string,
+    altText = "",
+    referenceContext?: EditorImageReferenceContext | null
   ) => {
     const anchorText = referenceContext?.anchor_text?.trim();
     const placementHint = referenceContext?.placement_hint;
@@ -579,19 +508,13 @@ export function TiptapEditor({
         : targetRange.to
       : undefined;
 
-    const localId = insertJoyChartNode(
-      {
-        ...attrs,
-        sourceMode: "article",
-      },
-      insertPos
-    );
+    const inserted = insertEditorImage(imageUrl, altText, insertPos);
 
     return {
-      localId,
+      inserted,
       anchorFound: Boolean(targetRange),
     };
-  }, [findEditorRangeForText, insertJoyChartNode]);
+  }, [findEditorRangeForText, insertEditorImage]);
 
   const applyAIRewrite = useCallback(async (rewrittenText: string) => {
     if (!editor || !activeArticleEditTask) return;
@@ -716,10 +639,9 @@ export function TiptapEditor({
         const { from, to } = editor.state.selection;
         return editor.state.doc.textBetween(from, to, " ");
       };
-      window.joyfulWordsCharts = {
-        insertChart: insertJoyChartNode,
-        updateChart: updateJoyChartNode,
-        insertChartAtReference: insertJoyChartAtReference,
+      window.joyfulWordsEditorImages = {
+        insertImage: insertEditorImage,
+        insertImageAtReference: insertEditorImageAtReference,
       };
 
       const handleOpenAIEdit = () => {
@@ -738,7 +660,7 @@ export function TiptapEditor({
       // 清理函数
       return () => {
         delete (window as any).getJoyfulWordsSelectedText;
-        delete window.joyfulWordsCharts;
+        delete window.joyfulWordsEditorImages;
         window.removeEventListener('joyfulwords-open-ai-edit', handleOpenAIEdit as EventListener);
         window.removeEventListener('joyfulwords-open-ai-mindmap', handleOpenAIMindMap as EventListener);
       };
@@ -747,9 +669,8 @@ export function TiptapEditor({
     editor,
     handleAIRewrite,
     handleOpenMindMap,
-    insertJoyChartAtReference,
-    insertJoyChartNode,
-    updateJoyChartNode,
+    insertEditorImage,
+    insertEditorImageAtReference,
   ]);
 
   // Handle image upload using presigned URL
