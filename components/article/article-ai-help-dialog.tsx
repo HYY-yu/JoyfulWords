@@ -25,13 +25,13 @@ import { AI_WRITE_STYLE_OPTIONS } from "@/lib/api/articles/enums"
 import { materialsClient } from "@/lib/api/materials/client"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
-import { taskCenterClient } from "@/lib/api/taskcenter/client"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onArticleCreated: (article: Article) => void  // 接收后端返回的 Article 对象
+  articleId?: number | null
   variant?: "default" | "feature" | "feature-compact"
 }
 
@@ -39,10 +39,12 @@ export function ArticleAIHelpDialog({
   open,
   onOpenChange,
   onArticleCreated,
+  articleId,
   variant = "default",
 }: ArticleAIHelpDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const articleIdFilter = articleId ?? undefined
 
   const [prompt, setPrompt] = useState("")
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>([])
@@ -74,7 +76,12 @@ export function ArticleAIHelpDialog({
     enabled: open,
     pageSize: 20,
     nameFilter: materialSearch || undefined,
+    articleId: articleIdFilter,
   })
+
+  const dialogDescription = articleIdFilter
+    ? t("contentWriting.aiHelp.overwriteHint")
+    : t("contentWriting.aiHelp.description")
 
   // 对话框关闭时清理状态
   useEffect(() => {
@@ -254,6 +261,7 @@ export function ArticleAIHelpDialog({
     try {
       const result = await articlesClient.aiWrite({
         req: prompt,
+        article_id: articleIdFilter,
         link_materials: selectedMaterials,
         style_id: selectedStyleId ?? undefined,
         competitor_file_url: uploadedFile?.url,
@@ -264,23 +272,12 @@ export function ArticleAIHelpDialog({
         throw new Error(result.error)
       }
 
-      // Add Info log for success
-      console.log('[AI Help] Article created successfully:', result.id)
-
-      // 生成成功后，检查是否有任务ID，如果有则打开任务详情
-      const taskId = result.task_id
-      if (typeof taskId === "number") {
-        console.info('[AI Help] Task created', { taskId })
-        // 延迟打开任务详情，确保任务已创建
-        setTimeout(async () => {
-          try {
-            const taskDetail = await taskCenterClient.getTaskDetail("article", taskId)
-            console.info('[AI Help] Task detail fetched', taskDetail)
-          } catch (error) {
-            console.warn('[AI Help] Failed to fetch task detail', error)
-          }
-        }, 1000)
-      }
+      // Add Info log for success. The backend may return only article id; task
+      // lifecycle is recovered through Task Center refetch and websocket events.
+      console.info('[AI Help] AI write submitted successfully:', {
+        articleId: result.id,
+        isOverwrite: Boolean(articleIdFilter),
+      })
 
       // AI 写作启动成功
       toast({
@@ -339,7 +336,7 @@ export function ArticleAIHelpDialog({
                     {t("contentWriting.aiHelp.title")}
                   </DialogTitle>
                   <DialogDescription className="mt-2">
-                    {t("contentWriting.aiHelp.description")}
+                    {dialogDescription}
                   </DialogDescription>
                 </div>
                 <Button
@@ -584,7 +581,7 @@ export function ArticleAIHelpDialog({
             {t("contentWriting.aiHelp.title")}
           </DialogTitle>
           <DialogDescription>
-            {t("contentWriting.aiHelp.description")}
+            {dialogDescription}
           </DialogDescription>
         </DialogHeader>
 

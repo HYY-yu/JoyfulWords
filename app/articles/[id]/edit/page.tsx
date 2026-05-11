@@ -11,6 +11,7 @@ import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/l
 import { articlesClient } from "@/lib/api/articles/client"
 import type { Article } from "@/lib/api/articles/types"
 import type { TaskCenterTaskReference } from "@/lib/api/taskcenter/types"
+import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 import { ArticleEditorLayout } from "@/components/article/article-editor-layout"
 import { EditorTopBar } from "@/components/article/editor-top-bar"
 import { EditorMaterialPanel } from "@/components/article/editor-material-panel"
@@ -79,11 +80,13 @@ export default function ArticleEditPage() {
 
   // ==================== Load article from API ====================
 
-  useEffect(() => {
-    if (!user || !articleId) return
+  const loadArticle = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (!user || !articleId) return
 
-    const load = async () => {
-      setLoadingArticle(true)
+      if (!silent) {
+        setLoadingArticle(true)
+      }
       setLoadError(null)
 
       try {
@@ -121,6 +124,7 @@ export default function ArticleEditPage() {
           html,
           text: found.content.replace(/<[^>]*>/g, ""),
         })
+        editorState.markSaved()
 
         setArticle(found)
       } catch (err) {
@@ -132,13 +136,17 @@ export default function ArticleEditPage() {
           description: message,
         })
       } finally {
-        setLoadingArticle(false)
+        if (!silent) {
+          setLoadingArticle(false)
+        }
       }
-    }
+    },
+    [articleId, editorState, t, toast, user]
+  )
 
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, articleId])
+  useEffect(() => {
+    void loadArticle()
+  }, [loadArticle])
 
   const handleOpenArticleEditTask = useCallback((taskRef: TaskCenterTaskReference) => {
     setActiveArticleEditTaskRef(taskRef)
@@ -147,6 +155,46 @@ export default function ArticleEditPage() {
   const handleArticleEditSubmitted = useCallback(() => {
     setArticleEditSubmissionTick((current) => current + 1)
   }, [])
+
+  useEffect(() => {
+    if (!article?.id) return
+
+    const handleWriterUpdateComplete = (payload: TaskUpdatePayload) => {
+      const outputs = payload.outputs ?? {}
+      const operateType = typeof outputs.operate_type === "string" ? outputs.operate_type : ""
+      const operationType =
+        typeof outputs.operation_type === "string" ? outputs.operation_type : ""
+      const isWriterUpdate =
+        payload.task_type === "article" &&
+        (operateType === "writer" || operationType === "writer_update") &&
+        operationType === "writer_update"
+
+      if (!isWriterUpdate) return
+
+      const reloadRemoteArticle = () => {
+        autoSave.cancelPendingSave()
+        void loadArticle({ silent: true })
+      }
+
+      if (editorState.metadata.isDirty) {
+        const confirmed = window.confirm(
+          t("contentWriting.taskCenter.writerUpdateReloadConfirm")
+        )
+        if (confirmed) {
+          reloadRemoteArticle()
+        }
+        return
+      }
+
+      reloadRemoteArticle()
+    }
+
+    webSocketService.on(`task:complete:article:${article.id}`, handleWriterUpdateComplete)
+
+    return () => {
+      webSocketService.off(`task:complete:article:${article.id}`, handleWriterUpdateComplete)
+    }
+  }, [article?.id, autoSave, editorState, loadArticle, t])
 
   // ==================== Editor change handler ====================
 

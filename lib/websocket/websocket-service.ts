@@ -649,7 +649,10 @@ class WebSocketService {
     if (!this.toast) return
 
     const locale = this.getLocale()
-    const taskTypeLabel = this.getTaskTypeLabel(payload.task_type, locale)
+    const taskTypeLabel =
+      kind === "success"
+        ? this.getTaskCompletionLabel(payload, locale)
+        : this.getTaskTypeLabel(payload.task_type, locale)
     const title =
       kind === "success"
         ? locale === "zh"
@@ -718,6 +721,31 @@ class WebSocketService {
     } as const
 
     return labels[locale][taskType]
+  }
+
+  private getTaskCompletionLabel(payload: TaskUpdatePayload, locale: "zh" | "en"): string {
+    if (payload.task_type !== "article") {
+      return this.getTaskTypeLabel(payload.task_type, locale)
+    }
+
+    const outputs = payload.outputs ?? {}
+    const operateType = typeof outputs.operate_type === "string" ? outputs.operate_type : ""
+    const operationType =
+      typeof outputs.operation_type === "string" ? outputs.operation_type : ""
+
+    if (operateType === "writer" || operationType) {
+      if (operationType === "writer_create") {
+        return locale === "zh" ? "AI 文章写作完成" : "AI article writing completed"
+      }
+
+      if (operationType === "writer_update") {
+        return locale === "zh" ? "AI 文章更新完成" : "AI article update completed"
+      }
+
+      return locale === "zh" ? "AI 写作任务" : "AI Writing Job"
+    }
+
+    return locale === "zh" ? "文章编辑任务" : "article edit job"
   }
 
   private emit(event: string, data: unknown) {

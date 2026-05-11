@@ -59,6 +59,7 @@ import { ArticleCreateModeDialog } from "@/components/article/article-create-mod
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
 import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
+import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 import { cn } from "@/lib/utils"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 import { type JoyfulTheme, useJoyfulTheme } from "@/lib/theme/joyful-theme"
@@ -79,6 +80,18 @@ const DEFAULT_ARTICLE_THUMBNAIL_PATHS = new Set<string>([
   "/article-default-thumbnail.svg",
   ...Object.values(DEFAULT_ARTICLE_THUMBNAILS),
 ])
+
+function isWriterCreatePayload(payload: TaskUpdatePayload): boolean {
+  const outputs = payload.outputs ?? {}
+  const operateType = typeof outputs.operate_type === "string" ? outputs.operate_type : ""
+  const operationType = typeof outputs.operation_type === "string" ? outputs.operation_type : ""
+
+  return (
+    payload.task_type === "article" &&
+    (operateType === "writer" || operationType === "writer_create") &&
+    operationType === "writer_create"
+  )
+}
 
 function getFirstArticleImage(content: string) {
   const htmlImageMatch = content.match(/<img[^>]+src=(["'])(.*?)\1/i)
@@ -255,6 +268,20 @@ export default function ArticlesPage() {
   const handleAIArticleCreated = () => {
     handleRefresh()
   }
+
+  useEffect(() => {
+    const handleWriterCreateComplete = (payload: TaskUpdatePayload) => {
+      if (isWriterCreatePayload(payload)) {
+        handleRefresh()
+      }
+    }
+
+    webSocketService.on("task:complete", handleWriterCreateComplete)
+
+    return () => {
+      webSocketService.off("task:complete", handleWriterCreateComplete)
+    }
+  }, [handleRefresh])
 
   const handleCreateManualArticle = async () => {
     setIsCreatingArticle(true)

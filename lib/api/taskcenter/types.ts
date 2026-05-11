@@ -4,7 +4,8 @@ export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "prese
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
 
-export type TaskCenterArticleOperateType = "edit"
+export type TaskCenterArticleOperateType = "edit" | "writer"
+export type TaskCenterArticleOperationType = "" | "writer_create" | "writer_update"
 export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
@@ -22,6 +23,8 @@ export interface TaskCenterArticleListDetails {
   article_id: number
   exec_id: string
   is_settle: boolean
+  operate_type?: TaskCenterArticleOperateType
+  operation_type?: TaskCenterArticleOperationType
   status?: TaskCenterArticleStatus
   req_text?: string
   resp_text?: string
@@ -151,7 +154,8 @@ export interface TaskCenterArticleTaskDetail {
   id: number
   article_id: number
   exec_id: string
-  operate_type: TaskCenterArticleOperateType
+  operate_type?: TaskCenterArticleOperateType
+  operation_type?: TaskCenterArticleOperationType
   status: TaskCenterArticleStatus
   req_text: string
   resp_text?: string

@@ -9,6 +9,7 @@ import {
   getTaskCenterTaskTitle,
 } from "@/components/taskcenter/taskcenter-presenters"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
+import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
 import {
@@ -45,6 +46,7 @@ import {
   LoaderIcon,
   PaletteIcon,
   PresentationIcon,
+  PenLineIcon,
   SparklesIcon,
   WandSparklesIcon
 } from "lucide-react"
@@ -56,6 +58,7 @@ import { EChartsDialog } from "./echarts-dialog"
 
 type ActiveDialog =
   | "ai-edit"
+  | "ai-write"
   | "mindmap"
   | "create-image"
   | "reversal-mode"
@@ -96,6 +99,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     id: "ai-edit",
     labelKey: "tiptapEditor.aiPanel.aiEdit",
     icon: WandSparklesIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "writing",
+  },
+  {
+    id: "ai-write",
+    labelKey: "tiptapEditor.aiPanel.aiWrite",
+    icon: PenLineIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "writing",
@@ -212,6 +223,16 @@ function mapTaskCenterTaskToProgressItem(
   }
 }
 
+function isArticleEditTask(task: TaskCenterTaskListItem): boolean {
+  if (task.type !== "article") return false
+
+  if (task.details.operate_type === "writer" || task.details.operation_type) {
+    return false
+  }
+
+  return true
+}
+
 export function EditorAIPanel({
   articleId,
   submissionTick = 0,
@@ -228,6 +249,7 @@ export function EditorAIPanel({
   const [copyToMaterialsError, setCopyToMaterialsError] = useState<string | null>(null)
   const [copyToMaterialsSuccess, setCopyToMaterialsSuccess] = useState<string | null>(null)
   const [isCreateImageOpen, setIsCreateImageOpen] = useState(false)
+  const [isAiWriteOpen, setIsAiWriteOpen] = useState(false)
   const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
   const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
   const [isInfographicOpen, setIsInfographicOpen] = useState(false)
@@ -492,6 +514,8 @@ export function EditorAIPanel({
   function handleOpenDialog(id: ActiveDialog) {
     if (id === "ai-edit") {
       window.dispatchEvent(new CustomEvent("joyfulwords-open-ai-edit"))
+    } else if (id === "ai-write") {
+      setIsAiWriteOpen(true)
     } else if (id === "mindmap") {
       window.dispatchEvent(new CustomEvent("joyfulwords-open-ai-mindmap"))
     } else if (id === "create-image") {
@@ -653,15 +677,17 @@ export function EditorAIPanel({
               onRemoveTask={(task) => void handleRemoveTask(task)}
               onClickTask={(task: TaskItem) => {
                 const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined
-                if (task.type === "task-center" && task.originalType === "article") {
-                  if (!taskCenterTask) return
+                if (task.type !== "task-center" || !taskCenterTask) return
+
+                if (task.originalType === "article" && isArticleEditTask(taskCenterTask)) {
                   onOpenArticleEditTask({
                     id: taskCenterTask.id,
                     type: taskCenterTask.type,
                   })
-                } else if (task.type === "task-center") {
-                  void fetchTaskDetail(task)
+                  return
                 }
+
+                void fetchTaskDetail(task)
               }}
             />
           </div>
@@ -742,6 +768,16 @@ export function EditorAIPanel({
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <ArticleAIHelpDialog
+        open={isAiWriteOpen}
+        onOpenChange={setIsAiWriteOpen}
+        onArticleCreated={() => {
+          void refetch({ silent: true })
+        }}
+        articleId={articleId ?? undefined}
+        variant="feature-compact"
+      />
 
       {renderImageFeatureDialog(
         isCreateImageOpen,

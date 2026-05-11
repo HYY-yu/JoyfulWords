@@ -69,6 +69,7 @@ export interface Article {
  */
 export interface AIWriteRequest {
   req: string  // 写作要求/主题（1-500 字符）
+  article_id?: number  // 当前编辑文章 ID（编辑页覆盖场景使用）
   link_post?: number  // 关联的竞品文章 ID
   link_materials?: number[]  // 关联的素材 ID 列表
   style_id?: AIWriteStyleId  // 写作风格 ID（与参考文章上传互斥）

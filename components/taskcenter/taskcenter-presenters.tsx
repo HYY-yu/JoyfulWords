@@ -9,6 +9,8 @@ import { EChartsTaskDetail } from "@/components/taskcenter/echarts-task-detail"
 import { getImageTaskErrorMessageKey } from "@/lib/api/taskcenter/image-error-messages"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
+  TaskCenterArticleListDetails,
+  TaskCenterArticleTaskDetail,
   TaskCenterPresentationSlideSummary,
   TaskCenterPresentationTaskDetail,
   TaskCenterEChartsTaskDetail,
@@ -78,6 +80,18 @@ export function getTaskCenterTaskIcon(task: TaskCenterTaskListItem) {
   return getTaskCenterTypeIcon(task.type)
 }
 
+function getArticleTaskTitle(
+  details: Pick<TaskCenterArticleListDetails, "operate_type" | "operation_type">
+): string {
+  if (details.operate_type === "writer" || details.operation_type) {
+    if (details.operation_type === "writer_create") return "articleWriteCreate"
+    if (details.operation_type === "writer_update") return "articleWriteUpdate"
+    return "articleWrite"
+  }
+
+  return "articleEdit"
+}
+
 export function getTaskCenterTaskTitle(
   task: TaskCenterTaskListItem
 ): string {
@@ -95,6 +109,11 @@ export function getTaskCenterTaskTitle(
     if (taskKind === "storycard_generate") return "presentationStorycard"
     return "presentationLayout"
   }
+
+  if (task.type === "article") {
+    return getArticleTaskTitle(task.details)
+  }
+
   return "articleEdit"
 }
 
@@ -222,17 +241,26 @@ function DetailField({
   label,
   value,
   className,
+  preview = false,
 }: {
   label: string
   value: string
   className?: string
+  preview?: boolean
 }) {
   return (
     <div className={className}>
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </p>
-      <p className="mt-1 text-sm leading-6 text-foreground">{value || "-"}</p>
+      <p
+        className={cn(
+          "mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-foreground",
+          preview && "max-h-48 overflow-y-auto rounded-md border bg-muted/20 p-3"
+        )}
+      >
+        {value || "-"}
+      </p>
     </div>
   )
 }
@@ -282,6 +310,15 @@ export function TaskCenterTaskDetailView({
     taskRef.type === "presentation"
       ? getTaskCenterPresentationDownloadUrl(detail as TaskCenterPresentationTaskDetail)
       : null
+  const articleDetail = taskRef.type === "article" ? (detail as TaskCenterArticleTaskDetail) : null
+  const isWriterArticleTask =
+    articleDetail?.operate_type === "writer" || Boolean(articleDetail?.operation_type)
+  const articleReqTextLabel = isWriterArticleTask
+    ? t("contentWriting.taskCenter.fields.writingPrompt")
+    : t("contentWriting.taskCenter.fields.sourceText")
+  const articleRespTextLabel = isWriterArticleTask
+    ? t("contentWriting.taskCenter.fields.generatedContent")
+    : t("contentWriting.taskCenter.fields.resultText")
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -384,16 +421,18 @@ export function TaskCenterTaskDetailView({
         ) : null}
         {"req_text" in detail ? (
           <DetailField
-            label={t("contentWriting.taskCenter.fields.sourceText")}
+            label={articleReqTextLabel}
             value={detail.req_text || "-"}
             className="sm:col-span-2"
+            preview={isWriterArticleTask}
           />
         ) : null}
         {"resp_text" in detail ? (
           <DetailField
-            label={t("contentWriting.taskCenter.fields.resultText")}
+            label={articleRespTextLabel}
             value={detail.resp_text || "-"}
             className="sm:col-span-2"
+            preview={isWriterArticleTask}
           />
         ) : null}
         {"is_settle" in detail && !(taskRef.type === "image" && status === "failed") ? (

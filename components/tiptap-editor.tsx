@@ -146,6 +146,10 @@ export function TiptapEditor({
       }
 
       const articleTask = result as TaskCenterArticleTaskDetail;
+      if (articleTask.operate_type === "writer" || articleTask.operation_type) {
+        throw new Error("Unsupported article task operation");
+      }
+
       setActiveArticleEditTask(articleTask);
       setSelectedTextForAI(articleTask.req_text || "");
     } catch (error) {
