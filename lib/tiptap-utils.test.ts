@@ -18,6 +18,12 @@ test("detects markdown table content as markdown", () => {
   assert.equal(detectContentFormat(markdown), "markdown")
 })
 
+test("detects task list markdown as markdown", () => {
+  assert.equal(detectContentFormat("[ ] Draft outline"), "markdown")
+  assert.equal(detectContentFormat("[x] Publish article"), "markdown")
+  assert.equal(detectContentFormat("- [ ] Review edits"), "markdown")
+})
+
 test("parses markdown table rows", () => {
   const markdown = [
     "| Name | Score |",

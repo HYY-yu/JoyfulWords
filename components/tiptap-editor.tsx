@@ -4,6 +4,7 @@ import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import { Markdown } from "@tiptap/markdown";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableRow } from "@tiptap/extension-table";
 import type { EditorView } from "@tiptap/pm/view";
 import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
@@ -224,6 +225,10 @@ export function TiptapEditor({
     TableRow,
     TableHeaderWithBackground,
     TableCellWithBackground,
+    TaskList,
+    TaskItem.configure({
+      nested: true,
+    }),
     JoyChart,
     CustomHighlight,  // Text highlighting with colors
     CustomTextAlign,  // Text alignment (left, center, right, justify)

@@ -1395,6 +1395,7 @@ export const zh = {
             },
             bulletList: "无序列表",
             orderedList: "有序列表",
+            taskList: "待办列表",
             quote: "引用",
             codeBlock: "代码块",
             horizontalRule: "水平线",

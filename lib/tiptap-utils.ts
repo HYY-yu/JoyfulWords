@@ -39,7 +39,9 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
     /^\[.+?\]\(.+?\)/m,    // 链接 [text](url)
     /^>\s+/m,              // 引用 >
     /^\*{1,2}.+?\*{1,2}/m, // 粗体/斜体 *text* or **text**
+    /^\[[ xX]\]\s+/m,      // 待办列表 [ ] / [x]
     /^[-*+]\s+/m,          // 无序列表 - * +
+    /^[-*+]\s+\[[ xX]\]\s+/m, // 待办列表 - [ ] / - [x]
     /^\d+\.\s+/m,          // 有序列表 1. 2. 3.
     /!\[.*?\]\(.*?\)/m,    // 图片 ![alt](url)
   ]

@@ -523,6 +523,34 @@
   @apply list-decimal pl-6 mb-4 space-y-2;
 }
 
+.ProseMirror ul[data-type="taskList"] {
+  @apply list-none pl-0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  @apply flex items-start gap-2;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  @apply mt-1 flex h-5 w-5 shrink-0 items-center justify-center;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  @apply min-w-0 flex-1;
+}
+
+.ProseMirror ul[data-type="taskList"] li input[type="checkbox"] {
+  @apply h-4 w-4 rounded border-border accent-primary;
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  @apply text-muted-foreground line-through;
+}
+
+.ProseMirror ul[data-type="taskList"] ul[data-type="taskList"] {
+  @apply mt-2 mb-0 pl-6;
+}
+
 /* Blockquote styling */
 .ProseMirror blockquote {
   @apply border-l-4 border-primary pl-4 italic text-muted-foreground my-4;

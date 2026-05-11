@@ -9,6 +9,7 @@ import {
   TerminalIcon,
   ListIcon,
   ListOrderedIcon,
+  ListTodoIcon,
   QuoteIcon,
   LinkIcon,
   ImageIcon,
@@ -196,6 +197,16 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
         <ListOrderedIcon className="h-4 w-4" />
+      </ToolbarButton>
+
+      <ToolbarButton
+        tooltip={t("tiptapEditor.toolbar.taskList")}
+        shortcut="⌘⇧9"
+        isActive={editor.isActive('taskList')}
+        disabled={!editor.can().chain().focus().toggleTaskList().run()}
+        onClick={() => editor.chain().focus().toggleTaskList().run()}
+      >
+        <ListTodoIcon className="h-4 w-4" />
       </ToolbarButton>
 
       <div className="w-px h-8 bg-border/40 mx-1" />

@@ -1395,6 +1395,7 @@ export const en = {
             },
             bulletList: "Bullet List",
             orderedList: "Ordered List",
+            taskList: "Task List",
             quote: "Quote",
             codeBlock: "Code Block",
             horizontalRule: "Horizontal Rule",
