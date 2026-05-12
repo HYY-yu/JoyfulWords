@@ -1,8 +1,31 @@
 import { apiClient } from '@/lib/api/client'
-import type { AuthResponse } from '@/lib/api/types'
+import type { AuthResponse, ErrorResponse } from '@/lib/api/types'
 import { tokenStore } from './token-store'
 
 let refreshPromise: Promise<AuthResponse | null> | null = null
+
+function formatLogValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') {
+    return 'none'
+  }
+
+  if (value instanceof Error) {
+    return JSON.stringify(value.message)
+  }
+
+  return JSON.stringify(value)
+}
+
+function formatRefreshFailure(prefix: string, source: string, result: ErrorResponse): string {
+  return [
+    prefix,
+    `source=${formatLogValue(source)}`,
+    `status=${formatLogValue(result.status)}`,
+    `reason=${formatLogValue(result.reason)}`,
+    `error=${formatLogValue(result.error)}`,
+    `error_description=${formatLogValue(result.error_description)}`,
+  ].join(' ')
+}
 
 /**
  * Refresh access token using the server-side HttpOnly refresh cookie.
@@ -22,13 +45,14 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
       if ('error' in result) {
         tokenStore.markRefreshFailed(source)
         tokenStore.clear(`${source}_failed`)
-        console.warn('[Auth] Token refresh rejected by API', {
+        const hasApiResponse = typeof result.status === 'number'
+        console.warn(formatRefreshFailure(
+          hasApiResponse
+            ? '[Auth] Token refresh rejected by API'
+            : '[Auth] Token refresh request failed before API response',
           source,
-          status: result.status,
-          reason: result.reason,
-          error: result.error,
-          error_description: result.error_description,
-        })
+          result
+        ))
         return null
       }
 
@@ -37,10 +61,9 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
     } catch (error) {
       tokenStore.markRefreshFailed(source)
       tokenStore.clear(`${source}_failed`)
-      console.error('[Auth] Token refresh request failed', {
-        source,
-        error,
-      })
+      console.error(
+        `[Auth] Token refresh request failed source=${formatLogValue(source)} error=${formatLogValue(error)}`
+      )
       return null
     } finally {
       refreshPromise = null

@@ -212,8 +212,16 @@ export async function apiRequest<T>(
 
     return data as T
   } catch (error) {
-    // Network or parsing error
-    return { error: error instanceof Error ? error.message : 'Network error' } as T
+    // Network, timeout, CORS, DNS, or browser-side fetch failures happen before
+    // the API can return a response, so keep them distinguishable from HTTP errors.
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    return {
+      error: errorMessage || 'Network error',
+      reason: 'network_error',
+      error_description: errorMessage
+        ? `Fetch failed before receiving an API response: ${errorMessage}`
+        : 'Fetch failed before receiving an API response',
+    } as T
   }
 }
 
