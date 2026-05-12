@@ -120,15 +120,22 @@ function logWebSocket(
   }
 }
 
-function getSocketErrorLogLevel(channel: SocketChannel, ws: WebSocket): "debug" | "warn" {
+type SocketErrorLogLevel = "warn" | null
+
+export function getSocketErrorLogLevel(
+  channel: Pick<SocketChannel, "hasOpenedOnce" | "manuallyClosed" | "reauthenticating">,
+  readyState: number
+): SocketErrorLogLevel {
   const socketIsClosing =
-    ws.readyState === WebSocket.CLOSING || ws.readyState === WebSocket.CLOSED
+    readyState === WebSocket.CLOSING || readyState === WebSocket.CLOSED
 
   if (
     socketIsClosing &&
     (channel.hasOpenedOnce || channel.manuallyClosed || channel.reauthenticating)
   ) {
-    return "debug"
+    // Faro collects console.debug too, so expected close/reconnect lifecycle noise
+    // should not emit a console event at all.
+    return null
   }
 
   return "warn"
@@ -356,15 +363,19 @@ class WebSocketService {
       }
 
       ws.onerror = (event) => {
-        logWebSocket(getSocketErrorLogLevel(channel, ws), "Socket error", {
-          key: channel.key,
-          articleId: channel.articleId ?? null,
-          eventType: event.type,
-          readyState: ws.readyState,
-          hasOpenedOnce: channel.hasOpenedOnce,
-          manuallyClosed: channel.manuallyClosed,
-          reauthenticating: channel.reauthenticating,
-        })
+        const logLevel = getSocketErrorLogLevel(channel, ws.readyState)
+
+        if (logLevel) {
+          logWebSocket(logLevel, "Socket error", {
+            key: channel.key,
+            articleId: channel.articleId ?? null,
+            eventType: event.type,
+            readyState: ws.readyState,
+            hasOpenedOnce: channel.hasOpenedOnce,
+            manuallyClosed: channel.manuallyClosed,
+            reauthenticating: channel.reauthenticating,
+          })
+        }
       }
 
       ws.onclose = (event) => {
