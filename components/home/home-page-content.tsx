@@ -18,7 +18,14 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/base/accordion"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/base/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/base/sheet"
 import { BrandLogo } from "@/components/brand/brand-logo"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
@@ -175,6 +182,9 @@ export function HomePageContent() {
           <SheetContent side="right" className="gap-0">
             <SheetHeader className="pb-2">
               <SheetTitle>{t("landing.nav.menu")}</SheetTitle>
+              <SheetDescription className="sr-only">
+                {t("landing.nav.menuDescription")}
+              </SheetDescription>
             </SheetHeader>
 
             <nav className="flex flex-col gap-1 px-4 pb-6">

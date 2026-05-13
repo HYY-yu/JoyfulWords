@@ -2123,6 +2123,7 @@ export const en = {
     landing: {
         nav: {
             menu: "Menu",
+            menuDescription: "Mobile main navigation menu",
             features: "Features",
             pricing: "Pricing",
             blog: "Blog",

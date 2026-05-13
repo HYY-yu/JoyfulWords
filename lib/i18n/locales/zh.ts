@@ -2123,6 +2123,7 @@ export const zh = {
     landing: {
         nav: {
             menu: "菜单",
+            menuDescription: "移动端主导航菜单",
             features: "功能",
             pricing: "价格",
             blog: "博客",
