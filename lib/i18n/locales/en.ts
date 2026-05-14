@@ -2327,6 +2327,70 @@ export const en = {
             },
         },
     },
+    toolsPage: {
+        nav: {
+            workspace: "Workspace",
+            login: "Log in",
+        },
+        eyebrow: "Free Creator Tools",
+        title: "Free Creator Tools",
+        status: "Coming soon",
+        openPlaceholder: "View tool page",
+        tools: {
+            "ai-writer": {
+                title: "AI Writer",
+            },
+            "smart-rewrite": {
+                title: "Smart Rewrite",
+            },
+            "image-generator": {
+                title: "AI Image Generator",
+            },
+            infographic: {
+                title: "Infographic",
+            },
+            "mind-map": {
+                title: "Mind Map",
+            },
+            "ai-charts": {
+                title: "AI Charts",
+            },
+            "ppt-generator": {
+                title: "PPT Generator",
+            },
+        },
+        activities: {
+            cta: "Campaigns coming soon",
+            checkIn: {
+                title: "Daily Check-in",
+                reward: "+ credits",
+            },
+            share: {
+                title: "Share for Credits",
+                reward: "Referral",
+            },
+            campaign: {
+                title: "Limited Campaigns",
+                reward: "Event",
+            },
+        },
+        detail: {
+            back: "Back to tools",
+            placeholderTitle: "This tool is being scheduled",
+            disabledAction: "Coming soon",
+            notes: {
+                account: {
+                    title: "Account context",
+                },
+                tasks: {
+                    title: "Task Center",
+                },
+                activity: {
+                    title: "Campaign rewards",
+                },
+            },
+        },
+    },
     blog: {
         common: {
             backToHome: "Back Home",

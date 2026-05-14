@@ -2327,6 +2327,70 @@ export const zh = {
             },
         },
     },
+    toolsPage: {
+        nav: {
+            workspace: "创作工作台",
+            login: "登录",
+        },
+        eyebrow: "Free Creator Tools",
+        title: "免费工具箱",
+        status: "待实现",
+        openPlaceholder: "查看工具页",
+        tools: {
+            "ai-writer": {
+                title: "AI 写作",
+            },
+            "smart-rewrite": {
+                title: "智能改写",
+            },
+            "image-generator": {
+                title: "AI 生图",
+            },
+            infographic: {
+                title: "信息图",
+            },
+            "mind-map": {
+                title: "思维导图",
+            },
+            "ai-charts": {
+                title: "AI 图表",
+            },
+            "ppt-generator": {
+                title: "PPT 生成",
+            },
+        },
+        activities: {
+            cta: "活动功能待实现",
+            checkIn: {
+                title: "每日签到",
+                reward: "+ 积分",
+            },
+            share: {
+                title: "分享得积分",
+                reward: "邀请",
+            },
+            campaign: {
+                title: "限时活动",
+                reward: "活动",
+            },
+        },
+        detail: {
+            back: "返回工具箱",
+            placeholderTitle: "工具正在排期",
+            disabledAction: "待实现",
+            notes: {
+                account: {
+                    title: "账号上下文",
+                },
+                tasks: {
+                    title: "任务中心",
+                },
+                activity: {
+                    title: "活动激励",
+                },
+            },
+        },
+    },
     blog: {
         common: {
             backToHome: "返回首页",

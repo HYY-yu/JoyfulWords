@@ -3,6 +3,7 @@ import { headers } from "next/headers"
 import { getBlogSitemapEntries } from "@/lib/blog"
 import { buildLocalizedPath, getHreflang, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
 import { buildCanonicalUrl } from "@/lib/seo"
+import { TOOL_SLUGS } from "@/lib/tools/catalog"
 
 export const dynamic = "force-dynamic"
 
@@ -19,6 +20,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     { path: "/", changeFrequency: "weekly" as const, priority: 1 },
     { path: "/pricing", changeFrequency: "monthly" as const, priority: 0.85 },
+    { path: "/tools", changeFrequency: "weekly" as const, priority: 0.82 },
+    ...TOOL_SLUGS.map((slug) => ({
+      path: `/tools/${slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.72,
+    })),
     { path: "/mcp", changeFrequency: "monthly" as const, priority: 0.75 },
     { path: "/blog", changeFrequency: "weekly" as const, priority: 0.8 },
     { path: "/privacy-policy", changeFrequency: "yearly" as const, priority: 0.2 },

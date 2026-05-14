@@ -429,6 +429,12 @@
   color: var(--jw-page-text);
 }
 
+.tools-hero-wash {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--jw-accent) 14%, transparent), transparent 68%),
+    linear-gradient(180deg, color-mix(in srgb, var(--jw-accent) 10%, transparent), transparent);
+}
+
 .jw-hero-wash {
   background: var(--jw-hero-bg);
 }

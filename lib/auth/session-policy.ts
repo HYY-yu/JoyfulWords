@@ -15,6 +15,7 @@ const PUBLIC_PAGE_PREFIXES = [
   '/blog',
   '/mcp',
   '/pricing',
+  '/tools',
 ] as const
 
 const EXACT_PUBLIC_ROUTES = ['/', '/sitemap.xml', '/robots.txt'] as const
