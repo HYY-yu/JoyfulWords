@@ -19,12 +19,12 @@ import type { Material, MaterialType, MaterialFavorite, MaterialSearchDetailResp
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/base/label"
-import { Textarea } from "@/components/ui/base/textarea"
+import { markdownToHTML } from "@/lib/tiptap-utils"
 import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
 
 // ==================== MaterialCard ====================
 
-type MaterialCardItem = Pick<Material, "id" | "title" | "material_type" | "content" | "source_url">
+type MaterialCardItem = Pick<Material, "id" | "title" | "material_type" | "content" | "source_url" | "parse_status" | "parse_failed_code" | "markdown_url">
 
 interface MaterialCardProps {
   material: MaterialCardItem
@@ -70,8 +70,49 @@ function MaterialIconButton({
 
 function MaterialCard({ material, leftActions }: MaterialCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [markdownHTML, setMarkdownHTML] = useState("")
+  const [markdownLoading, setMarkdownLoading] = useState(false)
+  const [markdownError, setMarkdownError] = useState("")
   const isImage = material.material_type === "image"
   const imageUrl = isImage ? material.content : null
+  const isInfoFile = material.material_type === "info" && Boolean(material.markdown_url || material.parse_status)
+  const parseStatusLabel =
+    material.parse_status === "parsing"
+      ? "解析中"
+      : material.parse_status === "success"
+        ? "解析完成"
+        : material.parse_status === "failed"
+          ? "解析失败"
+          : ""
+
+  useEffect(() => {
+    if (!previewOpen || !isInfoFile || material.parse_status !== "success" || !material.markdown_url || markdownHTML || markdownLoading) {
+      return
+    }
+
+    let cancelled = false
+    setMarkdownLoading(true)
+    setMarkdownError("")
+    fetch(material.markdown_url)
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        return response.text()
+      })
+      .then(async (markdown) => {
+        const html = await markdownToHTML(markdown)
+        if (!cancelled) setMarkdownHTML(html)
+      })
+      .catch((error) => {
+        if (!cancelled) setMarkdownError(error instanceof Error ? error.message : "Failed to load markdown")
+      })
+      .finally(() => {
+        if (!cancelled) setMarkdownLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isInfoFile, markdownHTML, markdownLoading, material.markdown_url, material.parse_status, previewOpen])
 
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -125,6 +166,19 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
         ) : (
           <div className="min-w-0 flex-1">
             <p className="mb-1 truncate text-sm font-medium leading-tight">{material.title}</p>
+            {parseStatusLabel ? (
+              <Badge
+                variant="outline"
+                className={cn(
+                  "mb-2 h-5 rounded px-1.5 text-[11px]",
+                  material.parse_status === "parsing" && "border-blue-200 bg-blue-50 text-blue-700",
+                  material.parse_status === "success" && "border-green-200 bg-green-50 text-green-700",
+                  material.parse_status === "failed" && "border-red-200 bg-red-50 text-red-700"
+                )}
+              >
+                {parseStatusLabel}
+              </Badge>
+            ) : null}
             {material.content ? (
               <button
                 type="button"
@@ -132,7 +186,11 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
                 className="w-full text-left cursor-pointer hover:opacity-80 transition-opacity"
               >
                 <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground">
-                  {material.content}
+                  {isInfoFile
+                    ? material.parse_status === "success"
+                      ? material.markdown_url || material.content
+                      : material.content
+                    : material.content}
                 </p>
               </button>
             ) : null}
@@ -164,9 +222,33 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
           <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
             <DialogTitle className="text-base font-semibold">{material.title}</DialogTitle>
             <ScrollArea className="flex-1 mt-2">
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed pr-4">
-                {material.content}
-              </p>
+              {isInfoFile ? (
+                <div className="pr-4 text-sm leading-relaxed">
+                  {parseStatusLabel ? (
+                    <Badge variant="outline" className="mb-3 rounded px-1.5 text-[11px]">
+                      {parseStatusLabel}
+                    </Badge>
+                  ) : null}
+                  {material.parse_status === "success" && markdownHTML ? (
+                    <div
+                      className="prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: markdownHTML }}
+                    />
+                  ) : material.parse_status === "success" && markdownLoading ? (
+                    <p className="text-muted-foreground">Markdown 加载中...</p>
+                  ) : material.parse_status === "success" && markdownError ? (
+                    <p className="whitespace-pre-wrap text-muted-foreground">{material.markdown_url || material.content}</p>
+                  ) : material.parse_status === "failed" ? (
+                    <p className="text-destructive">解析失败{material.parse_failed_code ? `（${material.parse_failed_code}）` : ""}</p>
+                  ) : (
+                    <p className="whitespace-pre-wrap text-muted-foreground">{material.content}</p>
+                  )}
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed pr-4">
+                  {material.content}
+                </p>
+              )}
             </ScrollArea>
           </DialogContent>
         )}
@@ -950,6 +1032,9 @@ function toMaterialCardItem(material: Material | MaterialFavorite): MaterialCard
     material_type: material.material_type,
     content: material.content,
     source_url: material.source_url,
+    parse_status: material.parse_status,
+    parse_failed_code: material.parse_failed_code,
+    markdown_url: material.markdown_url,
   }
 }
 
@@ -986,7 +1071,7 @@ function LibraryTab({
   onDelete: (material: Material) => void
 }) {
   const { t } = useTranslation()
-  const { materials: allMaterials, isLoading, hasMore, observerTarget } = useInfiniteMaterials({
+  const { materials: allMaterials, isLoading, hasMore, observerTarget, reset } = useInfiniteMaterials({
     articleId: articleId ?? undefined,
     type: activeCategory,
     pageSize: 20,
@@ -994,6 +1079,13 @@ function LibraryTab({
   })
 
   const materials = allMaterials
+  const hasParsingMaterial = materials.some((material) => material.parse_status === "parsing")
+
+  useEffect(() => {
+    if (activeCategory !== "info" || !hasParsingMaterial) return
+    const timer = window.setInterval(() => reset(), 5000)
+    return () => window.clearInterval(timer)
+  }, [activeCategory, hasParsingMaterial, reset])
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
@@ -1174,13 +1266,42 @@ interface UploadDialogProps {
   onUploadSuccess?: () => void
 }
 
+const DATA_FILE_ACCEPT = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/jp2",
+  "image/webp",
+  "image/gif",
+  "image/bmp",
+  ".pdf",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".jp2",
+  ".webp",
+  ".gif",
+  ".bmp",
+  ".docx",
+  ".pptx",
+  ".xlsx",
+].join(",")
+
+const IMAGE_FILE_ACCEPT = "image/png,image/jpeg,image/jpg,image/jp2,image/webp,image/gif,image/bmp"
+
+const SUPPORTED_DATA_EXTENSIONS = new Set(["pdf", "png", "jpg", "jpeg", "jp2", "webp", "gif", "bmp", "docx", "pptx", "xlsx"])
+
+function getFileExtension(file: File) {
+  return file.name.split(".").pop()?.toLowerCase() ?? ""
+}
+
 function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: UploadDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
 
   const [title, setTitle] = useState("")
   const [materialType, setMaterialType] = useState<"info" | "image">("info")
-  const [content, setContent] = useState("")
+  const [dataFile, setDataFile] = useState<File | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState("")
   const [isUploading, setIsUploading] = useState(false)
@@ -1189,11 +1310,32 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
   const resetForm = useCallback(() => {
     setTitle("")
     setMaterialType("info")
-    setContent("")
+    setDataFile(null)
     setImageFile(null)
     setImagePreview("")
     setErrors({})
   }, [])
+
+  const handleDataFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      if (!file) return
+
+      if (!SUPPORTED_DATA_EXTENSIONS.has(getFileExtension(file))) {
+        setErrors({ content: t("contentWriting.materialPanel.uploadDataInvalid") })
+        return
+      }
+      if (file.size > 50 * 1024 * 1024) {
+        setErrors({ content: t("contentWriting.materialPanel.uploadDataTooLarge") })
+        return
+      }
+
+      setDataFile(file)
+      if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ""))
+      setErrors({})
+    },
+    [t, title]
+  )
 
   const handleImageSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1229,8 +1371,8 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
 
     const newErrors: { title?: string; content?: string } = {}
     if (!title.trim()) newErrors.title = t("contentWriting.materialPanel.uploadNameRequired")
-    if (materialType === "info" && !content.trim())
-      newErrors.content = t("contentWriting.materialPanel.uploadContentRequired")
+    if (materialType === "info" && !dataFile)
+      newErrors.content = t("contentWriting.materialPanel.uploadDataRequired")
     if (materialType === "image" && !imageFile)
       newErrors.content = t("contentWriting.materialPanel.uploadImageRequired")
 
@@ -1242,23 +1384,21 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
     setIsUploading(true)
 
     try {
-      let finalContent = content
+      const uploadFile = materialType === "info" ? dataFile : imageFile
+      if (!uploadFile) throw new Error("Missing upload file")
 
-      if (materialType === "image" && imageFile) {
-        const presigned = await materialsClient.getPresignedUrl(imageFile.name, imageFile.type)
-        if ("error" in presigned) throw new Error(presigned.error)
+      const presigned = await materialsClient.getPresignedUrl(uploadFile.name, uploadFile.type || "application/octet-stream")
+      if ("error" in presigned) throw new Error(presigned.error)
 
-        const ok = await uploadFileToPresignedUrl(presigned.upload_url, imageFile, imageFile.type)
-        if (!ok) throw new Error("Image upload failed")
-
-        finalContent = presigned.file_url
-      }
+      const ok = await uploadFileToPresignedUrl(presigned.upload_url, uploadFile, uploadFile.type || "application/octet-stream")
+      if (!ok) throw new Error("File upload failed")
 
       const result = await materialsClient.createMaterial({
         title: title.trim(),
         material_type: materialType,
-        content: finalContent,
+        content: presigned.file_url,
         article_id: articleId,
+        file_name: uploadFile.name,
       })
 
       if ("error" in result) throw new Error(result.error)
@@ -1276,7 +1416,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
     } finally {
       setIsUploading(false)
     }
-  }, [articleId, title, materialType, content, imageFile, toast, t, resetForm, onOpenChange, onUploadSuccess])
+  }, [articleId, title, materialType, dataFile, imageFile, toast, t, resetForm, onOpenChange, onUploadSuccess])
 
   return (
     <Dialog
@@ -1337,13 +1477,35 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
           {/* Content */}
           {materialType === "info" ? (
             <div className="flex flex-col gap-1.5">
-              <Label className="text-sm">{t("contentWriting.materialPanel.uploadMaterialContent")}</Label>
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={t("contentWriting.materialPanel.uploadMaterialContentPlaceholder")}
-                rows={4}
-              />
+              <Label className="text-sm">{t("contentWriting.materialPanel.uploadSelectData")}</Label>
+              {dataFile ? (
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{dataFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(dataFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDataFile(null)}
+                    className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer flex-col items-center gap-2 rounded-md border-2 border-dashed border-border p-6 hover:border-primary/50 transition-colors">
+                  <Upload className="h-6 w-6 text-muted-foreground" />
+                  <span className="text-center text-xs text-muted-foreground">
+                    {t("contentWriting.materialPanel.uploadDataHint")}
+                  </span>
+                  <input
+                    type="file"
+                    accept={DATA_FILE_ACCEPT}
+                    className="hidden"
+                    onChange={handleDataFileSelect}
+                  />
+                </label>
+              )}
               {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
             </div>
           ) : (
@@ -1372,7 +1534,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
                   </span>
                   <input
                     type="file"
-                    accept="image/png,image/jpeg,image/jpg"
+                    accept={IMAGE_FILE_ACCEPT}
                     className="hidden"
                     onChange={handleImageSelect}
                   />

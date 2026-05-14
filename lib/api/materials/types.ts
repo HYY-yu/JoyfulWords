@@ -15,6 +15,8 @@ export type MaterialType = 'info' | 'news' | 'image'
  */
 export type MaterialStatus = 'doing' | 'success' | 'failed' | 'nodata'
 
+export type MaterialParseStatus = 'parsing' | 'success' | 'failed' | ''
+
 // ==================== Entity Types ====================
 
 /**
@@ -31,6 +33,10 @@ export interface Material {
   material_type: MaterialType
   source_url: string // 素材原链接
   content: string // 素材内容（文本或图片 URL）
+  parse_task_id: string
+  parse_status: MaterialParseStatus
+  parse_failed_code: number
+  markdown_url: string
   created_at: string // ISO 8601 格式时间
 }
 
@@ -66,6 +72,10 @@ export interface MaterialFavorite {
   material_type: MaterialType
   source_url: string
   content: string
+  parse_task_id: string
+  parse_status: MaterialParseStatus
+  parse_failed_code: number
+  markdown_url: string
 }
 
 // ==================== Request Types ====================
@@ -170,6 +180,7 @@ export interface CreateMaterialRequest {
   material_type: MaterialType
   content: string // 素材内容（info/news 为文本，image 为图片 URL）
   article_id?: number // 归属文章 ID
+  file_name?: string
 }
 
 /**
@@ -221,6 +232,7 @@ export interface MaterialFavoriteListResponse {
 export interface CreateMaterialResponse {
   id: number
   message: string
+  parse_status?: MaterialParseStatus
 }
 
 /**
