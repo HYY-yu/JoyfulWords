@@ -293,7 +293,7 @@ export function TaskCenterTaskDetailView({
         })
       : null
   const rawErrorMessage =
-    taskRef.type === "image"
+    taskRef.type === "image" || taskRef.type === "echarts"
       ? null
       : ("error" in detail && detail.error) ||
         ("error_message" in detail && detail.error_message) ||
@@ -319,6 +319,7 @@ export function TaskCenterTaskDetailView({
   const articleRespTextLabel = isWriterArticleTask
     ? t("contentWriting.taskCenter.fields.generatedContent")
     : t("contentWriting.taskCenter.fields.resultText")
+  const showGenericFields = taskRef.type !== "echarts"
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -346,96 +347,97 @@ export function TaskCenterTaskDetailView({
         ) : null}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {"exec_id" in detail ? (
+      {showGenericFields ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {"exec_id" in detail ? (
           <DetailField label={t("contentWriting.taskCenter.fields.execId")} value={detail.exec_id} />
-        ) : null}
-        {"task_kind" in detail ? (
+          ) : null}
+          {"task_kind" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.taskKind")}
             value={detail.task_kind || "-"}
           />
-        ) : null}
-        {"stage" in detail ? (
+          ) : null}
+          {"stage" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.stage")}
             value={detail.stage || "-"}
           />
-        ) : null}
-        {"storycard_id" in detail ? (
+          ) : null}
+          {"storycard_id" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.storycardId")}
             value={detail.storycard_id ? String(detail.storycard_id) : "-"}
           />
-        ) : null}
-        {"slide_count" in detail ? (
+          ) : null}
+          {"slide_count" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.slideCount")}
             value={
               typeof detail.slide_count === "number" ? String(detail.slide_count) : "-"
             }
           />
-        ) : null}
-        {"model_name" in detail ? (
+          ) : null}
+          {"model_name" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.model")}
             value={detail.model_name || "-"}
           />
-        ) : null}
-        {"card_name" in detail ? (
+          ) : null}
+          {"card_name" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.cardName")}
             value={detail.card_name || "-"}
           />
-        ) : null}
-        {"card_type" in detail ? (
+          ) : null}
+          {"card_type" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.cardType")}
             value={detail.card_type || "-"}
           />
-        ) : null}
-        {"prompt" in detail ? (
+          ) : null}
+          {"prompt" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.prompt")}
             value={detail.prompt || "-"}
             className="sm:col-span-2"
           />
-        ) : null}
-        {"gen_mode" in detail ? (
+          ) : null}
+          {"gen_mode" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.genMode")}
             value={detail.gen_mode || "-"}
           />
-        ) : null}
-        {"completed_at" in detail ? (
+          ) : null}
+          {"completed_at" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.completedAt")}
             value={formatTaskCenterTime(detail.completed_at)}
           />
-        ) : null}
-        {"updated_at" in detail ? (
+          ) : null}
+          {"updated_at" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.updatedAt")}
             value={formatTaskCenterTime(detail.updated_at)}
           />
-        ) : null}
-        {"req_text" in detail ? (
+          ) : null}
+          {"req_text" in detail ? (
           <DetailField
             label={articleReqTextLabel}
             value={detail.req_text || "-"}
             className="sm:col-span-2"
             preview={isWriterArticleTask}
           />
-        ) : null}
-        {"resp_text" in detail ? (
+          ) : null}
+          {"resp_text" in detail ? (
           <DetailField
             label={articleRespTextLabel}
             value={detail.resp_text || "-"}
             className="sm:col-span-2"
             preview={isWriterArticleTask}
           />
-        ) : null}
-        {"is_settle" in detail && !(taskRef.type === "image" && status === "failed") ? (
+          ) : null}
+          {"is_settle" in detail && !(taskRef.type === "image" && status === "failed") ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.settlement")}
             value={
@@ -444,22 +446,23 @@ export function TaskCenterTaskDetailView({
                 : t("contentWriting.taskCenter.settlement.unsettled")
             }
           />
-        ) : null}
-        {imageNoCharge ? (
+          ) : null}
+          {imageNoCharge ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.billing")}
             value={t("contentWriting.taskCenter.billing.noCharge")}
           />
-        ) : null}
-        {taskRef.type === "presentation" &&
+          ) : null}
+          {taskRef.type === "presentation" &&
         ("task_kind" in detail ? detail.task_kind === "layout_generate" : false) ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.pptUrl")}
             value={presentationDownloadUrl || "-"}
             className="sm:col-span-2"
           />
-        ) : null}
-      </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {imageTaskErrorMessage || rawErrorMessage ? (
         <div className="rounded-xl border border-destructive/25 bg-destructive/5 p-4">

@@ -29,11 +29,18 @@ import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
+  TaskCenterEChartsTaskListItem,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
 } from "@/lib/api/taskcenter/types"
 import { getTaskCenterTaskKey } from "@/lib/api/taskcenter/types"
+import {
+  clearEChartsArticleAnalysisSession,
+  loadEChartsArticleAnalysisSession,
+  saveEChartsArticleAnalysisSession,
+  type EChartsArticleAnalysisSession,
+} from "@/lib/echarts/article-analysis-session"
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
@@ -233,6 +240,58 @@ function isArticleEditTask(task: TaskCenterTaskListItem): boolean {
   return true
 }
 
+function mapEChartsArticleAnalysisToTaskItem(
+  session: EChartsArticleAnalysisSession,
+  t: (key: string, params?: Record<string, any>) => string
+): TaskItem | null {
+  const hasTaskRefs = (session.taskRefs?.length ?? 0) > 0
+  if (session.status === "submitted" && hasTaskRefs) return null
+
+  const status =
+    session.status === "failed"
+      ? "failed"
+      : session.status === "empty"
+      ? "completed"
+      : "pending"
+
+  const description =
+    session.status === "submitting"
+      ? t("echarts.dialog.analysisTaskDescription", { count: session.maxCharts })
+      : session.status === "submitted"
+      ? t("echarts.dialog.analysisSyncingDescription")
+      : session.status === "empty"
+      ? t("echarts.dialog.noChartsDescription")
+      : session.errorMessage || t("echarts.dialog.analysisFailedDescription")
+
+  return {
+    id: `echarts-article-analysis-${session.requestId}`,
+    type: "local",
+    status,
+    label: t("echarts.dialog.articleMode"),
+    description,
+    startedAt: session.startedAt,
+    removable: session.status === "failed" || session.status === "empty",
+    originalType: "echarts",
+  }
+}
+
+function mergeTaskCenterTasks(
+  currentTasks: TaskCenterTaskListItem[],
+  incomingTasks: TaskCenterEChartsTaskListItem[]
+): TaskCenterTaskListItem[] {
+  if (incomingTasks.length === 0) return currentTasks
+
+  const nextTasks = new Map<string, TaskCenterTaskListItem>()
+  currentTasks.forEach((task) => {
+    nextTasks.set(getTaskCenterTaskKey({ id: task.id, type: task.type }), task)
+  })
+  incomingTasks.forEach((task) => {
+    nextTasks.set(getTaskCenterTaskKey({ id: task.id, type: task.type }), task)
+  })
+
+  return Array.from(nextTasks.values())
+}
+
 export function EditorAIPanel({
   articleId,
   submissionTick = 0,
@@ -258,6 +317,8 @@ export function EditorAIPanel({
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
   const [selectedEChartsText, setSelectedEChartsText] = useState("")
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
+  const [echartsArticleAnalysisSession, setEchartsArticleAnalysisSession] =
+    useState<EChartsArticleAnalysisSession | null>(null)
 
   const { tasks: liveTasks, refetch, setTasks: setLiveTasks } = useTaskCenterLiveTasks({
     article_id: articleId ?? undefined,
@@ -276,6 +337,12 @@ export function EditorAIPanel({
         .slice(0, 10),
     [deletingTaskKeys, liveTasks, t]
   )
+  const localAnalysisTasks = useMemo(() => {
+    if (!echartsArticleAnalysisSession) return []
+
+    const task = mapEChartsArticleAnalysisToTaskItem(echartsArticleAnalysisSession, t)
+    return task ? [task] : []
+  }, [echartsArticleAnalysisSession, t])
   const selectedLiveTaskFingerprint = useMemo(() => {
     if (!selectedTaskRef) return null
 
@@ -297,6 +364,41 @@ export function EditorAIPanel({
     if (submissionTick === 0) return
     void refetch({ silent: true })
   }, [refetch, submissionTick])
+
+  useEffect(() => {
+    if (typeof articleId !== "number") {
+      setEchartsArticleAnalysisSession(null)
+      return
+    }
+
+    setEchartsArticleAnalysisSession(loadEChartsArticleAnalysisSession(articleId))
+  }, [articleId])
+
+  const handleEChartsArticleAnalysisSessionChange = useCallback(
+    (session: EChartsArticleAnalysisSession | null) => {
+      setEchartsArticleAnalysisSession(session)
+
+      if (session) {
+        saveEChartsArticleAnalysisSession(session)
+        return
+      }
+
+      if (typeof articleId === "number") {
+        clearEChartsArticleAnalysisSession(articleId)
+      }
+    },
+    [articleId]
+  )
+
+  useEffect(() => {
+    if (echartsArticleAnalysisSession?.status !== "submitted") return
+
+    const timeoutId = window.setTimeout(() => {
+      handleEChartsArticleAnalysisSessionChange(null)
+    }, 45 * 1000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [echartsArticleAnalysisSession, handleEChartsArticleAnalysisSessionChange])
 
   const getSelectedEditorText = () => {
     if (typeof window === "undefined") return ""
@@ -672,10 +774,24 @@ export function EditorAIPanel({
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <EditorTaskProgress
+              localTasks={localAnalysisTasks}
               taskCenterTasks={taskCenterTasks}
               showHeader={false}
-              onRemoveTask={(task) => void handleRemoveTask(task)}
+              onRemoveTask={(task) => {
+                if (task.type === "local" && task.originalType === "echarts") {
+                  handleEChartsArticleAnalysisSessionChange(null)
+                  return
+                }
+
+                void handleRemoveTask(task)
+              }}
               onClickTask={(task: TaskItem) => {
+                if (task.type === "local" && task.originalType === "echarts") {
+                  setSelectedEChartsText("")
+                  setIsEChartsOpen(true)
+                  return
+                }
+
                 const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined
                 if (task.type !== "task-center" || !taskCenterTask) return
 
@@ -699,11 +815,23 @@ export function EditorAIPanel({
           className={
             selectedTaskRef?.type === "presentation"
               ? "flex h-[82vh] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(50vw,880px)] md:!max-w-[880px]"
+              : selectedTaskRef?.type === "echarts"
+              ? "flex max-h-[min(82vh,760px)] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(88vw,1080px)] md:!max-w-[1080px]"
               : "flex max-h-[80vh] flex-col sm:max-w-[720px]"
           }
         >
-          <DialogHeader className={selectedTaskRef?.type === "presentation" ? "shrink-0" : undefined}>
-            <DialogTitle>{t("contentWriting.taskCenter.detailTitle")}</DialogTitle>
+          <DialogHeader
+            className={
+              selectedTaskRef?.type === "presentation" || selectedTaskRef?.type === "echarts"
+                ? "shrink-0"
+                : undefined
+            }
+          >
+            <DialogTitle>
+              {selectedTaskRef?.type === "echarts"
+                ? t("contentWriting.taskCenter.taskTitles.echarts")
+                : t("contentWriting.taskCenter.detailTitle")}
+            </DialogTitle>
             <DialogDescription>
               {selectedTaskRef
                 ? t(`contentWriting.taskCenter.types.${selectedTaskRef.type}`)
@@ -723,7 +851,7 @@ export function EditorAIPanel({
             <>
               <div
                 className={
-                  selectedTaskRef.type === "presentation"
+                  selectedTaskRef.type === "presentation" || selectedTaskRef.type === "echarts"
                     ? "min-h-0 flex-1 overflow-y-auto pr-1"
                     : "min-h-0 max-h-[calc(80vh-8rem)] overflow-y-auto pr-1"
                 }
@@ -812,7 +940,12 @@ export function EditorAIPanel({
         onOpenChange={setIsEChartsOpen}
         articleId={articleId}
         selectedText={selectedEChartsText}
-        onTasksSubmitted={(taskRefs) => {
+        articleAnalysisSession={echartsArticleAnalysisSession}
+        onArticleAnalysisSessionChange={handleEChartsArticleAnalysisSessionChange}
+        onTasksSubmitted={(taskRefs, taskItems = []) => {
+          if (taskItems.length > 0) {
+            setLiveTasks((currentTasks) => mergeTaskCenterTasks(currentTasks, taskItems))
+          }
           void refetch({ silent: true })
           console.info("[EditorAIPanel] Submitted echarts tasks", {
             taskCount: taskRefs.length,

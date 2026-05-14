@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react"
 import {
+  AlertCircleIcon,
   BarChart3Icon,
+  CheckCircle2Icon,
+  Clock3Icon,
   FileTextIcon,
   Loader2Icon,
   MousePointer2Icon,
@@ -11,6 +14,7 @@ import {
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
+import { Badge } from "@/components/ui/base/badge"
 import { Label } from "@/components/ui/base/label"
 import {
   Select,
@@ -24,11 +28,16 @@ import { useToast } from "@/hooks/use-toast"
 import { echartsClient } from "@/lib/api/echarts/client"
 import type {
   EChartsLogResponse,
+  GenerateEChartsFromArticleItem,
   GenerateEChartsFromArticleResponse,
 } from "@/lib/api/echarts/types"
 import type { ErrorResponse } from "@/lib/api/types"
 import { DEFAULT_JOY_CHART_DISPLAY } from "@/lib/echarts/joy-chart-defaults"
-import type { TaskCenterTaskReference } from "@/lib/api/taskcenter/types"
+import type {
+  TaskCenterEChartsTaskListItem,
+  TaskCenterTaskReference,
+} from "@/lib/api/taskcenter/types"
+import type { EChartsArticleAnalysisSession } from "@/lib/echarts/article-analysis-session"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 
@@ -37,7 +46,12 @@ interface EChartsDialogProps {
   onOpenChange: (open: boolean) => void
   articleId?: number | null
   selectedText: string
-  onTasksSubmitted?: (taskRefs: TaskCenterTaskReference[]) => void
+  articleAnalysisSession?: EChartsArticleAnalysisSession | null
+  onArticleAnalysisSessionChange?: (session: EChartsArticleAnalysisSession | null) => void
+  onTasksSubmitted?: (
+    taskRefs: TaskCenterTaskReference[],
+    taskItems?: TaskCenterEChartsTaskListItem[]
+  ) => void
 }
 
 type ChartMode = "selection" | "article"
@@ -58,11 +72,45 @@ function getDefaultPrompt(mode: ChartMode, locale: "zh" | "en") {
     : "Generate a clear chart from the selected text for insertion into the article."
 }
 
+function createRequestId(articleId: number): string {
+  return `echarts-article-${articleId}-${Date.now()}`
+}
+
+function mapEChartsLogToTaskItem(log: EChartsLogResponse): TaskCenterEChartsTaskListItem {
+  return {
+    id: log.id,
+    type: "echarts",
+    status: log.status,
+    created_at: log.created_at,
+    details: {
+      article_id: log.article_id,
+      prompt: log.prompt,
+      chart_type: log.chart_type,
+      title: log.title,
+      schema_version: log.schema_version,
+      error_code: log.error_code,
+      error_message: log.error_message,
+      completed_at:
+        log.status === "failed" || log.status === "succeeded" ? log.updated_at : undefined,
+    },
+  }
+}
+
+function getArticleResponseLogs(
+  items: GenerateEChartsFromArticleItem[]
+): EChartsLogResponse[] {
+  return items
+    .map((item) => item.log)
+    .filter((log): log is EChartsLogResponse => Boolean(log?.id))
+}
+
 export function EChartsDialog({
   open,
   onOpenChange,
   articleId,
   selectedText,
+  articleAnalysisSession,
+  onArticleAnalysisSessionChange,
   onTasksSubmitted,
 }: EChartsDialogProps) {
   const { locale, t } = useTranslation()
@@ -74,9 +122,24 @@ export function EChartsDialog({
   const [maxCharts, setMaxCharts] = useState("3")
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const activeArticleAnalysisSession =
+    articleAnalysisSession &&
+    typeof articleId === "number" &&
+    articleAnalysisSession.articleId === articleId
+      ? articleAnalysisSession
+      : null
+  const isArticleAnalysisSubmitting = activeArticleAnalysisSession?.status === "submitting"
 
   useEffect(() => {
     if (!open) return
+
+    if (activeArticleAnalysisSession) {
+      setMode("article")
+      setMaxCharts(String(activeArticleAnalysisSession.maxCharts))
+      setSubmitting(activeArticleAnalysisSession.status === "submitting")
+      setErrorMessage(null)
+      return
+    }
 
     const nextMode: ChartMode = selectedText.trim() ? "selection" : "article"
     setMode(nextMode)
@@ -84,12 +147,24 @@ export function EChartsDialog({
     setMaxCharts("3")
     setSubmitting(false)
     setErrorMessage(null)
-  }, [locale, open, selectedText])
+  }, [activeArticleAnalysisSession, locale, open, selectedText, t])
 
   const canSubmit =
     !submitting &&
+    !isArticleAnalysisSubmitting &&
     (mode === "article" || prompt.trim().length >= 3) &&
     (mode === "selection" ? Boolean(selectedTextPreview) : typeof articleId === "number")
+
+  const handleDialogOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && isArticleAnalysisSubmitting) {
+      toast({
+        title: t("echarts.dialog.analysisKeptTitle"),
+        description: t("echarts.dialog.analysisKeptDescription"),
+      })
+    }
+
+    onOpenChange(nextOpen)
+  }
 
   const handleSelectionGenerate = async () => {
     const result = await echartsClient.generate({
@@ -102,7 +177,7 @@ export function EChartsDialog({
       throw new Error(result.error)
     }
 
-    onTasksSubmitted?.([{ id: result.id, type: "echarts" }])
+    onTasksSubmitted?.([{ id: result.id, type: "echarts" }], [mapEChartsLogToTaskItem(result)])
     toast({
       title: t("echarts.dialog.selectionSubmittedTitle"),
       description: t("echarts.dialog.selectionSubmittedDescription"),
@@ -114,25 +189,59 @@ export function EChartsDialog({
       throw new Error(t("echarts.dialog.articleRequired"))
     }
 
-    const result = await echartsClient.generateFromArticle({
-      article_id: articleId,
-      max_charts: Number(maxCharts),
-      display: DEFAULT_JOY_CHART_DISPLAY,
-    })
+    const startedAt = Date.now()
+    const pendingSession: EChartsArticleAnalysisSession = {
+      requestId: createRequestId(articleId),
+      articleId,
+      maxCharts: Number(maxCharts),
+      status: "submitting",
+      startedAt,
+      updatedAt: startedAt,
+    }
+    onArticleAnalysisSessionChange?.(pendingSession)
+
+    let result: GenerateEChartsFromArticleResponse | ErrorResponse
+    try {
+      result = await echartsClient.generateFromArticle({
+        article_id: articleId,
+        max_charts: Number(maxCharts),
+        display: DEFAULT_JOY_CHART_DISPLAY,
+      })
+    } catch (error) {
+      onArticleAnalysisSessionChange?.({
+        ...pendingSession,
+        status: "failed",
+        updatedAt: Date.now(),
+        errorMessage: error instanceof Error ? error.message : t("common.unknownError"),
+      })
+      throw error
+    }
 
     if (isErrorResponse(result)) {
+      onArticleAnalysisSessionChange?.({
+        ...pendingSession,
+        status: "failed",
+        updatedAt: Date.now(),
+        errorMessage: result.error,
+      })
       throw new Error(result.error)
     }
 
     const response = result as GenerateEChartsFromArticleResponse
-    const taskRefs = response.items
-      .map((item) => item.log)
-      .filter((log): log is EChartsLogResponse => Boolean(log?.id))
-      .map((log) => ({ id: log.id, type: "echarts" as const }))
+    const logs = getArticleResponseLogs(response.items)
+    const taskRefs = logs.map((log) => ({ id: log.id, type: "echarts" as const }))
+    const taskItems = logs.map(mapEChartsLogToTaskItem)
 
-    onTasksSubmitted?.(taskRefs)
+    onTasksSubmitted?.(taskRefs, taskItems)
 
     if (response.total === 0) {
+      onArticleAnalysisSessionChange?.({
+        ...pendingSession,
+        status: "empty",
+        updatedAt: Date.now(),
+        total: 0,
+        taskRefs,
+      })
       toast({
         title: t("echarts.dialog.noChartsTitle"),
         description: t("echarts.dialog.noChartsDescription"),
@@ -140,6 +249,13 @@ export function EChartsDialog({
       return
     }
 
+    onArticleAnalysisSessionChange?.({
+      ...pendingSession,
+      status: "submitted",
+      updatedAt: Date.now(),
+      total: response.total,
+      taskRefs,
+    })
     toast({
       title: t("echarts.dialog.articleSubmittedTitle"),
       description: t("echarts.dialog.articleSubmittedDescription", { count: response.total }),
@@ -159,26 +275,100 @@ export function EChartsDialog({
       }
 
       await handleArticleGenerate()
-      onOpenChange(false)
     } catch (error) {
       console.error("[EChartsDialog] Failed to generate chart", {
         mode,
         articleId,
         error,
       })
-      setErrorMessage(error instanceof Error ? error.message : t("common.unknownError"))
+      setErrorMessage(
+        mode === "article"
+          ? null
+          : error instanceof Error
+          ? error.message
+          : t("common.unknownError")
+      )
     } finally {
       setSubmitting(false)
     }
   }
 
+  const articleStatusBlock = (() => {
+    if (mode !== "article" || !activeArticleAnalysisSession) return null
+
+    const status = activeArticleAnalysisSession.status
+    const isFailed = status === "failed"
+    const isEmpty = status === "empty"
+    const isSubmitted = status === "submitted"
+    const Icon = isFailed ? AlertCircleIcon : isEmpty || isSubmitted ? CheckCircle2Icon : Clock3Icon
+
+    return (
+      <div
+        className={cn(
+          "rounded-xl border p-4",
+          isFailed
+            ? "border-destructive/30 bg-destructive/5"
+            : isSubmitted || isEmpty
+            ? "border-emerald-200 bg-emerald-50/70 text-emerald-950"
+            : "border-primary/20 bg-primary/5"
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className={cn(
+              "mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+              isFailed
+                ? "bg-destructive/10 text-destructive"
+                : isSubmitted || isEmpty
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-primary/10 text-primary"
+            )}
+          >
+            <Icon className={cn("h-4 w-4", status === "submitting" && "animate-pulse")} />
+          </span>
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold">
+                {status === "submitting"
+                  ? t("echarts.dialog.analysisSubmittingTitle")
+                  : status === "submitted"
+                  ? t("echarts.dialog.analysisSubmittedInlineTitle")
+                  : status === "empty"
+                  ? t("echarts.dialog.noChartsTitle")
+                  : t("echarts.dialog.analysisFailedTitle")}
+              </p>
+              <Badge variant="outline" className="bg-background/80">
+                {t("echarts.dialog.maxChartsValue", {
+                  count: activeArticleAnalysisSession.maxCharts,
+                })}
+              </Badge>
+            </div>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {status === "submitting"
+                ? t("echarts.dialog.analysisSubmittingDescription")
+                : status === "submitted"
+                ? t("echarts.dialog.analysisSubmittedInlineDescription", {
+                    count: activeArticleAnalysisSession.total ?? 0,
+                  })
+                : status === "empty"
+                ? t("echarts.dialog.noChartsDescription")
+                : activeArticleAnalysisSession.errorMessage ||
+                  t("echarts.dialog.analysisFailedDescription")}
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  })()
+
   return (
     <AIFeatureDialogShell
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleDialogOpenChange}
       title={t("echarts.dialog.title")}
       icon={<BarChart3Icon className="h-5 w-5 text-primary" />}
       size="large"
+      contentClassName="w-[calc(100vw-2rem)] sm:w-[min(92vw,860px)] sm:max-w-[860px] lg:max-w-[860px] xl:max-w-[860px]"
       footer={
         <Button type="button" onClick={handleSubmit} disabled={!canSubmit}>
           {submitting ? <Loader2Icon className="h-4 w-4 animate-spin" /> : <SparklesIcon className="h-4 w-4" />}
@@ -186,16 +376,16 @@ export function EChartsDialog({
         </Button>
       }
     >
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <div className="grid gap-2 sm:grid-cols-2">
           <button
             type="button"
             className={cn(
-              "flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
+              "flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
               mode === "selection" ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/40",
-              !selectedTextPreview && "cursor-not-allowed opacity-50"
+              (!selectedTextPreview || isArticleAnalysisSubmitting) && "cursor-not-allowed opacity-50"
             )}
-            disabled={!selectedTextPreview}
+            disabled={!selectedTextPreview || isArticleAnalysisSubmitting}
             onClick={() => setMode("selection")}
           >
             <MousePointer2Icon className="h-5 w-5 text-primary" />
@@ -207,7 +397,7 @@ export function EChartsDialog({
           <button
             type="button"
             className={cn(
-              "flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
+              "flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
               mode === "article" ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/40"
             )}
             onClick={() => setMode("article")}
@@ -238,20 +428,33 @@ export function EChartsDialog({
             </div>
           </>
         ) : (
-          <div className="mt-5 space-y-2">
-            <Label>{t("echarts.dialog.maxCharts")}</Label>
-            <Select value={maxCharts} onValueChange={setMaxCharts}>
-              <SelectTrigger className="w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 5, 8].map((count) => (
-                  <SelectItem key={count} value={String(count)}>
-                    {count}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mt-5 space-y-4">
+            {articleStatusBlock}
+
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Label>{t("echarts.dialog.maxCharts")}</Label>
+                <Select
+                  value={maxCharts}
+                  onValueChange={setMaxCharts}
+                  disabled={isArticleAnalysisSubmitting}
+                >
+                  <SelectTrigger className="h-9 w-32 bg-background">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 5, 8].map((count) => (
+                      <SelectItem key={count} value={String(count)}>
+                        {count}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                {t("echarts.dialog.articleAnalysisHint")}
+              </p>
+            </div>
           </div>
         )}
 

@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
-export type TaskType = "image-generation" | "task-center"
+export type TaskType = "image-generation" | "task-center" | "local"
 export type TaskStatus = "pending" | "completed" | "failed"
 
 export interface TaskItem {
@@ -34,6 +34,7 @@ export interface TaskItem {
 
 interface EditorTaskProgressProps {
   imageGenerationTasks?: TaskItem[]
+  localTasks?: TaskItem[]
   taskCenterTasks?: TaskItem[]
   showHeader?: boolean
   onRemoveTask: (task: TaskItem) => void
@@ -76,7 +77,10 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
   const { t } = useTranslation()
 
   const isDone = task.status === "completed" || task.status === "failed"
-  const canDelete = isDone && task.removable !== false && task.type === "task-center"
+  const canDelete =
+    isDone &&
+    task.removable !== false &&
+    (task.type === "task-center" || task.type === "local")
 
   const statusIcon = () => {
     if (task.status === "completed") {
@@ -164,10 +168,17 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 }
 
 export function EditorTaskProgress(props: EditorTaskProgressProps) {
-  const { imageGenerationTasks = [], taskCenterTasks, showHeader = true, onRemoveTask, onClickTask } = props
+  const {
+    imageGenerationTasks = [],
+    localTasks = [],
+    taskCenterTasks,
+    showHeader = true,
+    onRemoveTask,
+    onClickTask,
+  } = props
   const { t } = useTranslation()
 
-  const allTasks: TaskItem[] = [...imageGenerationTasks, ...(taskCenterTasks || [])]
+  const allTasks: TaskItem[] = [...localTasks, ...imageGenerationTasks, ...(taskCenterTasks || [])]
   allTasks.sort((a, b) => b.startedAt - a.startedAt)
 
   const [, setTick] = useState(0)

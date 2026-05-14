@@ -69,7 +69,7 @@ export function JoyfulThemeSwitcher({
     <Button
       variant="ghost"
       size={variant === "icon" ? "icon" : "sm"}
-      className={cn(
+        className={cn(
         "jw-theme-trigger rounded-full text-[var(--jw-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]",
         variant === "icon" ? "h-9 w-9" : "h-9 gap-2 px-3",
         className
@@ -81,7 +81,9 @@ export function JoyfulThemeSwitcher({
           <span className="text-sm">
             {t(`common.themeSwitcher.${activeTheme.labelKey}` as any)}
           </span>
-          <span className={cn("h-2.5 w-2.5 rounded-full", activeTheme.swatchClassName)} />
+          <span className="jw-theme-swatch-track">
+            <span className={cn("jw-theme-swatch h-2.5 w-2.5 rounded-full", activeTheme.swatchClassName)} />
+          </span>
         </>
       ) : null}
     </Button>

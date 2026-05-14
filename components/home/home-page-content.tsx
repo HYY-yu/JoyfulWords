@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -68,11 +68,30 @@ const featureIcons = {
   competitors: SearchCheckIcon,
 } as const
 
+const workflowStepKeys = ["collect", "draft", "visual", "publish"] as const
+
+const workflowStepIcons = {
+  collect: LibraryBigIcon,
+  draft: WandSparklesIcon,
+  visual: ImagePlusIcon,
+  publish: PanelTopIcon,
+} as const
+
+const ctaSignalKeys = ["material", "outline", "image", "presentation"] as const
+
 export function HomePageContent() {
   const router = useRouter()
   const { t, locale } = useTranslation()
   const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
+  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0)
+  const [spritePosition, setSpritePosition] = useState({
+    x: 0,
+    y: 0,
+    facing: 1,
+    visible: false,
+  })
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const featuresStageRef = useRef<HTMLDivElement | null>(null)
   const blogHref = buildLocalizedPath(locale, "/blog")
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
@@ -82,6 +101,19 @@ export function HomePageContent() {
     { value: t("landing.stats.tools"), label: t("landing.stats.toolsLabel") },
     { value: t("landing.stats.seo"), label: t("landing.stats.seoLabel") },
   ]
+  const workflowSteps = workflowStepKeys.map((key) => {
+    const Icon = workflowStepIcons[key]
+    return {
+      key,
+      Icon,
+      title: t(`landing.workflow.steps.${key}.title`),
+      meta: t(`landing.workflow.steps.${key}.meta`),
+    }
+  })
+  const ctaSignals = ctaSignalKeys.map((key) => ({
+    key,
+    label: t(`landing.ctaVisual.signals.${key}`),
+  }))
   const privacyPolicyHref = buildLocalizedPath(locale, "/privacy-policy")
   const termsOfUseHref = buildLocalizedPath(locale, "/terms-of-use")
 
@@ -90,6 +122,19 @@ export function HomePageContent() {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        const activeEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => {
+            const aDistance = Math.abs(a.boundingClientRect.top + a.boundingClientRect.height / 2 - window.innerHeight * 0.48)
+            const bDistance = Math.abs(b.boundingClientRect.top + b.boundingClientRect.height / 2 - window.innerHeight * 0.48)
+            return aDistance - bDistance
+          })[0]
+
+        if (activeEntry) {
+          const index = Number(activeEntry.target.getAttribute("data-feature-index") ?? 0)
+          setActiveFeatureIndex(index)
+        }
+
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return
 
@@ -100,13 +145,11 @@ export function HomePageContent() {
             if (current[key]) return current
             return { ...current, [key]: true }
           })
-
-          observer.unobserve(entry.target)
         })
       },
       {
-        threshold: 0.35,
-        rootMargin: "0px 0px -12% 0px",
+        threshold: 0.42,
+        rootMargin: "-22% 0px -38% 0px",
       }
     )
 
@@ -114,6 +157,33 @@ export function HomePageContent() {
 
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    const stage = featuresStageRef.current
+    if (!stage) return
+
+    const updateSpritePosition = () => {
+      const title = stage.querySelector<HTMLElement>(`[data-feature-title="${activeFeatureIndex}"]`)
+      if (!title) return
+
+      const stageRect = stage.getBoundingClientRect()
+      const titleRect = title.getBoundingClientRect()
+      const x = titleRect.right - stageRect.left + 34
+      const y = titleRect.top - stageRect.top + titleRect.height * 0.1
+
+      setSpritePosition({
+        x,
+        y,
+        facing: 1,
+        visible: true,
+      })
+    }
+
+    updateSpritePosition()
+    window.addEventListener("resize", updateSpritePosition)
+
+    return () => window.removeEventListener("resize", updateSpritePosition)
+  }, [activeFeatureIndex, locale])
 
   return (
     <div className="jw-app-shell overflow-x-hidden">
@@ -307,53 +377,73 @@ export function HomePageContent() {
             </div>
           </div>
 
-          <div className="animate-fade-up animate-delay-2 relative mx-auto w-full max-w-xl">
-            <div className="absolute -left-4 top-10 h-20 w-20 rounded-full bg-[#ffd66b]/40 blur-2xl" />
-            <div className="absolute -right-4 bottom-12 h-24 w-24 rounded-full bg-teal-300/25 blur-2xl" />
-            <div className="jw-surface-card relative overflow-hidden rounded-[28px] border p-4 backdrop-blur">
-              <div className="jw-surface-muted rounded-2xl border p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]">
-                      <FilePenLineIcon className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold">Article Canvas</p>
-                      <p className="jw-muted-text text-xs">Material → Draft → Visual</p>
-                    </div>
+          <div className="animate-fade-up animate-delay-2 relative mx-auto w-full max-w-xl lg:max-w-[39rem]">
+            <div className="jw-ambient-orb absolute -left-8 top-12 h-24 w-24 rounded-full bg-[#ffd66b]/45 blur-2xl" />
+            <div className="jw-ambient-orb jw-ambient-orb-late absolute -right-6 bottom-12 h-28 w-28 rounded-full bg-teal-300/30 blur-2xl" />
+            <div className="jw-workspace-card jw-surface-card relative overflow-hidden rounded-[28px] border p-5 backdrop-blur">
+              <div className="jw-workspace-sheen pointer-events-none absolute inset-x-0 top-0 h-px" />
+              <div className="relative mb-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)]">
+                    <FilePenLineIcon className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-base font-semibold text-[var(--jw-heading)]">{t("landing.workflow.title")}</p>
+                    <p className="jw-muted-text text-sm">{t("landing.workflow.subtitle")}</p>
                   </div>
-                  <span className="rounded-full bg-[var(--jw-accent-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--jw-accent)]">
-                    Live
+                </div>
+                <span className="jw-live-pill rounded-full bg-[var(--jw-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--jw-accent)]">
+                  {t("landing.workflow.live")}
+                </span>
+              </div>
+
+              <div className="jw-article-stage relative overflow-hidden rounded-2xl border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-5">
+                <div className="jw-stage-grid pointer-events-none absolute inset-0" />
+                <div className="relative flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--jw-accent)]">
+                      {t("landing.workflow.canvasLabel")}
+                    </p>
+                    <h3 className="mt-2 max-w-[18rem] text-2xl font-semibold leading-tight text-[var(--jw-heading)]">
+                      {t("landing.workflow.canvasTitle")}
+                    </h3>
+                  </div>
+                  <span className="rounded-full border border-[var(--jw-border)] bg-[var(--jw-surface-muted)] px-3 py-1 text-xs text-[var(--jw-muted)]">
+                    {t("landing.workflow.canvasStatus")}
                   </span>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-[0.9fr_1.1fr]">
-                  <div className="space-y-3">
-                    {[
-                      { icon: LibraryBigIcon, label: t("landing.features.materialSearch.title"), color: "bg-[#dcfce7] text-emerald-700" },
-                      { icon: WandSparklesIcon, label: t("landing.features.aiWriting.title"), color: "bg-[#fef3c7] text-amber-700" },
-                      { icon: ImagePlusIcon, label: t("landing.features.imageGen.title"), color: "bg-[#fce7f3] text-pink-700" },
-                    ].map((item) => {
-                      const Icon = item.icon
-                      return (
-                        <div key={item.label} className="jw-surface-strong flex items-center gap-3 rounded-xl border p-3">
-                          <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${item.color}`}>
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <span className="text-sm font-medium text-[var(--jw-heading)]">{item.label}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div className="jw-surface-strong rounded-xl border p-4">
-                    <div className="mb-3 h-3 w-2/3 rounded-full bg-[var(--jw-border)]" />
-                    <div className="space-y-2">
-                      <div className="h-2.5 rounded-full bg-[var(--jw-surface-muted)]" />
-                      <div className="h-2.5 w-10/12 rounded-full bg-[var(--jw-surface-muted)]" />
-                      <div className="h-2.5 w-8/12 rounded-full bg-[var(--jw-surface-muted)]" />
-                    </div>
-                    <div className="mt-5 rounded-lg border-l-4 border-[var(--jw-accent)] bg-[var(--jw-accent-soft)] p-3 text-sm text-[var(--jw-heading)]">
-                      {t("landing.featuresSubheading")}
+                <div className="relative mt-7 max-w-[88%] space-y-3">
+                  <div className="jw-live-line h-2.5 w-full rounded-full" />
+                  <div className="jw-live-line h-2.5 w-11/12 rounded-full" />
+                  <div className="jw-live-line h-2.5 w-7/12 rounded-full" />
+                </div>
+
+                <div className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {workflowSteps.map((step, index) => {
+                    const Icon = step.Icon
+                    return (
+                      <div
+                        key={step.key}
+                        className="jw-workflow-step rounded-xl border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-muted)] px-3 py-3"
+                        style={{ animationDelay: `${index * 0.28}s` }}
+                      >
+                        <Icon className="mb-2 h-4 w-4 text-[var(--jw-accent)]" />
+                        <div className="truncate text-sm font-semibold text-[var(--jw-heading)]">{step.title}</div>
+                        <div className="jw-muted-text mt-0.5 truncate text-[11px]">{step.meta}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="jw-insight-card relative mt-4 rounded-xl border border-[var(--jw-border-subtle)] bg-[var(--jw-accent-soft)] p-3 text-sm text-[var(--jw-heading)]">
+                  <div className="flex items-start gap-2">
+                    <SparklesIcon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--jw-accent)]" />
+                    <div>
+                      <div className="font-semibold">{t("landing.workflow.insightTitle")}</div>
+                      <p className="jw-muted-text mt-1 text-xs leading-5">
+                        {t("landing.workflow.insight")}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -365,7 +455,7 @@ export function HomePageContent() {
 
       <section
         id="features"
-        className="border-t border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-6 py-24 md:px-10"
+        className="jw-features-section px-6 py-20 md:px-10 md:py-24"
       >
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 max-w-2xl">
@@ -377,7 +467,34 @@ export function HomePageContent() {
             </p>
           </div>
 
-          <div className="relative space-y-10 md:space-y-14">
+          <div ref={featuresStageRef} className="relative space-y-10 overflow-visible md:space-y-14">
+            <div
+              aria-hidden="true"
+              className={`jw-feature-sprite hidden md:block ${spritePosition.visible ? "opacity-100" : "opacity-0"}`}
+              style={{
+                transform: `translate3d(${spritePosition.x}px, ${spritePosition.y}px, 0)`,
+              }}
+            >
+              <div className="jw-feature-sprite-shadow" />
+              <div
+                className="jw-feature-sprite-body"
+                style={{ transform: `scaleX(${spritePosition.facing})` }}
+              >
+                <div className="jw-feature-sprite-hop">
+                  <div className="jw-feature-sprite-page">
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                  <div className="jw-feature-sprite-pencil">
+                    <span />
+                  </div>
+                  <div className="jw-feature-sprite-spark">
+                    <SparklesIcon className="h-3.5 w-3.5" />
+                  </div>
+                </div>
+              </div>
+            </div>
             {featureKeys.map((feature, index) => {
                 const isVisible = Boolean(visibleFeatures[feature.key])
                 const isRightAligned = index % 2 === 1
@@ -392,6 +509,7 @@ export function HomePageContent() {
                 return (
                   <article
                     key={feature.key}
+                    data-feature-index={index}
                     data-feature-key={feature.key}
                     className={`group relative overflow-visible bg-transparent px-2 py-2 transition duration-500 ${articleOffsetClass}`}
                   >
@@ -423,7 +541,10 @@ export function HomePageContent() {
                           })()}
                           <span>{t(`landing.features.${feature.key}.eyebrow`)}</span>
                         </div>
-                        <h3 className="max-w-[16ch] font-serif text-4xl leading-[0.95] tracking-[-0.04em] md:text-6xl lg:text-7xl">
+                        <h3
+                          data-feature-title={index}
+                          className="max-w-[16ch] font-serif text-4xl leading-[0.95] tracking-[-0.04em] md:text-6xl lg:text-7xl"
+                        >
                           {t(`landing.features.${feature.key}.title`)}
                         </h3>
                         <p
@@ -445,25 +566,76 @@ export function HomePageContent() {
         </div>
       </section>
 
-      <section className="jw-cta-band relative mx-4 my-16 overflow-hidden rounded-[28px] border px-6 py-20 text-center shadow-[var(--jw-card-shadow)] md:mx-10 md:px-16">
-        <div className="pointer-events-none absolute inset-0 opacity-80" />
-        <div className="relative">
-          <h2 className="mb-4 font-serif text-5xl tracking-tight text-[var(--jw-cta-text)]">
-            {t("landing.ctaHeading")}
-          </h2>
-          <p className="mb-9 text-base text-[var(--jw-cta-text)] opacity-75">
-            {t("landing.ctaSubtitle")}
-          </p>
-          <Button
-            size="lg"
-            className="rounded-full bg-[var(--jw-surface-strong)] text-[var(--jw-heading)] hover:bg-white"
-            asChild
-          >
-            <Link href="/articles">
-              {t("landing.ctaCta")}
-              <ArrowRightIcon className="h-4 w-4" />
-            </Link>
-          </Button>
+      <section id="start-writing" className="jw-cta-band relative mx-4 my-16 overflow-hidden rounded-[28px] border px-6 py-16 shadow-[var(--jw-card-shadow)] md:mx-10 md:px-12 lg:px-16">
+        <div className="jw-cta-grid pointer-events-none absolute inset-0" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[0.88fr_1.12fr]">
+          <div className="text-left">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold text-[var(--jw-cta-text)]">
+              <SparklesIcon className="h-4 w-4" />
+              {t("landing.ctaVisual.badge")}
+            </div>
+            <h2 className="mb-4 max-w-xl font-serif text-4xl leading-tight tracking-tight text-[var(--jw-cta-text)] sm:text-5xl">
+              {t("landing.ctaHeading")}
+            </h2>
+            <p className="mb-8 max-w-lg text-base leading-7 text-[var(--jw-cta-text)] opacity-75">
+              {t("landing.ctaSubtitle")}
+            </p>
+            <Button
+              size="lg"
+              className="rounded-full bg-[var(--jw-surface-strong)] px-6 text-[var(--jw-heading)] hover:bg-white"
+              asChild
+            >
+              <Link href="/articles">
+                {t("landing.ctaCta")}
+                <ArrowRightIcon className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="relative">
+            <div className="jw-cta-orbit pointer-events-none absolute -inset-5 rounded-[30px]" />
+            <div className="jw-cta-showcase relative rounded-[24px] border border-white/15 bg-white/10 p-5 text-[var(--jw-cta-text)] backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">
+                    {t("landing.ctaVisual.label")}
+                  </p>
+                  <h3 className="mt-1 text-xl font-semibold">
+                    {t("landing.ctaVisual.title")}
+                  </h3>
+                </div>
+                <span className="jw-live-pill rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">
+                  {t("landing.workflow.live")}
+                </span>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {ctaSignals.map((signal, index) => (
+                  <div
+                    key={signal.key}
+                    className="jw-cta-signal flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-4 py-3"
+                    style={{ animationDelay: `${index * 0.12}s` }}
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <span className="h-2 w-2 rounded-full bg-[#ffd66b]" />
+                      {signal.label}
+                    </span>
+                    <span className="font-mono text-xs opacity-70">{String(index + 1).padStart(2, "0")}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-7 rounded-2xl border border-white/10 bg-black/10 p-4">
+                <div className="mb-3 flex justify-between text-xs opacity-75">
+                  <span>{t("landing.ctaVisual.progressLabel")}</span>
+                  <span>{t("landing.ctaVisual.progressValue")}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                  <div className="jw-cta-progress h-full rounded-full bg-[#ffd66b]" />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

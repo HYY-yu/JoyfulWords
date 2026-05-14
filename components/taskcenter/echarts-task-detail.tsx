@@ -68,7 +68,7 @@ function SettingRow({
   children: ReactNode
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+    <div className="flex min-h-9 items-center justify-between gap-3 rounded-lg bg-background/45 px-3 py-1">
       <Label className="text-xs font-medium text-foreground/80">{label}</Label>
       <div className="shrink-0">{children}</div>
     </div>
@@ -239,238 +239,277 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
     }
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
+  const chartPreview = currentSpec ? (
+    <div className="overflow-hidden rounded-xl border border-border/70 bg-background p-2.5 shadow-sm">
+      <div className="h-[320px] rounded-lg bg-white sm:h-[360px]">
+        <JoyChartRenderer ref={rendererRef} spec={currentSpec} />
+      </div>
+    </div>
+  ) : (
+    <div className="flex h-[300px] items-center justify-center rounded-xl border border-dashed bg-muted/30 px-6 text-center text-sm leading-6 text-muted-foreground">
+      {detail.status === "pending" || detail.status === "processing"
+        ? t("echarts.taskDetail.waiting")
+        : t("echarts.chart.emptySpec")}
+    </div>
+  )
+
+  const settingsPanel = spec ? (
+    <div className="rounded-xl border border-border/60 bg-muted/15 p-2 shadow-[0_12px_28px_-26px_rgba(0,0,0,0.35)]">
+      <div className="mb-2 flex items-start justify-between gap-3 px-1.5 pt-0.5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <BarChart3Icon className="h-4 w-4 text-primary" />
-            <h3 className="truncate text-sm font-semibold">
-              {detail.title || spec?.chart.title || t("echarts.chart.untitled")}
-            </h3>
-          </div>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-            {detail.prompt}
+          <p className="text-sm font-semibold text-foreground">
+            {t("echarts.taskDetail.displaySettings")}
+          </p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {t("echarts.taskDetail.displaySettingsHint")}
           </p>
         </div>
-        <Badge variant="outline">
-          {chartType || t("echarts.types.unknown")}
-        </Badge>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setDraftDisplay(mergeJoyChartDisplay(spec.display))}
+          >
+            <RefreshCwIcon className="h-3.5 w-3.5" />
+            {t("echarts.actions.reset")}
+          </Button>
+          <Button type="button" size="sm" onClick={handleSaveDisplay} disabled={saving}>
+            {saving ? <Loader2Icon className="h-3.5 w-3.5 animate-spin" /> : <SaveIcon className="h-3.5 w-3.5" />}
+            {t("common.save")}
+          </Button>
+        </div>
       </div>
 
-      {detail.status === "failed" ? (
-        <Alert variant="destructive">
-          <AlertCircleIcon className="h-4 w-4" />
-          <AlertDescription>
-            {detail.error_message || detail.error || t("echarts.taskDetail.failed")}
-          </AlertDescription>
-        </Alert>
-      ) : null}
+      <div className="grid gap-1 rounded-lg bg-background/25 p-1">
+        <SettingRow label={t("echarts.display.theme")}>
+          <Select
+            value={draftDisplay.style?.theme ?? "vintage"}
+            onValueChange={(value) => updateDraft({ style: { theme: value } })}
+          >
+            <SelectTrigger className="h-8 w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {JOY_CHART_THEME_OPTIONS.map((themeOption) => (
+                <SelectItem key={themeOption} value={themeOption}>
+                  {t(`echarts.themes.${themeOption}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <SettingRow label={t("echarts.display.sort")}>
+          <Select
+            value={draftDisplay.layout?.sort ?? "none"}
+            onValueChange={(value) => updateDraft({ layout: { sort: value as "none" | "asc" | "desc" } })}
+          >
+            <SelectTrigger className="h-8 w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t("echarts.sort.none")}</SelectItem>
+              <SelectItem value="asc">{t("echarts.sort.asc")}</SelectItem>
+              <SelectItem value="desc">{t("echarts.sort.desc")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingRow>
+        <SettingRow label={t("echarts.display.legend")}>
+          <Switch
+            checked={draftDisplay.legend ?? true}
+            onCheckedChange={(checked) => updateDraft({ legend: checked })}
+          />
+        </SettingRow>
+        <SettingRow label={t("echarts.display.label")}>
+          <Switch
+            checked={draftDisplay.label ?? false}
+            onCheckedChange={(checked) => updateDraft({ label: checked })}
+          />
+        </SettingRow>
+        <SettingRow label={t("echarts.display.grid")}>
+          <Switch
+            checked={draftDisplay.axis?.showGrid ?? true}
+            onCheckedChange={(checked) => updateDraft({ axis: { showGrid: checked } })}
+          />
+        </SettingRow>
+      </div>
 
-      {currentSpec ? (
-        <div className="overflow-hidden rounded-lg border bg-background p-3">
-          <div className="h-[320px] rounded-md bg-white">
-            <JoyChartRenderer ref={rendererRef} spec={currentSpec} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex h-48 items-center justify-center rounded-lg border bg-muted/30 text-sm text-muted-foreground">
-          {detail.status === "pending" || detail.status === "processing"
-            ? t("echarts.taskDetail.waiting")
-            : t("echarts.chart.emptySpec")}
-        </div>
-      )}
-
-      {spec ? (
-        <div className="rounded-lg border bg-muted/20 p-3">
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <SettingRow label={t("echarts.display.theme")}>
-              <Select
-                value={draftDisplay.style?.theme ?? "vintage"}
-                onValueChange={(value) => updateDraft({ style: { theme: value } })}
-              >
-                <SelectTrigger className="h-8 w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {JOY_CHART_THEME_OPTIONS.map((themeOption) => (
-                    <SelectItem key={themeOption} value={themeOption}>
-                      {t(`echarts.themes.${themeOption}`)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label={t("echarts.display.sort")}>
-              <Select
-                value={draftDisplay.layout?.sort ?? "none"}
-                onValueChange={(value) => updateDraft({ layout: { sort: value as "none" | "asc" | "desc" } })}
-              >
-                <SelectTrigger className="h-8 w-28">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t("echarts.sort.none")}</SelectItem>
-                  <SelectItem value="asc">{t("echarts.sort.asc")}</SelectItem>
-                  <SelectItem value="desc">{t("echarts.sort.desc")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </SettingRow>
-            <SettingRow label={t("echarts.display.legend")}>
-              <Switch
-                checked={draftDisplay.legend ?? true}
-                onCheckedChange={(checked) => updateDraft({ legend: checked })}
-              />
-            </SettingRow>
-            <SettingRow label={t("echarts.display.label")}>
-              <Switch
-                checked={draftDisplay.label ?? false}
-                onCheckedChange={(checked) => updateDraft({ label: checked })}
-              />
-            </SettingRow>
-            <SettingRow label={t("echarts.display.grid")}>
-              <Switch
-                checked={draftDisplay.axis?.showGrid ?? true}
-                onCheckedChange={(checked) => updateDraft({ axis: { showGrid: checked } })}
-              />
-            </SettingRow>
-          </div>
-
-          {chartType === "bar" ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <SettingRow label={t("echarts.display.orientation")}>
-                <Select
-                  value={draftDisplay.layout?.orientation ?? "vertical"}
-                  onValueChange={(value) =>
-                    updateDraft({ layout: { orientation: value as "vertical" | "horizontal" } })
-                  }
-                >
-                  <SelectTrigger className="h-8 w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="vertical">{t("echarts.orientation.vertical")}</SelectItem>
-                    <SelectItem value="horizontal">{t("echarts.orientation.horizontal")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </SettingRow>
-              <SettingRow label={t("echarts.display.stack")}>
-                <Switch
-                  checked={draftDisplay.layout?.stack ?? false}
-                  onCheckedChange={(checked) => updateDraft({ layout: { stack: checked } })}
-                />
-              </SettingRow>
-              <SettingRow label={t("echarts.display.radius")}>
-                <div className="w-32">
-                  <Slider
-                    value={[draftDisplay.bar?.borderRadius ?? 6]}
-                    min={0}
-                    max={18}
-                    step={1}
-                    onValueChange={([value]) => updateDraft({ bar: { borderRadius: value } })}
-                  />
-                </div>
-              </SettingRow>
-              <SettingRow label={t("echarts.display.barWidth")}>
-                <div className="w-32">
-                  <Slider
-                    value={[draftDisplay.bar?.barWidth ?? 54]}
-                    min={12}
-                    max={80}
-                    step={2}
-                    onValueChange={([value]) => updateDraft({ bar: { barWidth: value } })}
-                  />
-                </div>
-              </SettingRow>
-            </div>
-          ) : null}
-
-          {chartType === "line" ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <SettingRow label={t("echarts.display.smooth")}>
-                <Switch
-                  checked={draftDisplay.line?.smooth ?? false}
-                  onCheckedChange={(checked) => updateDraft({ line: { smooth: checked } })}
-                />
-              </SettingRow>
-              <SettingRow label={t("echarts.display.area")}>
-                <Switch
-                  checked={draftDisplay.line?.area ?? false}
-                  onCheckedChange={(checked) => updateDraft({ line: { area: checked } })}
-                />
-              </SettingRow>
-              <SettingRow label={t("echarts.display.symbol")}>
-                <Switch
-                  checked={draftDisplay.line?.symbol ?? true}
-                  onCheckedChange={(checked) => updateDraft({ line: { symbol: checked } })}
-                />
-              </SettingRow>
-            </div>
-          ) : null}
-
-          {chartType === "pie" ? (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              <SettingRow label={t("echarts.display.donut")}>
-                <Switch
-                  checked={draftDisplay.pie?.donut ?? false}
-                  onCheckedChange={(checked) => updateDraft({ pie: { donut: checked } })}
-                />
-              </SettingRow>
-              <SettingRow label={t("echarts.display.rose")}>
-                <Switch
-                  checked={draftDisplay.pie?.rose ?? false}
-                  onCheckedChange={(checked) => updateDraft({ pie: { rose: checked } })}
-                />
-              </SettingRow>
-              <SettingRow label={t("echarts.display.percent")}>
-                <Switch
-                  checked={draftDisplay.pie?.showPercent ?? true}
-                  onCheckedChange={(checked) => updateDraft({ pie: { showPercent: checked } })}
-                />
-              </SettingRow>
-            </div>
-          ) : null}
-
-          <div className="mt-4 flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setDraftDisplay(mergeJoyChartDisplay(spec.display))}
+      {chartType === "bar" ? (
+        <div className="mt-1 grid gap-1 rounded-lg bg-background/25 p-1">
+          <SettingRow label={t("echarts.display.orientation")}>
+            <Select
+              value={draftDisplay.layout?.orientation ?? "vertical"}
+              onValueChange={(value) =>
+                updateDraft({ layout: { orientation: value as "vertical" | "horizontal" } })
+              }
             >
-              <RefreshCwIcon className="h-3.5 w-3.5" />
-              {t("echarts.actions.reset")}
-            </Button>
-            <Button type="button" size="sm" onClick={handleSaveDisplay} disabled={saving}>
-              {saving ? <Loader2Icon className="h-3.5 w-3.5 animate-spin" /> : <SaveIcon className="h-3.5 w-3.5" />}
-              {t("common.save")}
-            </Button>
-          </div>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vertical">{t("echarts.orientation.vertical")}</SelectItem>
+                <SelectItem value="horizontal">{t("echarts.orientation.horizontal")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+          <SettingRow label={t("echarts.display.stack")}>
+            <Switch
+              checked={draftDisplay.layout?.stack ?? false}
+              onCheckedChange={(checked) => updateDraft({ layout: { stack: checked } })}
+            />
+          </SettingRow>
+          <SettingRow label={t("echarts.display.radius")}>
+            <div className="w-32">
+              <Slider
+                value={[draftDisplay.bar?.borderRadius ?? 6]}
+                min={0}
+                max={18}
+                step={1}
+                onValueChange={([value]) => updateDraft({ bar: { borderRadius: value } })}
+              />
+            </div>
+          </SettingRow>
+          <SettingRow label={t("echarts.display.barWidth")}>
+            <div className="w-32">
+              <Slider
+                value={[draftDisplay.bar?.barWidth ?? 54]}
+                min={12}
+                max={80}
+                step={2}
+                onValueChange={([value]) => updateDraft({ bar: { barWidth: value } })}
+              />
+            </div>
+          </SettingRow>
         </div>
       ) : null}
 
-      {referenceContext ? (
-        <div className="rounded-lg border bg-muted/20 p-3">
-          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-            <MapPinIcon className="h-3.5 w-3.5 text-primary" />
-            {referenceContext.section_title || t("echarts.taskDetail.placement")}
-          </div>
-          <p className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">
-            {referenceContext.anchor_text || referenceContext.reason || "-"}
-          </p>
+      {chartType === "line" ? (
+        <div className="mt-1 grid gap-1 rounded-lg bg-background/25 p-1">
+          <SettingRow label={t("echarts.display.smooth")}>
+            <Switch
+              checked={draftDisplay.line?.smooth ?? false}
+              onCheckedChange={(checked) => updateDraft({ line: { smooth: checked } })}
+            />
+          </SettingRow>
+          <SettingRow label={t("echarts.display.area")}>
+            <Switch
+              checked={draftDisplay.line?.area ?? false}
+              onCheckedChange={(checked) => updateDraft({ line: { area: checked } })}
+            />
+          </SettingRow>
+          <SettingRow label={t("echarts.display.symbol")}>
+            <Switch
+              checked={draftDisplay.line?.symbol ?? true}
+              onCheckedChange={(checked) => updateDraft({ line: { symbol: checked } })}
+            />
+          </SettingRow>
         </div>
       ) : null}
 
-      <Button type="button" className="w-full" disabled={!canInsert || inserted || inserting} onClick={handleInsert}>
-        {inserting ? (
-          <Loader2Icon className="h-4 w-4 animate-spin" />
-        ) : inserted ? (
-          <CheckCircle2Icon className="h-4 w-4" />
+      {chartType === "pie" ? (
+        <div className="mt-1 grid gap-1 rounded-lg bg-background/25 p-1">
+          <SettingRow label={t("echarts.display.donut")}>
+            <Switch
+              checked={draftDisplay.pie?.donut ?? false}
+              onCheckedChange={(checked) => updateDraft({ pie: { donut: checked } })}
+            />
+          </SettingRow>
+          <SettingRow label={t("echarts.display.rose")}>
+            <Switch
+              checked={draftDisplay.pie?.rose ?? false}
+              onCheckedChange={(checked) => updateDraft({ pie: { rose: checked } })}
+            />
+          </SettingRow>
+          <SettingRow label={t("echarts.display.percent")}>
+            <Switch
+              checked={draftDisplay.pie?.showPercent ?? true}
+              onCheckedChange={(checked) => updateDraft({ pie: { showPercent: checked } })}
+            />
+          </SettingRow>
+        </div>
+      ) : null}
+
+    </div>
+  ) : null
+
+  const placementSummary = referenceContext ? (
+    <div className="min-w-0">
+      <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+        <MapPinIcon className="h-3.5 w-3.5 text-primary" />
+        {referenceContext.section_title || t("echarts.taskDetail.placement")}
+      </div>
+      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+        {referenceContext.anchor_text || referenceContext.reason || "-"}
+      </p>
+    </div>
+  ) : null
+
+  const insertButton = (
+    <Button
+      type="button"
+      className="h-11 w-full shrink-0 sm:w-auto sm:min-w-56"
+      disabled={!canInsert || inserted || inserting}
+      onClick={handleInsert}
+    >
+      {inserting ? (
+        <Loader2Icon className="h-4 w-4 animate-spin" />
+      ) : inserted ? (
+        <CheckCircle2Icon className="h-4 w-4" />
+      ) : (
+        <BarChart3Icon className="h-4 w-4" />
+      )}
+      {inserted ? t("echarts.taskDetail.inserted") : t("echarts.taskDetail.insert")}
+    </Button>
+  )
+
+  return (
+    <div className="space-y-4">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <BarChart3Icon className="h-4 w-4 text-primary" />
+                <h3 className="truncate text-base font-semibold">
+                  {detail.title || spec?.chart.title || t("echarts.chart.untitled")}
+                </h3>
+              </div>
+              <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                {detail.prompt}
+              </p>
+            </div>
+            <Badge variant="outline" className="shrink-0">
+              {chartType || t("echarts.types.unknown")}
+            </Badge>
+          </div>
+
+          {detail.status === "failed" ? (
+            <Alert variant="destructive">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertDescription>
+                {detail.error_message || detail.error || t("echarts.taskDetail.failed")}
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          {chartPreview}
+        </div>
+
+        <div className="space-y-3 lg:self-end">
+          {settingsPanel}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+        {placementSummary ? (
+          placementSummary
         ) : (
-          <BarChart3Icon className="h-4 w-4" />
+          <span className="text-xs leading-5 text-muted-foreground">
+            {t("echarts.taskDetail.insertReady")}
+          </span>
         )}
-        {inserted ? t("echarts.taskDetail.inserted") : t("echarts.taskDetail.insert")}
-      </Button>
+        {insertButton}
+      </div>
     </div>
   )
 }
