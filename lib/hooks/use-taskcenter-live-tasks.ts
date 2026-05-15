@@ -10,10 +10,13 @@ import { shouldDisplayTaskCenterTask } from "@/lib/api/taskcenter/types"
 import { webSocketService, type TaskSocketEvent } from "@/lib/websocket/websocket-service"
 import { tokenStore } from "@/lib/tokens/token-store"
 
-interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "signal"> {
+interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "signal" | "page_size" | "cursor"> {
   enabled?: boolean
   realtimeScope?: "global" | "article"
+  pageSize?: number
 }
+
+const DEFAULT_TASK_PAGE_SIZE = 20
 
 function dedupeTasks(tasks: TaskCenterTaskListItem[]): TaskCenterTaskListItem[] {
   const deduped = new Map<string, TaskCenterTaskListItem>()
@@ -64,6 +67,7 @@ function mergeTaskFromSocketEvent(
 export function useTaskCenterLiveTasks({
   enabled = true,
   realtimeScope = "global",
+  pageSize = DEFAULT_TASK_PAGE_SIZE,
   ...query
 }: UseTaskCenterLiveTasksOptions) {
   const queryType = query.type
@@ -72,8 +76,16 @@ export function useTaskCenterLiveTasks({
   const [tasks, setTasks] = useState<TaskCenterTaskListItem[]>([])
   const [loading, setLoading] = useState(enabled)
   const [refreshing, setRefreshing] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fetchSequenceRef = useRef(0)
+  const tasksRef = useRef<TaskCenterTaskListItem[]>([])
+
+  useEffect(() => {
+    tasksRef.current = tasks
+  }, [tasks])
 
   const fetchTasks = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -92,20 +104,25 @@ export function useTaskCenterLiveTasks({
           type: queryType,
           article_id: queryArticleId,
           status: queryStatus,
+          page_size: silent ? Math.max(pageSize, tasksRef.current.length || pageSize) : pageSize,
         })
 
         if (currentSequence !== fetchSequenceRef.current) {
           return
         }
 
-        if (!Array.isArray(result)) {
+        if ("error" in result) {
           const nextError = "error" in result ? String(result.error) : "Failed to fetch tasks"
           setError(nextError)
           setTasks([])
+          setNextCursor(null)
+          setHasMore(false)
           return
         }
 
-        setTasks(dedupeTasks(result))
+        setTasks(dedupeTasks(result.items))
+        setNextCursor(result.next_cursor ?? null)
+        setHasMore(result.has_more)
       } catch (error) {
         if (currentSequence !== fetchSequenceRef.current) return
 
@@ -126,12 +143,73 @@ export function useTaskCenterLiveTasks({
         }
       }
     },
-    [enabled, queryArticleId, queryStatus, queryType]
+    [enabled, pageSize, queryArticleId, queryStatus, queryType]
   )
+
+  const loadMore = useCallback(async () => {
+    if (!enabled || loading || refreshing || loadingMore || !hasMore || !nextCursor) {
+      return
+    }
+
+    const currentSequence = fetchSequenceRef.current
+    setLoadingMore(true)
+    setError(null)
+
+    try {
+      const result = await taskCenterClient.getTasks({
+        type: queryType,
+        article_id: queryArticleId,
+        status: queryStatus,
+        page_size: pageSize,
+        cursor: nextCursor,
+      })
+
+      if (currentSequence !== fetchSequenceRef.current) {
+        return
+      }
+
+      if ("error" in result) {
+        setError(String(result.error))
+        return
+      }
+
+      setTasks((currentTasks) => dedupeTasks([...currentTasks, ...result.items]))
+      setNextCursor(result.next_cursor ?? null)
+      setHasMore(result.has_more)
+    } catch (error) {
+      const nextError = error instanceof Error ? error.message : "Failed to fetch tasks"
+      console.error("[TaskCenter] Failed to load more tasks", {
+        query: {
+          type: queryType,
+          article_id: queryArticleId,
+          status: queryStatus,
+          cursor: nextCursor,
+        },
+        error,
+      })
+      setError(nextError)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [
+    enabled,
+    hasMore,
+    loading,
+    loadingMore,
+    nextCursor,
+    pageSize,
+    queryArticleId,
+    queryStatus,
+    queryType,
+    refreshing,
+  ])
 
   useEffect(() => {
     if (!enabled) {
       setLoading(false)
+      setLoadingMore(false)
+      setNextCursor(null)
+      setHasMore(false)
       return
     }
 
@@ -202,8 +280,11 @@ export function useTaskCenterLiveTasks({
     tasks,
     loading,
     refreshing,
+    loadingMore,
+    hasMore,
     error,
     refetch: fetchTasks,
+    loadMore,
     setTasks,
   }
 }

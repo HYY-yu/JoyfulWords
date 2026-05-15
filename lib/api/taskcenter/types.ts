@@ -147,7 +147,15 @@ export interface TaskCenterTasksQuery {
   type?: TaskCenterTaskType
   article_id?: number
   status?: string
+  page_size?: number
+  cursor?: string
   signal?: AbortSignal
+}
+
+export interface TaskCenterTaskListPage {
+  items: TaskCenterTaskListItem[]
+  next_cursor?: string
+  has_more: boolean
 }
 
 export interface TaskCenterArticleTaskDetail {

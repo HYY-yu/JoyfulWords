@@ -50,7 +50,7 @@ import {
   SparklesIcon,
   WandSparklesIcon
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode, type UIEvent } from "react"
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
 import { PresentationDialog } from "./presentation-dialog"
@@ -259,7 +259,14 @@ export function EditorAIPanel({
   const [selectedEChartsText, setSelectedEChartsText] = useState("")
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
 
-  const { tasks: liveTasks, refetch, setTasks: setLiveTasks } = useTaskCenterLiveTasks({
+  const {
+    tasks: liveTasks,
+    refetch,
+    loadMore,
+    loadingMore,
+    hasMore,
+    setTasks: setLiveTasks,
+  } = useTaskCenterLiveTasks({
     article_id: articleId ?? undefined,
     enabled: typeof articleId === "number",
     realtimeScope: "article",
@@ -272,8 +279,7 @@ export function EditorAIPanel({
           const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
           return mapTaskCenterTaskToProgressItem(task, t, !deletingTaskKeys.has(taskKey))
         })
-        .sort((left, right) => right.startedAt - left.startedAt)
-        .slice(0, 10),
+        .sort((left, right) => right.startedAt - left.startedAt),
     [deletingTaskKeys, liveTasks, t]
   )
   const selectedLiveTaskFingerprint = useMemo(() => {
@@ -297,6 +303,17 @@ export function EditorAIPanel({
     if (submissionTick === 0) return
     void refetch({ silent: true })
   }, [refetch, submissionTick])
+
+  const handleTaskProgressScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget
+      const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight
+      if (distanceToBottom <= 120 && hasMore && !loadingMore) {
+        void loadMore()
+      }
+    },
+    [hasMore, loadMore, loadingMore]
+  )
 
   const getSelectedEditorText = () => {
     if (typeof window === "undefined") return ""
@@ -670,7 +687,7 @@ export function EditorAIPanel({
               {t("tiptapEditor.aiPanel.taskProgressSubtitle")}
             </p>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto" onScroll={handleTaskProgressScroll}>
             <EditorTaskProgress
               taskCenterTasks={taskCenterTasks}
               showHeader={false}
@@ -690,6 +707,11 @@ export function EditorAIPanel({
                 void fetchTaskDetail(task)
               }}
             />
+            {loadingMore ? (
+              <div className="flex justify-center px-3 pb-3">
+                <LoaderIcon className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
