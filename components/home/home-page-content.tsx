@@ -95,6 +95,7 @@ export function HomePageContent() {
   const blogHref = buildLocalizedPath(locale, "/blog")
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
+  const toolsHref = buildLocalizedPath(locale, "/tools")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -223,16 +224,22 @@ export function HomePageContent() {
             {t("landing.nav.mcp")}
           </Link>
           <Link
+            href={toolsHref}
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
+          >
+            {t("landing.nav.tools")}
+          </Link>
+          <Link
             href={blogHref}
             className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
             {t("landing.nav.blog")}
           </Link>
           <Button variant="outline" size="sm" className="jw-secondary-button rounded-full shadow-sm" asChild>
-            <Link href="/articles">{t("landing.nav.myArticles")}</Link>
+            <Link href="/articles" prefetch={false}>{t("landing.nav.myArticles")}</Link>
           </Button>
           <Button size="sm" className="jw-primary-button rounded-full" asChild>
-            <Link href="/articles">
+            <Link href="/articles" prefetch={false}>
               {t("landing.nav.startCreating")}
             </Link>
           </Button>
@@ -299,6 +306,14 @@ export function HomePageContent() {
               </Link>
 
               <Link
+                href={toolsHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.tools")}
+              </Link>
+
+              <Link
                 href={blogHref}
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
@@ -313,12 +328,12 @@ export function HomePageContent() {
                 className="w-full justify-start"
                 asChild
               >
-                <Link href="/articles" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
                   {t("landing.nav.myArticles")}
                 </Link>
               </Button>
               <Button className="w-full justify-start" asChild>
-                <Link href="/articles" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
                   {t("landing.nav.startCreating")}
                 </Link>
               </Button>
@@ -350,13 +365,13 @@ export function HomePageContent() {
 
             <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3 lg:justify-start">
               <Button size="lg" className="jw-primary-button rounded-full px-6" asChild>
-                <Link href="/articles">
+                <Link href="/articles" prefetch={false}>
                   <SparklesIcon className="h-4 w-4" />
                   {t("landing.cta")}
                 </Link>
               </Button>
               <Button variant="outline" size="lg" className="jw-secondary-button rounded-full px-6 shadow-sm" asChild>
-                <Link href="/articles">
+                <Link href="/articles" prefetch={false}>
                   {t("landing.viewArticles")}
                   <ArrowRightIcon className="h-4 w-4" />
                 </Link>

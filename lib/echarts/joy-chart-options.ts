@@ -47,10 +47,22 @@ function getDimensionName(spec: JoyChartSpec, id: string | undefined): string {
   return matched?.name || id
 }
 
+function toEncodingKeys(value: string | string[] | undefined): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.length > 0)
+  }
+  if (typeof value === "string" && value.length > 0) {
+    return [value]
+  }
+  return []
+}
+
 function getCategoryKey(spec: JoyChartSpec): string {
+  const xEncoding = toEncodingKeys(spec.encoding?.x)
+  const categoryEncoding = toEncodingKeys(spec.encoding?.category)
   return (
-    spec.encoding?.x ||
-    spec.encoding?.category ||
+    xEncoding[0] ||
+    categoryEncoding[0] ||
     spec.dataset.dimensions.find((dimension) => dimension.role === "category")?.id ||
     spec.dataset.dimensions[0]?.id ||
     "category"
@@ -58,8 +70,11 @@ function getCategoryKey(spec: JoyChartSpec): string {
 }
 
 function getValueKeys(spec: JoyChartSpec, categoryKey: string): string[] {
-  const encodedValue = spec.encoding?.y || spec.encoding?.value
-  if (encodedValue) return [encodedValue]
+  const encodedY = toEncodingKeys(spec.encoding?.y)
+  if (encodedY.length > 0) return encodedY
+
+  const encodedValue = toEncodingKeys(spec.encoding?.value)
+  if (encodedValue.length > 0) return encodedValue
 
   const valueDimensions = spec.dataset.dimensions
     .filter((dimension) => dimension.id !== categoryKey && dimension.role !== "category")
@@ -70,6 +85,19 @@ function getValueKeys(spec: JoyChartSpec, categoryKey: string): string[] {
   return spec.dataset.dimensions
     .map((dimension) => dimension.id)
     .filter((dimensionId) => dimensionId !== categoryKey)
+}
+
+function getSeriesKeys(spec: JoyChartSpec): string[] {
+  return toEncodingKeys(spec.encoding?.series)
+}
+
+function getPieItemNameKey(spec: JoyChartSpec, categoryKey: string): string {
+  return toEncodingKeys(spec.encoding?.itemName)[0] || categoryKey
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function sortSource(
@@ -95,6 +123,8 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
   const display = mergeJoyChartDisplay(spec.display)
   const chartType = spec.chart.type
   const categoryKey = getCategoryKey(spec)
+  const seriesKeys = getSeriesKeys(spec)
+  const hasGroupedSeries = (chartType === "bar" || chartType === "line") && seriesKeys.length > 0
   const valueKeys = getValueKeys(spec, categoryKey)
   const firstValueKey = valueKeys[0] || categoryKey
   const source = sortSource(spec.dataset.source, firstValueKey, display.layout.sort ?? "none")
@@ -103,6 +133,7 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
   const title = spec.chart.title
 
   if (chartType === "pie") {
+    const pieItemNameKey = getPieItemNameKey(spec, categoryKey)
     return {
       backgroundColor: surface.background,
       color: palette,
@@ -121,8 +152,8 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
           },
           emphasis: display.style.emphasis ? { scale: true, scaleSize: 6 } : undefined,
           data: source.map((item) => ({
-            name: String(item[categoryKey] ?? ""),
-            value: Number(item[firstValueKey] ?? 0),
+            name: String(item[pieItemNameKey] ?? ""),
+            value: toFiniteNumber(item[firstValueKey]),
           })),
         },
       ],
@@ -132,7 +163,14 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
   const isHorizontal = chartType === "bar" && display.layout.orientation === "horizontal"
   const categoryAxis = {
     type: "category" as const,
-    data: source.map((item) => String(item[categoryKey] ?? "")),
+    data: hasGroupedSeries
+      ? Array.from(
+        source.reduce((categories, item) => {
+          categories.add(String(item[categoryKey] ?? ""))
+          return categories
+        }, new Set<string>())
+      )
+      : source.map((item) => String(item[categoryKey] ?? "")),
     axisLabel: { rotate: isHorizontal ? 0 : display.axis.xLabelRotate, color: surface.mutedText },
     axisLine: { lineStyle: { color: surface.axis } },
     axisTick: { lineStyle: { color: surface.axis } },
@@ -145,6 +183,32 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
     axisLine: { lineStyle: { color: surface.axis } },
     splitLine: { show: display.axis.showGrid, lineStyle: { color: surface.grid } },
   }
+
+  const groupedSeriesData = hasGroupedSeries
+    ? (() => {
+      const categories = categoryAxis.data
+      const groupedNames: string[] = []
+      const groupedCategoryValues = new Map<string, Map<string, number>>()
+
+      for (const item of source) {
+        const category = String(item[categoryKey] ?? "")
+        const groupName = seriesKeys.map((seriesKey) => String(item[seriesKey] ?? "")).join(" / ")
+        const value = toFiniteNumber(item[firstValueKey])
+
+        if (!groupedCategoryValues.has(groupName)) {
+          groupedNames.push(groupName)
+          groupedCategoryValues.set(groupName, new Map())
+        }
+
+        groupedCategoryValues.get(groupName)?.set(category, value)
+      }
+
+      return groupedNames.map((groupName) => ({
+        name: groupName,
+        data: categories.map((category) => groupedCategoryValues.get(groupName)?.get(category) ?? 0),
+      }))
+    })()
+    : null
 
   return {
     backgroundColor: surface.background,
@@ -161,10 +225,13 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
     },
     xAxis: isHorizontal ? valueAxis : categoryAxis,
     yAxis: isHorizontal ? categoryAxis : valueAxis,
-    series: valueKeys.map((valueKey) => ({
+    series: (groupedSeriesData ?? valueKeys.map((valueKey) => ({
       name: getDimensionName(spec, valueKey),
+      data: source.map((item) => toFiniteNumber(item[valueKey])),
+    }))).map((seriesItem) => ({
+      name: seriesItem.name,
       type: chartType === "line" ? "line" : "bar",
-      data: source.map((item) => Number(item[valueKey] ?? 0)),
+      data: seriesItem.data,
       stack: display.layout.stack ? "total" : undefined,
       smooth: chartType === "line" ? display.line.smooth : undefined,
       symbol: chartType === "line" && !display.line.symbol ? "none" : undefined,

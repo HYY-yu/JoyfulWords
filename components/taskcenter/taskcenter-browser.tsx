@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, type UIEvent } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircleIcon, Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
@@ -137,8 +137,11 @@ export function TaskCenterBrowser({
     tasks,
     loading,
     refreshing,
+    loadingMore,
+    hasMore,
     error,
     refetch,
+    loadMore,
     setTasks,
   } = useTaskCenterLiveTasks({
     enabled,
@@ -146,6 +149,17 @@ export function TaskCenterBrowser({
     article_id: articleId,
     type: taskType === "all" ? undefined : taskType,
   })
+
+  const handleTaskListScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      const target = event.currentTarget
+      const distanceToBottom = target.scrollHeight - target.scrollTop - target.clientHeight
+      if (distanceToBottom <= 120 && hasMore && !loadingMore) {
+        void loadMore()
+      }
+    },
+    [hasMore, loadMore, loadingMore]
+  )
 
   const selectedTask = useMemo(
     () =>
@@ -364,7 +378,7 @@ export function TaskCenterBrowser({
             </p>
           </div>
 
-          <ScrollArea className="h-full min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-y-auto" onScroll={handleTaskListScroll}>
             <div className="space-y-3 p-4">
               {loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
@@ -386,28 +400,35 @@ export function TaskCenterBrowser({
                   </div>
                 </div>
               ) : (
-                tasks.map((task) => {
-                  const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
-                  const removable =
-                    (task.status === "success" || task.status === "succeeded" || task.status === "failed") &&
-                    !deletingTaskKeys.has(taskKey)
+                <>
+                  {tasks.map((task) => {
+                    const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
+                    const removable =
+                      (task.status === "success" || task.status === "succeeded" || task.status === "failed") &&
+                      !deletingTaskKeys.has(taskKey)
 
-                  return (
-                    <TaskCard
-                      key={taskKey}
-                      task={task}
-                      selected={selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type}
-                      removable={removable}
-                      onRemove={() => void handleDeleteTask(task)}
-                      onClick={() => {
-                        setSelectedTaskRef({ id: task.id, type: task.type })
-                      }}
-                    />
-                  )
-                })
+                    return (
+                      <TaskCard
+                        key={taskKey}
+                        task={task}
+                        selected={selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type}
+                        removable={removable}
+                        onRemove={() => void handleDeleteTask(task)}
+                        onClick={() => {
+                          setSelectedTaskRef({ id: task.id, type: task.type })
+                        }}
+                      />
+                    )
+                  })}
+                  {loadingMore ? (
+                    <div className="flex justify-center py-3">
+                      <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : null}
+                </>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
 
         <div className="min-h-[360px] overflow-hidden rounded-3xl border bg-background">

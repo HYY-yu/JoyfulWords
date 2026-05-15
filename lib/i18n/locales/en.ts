@@ -2144,6 +2144,7 @@ export const en = {
             pricing: "Pricing",
             blog: "Blog",
             mcp: "MCP",
+            tools: "Free Tools",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },
@@ -2386,6 +2387,82 @@ export const en = {
             verify: {
                 title: "Run /mcp",
                 description: "Run /mcp in Claude Code to check the joyfulwords service and enable the available capabilities.",
+            },
+        },
+    },
+    toolsPage: {
+        nav: {
+            workspace: "Workspace",
+            login: "Log in",
+        },
+        eyebrow: "Creator Toolbox",
+        title: "Creator Toolbox",
+        status: "Coming soon",
+        openPlaceholder: "View tool page",
+        tools: {
+            "ai-writer": {
+                title: "AI Writer",
+            },
+            "smart-rewrite": {
+                title: "Smart Rewrite",
+            },
+            "image-generator": {
+                title: "AI Image Generator",
+            },
+            infographic: {
+                title: "Infographic",
+            },
+            "mind-map": {
+                title: "Mind Map",
+            },
+            "ai-charts": {
+                title: "AI Charts",
+            },
+            "ppt-generator": {
+                title: "PPT Generator",
+            },
+        },
+        activities: {
+            title: "Campaign Menu",
+            cta: "Campaigns coming soon",
+            checkIn: {
+                title: "Daily Check-in",
+                reward: "+ credits",
+            },
+            share: {
+                title: "Share for Credits",
+                reward: "Referral",
+            },
+            campaign: {
+                title: "Limited Campaigns",
+                reward: "Event",
+            },
+        },
+        tasks: {
+            title: "Task List",
+            subtitle: "Global task records without article binding.",
+            loginTitle: "Log in to view tasks",
+            loginDescription: "Image, infographic, PPT, and article tasks will sync here.",
+        },
+        workspaceCta: {
+            title: "Write More Professional Articles",
+            description: "Need more polished writing and a complete AI note-taking workspace? Click Go to your Workspace.",
+            action: "Go to your Workspace",
+        },
+        detail: {
+            back: "Back to tools",
+            placeholderTitle: "This tool is being scheduled",
+            disabledAction: "Coming soon",
+            notes: {
+                account: {
+                    title: "Account context",
+                },
+                tasks: {
+                    title: "Task Center",
+                },
+                activity: {
+                    title: "Campaign rewards",
+                },
             },
         },
     },

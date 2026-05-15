@@ -40,7 +40,7 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
 
   refreshPromise = (async () => {
     try {
-      const result = await apiClient.refreshToken()
+      const result = await apiClient.refreshToken(source)
 
       if ('error' in result) {
         tokenStore.markRefreshFailed(source)
@@ -73,8 +73,8 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
   return refreshPromise
 }
 
-export async function refreshAccessToken(): Promise<boolean> {
-  const session = await refreshAccessSession()
+export async function refreshAccessToken(source = 'refresh_access_token'): Promise<boolean> {
+  const session = await refreshAccessSession(source)
   return Boolean(session)
 }
 
@@ -100,7 +100,7 @@ function checkAndRefreshToken(): void {
   }
 
   if (tokenStore.isTokenExpired() && !tokenStore.isRefreshing()) {
-    void refreshAccessToken()
+    void refreshAccessToken('scheduled_refresh')
   }
 }
 

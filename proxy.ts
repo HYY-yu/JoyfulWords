@@ -5,11 +5,17 @@ import { isPublicRoute } from '@/lib/auth/session-policy'
 
 const REFRESH_TOKEN_KEY = 'refresh_token'
 const LOCALE_COOKIE_KEY = 'locale'
-const CONSOLE_HOST = 'console.joyword.link'
+const NEXT_INTERNAL_QUERY_KEYS = new Set(['_rsc'])
 
-function isConsoleHost(request: NextRequest): boolean {
-  const host = request.headers.get('host') ?? request.nextUrl.host
-  return host.toLowerCase().split(':')[0] === CONSOLE_HOST
+export function buildProtectedRouteRedirect(pathname: string, searchParams: URLSearchParams): string {
+  const cleanSearchParams = new URLSearchParams(searchParams)
+
+  NEXT_INTERNAL_QUERY_KEYS.forEach((key) => {
+    cleanSearchParams.delete(key)
+  })
+
+  const cleanSearch = cleanSearchParams.toString()
+  return cleanSearch ? `${pathname}?${cleanSearch}` : pathname
 }
 
 function withTraceServerTiming(response: NextResponse): NextResponse {
@@ -26,10 +32,6 @@ function withTraceServerTiming(response: NextResponse): NextResponse {
 }
 
 function withSeoHostPolicy(request: NextRequest, response: NextResponse): NextResponse {
-  if (isConsoleHost(request)) {
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
-  }
-
   return response
 }
 
@@ -53,7 +55,7 @@ export async function proxy(request: NextRequest) {
   // Redirect unauthenticated users to login for protected routes
   if (!isAuthenticated && !isPublic) {
     const url = new URL('/auth/login', request.url)
-    url.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`)
+    url.searchParams.set('redirect', buildProtectedRouteRedirect(pathname, request.nextUrl.searchParams))
     return withSeoHostPolicy(request, withTraceServerTiming(NextResponse.redirect(url)))
   }
 

@@ -4,6 +4,7 @@ import type { ErrorResponse } from "@/lib/api/types"
 import { tokenStore } from "@/lib/tokens/token-store"
 import type {
   TaskCenterTaskDetailResponse,
+  TaskCenterTaskListPage,
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
   TaskCenterTasksQuery,
@@ -11,7 +12,7 @@ import type {
 
 const inFlightTaskListRequests = new Map<
   string,
-  Promise<TaskCenterTaskListItem[] | ErrorResponse>
+  Promise<TaskCenterTaskListPage | ErrorResponse>
 >()
 
 function buildTaskListRequestKey(params: TaskCenterTasksQuery): string {
@@ -19,6 +20,8 @@ function buildTaskListRequestKey(params: TaskCenterTasksQuery): string {
     type: params.type ?? null,
     article_id: params.article_id ?? null,
     status: params.status ?? null,
+    page_size: params.page_size ?? null,
+    cursor: params.cursor ?? null,
   })
 }
 
@@ -34,7 +37,7 @@ export function isTaskCenterErrorResponse(result: unknown): result is ErrorRespo
 export const taskCenterClient = {
   async getTasks(
     params: TaskCenterTasksQuery = {}
-  ): Promise<TaskCenterTaskListItem[] | ErrorResponse> {
+  ): Promise<TaskCenterTaskListPage | ErrorResponse> {
     const searchParams = new URLSearchParams()
 
     if (params.type) searchParams.set("type", params.type)
@@ -42,6 +45,10 @@ export const taskCenterClient = {
       searchParams.set("article_id", String(params.article_id))
     }
     if (params.status) searchParams.set("status", params.status)
+    if (typeof params.page_size === "number") {
+      searchParams.set("page_size", String(params.page_size))
+    }
+    if (params.cursor) searchParams.set("cursor", params.cursor)
 
     const query = searchParams.toString()
     const endpoint = query ? `/api/taskcenter/tasks?${query}` : "/api/taskcenter/tasks"
@@ -52,11 +59,24 @@ export const taskCenterClient = {
       return inFlightRequest
     }
 
-    const requestPromise = authenticatedApiRequest<TaskCenterTaskListItem[]>(endpoint, {
-      signal: params.signal,
-    }).finally(() => {
-      inFlightTaskListRequests.delete(requestKey)
-    })
+    const requestPromise = authenticatedApiRequest<TaskCenterTaskListPage | TaskCenterTaskListItem[]>(
+      endpoint,
+      {
+        signal: params.signal,
+      }
+    )
+      .then((result) => {
+        if (Array.isArray(result)) {
+          return {
+            items: result,
+            has_more: false,
+          } satisfies TaskCenterTaskListPage
+        }
+        return result
+      })
+      .finally(() => {
+        inFlightTaskListRequests.delete(requestKey)
+      })
 
     inFlightTaskListRequests.set(requestKey, requestPromise)
     return requestPromise

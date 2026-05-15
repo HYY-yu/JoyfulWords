@@ -23,4 +23,11 @@ test('keeps local auth redirects with query strings', () => {
 test('rejects external auth redirects', () => {
   assert.equal(normalizeAuthRedirect('https://example.com/phish'), DEFAULT_AUTH_REDIRECT)
   assert.equal(normalizeAuthRedirect('//example.com/phish'), DEFAULT_AUTH_REDIRECT)
+  assert.equal(normalizeAuthRedirect('/\\example.com/phish'), DEFAULT_AUTH_REDIRECT)
+})
+
+test('rejects auth-page redirects after successful login', () => {
+  assert.equal(normalizeAuthRedirect('/auth/login'), DEFAULT_AUTH_REDIRECT)
+  assert.equal(normalizeAuthRedirect('/auth/signup?redirect=%2Farticles'), DEFAULT_AUTH_REDIRECT)
+  assert.equal(normalizeAuthRedirect('/zh/auth/login?redirect=%2Farticles'), DEFAULT_AUTH_REDIRECT)
 })
