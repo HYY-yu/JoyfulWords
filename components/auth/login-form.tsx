@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
+import { waitForProxySessionBeforeRedirect } from "@/lib/auth/post-login-redirect"
 import { normalizeAuthRedirect } from "@/lib/auth/redirect"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -87,6 +88,10 @@ export function LoginForm() {
         title: t("auth.loginSuccess"),
         description: t("auth.redirecting"),
       })
+      console.info("[Login] Email sign-in succeeded; redirecting", {
+        redirectTarget,
+      })
+      await waitForProxySessionBeforeRedirect(redirectTarget)
       router.push(redirectTarget)
     } catch (error: any) {
       // Toast is already shown in the auth context
