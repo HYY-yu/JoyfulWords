@@ -67,7 +67,7 @@ export interface JoyChartSpec {
     title?: string
   }
   dataset: JoyChartDataset
-  encoding?: Record<string, string>
+  encoding?: Record<string, string | string[] | undefined>
   display?: JoyChartDisplay
   extensions?: {
     reference_context?: JoyChartReferenceContext
