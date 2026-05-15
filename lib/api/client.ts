@@ -20,6 +20,8 @@ const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
 }
 
+const AUTH_REFRESH_SOURCE_HEADER = 'X-Auth-Refresh-Source'
+
 function isInsufficientCreditsData(data: unknown): data is InsufficientCreditsData {
   if (!data || typeof data !== 'object') return false
 
@@ -86,7 +88,7 @@ async function getAccessTokenForAuthenticatedRequest(endpoint: string): Promise<
   // TODO(observability): add a metric for proactive auth refresh attempts and failures.
 
   const { refreshAccessToken } = await import('@/lib/tokens/refresh')
-  const refreshed = await refreshAccessToken()
+  const refreshed = await refreshAccessToken('authenticated_request_proactive')
   if (!refreshed) {
     return null
   }
@@ -147,7 +149,7 @@ export async function apiRequest<T>(
       ) {
         // Try to refresh the token
         const { refreshAccessToken } = await import('@/lib/tokens/refresh')
-        const success = await refreshAccessToken()
+        const success = await refreshAccessToken('authenticated_request_401')
 
         if (success) {
           // Retry the original request with new token
@@ -298,7 +300,7 @@ export const apiClient = {
    * Refresh access token
    * POST /auth/token/refresh
    */
-  async refreshToken() {
+  async refreshToken(source = 'refresh_access_token') {
     const token = tokenStore.getAccessToken()
 
     return apiRequest<AuthResponse | ErrorResponse>(
@@ -306,7 +308,10 @@ export const apiClient = {
       {
         method: 'POST',
         credentials: 'include',
-        headers: withAuthorizationHeader(undefined, token),
+        headers: withAuthorizationHeader(
+          { [AUTH_REFRESH_SOURCE_HEADER]: source },
+          token
+        ),
       },
       true // Skip 401 auto-refresh to avoid infinite loop
     )

@@ -112,6 +112,7 @@ test('authenticated request restores missing access token before calling protect
     assert.equal(calls.length, 2)
     assert.equal(calls[0].url, 'http://localhost:8080/auth/token/refresh')
     assert.equal(calls[0].init?.credentials, 'include')
+    assert.equal(new Headers(calls[0].init?.headers).get('X-Auth-Refresh-Source'), 'authenticated_request_proactive')
     assert.equal(calls[1].url, 'http://localhost:8080/article?page=1&page_size=10')
     assert.equal(calls[1].init?.credentials, 'include')
     assert.equal(new Headers(calls[1].init?.headers).get('Authorization'), 'Bearer new-access-token')
@@ -142,6 +143,7 @@ test('authenticated request does not call protected endpoint when refresh fails'
     assert.deepEqual(result, { error: 'Session expired', status: 401 })
     assert.equal(calls.length, 1)
     assert.equal(calls[0].url, 'http://localhost:8080/auth/token/refresh')
+    assert.equal(new Headers(calls[0].init?.headers).get('X-Auth-Refresh-Source'), 'authenticated_request_proactive')
     assert.equal(globals.windowStub.location.href, '/auth/login?reason=token_expired')
   } finally {
     globals.restore()
@@ -172,6 +174,7 @@ test('authenticated request logs network refresh failures before API response', 
     assert.deepEqual(result, { error: 'Session expired', status: 401 })
     assert.equal(calls.length, 1)
     assert.equal(calls[0].url, 'http://localhost:8080/auth/token/refresh')
+    assert.equal(new Headers(calls[0].init?.headers).get('X-Auth-Refresh-Source'), 'authenticated_request_proactive')
     assert.equal(globals.windowStub.location.href, '/auth/login?reason=token_expired')
     assert.equal(typeof warnings[0]?.[0], 'string')
     assert.match(
@@ -217,6 +220,7 @@ test('getValidAccessToken restores missing access token from refresh cookie', as
     assert.equal(calls.length, 1)
     assert.equal(calls[0].url, 'http://localhost:8080/auth/token/refresh')
     assert.equal(calls[0].init?.credentials, 'include')
+    assert.equal(new Headers(calls[0].init?.headers).get('X-Auth-Refresh-Source'), 'get_valid_access_token_missing')
   } finally {
     globals.restore()
   }
