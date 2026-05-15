@@ -76,6 +76,7 @@ export function HomePageContent() {
   const blogHref = buildLocalizedPath(locale, "/blog")
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
+  const toolsHref = buildLocalizedPath(locale, "/tools")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -153,6 +154,12 @@ export function HomePageContent() {
             {t("landing.nav.mcp")}
           </Link>
           <Link
+            href={toolsHref}
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
+          >
+            {t("landing.nav.tools")}
+          </Link>
+          <Link
             href={blogHref}
             className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
@@ -226,6 +233,14 @@ export function HomePageContent() {
                 className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
               >
                 {t("landing.nav.mcp")}
+              </Link>
+
+              <Link
+                href={toolsHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.tools")}
               </Link>
 
               <Link

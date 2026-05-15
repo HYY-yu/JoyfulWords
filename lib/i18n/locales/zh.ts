@@ -2128,6 +2128,7 @@ export const zh = {
             pricing: "价格",
             blog: "博客",
             mcp: "MCP",
+            tools: "Free Tools",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
@@ -2324,6 +2325,82 @@ export const zh = {
             verify: {
                 title: "执行 /mcp",
                 description: "在 Claude Code 中执行 /mcp，检查 joyfulwords 服务并启用可用能力。",
+            },
+        },
+    },
+    toolsPage: {
+        nav: {
+            workspace: "创作工作台",
+            login: "登录",
+        },
+        eyebrow: "Creator Toolbox",
+        title: "免费工具箱",
+        status: "待实现",
+        openPlaceholder: "查看工具页",
+        tools: {
+            "ai-writer": {
+                title: "AI 写作",
+            },
+            "smart-rewrite": {
+                title: "智能改写",
+            },
+            "image-generator": {
+                title: "AI 生图",
+            },
+            infographic: {
+                title: "信息图",
+            },
+            "mind-map": {
+                title: "思维导图",
+            },
+            "ai-charts": {
+                title: "AI 图表",
+            },
+            "ppt-generator": {
+                title: "PPT 生成",
+            },
+        },
+        activities: {
+            title: "活动菜单",
+            cta: "活动功能待实现",
+            checkIn: {
+                title: "每日签到",
+                reward: "+ 积分",
+            },
+            share: {
+                title: "分享得积分",
+                reward: "邀请",
+            },
+            campaign: {
+                title: "限时活动",
+                reward: "活动",
+            },
+        },
+        tasks: {
+            title: "任务列表",
+            subtitle: "不绑定文章的全局任务记录。",
+            loginTitle: "登录后查看任务",
+            loginDescription: "图片、信息图、PPT 和文章任务会在这里同步。",
+        },
+        workspaceCta: {
+            title: "写出更专业的文章",
+            description: "想要书写更专业的文章，想要一个完美的 AI 笔记应用，请点击 Go to your Workspace。",
+            action: "Go to your Workspace",
+        },
+        detail: {
+            back: "返回工具箱",
+            placeholderTitle: "工具正在排期",
+            disabledAction: "待实现",
+            notes: {
+                account: {
+                    title: "账号上下文",
+                },
+                tasks: {
+                    title: "任务中心",
+                },
+                activity: {
+                    title: "活动激励",
+                },
             },
         },
     },
