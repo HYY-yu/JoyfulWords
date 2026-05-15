@@ -8,18 +8,6 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
   const requestHeaders = await headers()
   const host = requestHeaders.get("host")?.toLowerCase().split(":")[0] ?? ""
 
-  if (host === "console.joyword.link") {
-    return {
-      rules: [
-        {
-          userAgent: "*",
-          disallow: "/",
-        },
-      ],
-      host: "https://console.joyword.link",
-    }
-  }
-
   return {
     rules: [
       {

@@ -5,12 +5,6 @@ import { isPublicRoute } from '@/lib/auth/session-policy'
 
 const REFRESH_TOKEN_KEY = 'refresh_token'
 const LOCALE_COOKIE_KEY = 'locale'
-const CONSOLE_HOST = 'console.joyword.link'
-
-function isConsoleHost(request: NextRequest): boolean {
-  const host = request.headers.get('host') ?? request.nextUrl.host
-  return host.toLowerCase().split(':')[0] === CONSOLE_HOST
-}
 
 function withTraceServerTiming(response: NextResponse): NextResponse {
   const spanContext = trace.getActiveSpan()?.spanContext()
@@ -26,10 +20,6 @@ function withTraceServerTiming(response: NextResponse): NextResponse {
 }
 
 function withSeoHostPolicy(request: NextRequest, response: NextResponse): NextResponse {
-  if (isConsoleHost(request)) {
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
-  }
-
   return response
 }
 
