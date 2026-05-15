@@ -159,10 +159,10 @@ export function HomePageContent() {
             {t("landing.nav.blog")}
           </Link>
           <Button variant="outline" size="sm" className="jw-secondary-button rounded-full shadow-sm" asChild>
-            <Link href="/articles">{t("landing.nav.myArticles")}</Link>
+            <Link href="/articles" prefetch={false}>{t("landing.nav.myArticles")}</Link>
           </Button>
           <Button size="sm" className="jw-primary-button rounded-full" asChild>
-            <Link href="/articles">
+            <Link href="/articles" prefetch={false}>
               {t("landing.nav.startCreating")}
             </Link>
           </Button>
@@ -243,12 +243,12 @@ export function HomePageContent() {
                 className="w-full justify-start"
                 asChild
               >
-                <Link href="/articles" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
                   {t("landing.nav.myArticles")}
                 </Link>
               </Button>
               <Button className="w-full justify-start" asChild>
-                <Link href="/articles" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
                   {t("landing.nav.startCreating")}
                 </Link>
               </Button>
@@ -280,13 +280,13 @@ export function HomePageContent() {
 
             <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3 lg:justify-start">
               <Button size="lg" className="jw-primary-button rounded-full px-6" asChild>
-                <Link href="/articles">
+                <Link href="/articles" prefetch={false}>
                   <SparklesIcon className="h-4 w-4" />
                   {t("landing.cta")}
                 </Link>
               </Button>
               <Button variant="outline" size="lg" className="jw-secondary-button rounded-full px-6 shadow-sm" asChild>
-                <Link href="/articles">
+                <Link href="/articles" prefetch={false}>
                   {t("landing.viewArticles")}
                   <ArrowRightIcon className="h-4 w-4" />
                 </Link>
@@ -459,7 +459,7 @@ export function HomePageContent() {
             className="rounded-full bg-[var(--jw-surface-strong)] text-[var(--jw-heading)] hover:bg-white"
             asChild
           >
-            <Link href="/articles">
+            <Link href="/articles" prefetch={false}>
               {t("landing.ctaCta")}
               <ArrowRightIcon className="h-4 w-4" />
             </Link>
