@@ -223,78 +223,93 @@ function ToolsIndex({
   const { t } = useTranslation()
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-      <section className="min-w-0">
-        <div className="relative overflow-hidden rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-muted)] px-5 py-7 shadow-[var(--jw-soft-shadow)] sm:px-6">
-          <div className="tools-hero-wash pointer-events-none absolute inset-0 opacity-80" />
-          <div className="relative">
-            <h1 className="jw-heading-text text-4xl font-bold tracking-tight sm:text-5xl">
-              {t("toolsPage.title")}
-            </h1>
+    <div className="tools-composition">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="tools-workspace min-w-0">
+          <div className="tools-title-row">
+            <div>
+              <h1 className="tools-page-title">{t("toolsPage.title")}</h1>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {tools.map((tool, index) => {
-            const Icon = tool.Icon
-            return (
-              <Link
-                key={tool.slug}
-                href={tool.href}
-                className="group flex min-h-[104px] items-center gap-4 rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface)] px-4 py-4 shadow-[var(--jw-soft-shadow)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--jw-accent)] hover:bg-[var(--jw-surface-strong)]"
-                aria-label={`${tool.title} - ${t("toolsPage.openPlaceholder")}`}
-              >
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-[var(--jw-accent-soft)] text-[var(--jw-accent)]">
-                  <Icon className="size-5" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="jw-heading-text block truncate text-base font-semibold tracking-tight">
-                    {tool.title}
-                  </span>
-                  <span className="mt-1 inline-flex rounded-full border border-[var(--jw-border-subtle)] px-2 py-0.5 text-[11px] font-medium text-[var(--jw-muted)]">
-                    {t("toolsPage.status")}
-                  </span>
-                </span>
-                <ArrowRightIcon className="size-4 shrink-0 text-[var(--jw-accent)] transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            )
-          })}
-        </div>
-      </section>
+          <div className="tools-board">
+            <div className="tools-link-grid">
+              {tools.map((tool) => {
+                const Icon = tool.Icon
+                return (
+                  <Link
+                    key={tool.slug}
+                    href={tool.href}
+                    className="tools-link-row group"
+                    aria-label={`${tool.title} - ${t("toolsPage.openPlaceholder")}`}
+                  >
+                    <span className="tools-row-icon">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="tools-row-title">{tool.title}</span>
+                    <span className="tools-row-state">{t("toolsPage.status")}</span>
+                    <ArrowRightIcon className="tools-row-arrow size-4" />
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        </section>
 
-      <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
-        <div className="rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] p-4 shadow-[var(--jw-soft-shadow)]">
-          <div className="space-y-2.5">
-            {activityItems.map((item) => {
-              const Icon = item.Icon
-              return (
-                <div
-                  key={item.key}
-                  className="group rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-muted)] px-3 py-3 transition-colors hover:border-[var(--jw-border)]"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--jw-surface-strong)] text-[var(--jw-accent)] shadow-[var(--jw-soft-shadow)]">
+        <aside className="tools-side-rail min-w-0">
+          <div className="tools-activity-rail">
+            <div className="tools-rail-heading">
+              <span>{t("toolsPage.activities.title")}</span>
+            </div>
+            <div className="tools-activity-list">
+              {activityItems.map((item) => {
+                const Icon = item.Icon
+                return (
+                  <div key={item.key} className="tools-activity-row">
+                    <span className="tools-activity-icon">
                       <Icon className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-3">
-                        <h2 className="jw-heading-text truncate text-sm font-semibold">{item.title}</h2>
-                        <span className="shrink-0 rounded-full bg-[var(--jw-accent-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--jw-accent)]">
-                          {item.reward}
-                        </span>
-                      </div>
+                      <h2 className="truncate text-sm font-semibold">{item.title}</h2>
+                      <p className="text-xs text-[var(--jw-muted)]">{item.reward}</p>
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
+
+            <Button className="tools-activity-button" disabled>
+              {t("toolsPage.activities.cta")}
+            </Button>
           </div>
 
-          <Button className="jw-secondary-button mt-4 w-full rounded-full" disabled>
-            {t("toolsPage.activities.cta")}
-          </Button>
-        </div>
-      </aside>
+          <section className="tools-workspace-cta">
+            <div className="tools-cta-copy">
+              <div>
+                <p className="tools-cta-kicker">{t("toolsPage.nav.workspace")}</p>
+                <h2 className="tools-cta-title">
+                  {t("toolsPage.workspaceCta.title")}
+                </h2>
+                <p className="tools-cta-description">
+                  {t("toolsPage.workspaceCta.description")}
+                </p>
+              </div>
+              <Button asChild className="tools-cta-button">
+                <Link href="/articles">
+                  <BookOpenTextIcon className="size-4" />
+                  {t("toolsPage.workspaceCta.action")}
+                </Link>
+              </Button>
+            </div>
+          </section>
+
+          <div className="tools-side-ambient" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+        </aside>
+      </div>
     </div>
   )
 }

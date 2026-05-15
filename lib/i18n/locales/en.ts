@@ -2128,6 +2128,7 @@ export const en = {
             pricing: "Pricing",
             blog: "Blog",
             mcp: "MCP",
+            tools: "Free Tools",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },
@@ -2332,8 +2333,8 @@ export const en = {
             workspace: "Workspace",
             login: "Log in",
         },
-        eyebrow: "Free Creator Tools",
-        title: "Free Creator Tools",
+        eyebrow: "Creator Toolbox",
+        title: "Creator Toolbox",
         status: "Coming soon",
         openPlaceholder: "View tool page",
         tools: {
@@ -2360,6 +2361,7 @@ export const en = {
             },
         },
         activities: {
+            title: "Campaign Menu",
             cta: "Campaigns coming soon",
             checkIn: {
                 title: "Daily Check-in",
@@ -2373,6 +2375,17 @@ export const en = {
                 title: "Limited Campaigns",
                 reward: "Event",
             },
+        },
+        tasks: {
+            title: "Task List",
+            subtitle: "Global task records without article binding.",
+            loginTitle: "Log in to view tasks",
+            loginDescription: "Image, infographic, PPT, and article tasks will sync here.",
+        },
+        workspaceCta: {
+            title: "Write More Professional Articles",
+            description: "Need more polished writing and a complete AI note-taking workspace? Click Go to your Workspace.",
+            action: "Go to your Workspace",
         },
         detail: {
             back: "Back to tools",

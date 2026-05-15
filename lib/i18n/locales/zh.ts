@@ -2128,6 +2128,7 @@ export const zh = {
             pricing: "价格",
             blog: "博客",
             mcp: "MCP",
+            tools: "Free Tools",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
@@ -2332,7 +2333,7 @@ export const zh = {
             workspace: "创作工作台",
             login: "登录",
         },
-        eyebrow: "Free Creator Tools",
+        eyebrow: "Creator Toolbox",
         title: "免费工具箱",
         status: "待实现",
         openPlaceholder: "查看工具页",
@@ -2360,6 +2361,7 @@ export const zh = {
             },
         },
         activities: {
+            title: "活动菜单",
             cta: "活动功能待实现",
             checkIn: {
                 title: "每日签到",
@@ -2373,6 +2375,17 @@ export const zh = {
                 title: "限时活动",
                 reward: "活动",
             },
+        },
+        tasks: {
+            title: "任务列表",
+            subtitle: "不绑定文章的全局任务记录。",
+            loginTitle: "登录后查看任务",
+            loginDescription: "图片、信息图、PPT 和文章任务会在这里同步。",
+        },
+        workspaceCta: {
+            title: "写出更专业的文章",
+            description: "想要书写更专业的文章，想要一个完美的 AI 笔记应用，请点击 Go to your Workspace。",
+            action: "Go to your Workspace",
         },
         detail: {
             back: "返回工具箱",

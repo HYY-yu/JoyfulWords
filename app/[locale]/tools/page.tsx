@@ -31,10 +31,10 @@ export async function generateMetadata({ params }: LocalePageProps): Promise<Met
   const isZh = locale === "zh"
 
   return buildMetadata({
-    title: isZh ? "免费工具箱" : "Free Creator Tools",
+    title: isZh ? "免费工具箱" : "Creator Toolbox",
     description: isZh
       ? "JoyfulWords 免费工具箱提供 AI 写作、改写、生图、图表、思维导图、PPT 等创作者工具入口，支持独立页面分享和 SEO 收录。"
-      : "JoyfulWords free creator tools collect AI writing, rewriting, image, chart, mind map, and PPT tools as shareable SEO-ready pages.",
+      : "JoyfulWords Creator Toolbox collects AI writing, rewriting, image, chart, mind map, and PPT tools as shareable SEO-ready pages.",
     path: buildLocalizedPath(locale, "/tools"),
     locale,
     alternatePaths: {
@@ -57,11 +57,11 @@ export default async function ToolsPage({ params }: LocalePageProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: locale === "zh" ? "JoyfulWords 免费工具箱" : "JoyfulWords Free Creator Tools",
+    name: locale === "zh" ? "JoyfulWords 免费工具箱" : "JoyfulWords Creator Toolbox",
     description:
       locale === "zh"
         ? "面向创作者的免费工具目录，每个工具都预留独立页面，便于分享和 SEO 收录。"
-        : "A free creator tool directory with independent pages prepared for sharing and SEO.",
+        : "A creator toolbox directory with independent pages prepared for sharing and SEO.",
     url: buildCanonicalUrl(buildLocalizedPath(locale, "/tools")),
     publisher: {
       "@type": "Organization",
