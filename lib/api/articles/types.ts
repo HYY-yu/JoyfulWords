@@ -62,6 +62,14 @@ export interface Article {
   posts?: ArticlePost[]  // 关联的竞品文章列表
 }
 
+export interface GenerateCoverDescriptionResponse {
+  description: string
+}
+
+export interface GenerateCoverTitleResponse {
+  title: string
+}
+
 // ==================== Request Types ====================
 
 /**

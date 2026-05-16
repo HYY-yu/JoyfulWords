@@ -1482,6 +1482,20 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
     setLibraryKey((key) => key + 1)
   }, [])
 
+  useEffect(() => {
+    const handleMaterialsRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ materialType?: MaterialType }>).detail
+      setLibraryActiveCategory(detail?.materialType ?? "image")
+      setActiveView("library")
+      setLibraryKey((key) => key + 1)
+    }
+
+    window.addEventListener("joyfulwords-materials-refresh", handleMaterialsRefresh)
+    return () => {
+      window.removeEventListener("joyfulwords-materials-refresh", handleMaterialsRefresh)
+    }
+  }, [])
+
   const handleImportSuccess = useCallback((materialType: MaterialType) => {
     console.info("[MaterialLibrary] syncing imported search results into library view", {
       articleId,

@@ -221,6 +221,10 @@ export default function ArticleEditPage() {
     [toast, t]
   )
 
+  const handleCoverTitleUpdated = useCallback((title: string) => {
+    setArticle((current) => current ? { ...current, title } : current)
+  }, [])
+
   const handleManualSave = useCallback(async () => {
     if (!article?.id || isManualSaving) return
 
@@ -444,8 +448,10 @@ export default function ArticleEditPage() {
   const rightPanel = (
     <EditorAIPanel
       articleId={article.id}
+      articleTitle={article.title}
       submissionTick={articleEditSubmissionTick}
       onOpenArticleEditTask={handleOpenArticleEditTask}
+      onArticleTitleUpdated={handleCoverTitleUpdated}
     />
   )
 

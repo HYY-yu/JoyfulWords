@@ -10,12 +10,28 @@ export interface ConvertPromptResponse {
   reference_images: string[]
 }
 
+export interface UnsplashPhoto {
+  id: string
+  thumb_url: string
+  regular_url: string
+  full_url: string
+  author_name: string
+  author_url: string
+  photo_url: string
+  download_location: string
+}
+
+export interface SearchUnsplashResponse {
+  photos: UnsplashPhoto[]
+  cached?: boolean
+}
+
 // ============ 图片生成任务相关类型 ============
 
 /**
  * 图片生成模式
  */
-export type GenerationMode = 'creator' | 'style' | 'split_images'
+export type GenerationMode = 'creator' | 'style' | 'cover' | 'font' | 'split_images'
 
 /**
  * 创建图片生成任务请求
@@ -28,6 +44,25 @@ export interface CreateGenerationTaskRequest {
   article_id?: number
   material_ids?: number[]
   reference_images?: string[]
+}
+
+export interface CreateCoverTaskRequest {
+  article_id: number
+  description: string
+  model_name?: string
+  width?: number
+  height?: number
+  style_tone?: string
+  camera_lighting?: string
+}
+
+export interface CreateFontPreviewTaskRequest {
+  article_id?: number
+  title: string
+  font_description: string
+  model_name?: string
+  width?: number
+  height?: number
 }
 
 /**
@@ -167,7 +202,7 @@ export interface GetModelsResponse {
 export interface GenerationLog {
   id: number
   user_id: number
-  gen_mode: 'creator' | 'style' | 'split_images'
+  gen_mode: 'creator' | 'style' | 'cover' | 'font' | 'split_images'
   config: string  // JSON 字符串
   prompt: string
   referenced_material_ids: number[]
@@ -192,7 +227,7 @@ export interface GetGenerationLogsRequest {
   page: number
   page_size: number
   status?: 'pending' | 'processing' | 'success' | 'failed'
-  gen_mode?: 'creator' | 'style' | 'split_images'
+  gen_mode?: 'creator' | 'style' | 'cover' | 'font' | 'split_images'
   model_name?: string
 }
 
