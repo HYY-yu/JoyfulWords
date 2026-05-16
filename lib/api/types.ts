@@ -64,6 +64,9 @@ export interface ErrorResponse {
   status?: number
   reason?: string
   error_description?: string
+  action?: string
+  feature?: string
+  limit_type?: string
 }
 
 export interface AccessTokenSession {

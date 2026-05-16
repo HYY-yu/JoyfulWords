@@ -15,6 +15,14 @@ import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
 import { Button } from "@/components/ui/base/button"
 import { Textarea } from "@/components/ui/base/textarea"
+import type {
+  CopyToMaterialsResponse,
+  CreateGenerationTaskRequest,
+  CreateGenerationTaskResponse,
+  GetModelsResponse,
+  TaskResultResponse,
+} from "@/lib/api/image-generation/types"
+import type { ErrorResponse } from "@/lib/api/types"
 
 // 风格项目接口
 interface StyleItem {
@@ -90,11 +98,38 @@ function StyleCard({
   )
 }
 
-interface StyleModeProps {
-  articleId?: number | null
+export interface StyleModeClient {
+  createGenerationTask: (
+    request: CreateGenerationTaskRequest
+  ) => Promise<CreateGenerationTaskResponse | ErrorResponse>
+  getTaskResult: (
+    taskId: string,
+    signal?: AbortSignal
+  ) => Promise<TaskResultResponse | ErrorResponse>
+  getModels?: () => Promise<GetModelsResponse | ErrorResponse>
+  copyToMaterials?: (
+    logId: number,
+    articleId?: number
+  ) => Promise<CopyToMaterialsResponse | ErrorResponse>
 }
 
-export function StyleMode({ articleId }: StyleModeProps) {
+interface StyleModeProps {
+  articleId?: number | null
+  client?: StyleModeClient
+  lockedModel?: string
+  uploadImage?: (file: File) => Promise<string>
+  allowMaterialSelector?: boolean
+  enableSaveToMaterials?: boolean
+}
+
+export function StyleMode({
+  articleId,
+  client = imageGenerationClient,
+  lockedModel,
+  uploadImage = uploadImageToR2,
+  allowMaterialSelector = true,
+  enableSaveToMaterials = true,
+}: StyleModeProps) {
   const { t, locale } = useTranslation()
   const { toast } = useToast()
   const taskToast = useAsyncTaskToast()
@@ -129,7 +164,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
     observerTarget: materialsObserverTarget,
   } = useInfiniteMaterials({
     type: "image",
-    enabled: showMaterialSelector,
+    enabled: allowMaterialSelector && showMaterialSelector,
     pageSize: 20,
   })
 
@@ -190,10 +225,26 @@ export function StyleMode({ articleId }: StyleModeProps) {
   // 获取模型列表
   useEffect(() => {
     const fetchModels = async () => {
+      if (lockedModel) {
+        console.debug('[StyleMode] Using locked model:', lockedModel)
+        setAvailableModels([lockedModel])
+        setSelectedModel(lockedModel)
+        setIsLoadingModels(false)
+        return
+      }
+
+      if (!client.getModels) {
+        console.warn('[StyleMode] Model API unavailable')
+        setAvailableModels([])
+        setSelectedModel("")
+        setIsLoadingModels(false)
+        return
+      }
+
       console.debug('[StyleMode] Fetching available models...')
 
       try {
-        const result = await imageGenerationClient.getModels()
+        const result = await client.getModels()
 
         if ('error' in result) {
           console.error('[StyleMode] Failed to fetch models:', result.error)
@@ -221,7 +272,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
     }
 
     fetchModels()
-  }, [t, toast])
+  }, [client, lockedModel, t, toast])
 
   // 轮询任务状态
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -231,7 +282,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
 
     const checkTaskStatus = async () => {
       try {
-        const result = await imageGenerationClient.getTaskResult(currentTaskId.toString())
+        const result = await client.getTaskResult(currentTaskId.toString())
 
         if ('error' in result) {
           console.error('[StyleMode] Failed to get task status:', result.error)
@@ -304,7 +355,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, t, taskToast, toast])
+  }, [client, currentTaskId, t, taskToast, toast])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsUploading(true)
@@ -317,7 +368,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
       })
 
       // 上传到 R2 获取 URL
-      const imageUrl = await uploadImageToR2(file)
+      const imageUrl = await uploadImage(file)
 
       // INFO: 图片上传成功
       console.info('[StyleMode] Image uploaded successfully:', { imageUrl })
@@ -370,7 +421,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
     } finally {
       setIsUploading(false)
     }
-  }, [t, toast])
+  }, [t, toast, uploadImage])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -462,10 +513,10 @@ export function StyleMode({ articleId }: StyleModeProps) {
 
     try {
       // 调用真实 API
-      const result = await imageGenerationClient.createGenerationTask({
+      const result = await client.createGenerationTask({
         gen_mode: 'style',
         prompt: selectedStyle.full_prompt || selectedStyle.name,
-        model_name: selectedModel,
+        model_name: lockedModel ?? selectedModel,
         article_id: articleId ?? undefined,
         reference_images: [baseImageUrl],
       })
@@ -514,12 +565,24 @@ export function StyleMode({ articleId }: StyleModeProps) {
       return
     }
 
+    if (!enableSaveToMaterials || !client.copyToMaterials) {
+      console.warn('[StyleMode] Copy to materials is unavailable for this surface', {
+        logId: currentGenerationLogId,
+      })
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.copyToMaterialsFailed"),
+        description: t("imageGeneration.toast.error.unauthorized"),
+      })
+      return
+    }
+
     console.info('[StyleMode] Copying to materials:', { logId: currentGenerationLogId })
 
     setIsSavingToMaterials(true)
 
     try {
-      const result = await imageGenerationClient.copyToMaterials(
+      const result = await client.copyToMaterials(
         currentGenerationLogId,
         articleId ?? undefined
       )
@@ -725,27 +788,29 @@ export function StyleMode({ articleId }: StyleModeProps) {
           )}
 
           {/* 素材选择 */}
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-start gap-2"
-              onClick={() => setShowMaterialSelector(true)}
-              disabled={isUploading || renderStatus === "generating" || !!currentTaskId}
-            >
-              <ImageIcon className="h-4 w-4" />
-              <span className="truncate">
-                {selectedMaterial?.title
-                  ? `${t("imageGeneration.properties.imageSelected")}${selectedMaterial.title}`
-                  : t("aiRewrite.material.selectMaterials")}
-              </span>
-            </Button>
-            {selectedMaterialUrl ? (
-              <p className="text-xs text-muted-foreground">
-                {t("imageGeneration.properties.selectImageFromMaterials")}
-              </p>
-            ) : null}
-          </div>
+          {allowMaterialSelector ? (
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2"
+                onClick={() => setShowMaterialSelector(true)}
+                disabled={isUploading || renderStatus === "generating" || !!currentTaskId}
+              >
+                <ImageIcon className="h-4 w-4" />
+                <span className="truncate">
+                  {selectedMaterial?.title
+                    ? `${t("imageGeneration.properties.imageSelected")}${selectedMaterial.title}`
+                    : t("aiRewrite.material.selectMaterials")}
+                </span>
+              </Button>
+              {selectedMaterialUrl ? (
+                <p className="text-xs text-muted-foreground">
+                  {t("imageGeneration.properties.selectImageFromMaterials")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {/* 功能提示 */}
           {!baseImagePreview && (
@@ -834,7 +899,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
                 {t("imageGeneration.styleMode.rendering")}
               </div>
             )}
-            {renderStatus === "completed" && renderedImage && (
+            {renderStatus === "completed" && renderedImage && enableSaveToMaterials && client.copyToMaterials && (
               <button
                 onClick={handleSaveToMaterials}
                 disabled={isSavingToMaterials || !currentGenerationLogId}
@@ -1028,24 +1093,26 @@ export function StyleMode({ articleId }: StyleModeProps) {
         </div>
       </div>
 
-      <MaterialSelectorDialog
-        open={showMaterialSelector}
-        onOpenChange={setShowMaterialSelector}
-        title={t("aiRewrite.material.selectMaterials")}
-        materials={materials
-          .filter((material) => material.material_type === "image" && material.content)
-          .map((material) => ({
-            id: material.id,
-            title: material.title,
-            source_url: material.content!,
-          }))}
-        isLoading={materialsLoading}
-        hasMore={hasMoreMaterials}
-        onLoadMore={loadMoreMaterials}
-        observerTarget={materialsObserverTarget}
-        onSelect={handleSelectMaterial}
-        currentUrl={selectedMaterialUrl ?? undefined}
-      />
+      {allowMaterialSelector ? (
+        <MaterialSelectorDialog
+          open={showMaterialSelector}
+          onOpenChange={setShowMaterialSelector}
+          title={t("aiRewrite.material.selectMaterials")}
+          materials={materials
+            .filter((material) => material.material_type === "image" && material.content)
+            .map((material) => ({
+              id: material.id,
+              title: material.title,
+              source_url: material.content!,
+            }))}
+          isLoading={materialsLoading}
+          hasMore={hasMoreMaterials}
+          onLoadMore={loadMoreMaterials}
+          observerTarget={materialsObserverTarget}
+          onSelect={handleSelectMaterial}
+          currentUrl={selectedMaterialUrl ?? undefined}
+        />
+      ) : null}
 
       {/* 自定义风格对话框 */}
       <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>

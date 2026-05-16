@@ -34,7 +34,7 @@ export interface CreateGenerationTaskRequest {
  * 创建图片生成任务响应
  */
 export interface CreateGenerationTaskResponse {
-  task_id: string
+  task_id: string | number
   status: 'pending' | 'processing' | 'success' | 'failed'
   poll_url: string
   estimated_eta?: number
@@ -44,7 +44,7 @@ export interface CreateGenerationTaskResponse {
  * 任务结果响应 - 处理中
  */
 export interface TaskResultProcessing {
-  task_id: string
+  task_id: string | number
   status: 'processing'
   prompt_used: string
   model_name: string
@@ -57,7 +57,7 @@ export interface TaskResultProcessing {
  * 任务结果响应 - 等待中
  */
 export interface TaskResultPending {
-  task_id: string
+  task_id: string | number
   status: 'pending'
   prompt_used: string
   model_name: string
@@ -70,7 +70,7 @@ export interface TaskResultPending {
  * 任务结果响应 - 成功
  */
 export interface TaskResultSuccess {
-  task_id: string
+  task_id: string | number
   status: 'success'
   image_url: string | string[] // 可能是字符串或 JSON 数组字符串
   prompt_used: string
@@ -85,7 +85,7 @@ export interface TaskResultSuccess {
  * 任务结果响应 - 失败
  */
 export interface TaskResultFailed {
-  task_id: string
+  task_id: string | number
   status: 'failed'
   error_message: string
   created_at: string
@@ -251,7 +251,7 @@ export interface CopyToMaterialsRequest {
  * 创建图片拆分任务响应
  */
 export interface CreateSplitTaskResponse {
-  task_id: string
+  task_id: string | number
   status: 'pending' | 'processing' | 'success' | 'failed'
   poll_url: string
   estimated_eta?: number

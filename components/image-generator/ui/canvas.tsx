@@ -32,6 +32,7 @@ interface CanvasProps {
   onGenerateImage: () => void
   onToggleImageVisibility: () => void
   onSaveImageToMaterials: () => void
+  canSaveImageToMaterials?: boolean
 }
 
 export function Canvas({
@@ -54,6 +55,7 @@ export function Canvas({
   onGenerateImage,
   onToggleImageVisibility,
   onSaveImageToMaterials,
+  canSaveImageToMaterials = true,
 }: CanvasProps) {
   const { t } = useTranslation()
   const [isDragging, setIsDragging] = useState(false)
@@ -383,17 +385,19 @@ export function Canvas({
                     >
                       {t("imageGeneration.canvas.viewOriginal")}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setShowImageMenu(false)
-                        onSaveImageToMaterials()
-                      }}
-                    >
-                      {t("imageGeneration.canvas.saveToMaterials")}
-                    </Button>
+                    {canSaveImageToMaterials ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setShowImageMenu(false)
+                          onSaveImageToMaterials()
+                        }}
+                      >
+                        {t("imageGeneration.canvas.saveToMaterials")}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               )}

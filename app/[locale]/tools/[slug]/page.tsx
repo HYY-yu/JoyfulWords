@@ -13,13 +13,10 @@ interface ToolDetailPageProps {
 }
 
 const toolMetadata: Record<ToolSlug, { zh: string; en: string }> = {
-  "ai-writer": { zh: "AI 写作", en: "AI Writer" },
-  "smart-rewrite": { zh: "智能改写", en: "Smart Rewrite" },
-  "image-generator": { zh: "AI 生图", en: "AI Image Generator" },
+  "create-image": { zh: "Create Image", en: "Create Image" },
+  "style-image": { zh: "Style Image", en: "Style Image" },
+  "image-split": { zh: "图片拆分", en: "Image Split" },
   infographic: { zh: "信息图", en: "Infographic" },
-  "mind-map": { zh: "思维导图", en: "Mind Map" },
-  "ai-charts": { zh: "AI 图表", en: "AI Charts" },
-  "ppt-generator": { zh: "PPT 生成", en: "PPT Generator" },
 }
 
 export function generateStaticParams() {
@@ -49,8 +46,8 @@ export async function generateMetadata({ params }: ToolDetailPageProps): Promise
   return buildMetadata({
     title: isZh ? `${toolTitle} - 免费工具` : `${toolTitle} - Free Tool`,
     description: isZh
-      ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，当前功能预留中，后续支持分享、SEO 和任务中心联动。`
-      : `${toolTitle} is an independent JoyfulWords free tool page prepared for sharing, SEO, and Task Center integration.`,
+      ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，支持独立使用和任务中心联动。`
+      : `${toolTitle} is an independent JoyfulWords toolbox page with standalone use and Task Center integration.`,
     path: buildLocalizedPath(locale, `/tools/${slug}`),
     locale,
     alternatePaths: {

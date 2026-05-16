@@ -92,7 +92,9 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
   // 处理任务完成
   const handleTaskComplete = useCallback((data: any) => {
-    if (data.task_id === currentTaskId) {
+    const taskId = String(data.task_id)
+
+    if (taskId === currentTaskId) {
       console.info('[InversionMode] Split completed successfully')
 
       // 解析多图 URL
@@ -125,8 +127,8 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
       setLayerImages(layers)
       setSplitStatus("completed")
-      setCurrentGenerationLogId(Number(data.task_id))
-      console.info('[InversionMode] Saved generation log ID:', data.task_id)
+      setCurrentGenerationLogId(Number(taskId))
+      console.info('[InversionMode] Saved generation log ID:', taskId)
 
       taskToast.showSuccess({ title: t("imageGeneration.inversionMode.splitCompleted") })
     }
@@ -134,7 +136,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
 
   // 处理任务失败
   const handleTaskFailed = useCallback((data: any) => {
-    if (data.task_id === currentTaskId) {
+    if (String(data.task_id) === currentTaskId) {
       console.error('[InversionMode] Split failed:', data.error_message)
       setSplitStatus("error")
       taskToast.showFailure({
@@ -365,7 +367,7 @@ export function InversionMode({ articleId }: InversionModeProps) {
       }
 
       // 保存任务状态
-      setCurrentTaskId(result.task_id)
+      setCurrentTaskId(String(result.task_id))
       taskToast.showPolling({
         title: pollingToastTitle,
         description: pollingToastDescription,

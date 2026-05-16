@@ -730,6 +730,10 @@ export const en = {
             referenceImageOptional: "(Optional)",
             selectReferenceImage: "Select Reference Image",
             selectImageFromMaterials: "Select from materials",
+            uploadReferenceImage: "Upload reference image",
+            reuploadReferenceImage: "Re-upload reference image",
+            referenceUploading: "Uploading reference image...",
+            referenceUploadHint: "Supports PNG, JPG, JPEG, WebP, and other image formats.",
             noImageMaterials: "No image materials available. Please upload in materials module first.",
             imageSelected: "Selected: ",
             materialsLoading: "Loading materials...",
@@ -2401,73 +2405,98 @@ export const en = {
         },
         eyebrow: "Creator Toolbox",
         title: "Creator Toolbox",
-        status: "Coming soon",
-        openPlaceholder: "View tool page",
+        status: "Available",
+        openPlaceholder: "Open tool",
         tools: {
-            "ai-writer": {
-                title: "AI Writer",
+            "create-image": {
+                title: "Create Image",
+                description: "Generate images with canvas layout boxes and prompts.",
+                auth: "Available to guests; log in for WebSocket and Task Center.",
             },
-            "smart-rewrite": {
-                title: "Smart Rewrite",
+            "style-image": {
+                title: "Style Image",
+                description: "Upload an image and redraw it with a selected style.",
+                auth: "Available to guests; uploads use the temporary image-temp directory.",
             },
-            "image-generator": {
-                title: "AI Image Generator",
+            "image-split": {
+                title: "Image Split",
+                description: "Split one image into reusable layers.",
+                auth: "Login required. Runs through Task Center.",
             },
             infographic: {
                 title: "Infographic",
-            },
-            "mind-map": {
-                title: "Mind Map",
-            },
-            "ai-charts": {
-                title: "AI Charts",
-            },
-            "ppt-generator": {
-                title: "PPT Generator",
+                description: "Turn source text into an infographic image.",
+                auth: "Login required. Runs through Task Center.",
             },
         },
-        activities: {
-            title: "Campaign Menu",
-            cta: "Campaigns coming soon",
-            checkIn: {
-                title: "Daily Check-in",
-                reward: "+ credits",
-            },
-            share: {
-                title: "Share for Credits",
-                reward: "Referral",
-            },
-            campaign: {
-                title: "Limited Campaigns",
-                reward: "Event",
-            },
+        toolbox: {
+            toolsLabel: "Tools",
         },
         tasks: {
             title: "Task List",
-            subtitle: "Global task records without article binding.",
+            subtitle: "Logged-in tasks sync here over WebSocket.",
             loginTitle: "Log in to view tasks",
-            loginDescription: "Image, infographic, PPT, and article tasks will sync here.",
+            loginDescription: "Guest image tasks only poll on this page; log in to view Task Center.",
         },
-        workspaceCta: {
-            title: "Write More Professional Articles",
-            description: "Need more polished writing and a complete AI note-taking workspace? Click Go to your Workspace.",
-            action: "Go to your Workspace",
+        guest: {
+            imageGeneratorNotice: "Guests can use AI image generation, limited to 3 images per guest per day. Results update by polling only. Log in for WebSocket, Task Center, and the full toolset.",
+            pollingOnly: "Guest tasks only poll on this page.",
+            loginAction: "Log in",
+            loginRequiredTitle: "Login required",
+            loginRequiredDescription: "This tool requires login.",
         },
-        detail: {
-            back: "Back to tools",
-            placeholderTitle: "This tool is being scheduled",
-            disabledAction: "Coming soon",
-            notes: {
-                account: {
-                    title: "Account context",
-                },
-                tasks: {
-                    title: "Task Center",
-                },
-                activity: {
-                    title: "Campaign rewards",
-                },
+        statuses: {
+            idle: "Idle",
+            pending: "Pending",
+            processing: "Processing",
+            success: "Completed",
+            failed: "Failed",
+            running: "Task running",
+        },
+        errors: {
+            submitFailed: "Submit failed",
+            pollFailed: "Failed to poll task",
+            taskFailed: "Task failed",
+        },
+        imageGenerator: {
+            mode: "Generation mode",
+            modes: {
+                creator: "Text to image",
+                style: "Reference style",
             },
+            prompt: "Prompt",
+            promptPlaceholder: "Describe the scene, subject, setting, and style.",
+            promptRequired: "Enter a prompt first.",
+            referenceImage: "Reference image URL",
+            referencePlaceholder: "https://example.com/image.png",
+            referenceHint: "Guests can use at most 1 reference image. Uploads are available in the logged-in workspace.",
+            referenceRequired: "Reference style mode requires an image URL.",
+            submit: "Generate image",
+            submitted: "Image task submitted",
+            result: "Result",
+            emptyResult: "Generated images will appear here after submission.",
+        },
+        imageSplit: {
+            imageUrl: "Image URL",
+            imagePlaceholder: "https://example.com/image.png",
+            imageRequired: "Enter an image URL first.",
+            numLayers: "Layers",
+            prompt: "Split instruction",
+            promptPlaceholder: "Optional, for example: keep subject, background, and decorations separate.",
+            submit: "Split image",
+            submitted: "Image split task submitted",
+            result: "Split result",
+            emptyResult: "After submission, view the result in Task Center.",
+            taskSubmitted: "Task #{id} submitted. Check progress in Task Center.",
+        },
+        infographic: {
+            text: "Infographic text",
+            textPlaceholder: "Paste the content to turn into an infographic.",
+            textRequired: "Enter infographic text first.",
+            submit: "Generate infographic",
+            submitted: "Infographic task submitted",
+            result: "Infographic result",
+            emptyResult: "Generated results will appear here after submission.",
         },
     },
     blog: {

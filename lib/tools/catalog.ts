@@ -1,11 +1,8 @@
 export const TOOL_SLUGS = [
-  "ai-writer",
-  "smart-rewrite",
-  "image-generator",
+  "create-image",
+  "style-image",
+  "image-split",
   "infographic",
-  "mind-map",
-  "ai-charts",
-  "ppt-generator",
 ] as const
 
 export type ToolSlug = (typeof TOOL_SLUGS)[number]

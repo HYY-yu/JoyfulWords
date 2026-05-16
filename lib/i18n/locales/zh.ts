@@ -730,6 +730,10 @@ export const zh = {
             referenceImageOptional: "(可选)",
             selectReferenceImage: "选择参考图片",
             selectImageFromMaterials: "从素材库选择",
+            uploadReferenceImage: "上传参考图片",
+            reuploadReferenceImage: "重新上传参考图片",
+            referenceUploading: "参考图片上传中...",
+            referenceUploadHint: "支持 PNG、JPG、JPEG、WebP 等图片格式。",
             noImageMaterials: "暂无图片素材，请先在素材模块上传",
             imageSelected: "已选择: ",
             materialsLoading: "正在加载素材...",
@@ -2401,73 +2405,98 @@ export const zh = {
         },
         eyebrow: "Creator Toolbox",
         title: "免费工具箱",
-        status: "待实现",
-        openPlaceholder: "查看工具页",
+        status: "可用",
+        openPlaceholder: "打开工具",
         tools: {
-            "ai-writer": {
-                title: "AI 写作",
+            "create-image": {
+                title: "Create Image",
+                description: "用画布、布局框和提示词生成图片。",
+                auth: "游客可用；登录后进入 WebSocket 和 Task Center。",
             },
-            "smart-rewrite": {
-                title: "智能改写",
+            "style-image": {
+                title: "Style Image",
+                description: "上传图片并选择风格进行重绘。",
+                auth: "游客可用；上传到临时 image-temp 目录。",
             },
-            "image-generator": {
-                title: "AI 生图",
+            "image-split": {
+                title: "图片拆分",
+                description: "把图片拆成可复用图层。",
+                auth: "必须登录，会进入 Task Center。",
             },
             infographic: {
                 title: "信息图",
-            },
-            "mind-map": {
-                title: "思维导图",
-            },
-            "ai-charts": {
-                title: "AI 图表",
-            },
-            "ppt-generator": {
-                title: "PPT 生成",
+                description: "把文本生成信息图图片。",
+                auth: "必须登录，会进入 Task Center。",
             },
         },
-        activities: {
-            title: "活动菜单",
-            cta: "活动功能待实现",
-            checkIn: {
-                title: "每日签到",
-                reward: "+ 积分",
-            },
-            share: {
-                title: "分享得积分",
-                reward: "邀请",
-            },
-            campaign: {
-                title: "限时活动",
-                reward: "活动",
-            },
+        toolbox: {
+            toolsLabel: "工具",
         },
         tasks: {
             title: "任务列表",
-            subtitle: "不绑定文章的全局任务记录。",
+            subtitle: "登录任务会通过 WebSocket 同步到这里。",
             loginTitle: "登录后查看任务",
-            loginDescription: "图片、信息图、PPT 和文章任务会在这里同步。",
+            loginDescription: "游客图片任务只支持轮询；登录后可查看 Task Center。",
         },
-        workspaceCta: {
-            title: "写出更专业的文章",
-            description: "想要书写更专业的文章，想要一个完美的 AI 笔记应用，请点击 Go to your Workspace。",
-            action: "Go to your Workspace",
+        guest: {
+            imageGeneratorNotice: "游客可使用 AI 生图，单个游客每日 3 张；结果只通过轮询更新。登录后可使用 WebSocket、Task Center 和更完整的工具能力。",
+            pollingOnly: "当前游客任务只会在本页轮询展示。",
+            loginAction: "登录继续",
+            loginRequiredTitle: "需要登录",
+            loginRequiredDescription: "这个工具需要登录后使用。",
         },
-        detail: {
-            back: "返回工具箱",
-            placeholderTitle: "工具正在排期",
-            disabledAction: "待实现",
-            notes: {
-                account: {
-                    title: "账号上下文",
-                },
-                tasks: {
-                    title: "任务中心",
-                },
-                activity: {
-                    title: "活动激励",
-                },
+        statuses: {
+            idle: "未开始",
+            pending: "等待中",
+            processing: "处理中",
+            success: "已完成",
+            failed: "失败",
+            running: "任务处理中",
+        },
+        errors: {
+            submitFailed: "提交失败",
+            pollFailed: "查询任务失败",
+            taskFailed: "任务执行失败",
+        },
+        imageGenerator: {
+            mode: "生成模式",
+            modes: {
+                creator: "文本生图",
+                style: "参考图风格化",
             },
+            prompt: "提示词",
+            promptPlaceholder: "描述你想生成的画面、主体、场景和风格。",
+            promptRequired: "请先输入提示词。",
+            referenceImage: "参考图片 URL",
+            referencePlaceholder: "https://example.com/image.png",
+            referenceHint: "游客最多允许 1 张参考图。上传能力登录后在创作工作台使用。",
+            referenceRequired: "风格化模式需要参考图片 URL。",
+            submit: "生成图片",
+            submitted: "图片任务已提交",
+            result: "生成结果",
+            emptyResult: "提交后生成结果会显示在这里。",
+        },
+        imageSplit: {
+            imageUrl: "图片 URL",
+            imagePlaceholder: "https://example.com/image.png",
+            imageRequired: "请先输入图片 URL。",
+            numLayers: "图层数",
+            prompt: "拆分说明",
+            promptPlaceholder: "可选，例如：保留主体、背景和装饰元素。",
+            submit: "开始拆分",
+            submitted: "图片拆分任务已提交",
+            result: "拆分结果",
+            emptyResult: "任务提交后，请在 Task Center 查看结果。",
+            taskSubmitted: "任务 #{id} 已提交，请在 Task Center 查看进度。",
+        },
+        infographic: {
+            text: "信息图文本",
+            textPlaceholder: "粘贴要整理成信息图的内容。",
+            textRequired: "请先输入信息图文本。",
+            submit: "生成信息图",
+            submitted: "信息图任务已提交",
+            result: "信息图结果",
+            emptyResult: "提交后生成结果会显示在这里。",
         },
     },
     blog: {

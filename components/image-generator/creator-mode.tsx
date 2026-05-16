@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
-import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
+import { DEFAULT_POLLING_CONFIG, type PollingConfig } from "@/lib/api/image-generation/types"
 
 import type {
   CanvasTemplateId,
@@ -21,6 +21,14 @@ import type {
   LayerProps,
   CreatorConfig,
 } from "./types"
+import type {
+  CopyToMaterialsResponse,
+  CreateGenerationTaskRequest,
+  CreateGenerationTaskResponse,
+  GetModelsResponse,
+  TaskResultResponse,
+} from "@/lib/api/image-generation/types"
+import type { ErrorResponse } from "@/lib/api/types"
 import {
   buildTemplateLayers,
   DEFAULT_COMPOSITION_SETTINGS,
@@ -44,11 +52,40 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/base/alert-dialog"
 
-interface CreatorModeProps {
-  articleId?: number | null
+export interface CreatorModeClient {
+  createGenerationTask: (
+    request: CreateGenerationTaskRequest
+  ) => Promise<CreateGenerationTaskResponse | ErrorResponse>
+  getTaskResult: (
+    taskId: string,
+    signal?: AbortSignal
+  ) => Promise<TaskResultResponse | ErrorResponse>
+  getModels?: () => Promise<GetModelsResponse | ErrorResponse>
+  copyToMaterials?: (
+    logId: number,
+    articleId?: number
+  ) => Promise<CopyToMaterialsResponse | ErrorResponse>
 }
 
-export function CreatorMode({ articleId }: CreatorModeProps) {
+interface CreatorModeProps {
+  articleId?: number | null
+  client?: CreatorModeClient
+  lockedModel?: string
+  pollingConfig?: PollingConfig
+  enableSaveToMaterials?: boolean
+  allowReferenceMaterialSelector?: boolean
+  uploadReferenceImage?: (file: File) => Promise<string>
+}
+
+export function CreatorMode({
+  articleId,
+  client = imageGenerationClient,
+  lockedModel,
+  pollingConfig = DEFAULT_POLLING_CONFIG,
+  enableSaveToMaterials = true,
+  allowReferenceMaterialSelector = true,
+  uploadReferenceImage,
+}: CreatorModeProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const taskToast = useAsyncTaskToast()
@@ -86,10 +123,12 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
 
   // 处理任务完成
   const handleTaskComplete = useCallback((data: any) => {
-    if (data.task_id === currentTaskId) {
+    const taskId = String(data.task_id)
+
+    if (taskId === currentTaskId) {
       // INFO: 任务完成
       console.info('[ImageGeneration] Task completed successfully:', {
-        taskId: data.task_id,
+        taskId,
         imageUrl: data.image_url,
       })
 
@@ -126,22 +165,29 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       setShowGeneratedImage(true)
 
       // 保存生成记录ID
-      setCurrentGenerationLogId(Number(data.task_id))
-      console.info('[ImageGeneration] Saved generation log ID:', data.task_id)
+      setCurrentGenerationLogId(Number(taskId))
+      console.info('[ImageGeneration] Saved generation log ID:', taskId)
 
       taskToast.showSuccess({
         title: t("imageGeneration.toast.generationSuccess"),
         description: t("imageGeneration.generating.description"),
+      })
+    } else {
+      console.debug('[ImageGeneration] Ignored task completion for inactive task:', {
+        activeTaskId: currentTaskId,
+        receivedTaskId: taskId,
       })
     }
   }, [currentTaskId, t, taskToast])
 
   // 处理任务失败
   const handleTaskFailed = useCallback((data: any) => {
-    if (data.task_id === currentTaskId) {
+    const taskId = String(data.task_id)
+
+    if (taskId === currentTaskId) {
       // ERROR: 任务失败
       console.error('[ImageGeneration] Task failed:', {
-        taskId: data.task_id,
+        taskId,
         error: data.error_message,
       })
 
@@ -152,6 +198,11 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
       })
+    } else {
+      console.debug('[ImageGeneration] Ignored task failure for inactive task:', {
+        activeTaskId: currentTaskId,
+        receivedTaskId: taskId,
+      })
     }
   }, [currentTaskId, t, taskToast])
 
@@ -161,7 +212,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
 
     const checkTaskStatus = async () => {
       try {
-        const result = await imageGenerationClient.getTaskResult(currentTaskId)
+        const result = await client.getTaskResult(currentTaskId)
 
         if ('error' in result) {
           console.error('[ImageGeneration] Failed to get task status:', result.error)
@@ -206,11 +257,11 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
+  }, [client, currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
 
-  // 组件 mount 时检查 localStorage，恢复未完成的任务
+  // 组件 mount 或轮询配置变化时检查 localStorage，恢复未完成的任务
   useEffect(() => {
-    const savedTask = loadTaskFromStorage(DEFAULT_POLLING_CONFIG)
+    const savedTask = loadTaskFromStorage(pollingConfig)
 
     if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
       // INFO: 发现未完成的任务，等待 WebSocket 通知
@@ -226,17 +277,35 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       setCurrentTaskId(savedTask.task_id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // 只在 mount 时执行一次
+  }, [pollingConfig])
 
   // 组件 mount 时获取可用模型列表
   useEffect(() => {
     const fetchModels = async () => {
+      if (lockedModel) {
+        console.debug('[ImageGeneration] Using locked model:', lockedModel)
+        setAvailableModels([lockedModel])
+        setSelectedModel(lockedModel)
+        setIsLoadingModels(false)
+        setModelsLoadError(null)
+        return
+      }
+
+      if (!client.getModels) {
+        console.warn('[ImageGeneration] Model API unavailable')
+        setAvailableModels([])
+        setSelectedModel("")
+        setIsLoadingModels(false)
+        setModelsLoadError("model_api_unavailable")
+        return
+      }
+
       console.debug('[ImageGeneration] Fetching available models...')
       setIsLoadingModels(true)
       setModelsLoadError(null)
 
       try {
-        const result = await imageGenerationClient.getModels()
+        const result = await client.getModels()
 
         if ('error' in result) {
           console.error('[ImageGeneration] Failed to fetch models:', result.error)
@@ -276,8 +345,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
     }
 
     fetchModels()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // 只在 mount 时执行一次
+  }, [client, lockedModel, t, toast])
 
   // 元数据参数
   const [metaSettings, setMetaSettings] = useState<MetaSettings>(DEFAULT_META_SETTINGS)
@@ -535,10 +603,10 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       })
 
       // 调用 API 创建生成任务
-      const result = await imageGenerationClient.createGenerationTask({
+      const result = await client.createGenerationTask({
         gen_mode: 'creator', // 创作模式
         prompt,
-        model_name: selectedModel,  // 新增
+        model_name: lockedModel ?? selectedModel,  // 新增
         article_id: articleId ?? undefined,
       })
 
@@ -566,7 +634,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       })
 
       // 保存任务状态
-      setCurrentTaskId(result.task_id)
+      setCurrentTaskId(String(result.task_id))
       
       // 发送事件通知主页面刷新任务列表
       window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
@@ -584,7 +652,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [articleId, pollingToastDescription, pollingToastTitle, selectedModel, submittingToastDescription, submittingToastTitle, t, taskToast])
+  }, [articleId, client, lockedModel, pollingToastDescription, pollingToastTitle, selectedModel, submittingToastDescription, submittingToastTitle, t, taskToast])
 
   const handleGenerateImage = async () => {
     const creatorConfig = buildCreatorConfig()
@@ -614,10 +682,10 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
 
       // INFO: 直接使用 config 创建生成任务（API 支持直接传 config）
       console.debug('[ImageGeneration] Creating task with config...')
-      const result = await imageGenerationClient.createGenerationTask({
+      const result = await client.createGenerationTask({
         gen_mode: 'creator', // 创作模式
         config: creatorConfig,
-        model_name: selectedModel,  // 新增
+        model_name: lockedModel ?? selectedModel,  // 新增
         article_id: articleId ?? undefined,
       })
 
@@ -645,7 +713,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       })
 
       // 保存任务状态
-      setCurrentTaskId(result.task_id)
+      setCurrentTaskId(String(result.task_id))
       
       // 发送事件通知主页面刷新任务列表
       window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
@@ -670,6 +738,18 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
   }
 
   const handleSaveImageToMaterials = async () => {
+    if (!enableSaveToMaterials || !client.copyToMaterials) {
+      console.warn('[ImageGeneration] Copy to materials is unavailable for this surface', {
+        logId: currentGenerationLogId,
+      })
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.copyToMaterialsFailed"),
+        description: t("imageGeneration.toast.error.unauthorized"),
+      })
+      return
+    }
+
     if (!currentGenerationLogId) {
       console.error('[ImageGeneration] No generation log ID available')
       toast({
@@ -683,7 +763,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
     console.info('[ImageGeneration] Copying to materials:', { logId: currentGenerationLogId })
 
     try {
-      const result = await imageGenerationClient.copyToMaterials(
+      const result = await client.copyToMaterials(
         currentGenerationLogId,
         articleId ?? undefined
       )
@@ -798,6 +878,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         onGenerateImage={handleGenerateImage}
         onToggleImageVisibility={handleToggleImageVisibility}
         onSaveImageToMaterials={handleSaveImageToMaterials}
+        canSaveImageToMaterials={enableSaveToMaterials && Boolean(client.copyToMaterials)}
       />
 
       {/* Right Column - Properties Panel */}
@@ -811,6 +892,8 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         selectedModel={selectedModel}
         availableModels={availableModels}
         isLoadingModels={isLoadingModels}
+        allowReferenceMaterialSelector={allowReferenceMaterialSelector}
+        uploadReferenceImage={uploadReferenceImage}
         onMetaSettingsChange={handleMetaSettingsChange}
         onGlobalStyleSettingsChange={setGlobalStyleSettings}
         onCompositionSettingsChange={setCompositionSettings}

@@ -84,10 +84,12 @@ export function ImageGeneration() {
 
   // 处理任务完成事件
   const handleTaskComplete = useCallback((payload: any) => {
-    if (payload.task_id === currentTaskId) {
+    const taskId = String(payload.task_id)
+
+    if (taskId === currentTaskId) {
       // INFO: 任务完成 - WebSocket 通知
       console.info('[ImageGeneration] Task completed successfully via WebSocket:', {
-        taskId: payload.task_id,
+        taskId,
         imageUrl: payload.outputs?.image_urls,
       })
 
@@ -124,8 +126,8 @@ export function ImageGeneration() {
       setShowGeneratedImage(true)
 
       // 保存生成记录ID
-      setCurrentGenerationLogId(Number(payload.task_id))
-      console.info('[ImageGeneration] Saved generation log ID:', payload.task_id)
+      setCurrentGenerationLogId(Number(taskId))
+      console.info('[ImageGeneration] Saved generation log ID:', taskId)
 
       toast({
         title: t("imageGeneration.toast.generationSuccess"),
@@ -136,7 +138,7 @@ export function ImageGeneration() {
 
   // 处理任务失败事件
   const handleTaskFailed = useCallback((payload: any) => {
-    if (payload.task_id === currentTaskId) {
+    if (String(payload.task_id) === currentTaskId) {
       // ERROR: 任务失败 - WebSocket 通知
       console.error('[ImageGeneration] Task failed via WebSocket:', {
         taskId: payload.task_id,
@@ -157,7 +159,7 @@ export function ImageGeneration() {
 
   // 处理任务更新事件
   const handleTaskUpdate = useCallback((payload: any) => {
-    if (payload.task_id === currentTaskId) {
+    if (String(payload.task_id) === currentTaskId) {
       // DEBUG: 任务进度 - WebSocket 通知
       console.debug('[ImageGeneration] Task status updated via WebSocket:', {
         taskId: payload.task_id,
@@ -545,7 +547,7 @@ export function ImageGeneration() {
       })
 
       // 保存任务状态，等待 WebSocket 通知
-      setCurrentTaskId(result.task_id)
+      setCurrentTaskId(String(result.task_id))
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -621,7 +623,7 @@ export function ImageGeneration() {
       })
 
       // 保存任务状态，等待 WebSocket 通知
-      setCurrentTaskId(result.task_id)
+      setCurrentTaskId(String(result.task_id))
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
