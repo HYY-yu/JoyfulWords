@@ -1551,6 +1551,10 @@ export const zh = {
             articleAnalysisHint: "提交后可以关闭弹窗，分析状态会保留在任务进度中。",
         },
         taskDetail: {
+            prompt: "生成提示词",
+            regenerate: "重新生成图表",
+            regenerateSubmitted: "已创建新的图表任务",
+            regenerateFailed: "重新生成图表失败",
             insert: "插入 PNG 到文章",
             inserted: "已插入文章",
             insertedAtCursor: "未找到锚点，已插入当前光标位置",

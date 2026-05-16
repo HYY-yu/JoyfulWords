@@ -1551,6 +1551,10 @@ export const en = {
             articleAnalysisHint: "You can close this dialog after submitting. The analysis state stays in Task Progress.",
         },
         taskDetail: {
+            prompt: "Generation prompt",
+            regenerate: "Regenerate Chart",
+            regenerateSubmitted: "New chart task created",
+            regenerateFailed: "Failed to regenerate chart",
             insert: "Insert PNG into Article",
             inserted: "Inserted into article",
             insertedAtCursor: "Anchor not found. Inserted at the current cursor.",

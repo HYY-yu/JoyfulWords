@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/base/select"
 import { Slider } from "@/components/ui/base/slider"
 import { Switch } from "@/components/ui/base/switch"
+import { Textarea } from "@/components/ui/base/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { JoyChartRenderer, type JoyChartRendererHandle } from "@/components/editor/joy-chart-renderer"
 import { echartsClient } from "@/lib/api/echarts/client"
@@ -111,6 +112,9 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
     mergeJoyChartDisplay(initialSpec?.display)
   )
   const [saving, setSaving] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const [promptDraft, setPromptDraft] = useState(detail.prompt)
+  const [submittedPrompt, setSubmittedPrompt] = useState(detail.prompt.trim())
   const [inserting, setInserting] = useState(false)
   const [inserted, setInserted] = useState(false)
 
@@ -118,8 +122,10 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
     setSpec(initialSpec)
     setVersion(detail.version)
     setDraftDisplay(mergeJoyChartDisplay(initialSpec?.display))
+    setPromptDraft(detail.prompt)
+    setSubmittedPrompt(detail.prompt.trim())
     setInserted(false)
-  }, [detail.version, initialSpec])
+  }, [detail.id, detail.prompt, detail.version, initialSpec])
 
   const chartType = detail.chart_type || spec?.chart.type || "bar"
   const referenceContext = spec?.extensions?.reference_context ?? null
@@ -128,9 +134,56 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
     [draftDisplay, spec]
   )
   const canInsert = Boolean(currentSpec && (detail.status === "success" || detail.status === "succeeded"))
+  const normalizedPromptDraft = promptDraft.trim()
+  const canRegenerate = normalizedPromptDraft.length > 0 && normalizedPromptDraft !== submittedPrompt
 
   const updateDraft = (patch: JoyChartDisplay) => {
     setDraftDisplay((current) => patchDisplay(current, patch))
+  }
+
+  const handleRegenerate = async () => {
+    if (!canRegenerate) return
+
+    setRegenerating(true)
+    try {
+      console.info("[EChartsTaskDetail] Regenerating chart from edited prompt", {
+        sourceLogId: detail.id,
+        articleId: detail.article_id ?? 0,
+        promptLength: normalizedPromptDraft.length,
+        theme: draftDisplay.style?.theme ?? null,
+      })
+      // TODO(observability): add regenerate counters and trace sourceLogId/newLogId.
+      const result = await echartsClient.generate({
+        article_id: detail.article_id,
+        prompt: normalizedPromptDraft,
+        display: draftDisplay,
+      })
+
+      if (isApiError(result)) {
+        throw new Error(result.error)
+      }
+
+      setSubmittedPrompt(normalizedPromptDraft)
+      console.info("[EChartsTaskDetail] Created regenerated chart task", {
+        sourceLogId: detail.id,
+        newLogId: result.id,
+      })
+      toast({
+        title: t("echarts.taskDetail.regenerateSubmitted"),
+      })
+    } catch (error) {
+      console.error("[EChartsTaskDetail] Failed to regenerate chart", {
+        logId: detail.id,
+        error,
+      })
+      toast({
+        variant: "destructive",
+        title: t("echarts.taskDetail.regenerateFailed"),
+        description: error instanceof Error ? error.message : t("common.unknownError"),
+      })
+    } finally {
+      setRegenerating(false)
+    }
   }
 
   const handleSaveDisplay = async () => {
@@ -464,25 +517,50 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <BarChart3Icon className="h-4 w-4 text-primary" />
+            <h3 className="truncate text-base font-semibold">
+              {detail.title || spec?.chart.title || t("echarts.chart.untitled")}
+            </h3>
+          </div>
+        </div>
+        <Badge variant="outline" className="shrink-0">
+          {chartType || t("echarts.types.unknown")}
+        </Badge>
+      </div>
+
+      <div className="rounded-xl border border-border/70 bg-muted/15 p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <Label htmlFor={`echarts-prompt-${detail.id}`} className="text-xs font-semibold">
+            {t("echarts.taskDetail.prompt")}
+          </Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canRegenerate || regenerating}
+            onClick={handleRegenerate}
+          >
+            {regenerating ? (
+              <Loader2Icon className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCwIcon className="h-3.5 w-3.5" />
+            )}
+            {t("echarts.taskDetail.regenerate")}
+          </Button>
+        </div>
+        <Textarea
+          id={`echarts-prompt-${detail.id}`}
+          value={promptDraft}
+          onChange={(event) => setPromptDraft(event.target.value)}
+          className="max-h-48 min-h-28 resize-y bg-background text-sm leading-6"
+        />
+      </div>
+
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <BarChart3Icon className="h-4 w-4 text-primary" />
-                <h3 className="truncate text-base font-semibold">
-                  {detail.title || spec?.chart.title || t("echarts.chart.untitled")}
-                </h3>
-              </div>
-              <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                {detail.prompt}
-              </p>
-            </div>
-            <Badge variant="outline" className="shrink-0">
-              {chartType || t("echarts.types.unknown")}
-            </Badge>
-          </div>
-
           {detail.status === "failed" ? (
             <Alert variant="destructive">
               <AlertCircleIcon className="h-4 w-4" />
@@ -495,7 +573,7 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
           {chartPreview}
         </div>
 
-        <div className="space-y-3 lg:self-end">
+        <div className="space-y-3">
           {settingsPanel}
         </div>
       </div>
