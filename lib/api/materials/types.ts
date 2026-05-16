@@ -155,6 +155,11 @@ export interface AddMaterialsFromLogRequest {
   material_log_id: number
   article_id: number
   urls: string[]
+  items?: Array<{
+    url: string
+    title: string
+    content: string
+  }>
 }
 
 /**
@@ -170,6 +175,20 @@ export interface CreateMaterialFavoriteRequest {
 export interface AddMaterialsFromLogResponse {
   ids: number[]
   message: string
+}
+
+export interface ParseMaterialPreviewRequest {
+  file_url: string
+  file_name: string
+}
+
+export interface ParseMaterialPreviewResponse {
+  task_id: string
+  parse_status: MaterialParseStatus
+  parse_failed_code: number
+  markdown_url: string
+  content: string
+  error_message: string
 }
 
 /**
