@@ -136,7 +136,12 @@ test('authenticated request does not call protected endpoint when refresh fails'
   }
 
   try {
-    const result = await authenticatedApiRequest<{ error: string; status: number }>(
+    const result = await authenticatedApiRequest<{
+      error: string
+      status?: number
+      reason?: string
+      error_description?: string
+    }>(
       '/article?page=1&page_size=10'
     )
 
@@ -150,7 +155,7 @@ test('authenticated request does not call protected endpoint when refresh fails'
   }
 })
 
-test('authenticated request logs network refresh failures before API response', async () => {
+test('authenticated request keeps local session on network refresh failures before API response', async () => {
   const globals = installBrowserGlobals()
   const calls: FetchCall[] = []
   const originalWarn = console.warn
@@ -171,11 +176,16 @@ test('authenticated request logs network refresh failures before API response', 
       '/article?page=1&page_size=10'
     )
 
-    assert.deepEqual(result, { error: 'Session expired', status: 401 })
+    assert.deepEqual(result, {
+      error: 'Failed to fetch',
+      reason: 'network_error',
+      error_description: 'Fetch failed before receiving an API response: Failed to fetch',
+      status: undefined,
+    })
     assert.equal(calls.length, 1)
     assert.equal(calls[0].url, 'http://localhost:8080/auth/token/refresh')
     assert.equal(new Headers(calls[0].init?.headers).get('X-Auth-Refresh-Source'), 'authenticated_request_proactive')
-    assert.equal(globals.windowStub.location.href, '/auth/login?reason=token_expired')
+    assert.equal(globals.windowStub.location.href, '')
     assert.equal(typeof warnings[0]?.[0], 'string')
     assert.match(
       warnings[0][0] as string,

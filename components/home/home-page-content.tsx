@@ -636,7 +636,7 @@ export function HomePageContent() {
               className="rounded-full bg-[var(--jw-surface-strong)] px-6 text-[var(--jw-heading)] hover:bg-white"
               asChild
             >
-              <Link href="/articles">
+              <Link href="/articles" prefetch={false}>
                 {t("landing.ctaCta")}
                 <ArrowRightIcon className="h-4 w-4" />
               </Link>

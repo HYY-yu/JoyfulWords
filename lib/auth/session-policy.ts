@@ -34,6 +34,7 @@ interface SessionRestorePolicyInput {
   pathname: string
   hasStoredUser: boolean
   hasAccessToken: boolean
+  accessTokenExpired?: boolean
 }
 
 interface AuthRefreshPolicyInput {
@@ -67,9 +68,14 @@ export function shouldAttemptSessionRestore({
   pathname,
   hasStoredUser,
   hasAccessToken,
+  accessTokenExpired = false,
 }: SessionRestorePolicyInput): boolean {
   if (isAuthRoute(pathname)) {
     return false
+  }
+
+  if (hasAccessToken && accessTokenExpired) {
+    return true
   }
 
   if (hasStoredUser && hasAccessToken) {

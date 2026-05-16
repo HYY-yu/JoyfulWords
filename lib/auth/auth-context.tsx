@@ -94,8 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const accessToken = tokenStore.getAccessToken()
       const hasStoredUser = Boolean(storedUser)
       const hasAccessToken = Boolean(accessToken)
+      const accessTokenExpired = hasAccessToken ? tokenStore.isTokenExpired() : false
 
-      if (storedUser && accessToken) {
+      if (storedUser && accessToken && !accessTokenExpired) {
         console.debug('[Auth] Hydrated session from local storage', {
           pathname: currentPathname,
         })
@@ -107,17 +108,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      if (
-        !shouldAttemptSessionRestore({
-          pathname: currentPathname,
-          hasStoredUser,
-          hasAccessToken,
-        })
-      ) {
+      const shouldRestoreSession = shouldAttemptSessionRestore({
+        pathname: currentPathname,
+        hasStoredUser,
+        hasAccessToken,
+        accessTokenExpired,
+      })
+
+      if (!shouldRestoreSession) {
         console.debug('[Auth] Skipping session restore on public route', {
           pathname: currentPathname,
           hasStoredUser,
           hasAccessToken,
+          accessTokenExpired,
         })
 
         if (isAuthRoute(currentPathname) && (hasStoredUser || hasAccessToken)) {
@@ -137,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         pathname: currentPathname,
         hasStoredUser,
         hasAccessToken,
+        accessTokenExpired,
       })
 
       const result = await refreshAccessSession('auth_bootstrap_restore')

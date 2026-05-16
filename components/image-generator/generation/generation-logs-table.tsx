@@ -176,6 +176,8 @@ export function GenerationLogsTable({
               <SelectContent>
                 <SelectItem value="all">{t("imageGeneration.logs.mode.all")}</SelectItem>
                 <SelectItem value="creator">{t("imageGeneration.logs.mode.creator")}</SelectItem>
+                <SelectItem value="cover">{t("imageGeneration.logs.mode.cover")}</SelectItem>
+                <SelectItem value="font">{t("imageGeneration.logs.mode.font")}</SelectItem>
                 <SelectItem value="style">{t("imageGeneration.logs.mode.style")}</SelectItem>
                 <SelectItem value="split_images">{t("imageGeneration.logs.mode.split_images")}</SelectItem>
               </SelectContent>

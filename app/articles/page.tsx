@@ -215,7 +215,7 @@ export default function ArticlesPage() {
     handlePageSizeChange,
     deletingId,
     statusUpdatingId,
-  } = useArticles()
+  } = useArticles({ enabled: !authLoading && Boolean(user) })
 
   // Dialog states
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)

@@ -50,6 +50,38 @@ test('oauth callback skips bootstrap restore even with stale local auth state', 
   )
 })
 
+test('expired access token requires bootstrap restore outside auth routes', () => {
+  assert.equal(
+    shouldAttemptSessionRestore({
+      pathname: '/',
+      hasStoredUser: true,
+      hasAccessToken: true,
+      accessTokenExpired: true,
+    }),
+    true
+  )
+
+  assert.equal(
+    shouldAttemptSessionRestore({
+      pathname: '/articles',
+      hasStoredUser: true,
+      hasAccessToken: true,
+      accessTokenExpired: true,
+    }),
+    true
+  )
+
+  assert.equal(
+    shouldAttemptSessionRestore({
+      pathname: '/auth/login',
+      hasStoredUser: true,
+      hasAccessToken: true,
+      accessTokenExpired: true,
+    }),
+    false
+  )
+})
+
 test('401 refresh only runs for authenticated requests', () => {
   assert.equal(
     shouldAttemptAuthRefresh({

@@ -22,6 +22,17 @@ const DEFAULT_HEADERS = {
 
 const AUTH_REFRESH_SOURCE_HEADER = 'X-Auth-Refresh-Source'
 
+function shouldRedirectToLoginAfterRefreshFailure(failure: {
+  hasApiResponse: boolean
+  status?: number
+} | null): boolean {
+  if (!failure) {
+    return true
+  }
+
+  return failure.status === 401 || failure.status === 403
+}
+
 function isInsufficientCreditsData(data: unknown): data is InsufficientCreditsData {
   if (!data || typeof data !== 'object') return false
 
@@ -235,12 +246,29 @@ export async function authenticatedApiRequest<T>(
   const accessToken = await getAccessTokenForAuthenticatedRequest(endpoint)
 
   if (!accessToken) {
+    const { getLastRefreshFailure } = await import('@/lib/tokens/refresh')
+    const refreshFailure = getLastRefreshFailure()
+    const shouldRedirectToLogin = shouldRedirectToLoginAfterRefreshFailure(refreshFailure)
+
     console.warn('[API] Authenticated request blocked because access token is unavailable', {
       endpoint,
+      refreshFailureStatus: refreshFailure?.status ?? null,
+      refreshFailureReason: refreshFailure?.reason ?? null,
+      refreshFailureHasApiResponse: refreshFailure?.hasApiResponse ?? null,
+      shouldRedirectToLogin,
     })
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && shouldRedirectToLogin) {
       window.location.href = '/auth/login?reason=token_expired'
+    }
+
+    if (!shouldRedirectToLogin && refreshFailure) {
+      return {
+        error: refreshFailure.error || 'Session refresh failed',
+        reason: refreshFailure.reason,
+        error_description: refreshFailure.errorDescription,
+        status: refreshFailure.status,
+      } as T
     }
 
     return { error: 'Session expired', status: 401 } as T

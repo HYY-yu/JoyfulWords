@@ -263,9 +263,6 @@ export function Canvas({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3">
               <Label htmlFor="image-quick-prompt" className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-                  1
-                </span>
                 {t("imageGeneration.canvas.promptLabel")}
               </Label>
               <span className="text-xs text-muted-foreground">

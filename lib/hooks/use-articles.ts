@@ -38,11 +38,16 @@ export interface ArticlesState {
   loading: boolean
 }
 
+interface UseArticlesOptions {
+  enabled?: boolean
+}
+
 /**
  * Articles Hook
  * 管理文章列表的 CRUD 操作和状态管理
  */
-export function useArticles() {
+export function useArticles(options: UseArticlesOptions = {}) {
+  const enabled = options.enabled ?? true
   const { toast } = useToast()
   const { t } = useTranslation()
 
@@ -72,6 +77,11 @@ export function useArticles() {
       title?: string
       status?: ArticleStatus | "all"
     }) => {
+      if (!enabled) {
+        setLoading(false)
+        return false
+      }
+
       setLoading(true)
       const requestTitle = filters && "title" in filters ? filters.title : undefined
       const requestStatus = filters && "status" in filters ? filters.status : statusFilter
@@ -101,13 +111,14 @@ export function useArticles() {
         return true
       }
     },
-    [pagination.page, pagination.pageSize, statusFilter, toast, t]
+    [enabled, pagination.page, pagination.pageSize, statusFilter, toast, t]
   )
 
   // 初始加载
   useEffect(() => {
+    if (!enabled) return
     fetchArticles()
-  }, [pagination.page, pagination.pageSize, fetchArticles])
+  }, [enabled, pagination.page, pagination.pageSize, fetchArticles])
 
   // ==================== 分页操作 ====================
 

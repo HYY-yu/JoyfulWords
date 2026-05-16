@@ -532,20 +532,6 @@
   color: var(--jw-page-text);
 }
 
-@keyframes theme-trigger-pulse {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 0 color-mix(in srgb, var(--jw-accent) 0%, transparent),
-      var(--jw-soft-shadow);
-  }
-  50% {
-    box-shadow:
-      0 0 0 5px color-mix(in srgb, var(--jw-accent) 13%, transparent),
-      var(--jw-soft-shadow);
-  }
-}
-
 @keyframes theme-swatch-nudge {
   0%,
   100% {
@@ -563,7 +549,6 @@
   position: relative;
   border: 1px solid color-mix(in srgb, var(--jw-accent) 24%, transparent);
   background: color-mix(in srgb, var(--jw-surface-strong) 86%, transparent);
-  animation: theme-trigger-pulse 3.6s ease-in-out infinite;
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
