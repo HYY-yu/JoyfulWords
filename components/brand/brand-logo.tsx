@@ -1,4 +1,4 @@
-import { BookOpenTextIcon, SparklesIcon } from "lucide-react"
+import Image from "next/image"
 
 import { cn } from "@/lib/utils"
 
@@ -17,13 +17,44 @@ export function BrandLogo({
     <div className={cn("flex items-center gap-2.5", className)}>
       <div
         className={cn(
-          "jw-brand-mark relative flex shrink-0 items-center justify-center rounded-xl border",
+          "jw-brand-mark jw-brand-scholar-mark relative flex shrink-0 items-center justify-center rounded-xl border",
           compact ? "h-8 w-8" : "h-9 w-9"
         )}
       >
-        <BookOpenTextIcon className={compact ? "h-4 w-4" : "h-5 w-5"} />
-        <span className="jw-brand-spark absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full shadow-sm">
-          <SparklesIcon className="h-2.5 w-2.5" />
+        <span className={cn("jw-brand-scholar", compact ? "is-compact" : "")}>
+          <span className="jw-brand-scholar-image jw-scholar-theme-stack">
+            {["paper", "blue-white", "black-gold"].map((theme) => (
+              <Image
+                key={theme}
+                src={`/images/landing/scholar-writing-${theme}.png`}
+                alt=""
+                width={368}
+                height={512}
+                sizes={compact ? "32px" : "36px"}
+                className={`jw-scholar-theme jw-scholar-theme-${theme}`}
+                aria-hidden="true"
+              />
+            ))}
+          </span>
+          <span className="jw-brand-scholar-brush jw-scholar-theme-stack">
+            {["paper", "blue-white", "black-gold"].map((theme) => (
+              <Image
+                key={theme}
+                src={`/images/landing/scholar-writing-${theme}.png`}
+                alt=""
+                width={368}
+                height={512}
+                sizes={compact ? "32px" : "36px"}
+                className={`jw-scholar-theme jw-scholar-theme-${theme}`}
+                aria-hidden="true"
+              />
+            ))}
+          </span>
+          <span className="jw-brand-scholar-thought">
+            <span />
+            <span />
+            <span />
+          </span>
         </span>
       </div>
       {showWordmark ? (

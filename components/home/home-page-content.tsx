@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -90,8 +91,10 @@ export function HomePageContent() {
     facing: 1,
     visible: false,
   })
+  const [isSpriteLeaping, setIsSpriteLeaping] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const featuresStageRef = useRef<HTMLDivElement | null>(null)
+  const previousActiveFeatureIndexRef = useRef(activeFeatureIndex)
   const blogHref = buildLocalizedPath(locale, "/blog")
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
@@ -168,8 +171,8 @@ export function HomePageContent() {
 
       const stageRect = stage.getBoundingClientRect()
       const titleRect = title.getBoundingClientRect()
-      const x = titleRect.right - stageRect.left + 34
-      const y = titleRect.top - stageRect.top + titleRect.height * 0.1
+      const x = titleRect.right - stageRect.left + 28
+      const y = titleRect.top - stageRect.top + 4
 
       setSpritePosition({
         x,
@@ -184,6 +187,19 @@ export function HomePageContent() {
 
     return () => window.removeEventListener("resize", updateSpritePosition)
   }, [activeFeatureIndex, locale])
+
+  useEffect(() => {
+    if (previousActiveFeatureIndexRef.current === activeFeatureIndex) return
+
+    previousActiveFeatureIndexRef.current = activeFeatureIndex
+    setIsSpriteLeaping(true)
+
+    const timeout = window.setTimeout(() => {
+      setIsSpriteLeaping(false)
+    }, 980)
+
+    return () => window.clearTimeout(timeout)
+  }, [activeFeatureIndex])
 
   return (
     <div className="jw-app-shell overflow-x-hidden">
@@ -470,28 +486,48 @@ export function HomePageContent() {
           <div ref={featuresStageRef} className="relative space-y-10 overflow-visible md:space-y-14">
             <div
               aria-hidden="true"
-              className={`jw-feature-sprite hidden md:block ${spritePosition.visible ? "opacity-100" : "opacity-0"}`}
+              className={`jw-feature-sprite hidden md:block ${spritePosition.visible ? "opacity-100" : "opacity-0"} ${isSpriteLeaping ? "is-leaping" : ""}`}
               style={{
                 transform: `translate3d(${spritePosition.x}px, ${spritePosition.y}px, 0)`,
               }}
             >
-              <div className="jw-feature-sprite-shadow" />
               <div
                 className="jw-feature-sprite-body"
                 style={{ transform: `scaleX(${spritePosition.facing})` }}
               >
                 <div className="jw-feature-sprite-hop">
-                  <div className="jw-feature-sprite-page">
+                  <span className="jw-feature-sprite-image jw-scholar-theme-stack">
+                    {["paper", "blue-white", "black-gold"].map((theme) => (
+                      <Image
+                        key={theme}
+                        src={`/images/landing/scholar-writing-${theme}.png`}
+                        alt=""
+                        width={368}
+                        height={512}
+                        sizes="96px"
+                        className={`jw-scholar-theme jw-scholar-theme-${theme}`}
+                      />
+                    ))}
+                  </span>
+                  <span className="jw-feature-sprite-brush jw-scholar-theme-stack">
+                    {["paper", "blue-white", "black-gold"].map((theme) => (
+                      <Image
+                        key={theme}
+                        src={`/images/landing/scholar-writing-${theme}.png`}
+                        alt=""
+                        width={368}
+                        height={512}
+                        sizes="96px"
+                        className={`jw-scholar-theme jw-scholar-theme-${theme}`}
+                      />
+                    ))}
+                  </span>
+                  <span className="jw-feature-sprite-thought">
                     <span />
                     <span />
                     <span />
-                  </div>
-                  <div className="jw-feature-sprite-pencil">
-                    <span />
-                  </div>
-                  <div className="jw-feature-sprite-spark">
-                    <SparklesIcon className="h-3.5 w-3.5" />
-                  </div>
+                  </span>
+                  <span className="jw-feature-sprite-ink" />
                 </div>
               </div>
             </div>
