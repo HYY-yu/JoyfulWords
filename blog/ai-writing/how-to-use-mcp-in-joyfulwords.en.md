@@ -1,11 +1,13 @@
 ---
-title: "JoyfulWords MCP: Bringing AI Agents Into a Real Writing Workflow"
+title: "JoyfulWords MCP Server for AI Agents: Claude Code, Codex, and Content Workflows"
 date: "2026-05-07"
-summary: "JoyfulWords now supports MCP, so AI agents like Claude Code and Codex can connect to your editor, materials, and AI creation workflow instead of stopping at a raw draft."
+summary: "How the JoyfulWords HTTP MCP Server lets AI agents like Claude Code and Codex connect to article, material, and content workflow capabilities."
 locale: "en"
 ---
 
-JoyfulWords now supports MCP. It can provide a stable MCP endpoint for AI agents such as Claude Code and Codex: https://api.joyword.link/mcp. In practice, you only need to send that endpoint to your AI agent and ask it to install the service for you.
+JoyfulWords now supports MCP. It provides a stable HTTP MCP Server endpoint for AI agents such as Claude Code and Codex: https://api.joyword.link/mcp. In practice, you can send that endpoint to your AI agent and ask it to install the service for you.
+
+This article explains what that means in a real writing workflow: why an MCP server for AI agents matters, how Claude Code MCP setup fits into JoyfulWords, and what to check if the connection does not work.
 
 So why would an article editor connect to an AI agent in the first place? If an AI agent could generate a perfect article on its own, the editor itself would no longer be necessary. But the reality is different. Many things cannot be fully explained in a single prompt. Sometimes the problem is not that AI is not smart enough. It is that we only discover the details of what we really want to say while we are writing.
 
@@ -14,6 +16,32 @@ In the past, writing an article meant reading references, adjusting wording, wei
 That is why the more common workflow now looks like this: I first give AI my ideas, judgments, and the general direction I want to express, then let it help me build the skeleton of the article. At this stage, I do not expect AI to write something that truly sounds like "me" in one pass. What it does best is not finishing my expression for me. It is turning scattered thoughts into structure: what should come first, what should come later, which points need to be expanded, and where the article should hold back.
 
 This matters a lot to me. Most of the time, the hardest part of writing is not that I do not know how to write. It is that I do not know where to begin. AI can quickly give me a first draft structure, turning the experience from "staring at a blank page" into "working with something I can revise." That step alone saves a lot of time.
+
+## What Is an MCP Server for AI Agents?
+
+MCP, or Model Context Protocol, is a standard way for an AI agent to connect to external tools and data sources. Instead of pasting information back and forth, the agent can discover available capabilities through a server.
+
+For JoyfulWords, the MCP server is not just a generic integration endpoint. It is a bridge between AI agents and a content workspace:
+
+- articles and drafts
+- material collection
+- article improvement workflows
+- image and content production context
+- future publishing and repurposing workflows
+
+That means the AI agent can support the work around the article, not only generate paragraphs in isolation.
+
+## Why HTTP MCP Matters
+
+JoyfulWords exposes a standard HTTP MCP endpoint. This matters because many agent clients can connect to a remote HTTP service without requiring a local plugin build or a custom desktop bridge.
+
+For Claude Code, the installation shape is:
+
+```bash
+claude mcp add --transport http --client-id joyfulwords-mcp-server joyfulwords https://api.joyword.link/mcp
+```
+
+After setup, restart Claude Code and run `/mcp` to check whether the JoyfulWords service is available.
 
 ## AI Builds the Skeleton. I Make the Judgment.
 
@@ -34,6 +62,18 @@ I also use material search to add details to the article. A concrete example, an
 If web images are not enough, or if they come with copyright issues or watermarks, which is now extremely common on Google, I can use one-click image generation to create new visuals with AI, or stylize existing images.
 
 I can even use AI directly to generate the kind of infographic that is popular online right now. These images combine text, layout, and decoration into one visual, and they really can say more than a long block of words.
+
+## Common MCP Setup Issues
+
+If an AI agent cannot connect to JoyfulWords MCP, check these points first:
+
+- **Wrong endpoint**: the production MCP endpoint is `https://api.joyword.link/mcp`.
+- **Wrong transport**: use HTTP transport when the client asks for a transport type.
+- **Client id mismatch**: use `joyfulwords-mcp-server` when the client supports an explicit client id.
+- **OAuth not completed**: some clients need a browser authorization step before tools appear.
+- **Client not restarted**: Claude Code may need to restart before the new MCP server appears in `/mcp`.
+
+These checks usually tell you whether the issue is installation, OAuth, or tool discovery.
 
 ## What Humans Really Need Is Collaboration, Not Replacement
 

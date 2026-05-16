@@ -1,11 +1,13 @@
 ---
-title: "JoyfulWords MCP：把 AI Agent 接入真正的文章写作工作流"
+title: "JoyfulWords MCP Server：把 Claude Code、Codex 等 AI Agent 接入内容工作流"
 date: "2026-05-07"
-summary: "JoyfulWords 现在支持 MCP 服务，可以让 Claude Code、Codex 等 AI Agent 连接文章编辑、素材和 AI 创作能力，把起稿、修改、配图和最终判断放回同一个工作流。"
+summary: "JoyfulWords HTTP MCP Server 可以让 Claude Code、Codex 等 AI Agent 连接文章、素材和内容生产工作流，而不是停留在单次起稿。"
 locale: "zh"
 ---
 
-JoyfulWords 现在支持 MCP 服务，可以稳定的给 AI Agent，比如：ClaudeCode、Codex 提供 MCP 接口：https://api.joyword.link/mcp ，只需要发送给 AI ，让它帮忙安装即可。
+JoyfulWords 现在支持 MCP 服务，可以稳定地给 AI Agent，比如 Claude Code、Codex，提供 HTTP MCP Server 接口：https://api.joyword.link/mcp。只需要把这个地址发给 AI Agent，让它帮忙安装即可。
+
+这篇文章解释的是：为什么内容创作工具需要 MCP server for AI agents，Claude Code MCP 应该怎么接入，以及连接失败时应该先检查哪些点。
 
 那么，为什么这样一个文章编辑器会接入 AI Agent 呢？如果说 AI Agent 能够生成一篇完美的文章，那么就连这个编辑器都不必存在。但现实是，很多事情并不是一段提示词就能说清楚的，有时候不一定是 AI 不够聪明，而是我们自己，都在不断书写的过程中，慢慢的清晰化自己要表达的每一个细节。
 
@@ -14,6 +16,32 @@ JoyfulWords 现在支持 MCP 服务，可以稳定的给 AI Agent，比如：Cla
 所以现在更常见的方式是：我先把自己的想法、判断和想表达的方向丢给 AI，让它帮我搭出一副文章骨架。这个阶段，我并不期待 AI 一次就写出一篇真正像“我”写的文章。它最擅长的不是替我完成表达，而是把混乱的念头整理成结构：先讲什么，后讲什么，哪些观点需要展开，哪些地方应该收住。
 
 这对我来说很重要。因为很多时候，写作最大的阻力不是不会写，而是不知道从哪里开始。AI 可以很快给我一个初稿框架，让我从“面对空白”变成“面对一个可以修改的东西”。这一步已经能节省大量时间。
+
+## 什么是给 AI Agent 用的 MCP Server
+
+MCP，也就是 Model Context Protocol，是一种让 AI Agent 连接外部工具和数据源的标准方式。它的价值不是让你来回复制粘贴，而是让 Agent 可以发现并调用外部能力。
+
+对 JoyfulWords 来说，MCP Server 不是一个泛用接口，而是 AI Agent 和内容工作台之间的连接层。它后续可以围绕这些能力展开：
+
+- 文章和草稿
+- 素材收集
+- 文章优化流程
+- 图片和内容生产上下文
+- 发布准备和内容复用流程
+
+这样 AI Agent 参与的就不只是“生成几段文字”，而是文章生产前后的完整工作。
+
+## 为什么 HTTP MCP 很重要
+
+JoyfulWords 暴露的是标准 HTTP MCP endpoint。它的好处是，很多 Agent 客户端可以直接连接远程服务，不需要你本地构建插件或维护桌面桥接。
+
+Claude Code 的安装命令形态是：
+
+```bash
+claude mcp add --transport http --client-id joyfulwords-mcp-server joyfulwords https://api.joyword.link/mcp
+```
+
+安装后，重启 Claude Code，再运行 `/mcp` 检查 JoyfulWords 服务是否出现。
 
 ## AI 负责骨架，我负责判断
 
@@ -34,6 +62,18 @@ AI 写出来的文章常常会有一个问题：它太完整，也太平淡。
 如果网络图片不够，或者存在版权、水印（这在现在的 google 上太常见了），我可以使用一键生图，利用 AI 创建新的图片，或者将现有图片风格化。
 
 甚至还可以直接利用 ai 输出网络上现在很火的信息图功能，这些图片把大量文字、装饰等融入一张图片，真正的“一图胜千言”。
+
+## 常见 MCP 连接问题
+
+如果 AI Agent 没有成功连接 JoyfulWords MCP，先检查这几个点：
+
+- **endpoint 写错**：生产 MCP 地址是 `https://api.joyword.link/mcp`。
+- **transport 选错**：客户端要求 transport 时，使用 HTTP。
+- **client id 不一致**：支持显式 client id 时，使用 `joyfulwords-mcp-server`。
+- **OAuth 没完成**：有些客户端需要先通过浏览器完成授权。
+- **客户端没重启**：Claude Code 添加 MCP 后，可能需要重启后再运行 `/mcp`。
+
+这些检查通常能区分问题是在安装、OAuth，还是工具发现阶段。
 
 ## 人类真正需要的是协作，不是替代
 
