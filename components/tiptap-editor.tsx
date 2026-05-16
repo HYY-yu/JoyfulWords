@@ -51,6 +51,7 @@ declare global {
   interface Window {
     joyfulWordsEditorImages?: {
       insertImage: (imageUrl: string, altText?: string) => boolean;
+      insertImageAtTop: (imageUrl: string, altText?: string) => boolean;
       insertImageAtReference: (
         imageUrl: string,
         altText?: string,
@@ -439,6 +440,35 @@ export function TiptapEditor({
     }
   }, [content, editor, normalizeHTML, syncEditorEmptyState]);
 
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleInsertCoverImage = (event: Event) => {
+      const detail = (event as CustomEvent<{ imageUrl?: string; title?: string }>).detail;
+      const imageUrl = detail?.imageUrl;
+      if (!imageUrl) return;
+
+      const inserted = insertImageNodeToView(
+        editor.view,
+        imageUrl,
+        detail.title || t("imageGeneration.cover.altText"),
+        0
+      );
+
+      if (inserted) {
+        syncEditorEmptyState(editor);
+        toast({
+          title: t("imageGeneration.cover.toast.editorInserted"),
+        });
+      }
+    };
+
+    window.addEventListener("joyfulwords-insert-cover-image", handleInsertCoverImage);
+    return () => {
+      window.removeEventListener("joyfulwords-insert-cover-image", handleInsertCoverImage);
+    };
+  }, [editor, insertImageNodeToView, syncEditorEmptyState, t, toast]);
+
   const closeAIDialog = useCallback(() => {
     setIsAIDialogOpen(false);
     setAIDialogMode("create");
@@ -496,6 +526,12 @@ export function TiptapEditor({
     if (!editor) return false;
 
     return insertImageNodeToView(editor.view, imageUrl, altText, insertPos);
+  }, [editor, insertImageNodeToView]);
+
+  const insertEditorImageAtTop = useCallback((imageUrl: string, altText = "") => {
+    if (!editor) return false;
+
+    return insertImageNodeToView(editor.view, imageUrl, altText, 0);
   }, [editor, insertImageNodeToView]);
 
   const insertEditorImageAtReference = useCallback((
@@ -645,6 +681,7 @@ export function TiptapEditor({
       };
       window.joyfulWordsEditorImages = {
         insertImage: insertEditorImage,
+        insertImageAtTop: insertEditorImageAtTop,
         insertImageAtReference: insertEditorImageAtReference,
       };
 
@@ -674,6 +711,7 @@ export function TiptapEditor({
     handleAIRewrite,
     handleOpenMindMap,
     insertEditorImage,
+    insertEditorImageAtTop,
     insertEditorImageAtReference,
   ]);
 

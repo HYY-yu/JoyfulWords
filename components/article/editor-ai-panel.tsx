@@ -10,6 +10,7 @@ import {
 } from "@/components/taskcenter/taskcenter-presenters"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
+import { ArticleCoverDialog } from "@/components/article/article-cover-dialog"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
 import {
@@ -50,6 +51,7 @@ import {
   ChartNoAxesCombinedIcon,
   GalleryHorizontalEndIcon,
   ImagePlusIcon,
+  ImageIcon,
   LoaderIcon,
   PaletteIcon,
   PresentationIcon,
@@ -67,6 +69,7 @@ type ActiveDialog =
   | "ai-edit"
   | "ai-write"
   | "mindmap"
+  | "ai-cover"
   | "create-image"
   | "reversal-mode"
   | "image-style"
@@ -130,6 +133,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     id: "create-image",
     labelKey: "tiptapEditor.aiPanel.createImage",
     icon: ImagePlusIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "visual",
+  },
+  {
+    id: "ai-cover",
+    labelKey: "tiptapEditor.aiPanel.aiCover",
+    icon: ImageIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "visual",
@@ -201,8 +212,10 @@ function getCaughtErrorMessage(error: unknown, fallback: string): string {
 
 interface EditorAIPanelProps {
   articleId?: number | null
+  articleTitle?: string
   submissionTick?: number
   onOpenArticleEditTask: (taskRef: TaskCenterTaskReference) => void
+  onArticleTitleUpdated?: (title: string) => void
 }
 
 function mapTaskCenterTaskToProgressItem(
@@ -294,8 +307,10 @@ function mergeTaskCenterTasks(
 
 export function EditorAIPanel({
   articleId,
+  articleTitle = "",
   submissionTick = 0,
   onOpenArticleEditTask,
+  onArticleTitleUpdated,
 }: EditorAIPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -308,6 +323,7 @@ export function EditorAIPanel({
   const [copyToMaterialsError, setCopyToMaterialsError] = useState<string | null>(null)
   const [copyToMaterialsSuccess, setCopyToMaterialsSuccess] = useState<string | null>(null)
   const [isCreateImageOpen, setIsCreateImageOpen] = useState(false)
+  const [isCoverOpen, setIsCoverOpen] = useState(false)
   const [isAiWriteOpen, setIsAiWriteOpen] = useState(false)
   const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
   const [isImageStyleOpen, setIsImageStyleOpen] = useState(false)
@@ -639,6 +655,8 @@ export function EditorAIPanel({
       window.dispatchEvent(new CustomEvent("joyfulwords-open-ai-mindmap"))
     } else if (id === "create-image") {
       setIsCreateImageOpen(true)
+    } else if (id === "ai-cover") {
+      setIsCoverOpen(true)
     } else if (id === "reversal-mode") {
       setIsReversalModeOpen(true)
     } else if (id === "image-style") {
@@ -935,6 +953,17 @@ export function EditorAIPanel({
         t("tiptapEditor.aiPanel.createImage"),
         <CreatorMode articleId={articleId} />
       )}
+
+      <ArticleCoverDialog
+        open={isCoverOpen}
+        onOpenChange={setIsCoverOpen}
+        articleId={articleId}
+        articleTitle={articleTitle}
+        onTaskSubmitted={() => {
+          void refetch({ silent: true })
+        }}
+        onArticleTitleUpdated={onArticleTitleUpdated}
+      />
 
       {renderImageFeatureDialog(
         isReversalModeOpen,

@@ -8,6 +8,7 @@ import type {
   GetPresignedUrlRequest,
   GetMaterialFavoritesRequest,
   AddMaterialsFromLogRequest,
+  ParseMaterialPreviewRequest,
   CreateMaterialFavoriteRequest,
   MaterialListResponse,
   MaterialLogListResponse,
@@ -20,6 +21,7 @@ import type {
   TriggerMaterialSearchV2Response,
   MaterialSearchDetailResponse,
   AddMaterialsFromLogResponse,
+  ParseMaterialPreviewResponse,
 } from './types'
 
 /**
@@ -256,7 +258,32 @@ export const materialsClient = {
   },
 
   /**
-   * 9. 置顶收藏
+   * 9. 创建资料解析预览任务
+   * POST /materials/parse-preview
+   */
+  async createParsePreview(
+    data: ParseMaterialPreviewRequest
+  ): Promise<ParseMaterialPreviewResponse | ErrorResponse> {
+    return authenticatedApiRequest<ParseMaterialPreviewResponse>('/materials/parse-preview', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  /**
+   * 10. 查询资料解析预览结果
+   * GET /materials/parse-preview/:task_id
+   */
+  async getParsePreview(
+    taskId: string
+  ): Promise<ParseMaterialPreviewResponse | ErrorResponse> {
+    return authenticatedApiRequest<ParseMaterialPreviewResponse>(
+      `/materials/parse-preview/${encodeURIComponent(taskId)}`
+    )
+  },
+
+  /**
+   * 11. 置顶收藏
    * PUT /materials/favorites/:id/pin
    */
   async pinFavorite(

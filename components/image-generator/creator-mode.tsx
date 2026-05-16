@@ -10,6 +10,8 @@ import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
+import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
+import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 
 import type {
   CanvasTemplateId,
@@ -46,9 +48,37 @@ import {
 
 interface CreatorModeProps {
   articleId?: number | null
+  preferredModelKeywords?: string[]
+  autoCopyToMaterials?: boolean
+  onGenerationComplete?: (payload: { taskId: number; imageUrl: string }) => void
 }
 
-export function CreatorMode({ articleId }: CreatorModeProps) {
+function pickPreferredModel(models: string[], keywords: string[] = []) {
+  if (models.length === 0) return ""
+  const normalizedKeywords = keywords
+    .map((keyword) => keyword.trim().toLocaleLowerCase())
+    .filter(Boolean)
+
+  if (normalizedKeywords.length === 0) {
+    return models[0]
+  }
+
+  return models.find((model) => {
+    const normalizedModel = model.toLocaleLowerCase()
+    return normalizedKeywords.every((keyword) => normalizedModel.includes(keyword))
+  }) ?? models[0]
+}
+
+function getFirstGenerationImageUrl(value: unknown) {
+  return parseTaskCenterImageUrls(value)[0] ?? ""
+}
+
+export function CreatorMode({
+  articleId,
+  preferredModelKeywords,
+  autoCopyToMaterials = false,
+  onGenerationComplete,
+}: CreatorModeProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const taskToast = useAsyncTaskToast()
@@ -83,40 +113,81 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
 
   // 轮询任务状态
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const completedTaskIdsRef = useRef<Set<string>>(new Set())
+
+  const copyGeneratedImageToMaterials = useCallback(async (logId: number, showSuccessToast = true) => {
+    console.info('[ImageGeneration] Copying to materials:', { logId })
+
+    try {
+      const result = await imageGenerationClient.copyToMaterials(
+        logId,
+        articleId ?? undefined
+      )
+
+      if ('error' in result) {
+        console.error('[ImageGeneration] Copy to materials failed:', result.error)
+
+        const errorMessage = String(result.error)
+        let errorKey = "serverError"
+        if (errorMessage.includes("not found")) errorKey = "logNotFound"
+        else if (errorMessage.includes("not completed")) errorKey = "notCompleted"
+        else if (errorMessage.includes("no images")) errorKey = "noImages"
+        else if (errorMessage.includes("unauthorized")) errorKey = "unauthorized"
+
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.copyToMaterialsFailed"),
+          description: t(`imageGeneration.toast.error.${errorKey}`),
+        })
+        return false
+      }
+
+      console.info('[ImageGeneration] Copy to materials success:', {
+        count: result.count,
+        materialIds: result.material_ids,
+      })
+
+      if (showSuccessToast) {
+        toast({
+          title: t("imageGeneration.toast.copyToMaterialsSuccess", {
+            count: result.count,
+          }),
+        })
+      }
+      return true
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[ImageGeneration] Unexpected error:', { error: errorMessage })
+
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.copyToMaterialsFailed"),
+        description: t("imageGeneration.toast.error.serverError"),
+      })
+      return false
+    }
+  }, [articleId, t, toast])
 
   // 处理任务完成
-  const handleTaskComplete = useCallback((data: any) => {
-    if (data.task_id === currentTaskId) {
+  const handleTaskComplete = useCallback(async (data: any) => {
+    const completedTaskId = String(data.task_id)
+    if (completedTaskId === currentTaskId && !completedTaskIdsRef.current.has(completedTaskId)) {
+      completedTaskIdsRef.current.add(completedTaskId)
       // INFO: 任务完成
       console.info('[ImageGeneration] Task completed successfully:', {
         taskId: data.task_id,
         imageUrl: data.image_url,
       })
 
-      // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
-      let imageUrl: string
-      try {
-        const imageUrls = data.image_url
-        if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
-          // JSON 数组字符串，解析并取第一个元素
-          const urls = JSON.parse(imageUrls) as string[]
-          imageUrl = urls[0]
-          console.debug('[ImageGeneration] Parsed image_url from JSON array:', imageUrl)
-        } else if (Array.isArray(imageUrls)) {
-          // 已经是数组，取第一个元素
-          imageUrl = imageUrls[0]
-          console.debug('[ImageGeneration] Extracted first URL from array:', imageUrl)
-        } else if (typeof imageUrls === 'string') {
-          // 直接是字符串
-          imageUrl = imageUrls
-        } else {
-          // 回退到空字符串
-          imageUrl = ''
-        }
-      } catch (error) {
-        // ERROR: 解析失败，回退到原始值
-        console.error('[ImageGeneration] Failed to parse image_url:', error)
-        imageUrl = ''
+      const imageUrl = getFirstGenerationImageUrl(data.image_url)
+      if (!imageUrl) {
+        setIsGenerating(false)
+        setGeneratingMessage("")
+        setCurrentTaskId(null)
+        taskToast.showFailure({
+          title: t("imageGeneration.toast.generationFailed"),
+        })
+        return
       }
 
       setIsGenerating(false)
@@ -133,12 +204,19 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         title: t("imageGeneration.toast.generationSuccess"),
         description: t("imageGeneration.generating.description"),
       })
+
+      const copied = autoCopyToMaterials
+        ? await copyGeneratedImageToMaterials(Number(data.task_id), false)
+        : true
+      if (copied) {
+        onGenerationComplete?.({ taskId: Number(data.task_id), imageUrl })
+      }
     }
-  }, [currentTaskId, t, taskToast])
+  }, [autoCopyToMaterials, copyGeneratedImageToMaterials, currentTaskId, onGenerationComplete, t, taskToast])
 
   // 处理任务失败
   const handleTaskFailed = useCallback((data: any) => {
-    if (data.task_id === currentTaskId) {
+    if (String(data.task_id) === currentTaskId) {
       // ERROR: 任务失败
       console.error('[ImageGeneration] Task failed:', {
         taskId: data.task_id,
@@ -154,6 +232,50 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       })
     }
   }, [currentTaskId, t, taskToast])
+
+  const fetchTaskDetailAndFinish = useCallback(async (taskId: string) => {
+    const result = await imageGenerationClient.getTaskResult(taskId)
+    if ('error' in result) {
+      return
+    }
+
+    if (result.status === 'success') {
+      await handleTaskComplete(result)
+    } else if (result.status === 'failed') {
+      handleTaskFailed(result)
+    } else {
+      setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
+    }
+  }, [handleTaskComplete, handleTaskFailed, t])
+
+  const handleRealtimeTaskComplete = useCallback((payload: TaskUpdatePayload) => {
+    if (payload.task_type !== "image") return
+    if (!currentTaskId || String(payload.task_id) !== currentTaskId) return
+    void fetchTaskDetailAndFinish(currentTaskId)
+  }, [currentTaskId, fetchTaskDetailAndFinish])
+
+  const handleRealtimeTaskFailed = useCallback((payload: TaskUpdatePayload) => {
+    if (payload.task_type !== "image") return
+    if (!currentTaskId || String(payload.task_id) !== currentTaskId) return
+    handleTaskFailed({ task_id: currentTaskId, error_message: payload.error })
+  }, [currentTaskId, handleTaskFailed])
+
+  const handleRealtimeTaskUpdate = useCallback((payload: TaskUpdatePayload) => {
+    if (payload.task_type !== "image") return
+    if (!currentTaskId || String(payload.task_id) !== currentTaskId) return
+    setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
+  }, [currentTaskId, t])
+
+  useEffect(() => {
+    webSocketService.on('image:task:update', handleRealtimeTaskUpdate)
+    webSocketService.on('image:task:complete', handleRealtimeTaskComplete)
+    webSocketService.on('image:task:failed', handleRealtimeTaskFailed)
+    return () => {
+      webSocketService.off('image:task:update', handleRealtimeTaskUpdate)
+      webSocketService.off('image:task:complete', handleRealtimeTaskComplete)
+      webSocketService.off('image:task:failed', handleRealtimeTaskFailed)
+    }
+  }, [handleRealtimeTaskComplete, handleRealtimeTaskFailed, handleRealtimeTaskUpdate])
 
   // 轮询任务状态
   useEffect(() => {
@@ -180,7 +302,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         })
 
         if (result.status === 'success') {
-          handleTaskComplete(result)
+          await handleTaskComplete(result)
         } else if (result.status === 'failed') {
           handleTaskFailed(result)
         } else if (result.status === 'processing') {
@@ -256,10 +378,10 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
         })
 
         setAvailableModels(result.models)
-        // 默认选中第一个模型
         if (result.models.length > 0) {
-          setSelectedModel(result.models[0])
-          console.debug('[ImageGeneration] Default model selected:', result.models[0])
+          const defaultModel = pickPreferredModel(result.models, preferredModelKeywords)
+          setSelectedModel(defaultModel)
+          console.debug('[ImageGeneration] Default model selected:', defaultModel)
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -277,7 +399,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
 
     fetchModels()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])  // 只在 mount 时执行一次
+  }, [preferredModelKeywords, t, toast])  // 只在 mount 时执行一次
 
   // 元数据参数
   const [metaSettings, setMetaSettings] = useState<MetaSettings>(DEFAULT_META_SETTINGS)
@@ -680,52 +802,7 @@ export function CreatorMode({ articleId }: CreatorModeProps) {
       return
     }
 
-    console.info('[ImageGeneration] Copying to materials:', { logId: currentGenerationLogId })
-
-    try {
-      const result = await imageGenerationClient.copyToMaterials(
-        currentGenerationLogId,
-        articleId ?? undefined
-      )
-
-      if ('error' in result) {
-        console.error('[ImageGeneration] Copy to materials failed:', result.error)
-
-        const errorMessage = String(result.error)
-        let errorKey = "serverError"
-        if (errorMessage.includes("not found")) errorKey = "logNotFound"
-        else if (errorMessage.includes("not completed")) errorKey = "notCompleted"
-        else if (errorMessage.includes("no images")) errorKey = "noImages"
-        else if (errorMessage.includes("unauthorized")) errorKey = "unauthorized"
-
-        toast({
-          variant: "destructive",
-          title: t("imageGeneration.toast.copyToMaterialsFailed"),
-          description: t(`imageGeneration.toast.error.${errorKey}`),
-        })
-        return
-      }
-
-      console.info('[ImageGeneration] Copy to materials success:', {
-        count: result.count,
-        materialIds: result.material_ids,
-      })
-
-      toast({
-        title: t("imageGeneration.toast.copyToMaterialsSuccess", {
-          count: result.count,
-        }),
-      })
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      console.error('[ImageGeneration] Unexpected error:', { error: errorMessage })
-
-      toast({
-        variant: "destructive",
-        title: t("imageGeneration.toast.copyToMaterialsFailed"),
-        description: t("imageGeneration.toast.error.serverError"),
-      })
-    }
+    await copyGeneratedImageToMaterials(currentGenerationLogId)
   }
 
   const handleResetClick = () => {
