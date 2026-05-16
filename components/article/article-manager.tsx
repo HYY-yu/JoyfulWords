@@ -53,7 +53,7 @@ interface ArticleManagerProps {
 export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}) {
   const { t } = useTranslation()
   const { toast } = useToast()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
   // 使用 useArticles Hook
@@ -72,7 +72,7 @@ export function ArticleManager({ onNavigateToWriting }: ArticleManagerProps = {}
     handleRefresh,
     handlePageChange,
     handlePageSizeChange,
-  } = useArticles()
+  } = useArticles({ enabled: !authLoading && Boolean(user) })
 
   // Dialog states
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)

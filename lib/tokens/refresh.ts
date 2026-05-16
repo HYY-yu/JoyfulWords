@@ -4,6 +4,17 @@ import { tokenStore } from './token-store'
 
 let refreshPromise: Promise<AuthResponse | null> | null = null
 
+interface RefreshFailure {
+  source: string
+  hasApiResponse: boolean
+  status?: number
+  reason?: string
+  error?: string
+  errorDescription?: string
+}
+
+let lastRefreshFailure: RefreshFailure | null = null
+
 function formatLogValue(value: unknown): string {
   if (value === undefined || value === null || value === '') {
     return 'none'
@@ -27,6 +38,25 @@ function formatRefreshFailure(prefix: string, source: string, result: ErrorRespo
   ].join(' ')
 }
 
+function buildRefreshFailure(source: string, result: ErrorResponse): RefreshFailure {
+  return {
+    source,
+    hasApiResponse: typeof result.status === 'number',
+    status: result.status,
+    reason: result.reason,
+    error: result.error,
+    errorDescription: result.error_description,
+  }
+}
+
+function shouldClearSessionAfterRefreshFailure(failure: RefreshFailure): boolean {
+  return failure.status === 401 || failure.status === 403
+}
+
+export function getLastRefreshFailure(): RefreshFailure | null {
+  return lastRefreshFailure
+}
+
 /**
  * Refresh access token using the server-side HttpOnly refresh cookie.
  * Uses a promise lock to prevent concurrent refresh attempts.
@@ -36,6 +66,7 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
     return refreshPromise
   }
 
+  lastRefreshFailure = null
   tokenStore.markRefreshStarted(source)
 
   refreshPromise = (async () => {
@@ -44,10 +75,13 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
 
       if ('error' in result) {
         tokenStore.markRefreshFailed(source)
-        tokenStore.clear(`${source}_failed`)
-        const hasApiResponse = typeof result.status === 'number'
+        const failure = buildRefreshFailure(source, result)
+        lastRefreshFailure = failure
+        if (shouldClearSessionAfterRefreshFailure(failure)) {
+          tokenStore.clear(`${source}_failed`)
+        }
         console.warn(formatRefreshFailure(
-          hasApiResponse
+          failure.hasApiResponse
             ? '[Auth] Token refresh rejected by API'
             : '[Auth] Token refresh request failed before API response',
           source,
@@ -56,11 +90,17 @@ export async function refreshAccessSession(source = 'refresh_access_token'): Pro
         return null
       }
 
+      lastRefreshFailure = null
       tokenStore.setAccessToken(result, source)
       return result
     } catch (error) {
       tokenStore.markRefreshFailed(source)
-      tokenStore.clear(`${source}_failed`)
+      lastRefreshFailure = {
+        source,
+        hasApiResponse: false,
+        reason: 'refresh_exception',
+        error: error instanceof Error ? error.message : String(error),
+      }
       console.error(
         `[Auth] Token refresh request failed source=${formatLogValue(source)} error=${formatLogValue(error)}`
       )
