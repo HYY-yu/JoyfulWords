@@ -99,6 +99,8 @@ export function getTaskCenterTaskTitle(
     const genMode = task.details.gen_mode
     if (genMode === "split_images") return "splitImages"
     if (genMode === "style") return "styleImage"
+    if (genMode === "cover") return "articleCover"
+    if (genMode === "font") return "articleFont"
     return "generateImage"
   }
 

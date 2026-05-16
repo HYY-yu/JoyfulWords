@@ -148,6 +148,44 @@ test('authenticated request does not call protected endpoint when refresh fails'
   }
 })
 
+test('authenticated request logs network refresh failures before API response', async () => {
+  const globals = installBrowserGlobals()
+  const calls: FetchCall[] = []
+  const originalWarn = console.warn
+  const warnings: unknown[][] = []
+
+  console.warn = (...args: unknown[]) => {
+    warnings.push(args)
+  }
+
+  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const url = readFetchUrl(input)
+    calls.push({ url, init })
+    throw new TypeError('Failed to fetch')
+  }
+
+  try {
+    const result = await authenticatedApiRequest<{ error: string; status: number }>(
+      '/article?page=1&page_size=10'
+    )
+
+    assert.deepEqual(result, { error: 'Session expired', status: 401 })
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].url, 'http://localhost:8080/auth/token/refresh')
+    assert.equal(globals.windowStub.location.href, '/auth/login?reason=token_expired')
+    assert.equal(typeof warnings[0]?.[0], 'string')
+    assert.match(
+      warnings[0][0] as string,
+      /^\[Auth\] Token refresh request failed before API response /
+    )
+    assert.match(warnings[0][0] as string, /reason="network_error"/)
+    assert.equal(warnings[0].length, 1)
+  } finally {
+    console.warn = originalWarn
+    globals.restore()
+  }
+})
+
 test('getValidAccessToken restores missing access token from refresh cookie', async () => {
   const globals = installBrowserGlobals()
   const calls: FetchCall[] = []

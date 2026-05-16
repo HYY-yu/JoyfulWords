@@ -2,12 +2,15 @@ import { apiRequest, authenticatedApiRequest } from '@/lib/api/client'
 import type {
   ConvertPromptRequest,
   ConvertPromptResponse,
+  CreateCoverTaskRequest,
+  CreateFontPreviewTaskRequest,
   CreateGenerationTaskRequest,
   CreateGenerationTaskResponse,
   TaskResultResponse,
   GetModelsResponse,
   GetGenerationLogsRequest,
   GetGenerationLogsResponse,
+  SearchUnsplashResponse,
   CopyToMaterialsResponse,
   CopyToMaterialsRequest,
   GetStyleExamplesResponse,
@@ -86,6 +89,62 @@ export const imageGenerationClient = {
     return authenticatedApiRequest<CreateGenerationTaskResponse>('/image-generation/generate', {
       method: 'POST',
       body: JSON.stringify(request),
+    })
+  },
+
+  /**
+   * 创建文章封面生成任务
+   * POST /image-generation/cover
+   */
+  async createCoverTask(request: CreateCoverTaskRequest) {
+    console.debug('[ImageGeneration] Creating article cover task:', {
+      articleId: request.article_id,
+      modelName: request.model_name,
+      width: request.width,
+      height: request.height,
+      descriptionLength: request.description.length,
+    })
+
+    return authenticatedApiRequest<CreateGenerationTaskResponse>('/image-generation/cover', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
+
+  /**
+   * 创建透明字体预览图任务
+   * POST /image-generation/font-preview
+   */
+  async createFontPreviewTask(request: CreateFontPreviewTaskRequest) {
+    console.debug('[ImageGeneration] Creating font preview task:', {
+      articleId: request.article_id,
+      modelName: request.model_name,
+      titleLength: request.title.length,
+      descriptionLength: request.font_description.length,
+    })
+
+    return authenticatedApiRequest<CreateGenerationTaskResponse>('/image-generation/font-preview', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+  },
+
+  async searchUnsplash(request: { query: string; orientation?: 'landscape' | 'portrait' | 'squarish'; count?: number }) {
+    const params = new URLSearchParams()
+    params.set('query', request.query)
+    if (request.orientation) params.set('orientation', request.orientation)
+    if (request.count) params.set('count', String(request.count))
+
+    return authenticatedApiRequest<SearchUnsplashResponse>(
+      `/image-generation/unsplash/search?${params.toString()}`,
+      { method: 'GET' }
+    )
+  },
+
+  async trackUnsplashDownload(downloadLocation: string) {
+    return authenticatedApiRequest<{ message: string }>('/image-generation/unsplash/track-download', {
+      method: 'POST',
+      body: JSON.stringify({ download_location: downloadLocation }),
     })
   },
 

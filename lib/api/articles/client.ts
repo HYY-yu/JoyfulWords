@@ -11,6 +11,8 @@ import type {
   CreateArticleResponse,
   ArticleEditResponse,
   EditStatusResponse,
+  GenerateCoverDescriptionResponse,
+  GenerateCoverTitleResponse,
   MessageResponse,
   ErrorResponse,
 } from './types'
@@ -267,5 +269,41 @@ export const articlesClient = {
     execId: string
   ): Promise<EditStatusResponse | ErrorResponse> {
     return authenticatedApiRequest<EditStatusResponse>(`/article/edit/status/${execId}`)
+  },
+
+  /**
+   * 10. 生成文章封面描述
+   * POST /article/:id/cover-description
+   */
+  async generateCoverDescription(
+    id: number,
+    options?: { signal?: AbortSignal }
+  ): Promise<GenerateCoverDescriptionResponse | ErrorResponse> {
+    return authenticatedApiRequest<GenerateCoverDescriptionResponse>(
+      `/article/${id}/cover-description`,
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+        signal: options?.signal,
+      }
+    )
+  },
+
+  /**
+   * 11. 生成文章封面标题
+   * POST /article/:id/cover-title
+   */
+  async generateCoverTitle(
+    id: number,
+    options?: { signal?: AbortSignal }
+  ): Promise<GenerateCoverTitleResponse | ErrorResponse> {
+    return authenticatedApiRequest<GenerateCoverTitleResponse>(
+      `/article/${id}/cover-title`,
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+        signal: options?.signal,
+      }
+    )
   },
 }
