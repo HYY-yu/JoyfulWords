@@ -2286,6 +2286,7 @@ export const en = {
         badge: "AI-Powered Content Platform",
         heading: "Write Better Content,",
         headingAccent: "Faster",
+        headingSuffix: "",
         description: "JoyfulWords is an AI-powered writing workspace where you collect, organize, and turn materials into great content.",
         cta: "Start Creating",
         viewArticles: "View My Articles",
@@ -2532,29 +2533,93 @@ export const en = {
         },
         eyebrow: "Creator Toolbox",
         title: "Creator Toolbox",
+        subtitle: "Writing, rewriting, visuals, charts, and decks live in one focused launchpad. Start a lightweight task here, then continue the full workflow in your workspace.",
         status: "Coming soon",
         openPlaceholder: "View tool page",
+        metrics: {
+            label: "Toolbox overview",
+            tools: {
+                value: "7",
+                label: "Creator tools",
+            },
+            workflow: {
+                value: "4 steps",
+                label: "Standard flow",
+            },
+            status: {
+                value: "Beta",
+                label: "SEO pages reserved",
+            },
+        },
+        sections: {
+            toolsKicker: "Start Here",
+            toolsTitle: "Tools arranged by creation flow",
+            toolsDescription: "The most common writing entry is promoted first, then the rest move from text to visuals, structure, and delivery so the next action is easy to scan.",
+            gridLabel: "Tool list",
+        },
         tools: {
             "ai-writer": {
                 title: "AI Writer",
+                description: "A complete starting area for topics, outlines, and first drafts across posts, blogs, newsletters, and long-form content.",
+                category: "Writing",
+                meta: "Blank page start",
             },
             "smart-rewrite": {
                 title: "Smart Rewrite",
+                description: "Shorten, expand, retone, and polish existing drafts for the channel you plan to publish on.",
+                category: "Editing",
+                meta: "Rewrite and polish",
             },
             "image-generator": {
                 title: "AI Image Generator",
+                description: "A visual generation entry for covers, supporting images, and campaign assets, ready for Task Center integration.",
+                category: "Visual assets",
+                meta: "Covers and images",
             },
             infographic: {
                 title: "Infographic",
+                description: "Turn takeaways, data, and lists into an infographic structure that is easier to share.",
+                category: "Visualization",
+                meta: "Knowledge cards",
             },
             "mind-map": {
                 title: "Mind Map",
+                description: "Break complex topics into a hierarchy for ideation, course outlines, and article planning.",
+                category: "Structure",
+                meta: "Outline planning",
             },
             "ai-charts": {
                 title: "AI Charts",
+                description: "Convert data, claims, or analysis into readable charts for reports and retrospectives.",
+                category: "Data storytelling",
+                meta: "Chart generation",
             },
             "ppt-generator": {
                 title: "PPT Generator",
+                description: "Transform articles, outlines, or research notes into a presentation structure for reports and lessons.",
+                category: "Presentation",
+                meta: "Outline to slides",
+            },
+        },
+        workflow: {
+            title: "Suggested Flow",
+            steps: {
+                spark: {
+                    title: "Pick the angle",
+                    description: "Use writing or mind maps to shape the idea.",
+                },
+                draft: {
+                    title: "Generate draft",
+                    description: "Create the first pass, then rewrite.",
+                },
+                visual: {
+                    title: "Add visuals",
+                    description: "Handle images, charts, and infographics together.",
+                },
+                ship: {
+                    title: "Publish or hand off",
+                    description: "Move articles, decks, and assets to the workspace.",
+                },
             },
         },
         activities: {
@@ -2563,14 +2628,17 @@ export const en = {
             checkIn: {
                 title: "Daily Check-in",
                 reward: "+ credits",
+                description: "A reserved credit entry for lightweight daily use.",
             },
             share: {
                 title: "Share for Credits",
                 reward: "Referral",
+                description: "Prepared for invitations, referrals, and sharing rewards.",
             },
             campaign: {
                 title: "Limited Campaigns",
                 reward: "Event",
+                description: "A home for seasonal campaigns, trials, and limited tasks.",
             },
         },
         tasks: {
@@ -2581,22 +2649,33 @@ export const en = {
         },
         workspaceCta: {
             title: "Write More Professional Articles",
-            description: "Need more polished writing and a complete AI note-taking workspace? Click Go to your Workspace.",
+            description: "Open the workspace to manage articles, materials, and generation tasks, connecting this lightweight toolbox to the full creation flow.",
             action: "Go to your Workspace",
         },
         detail: {
             back: "Back to tools",
             placeholderTitle: "This tool is being scheduled",
+            placeholderDescription: "This page keeps the shareable SEO entry ready. The complete tool flow will land here when the feature is connected.",
             disabledAction: "Coming soon",
+            previewPrompt: "Enter a creative goal and generate an editable result",
+            previewSteps: {
+                input: "Input",
+                generate: "Generate",
+                export: "Return",
+            },
+            notesTitle: "Reserved Design",
             notes: {
                 account: {
                     title: "Account context",
+                    description: "Reserved for auth state, credits, and membership behavior.",
                 },
                 tasks: {
                     title: "Task Center",
+                    description: "Image, chart, deck, and other async jobs can sync here.",
                 },
                 activity: {
                     title: "Campaign rewards",
+                    description: "Prepared for check-ins, sharing rewards, and campaign exposure.",
                 },
             },
         },

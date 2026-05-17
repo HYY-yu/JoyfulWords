@@ -7,40 +7,38 @@ import {
   BarChart3Icon,
   BookOpenTextIcon,
   CalendarCheckIcon,
-  CheckSquareIcon,
+  Clock3Icon,
   FileTextIcon,
   GlobeIcon,
   ImageIcon,
   Layers3Icon,
-  LogInIcon,
-  LogOutIcon,
+  ListChecksIcon,
   MapIcon,
   MegaphoneIcon,
+  MenuIcon,
   PenLineIcon,
   PresentationIcon,
+  RocketIcon,
   Share2Icon,
-  UserCircleIcon,
+  SparklesIcon,
 } from "lucide-react"
 
 import { BrandLogo } from "@/components/brand/brand-logo"
-import { FeedbackErrorBoundary, TallyFeedbackButton } from "@/components/feedback"
-import { ProfileDialog } from "@/components/auth/profile-dialog"
-import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import { Button } from "@/components/ui/base/button"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/base/dropdown-menu"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/base/sheet"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
-import { useAuth } from "@/lib/auth/auth-context"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import type { Locale } from "@/lib/i18n/shared"
 import { TOOL_SLUGS, type ToolSlug } from "@/lib/tools/catalog"
+import { cn } from "@/lib/utils"
 import { useState } from "react"
 
 const toolIconMap = {
@@ -59,6 +57,31 @@ const activityIconMap = {
   campaign: MegaphoneIcon,
 } satisfies Record<string, typeof CalendarCheckIcon>
 
+const workflowIconMap = {
+  spark: SparklesIcon,
+  draft: PenLineIcon,
+  visual: Layers3Icon,
+  ship: RocketIcon,
+} satisfies Record<string, typeof SparklesIcon>
+
+type ToolSummary = {
+  slug: ToolSlug
+  Icon: typeof PenLineIcon
+  title: string
+  description: string
+  category: string
+  meta: string
+  href: string
+}
+
+type ActivitySummary = {
+  key: string
+  Icon: typeof CalendarCheckIcon
+  title: string
+  reward: string
+  description: string
+}
+
 interface ToolsPageContentProps {
   selectedToolSlug?: ToolSlug
 }
@@ -67,16 +90,23 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { t, locale } = useTranslation()
-  const { user, signOut } = useAuth()
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [taskCenterOpen, setTaskCenterOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isDetailPage = Boolean(selectedToolSlug)
+  const homeHref = buildLocalizedPath(locale)
+  const featuresHref = `${homeHref}#features`
+  const blogHref = buildLocalizedPath(locale, "/blog")
+  const mcpHref = buildLocalizedPath(locale, "/mcp")
+  const pricingHref = buildLocalizedPath(locale, "/pricing")
+  const toolsHref = buildLocalizedPath(locale, "/tools")
   const tools = TOOL_SLUGS.map((slug) => {
     const Icon = toolIconMap[slug]
     return {
       slug,
       Icon,
       title: t(`toolsPage.tools.${slug}.title`),
+      description: t(`toolsPage.tools.${slug}.description`),
+      category: t(`toolsPage.tools.${slug}.category`),
+      meta: t(`toolsPage.tools.${slug}.meta`),
       href: buildLocalizedPath(locale, `/tools/${slug}`),
     }
   })
@@ -90,6 +120,7 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
       Icon,
       title: t(`toolsPage.activities.${key}.title`),
       reward: t(`toolsPage.activities.${key}.reward`),
+      description: t(`toolsPage.activities.${key}.description`),
     }
   })
 
@@ -101,104 +132,162 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
   }
 
   return (
-    <div className="jw-app-shell min-h-screen">
-      <header className="jw-app-header sticky top-0 z-40 border-b backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-[1500px] items-center justify-between px-4 sm:px-6">
-          <Link
-            href={buildLocalizedPath(locale, "/tools")}
-            className="rounded-xl transition-transform hover:-translate-y-0.5"
-            aria-label="JoyfulWords"
+    <div className="jw-app-shell tools-page-shell min-h-screen overflow-x-hidden">
+      <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
+        <Link
+          href={homeHref}
+          className="rounded-xl transition-transform hover:-translate-y-0.5"
+          aria-label="JoyfulWords"
+        >
+          <BrandLogo />
+        </Link>
+        <div className="flex-1" />
+
+        <div className="hidden items-center gap-3 lg:flex">
+          <JoyfulThemeSwitcher variant="compact" />
+          <button
+            onClick={() => handleLocaleChange(locale === "zh" ? "en" : "zh")}
+            className="jw-themed-link flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
           >
-            <BrandLogo />
+            <GlobeIcon className="h-4 w-4" />
+            {locale === "zh" ? "EN" : "中文"}
+          </button>
+          <Link href={featuresHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
+            {t("landing.nav.features")}
           </Link>
+          <Link href={pricingHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
+            {t("landing.nav.pricing")}
+          </Link>
+          <Link href={mcpHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
+            {t("landing.nav.mcp")}
+          </Link>
+          <Link
+            href={toolsHref}
+            aria-current="page"
+            className={cn(
+              "jw-themed-link rounded-full px-3.5 py-1.5 text-sm",
+              "bg-[var(--jw-accent-soft)] text-[var(--jw-accent)] shadow-[var(--jw-soft-shadow)]"
+            )}
+          >
+            {t("landing.nav.tools")}
+          </Link>
+          <Link href={blogHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
+            {t("landing.nav.blog")}
+          </Link>
+          <Button variant="outline" size="sm" className="jw-secondary-button rounded-full shadow-sm" asChild>
+            <Link href="/articles" prefetch={false}>
+              {t("landing.nav.myArticles")}
+            </Link>
+          </Button>
+          <Button size="sm" className="jw-primary-button rounded-full" asChild>
+            <Link href="/articles" prefetch={false}>
+              {t("landing.nav.startCreating")}
+            </Link>
+          </Button>
+        </div>
 
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
-            <Button asChild variant="ghost" size="sm" className="jw-themed-link hidden h-8 rounded-full text-sm md:inline-flex">
-              <Link href="/articles">
-                <BookOpenTextIcon className="size-4 text-[var(--jw-accent)]" />
-                {t("toolsPage.nav.workspace")}
-              </Link>
-            </Button>
-
-            {user ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="jw-themed-link h-8 gap-2 rounded-full text-sm"
-                onClick={() => setTaskCenterOpen(true)}
-              >
-                <CheckSquareIcon className="size-4 text-[var(--jw-accent)]" />
-                <span className="hidden sm:inline">{t("contentWriting.taskCenter.title")}</span>
-              </Button>
-            ) : null}
-
-            <FeedbackErrorBoundary>
-              <TallyFeedbackButton className="jw-themed-link hidden h-8 w-auto rounded-full py-0 text-sm sm:inline-flex" />
-            </FeedbackErrorBoundary>
-
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetTrigger asChild>
             <Button
               variant="ghost"
-              size="sm"
-              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
-              onClick={() => handleLocaleChange(locale === "zh" ? "en" : "zh")}
+              size="icon"
+              className="lg:hidden"
+              aria-label={t("landing.nav.menu")}
             >
-              <GlobeIcon className="size-4 text-[var(--jw-accent)]" />
-              <span className="hidden sm:inline">{locale === "zh" ? "English" : "中文"}</span>
+              <MenuIcon className="size-5" />
             </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="gap-0">
+            <SheetHeader className="pb-2">
+              <SheetTitle>{t("landing.nav.menu")}</SheetTitle>
+              <SheetDescription className="sr-only">
+                {t("landing.nav.menuDescription")}
+              </SheetDescription>
+            </SheetHeader>
 
-            <JoyfulThemeSwitcher variant="compact" />
+            <nav className="flex flex-col gap-1 px-4 pb-6">
+              <div className="mb-2">
+                <JoyfulThemeSwitcher variant="compact" className="w-full justify-between" />
+              </div>
+              <button
+                onClick={() => {
+                  handleLocaleChange(locale === "zh" ? "en" : "zh")
+                  setMobileMenuOpen(false)
+                }}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                <GlobeIcon className="h-4 w-4" />
+                {locale === "zh" ? "EN" : "中文"}
+              </button>
 
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" className="jw-themed-link rounded-full">
-                    <UserCircleIcon className="!size-5 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">{t("common.account")}</p>
-                      <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => setProfileOpen(true)}>
-                    <UserCircleIcon className="mr-2 size-4" />
-                    {t("auth.profile")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="cursor-pointer text-red-600 focus:text-red-600"
-                    onSelect={() => signOut()}
-                  >
-                    <LogOutIcon className="mr-2 size-4" />
-                    {t("auth.logout")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild size="sm" className="jw-primary-button h-8 rounded-full px-3">
-                <Link href={`/auth/login?redirect=${encodeURIComponent(buildLocalizedPath(locale, "/tools"))}`}>
-                  <LogInIcon className="size-4" />
-                  {t("toolsPage.nav.login")}
+              <Link
+                href={featuresHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.features")}
+              </Link>
+
+              <Link
+                href={pricingHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.pricing")}
+              </Link>
+
+              <Link
+                href={mcpHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.mcp")}
+              </Link>
+
+              <Link
+                href={toolsHref}
+                aria-current="page"
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "rounded-md px-3 py-2 text-sm font-medium",
+                  "bg-[var(--jw-accent-soft)] text-[var(--jw-accent)]"
+                )}
+              >
+                {t("landing.nav.tools")}
+              </Link>
+
+              <Link
+                href={blogHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                {t("landing.nav.blog")}
+              </Link>
+
+              <div className="my-2 h-px bg-border" />
+
+              <Button variant="outline" className="w-full justify-start" asChild>
+                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
+                  {t("landing.nav.myArticles")}
                 </Link>
               </Button>
-            )}
-          </div>
-        </div>
+              <Button className="w-full justify-start" asChild>
+                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
+                  {t("landing.nav.startCreating")}
+                </Link>
+              </Button>
+            </nav>
+          </SheetContent>
+        </Sheet>
       </header>
 
-      <main className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:py-8">
+      <main className="tools-page-main mx-auto max-w-[1500px] px-4 pt-24 pb-6 sm:px-6 lg:pt-28 lg:pb-8">
         {isDetailPage && selectedTool ? (
           <ToolDetail tool={selectedTool} />
         ) : (
           <ToolsIndex tools={tools} activityItems={activityItems} />
         )}
       </main>
-
-      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
-      <TaskCenterDialog open={taskCenterOpen} onOpenChange={setTaskCenterOpen} />
     </div>
   )
 }
@@ -207,48 +296,106 @@ function ToolsIndex({
   tools,
   activityItems,
 }: {
-  tools: Array<{
-    slug: ToolSlug
-    Icon: typeof PenLineIcon
-    title: string
-    href: string
-  }>
-  activityItems: Array<{
-    key: string
-    Icon: typeof CalendarCheckIcon
-    title: string
-    reward: string
-  }>
+  tools: ToolSummary[]
+  activityItems: ActivitySummary[]
 }) {
   const { t } = useTranslation()
+  const featuredTool = tools[0]
+  const supportingTools = tools.slice(1)
+  const workflowSteps = (["spark", "draft", "visual", "ship"] as const).map((key) => {
+    const Icon = workflowIconMap[key]
+
+    return {
+      key,
+      Icon,
+      title: t(`toolsPage.workflow.steps.${key}.title`),
+      description: t(`toolsPage.workflow.steps.${key}.description`),
+    }
+  })
 
   return (
     <div className="tools-composition">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="tools-workspace min-w-0">
-          <div className="tools-title-row">
-            <div>
-              <h1 className="tools-page-title">{t("toolsPage.title")}</h1>
-            </div>
-          </div>
+      <section className="tools-hero" aria-labelledby="tools-page-title">
+        <div className="tools-hero-copy">
+          <p className="tools-eyebrow">{t("toolsPage.eyebrow")}</p>
+          <h1 id="tools-page-title" className="tools-page-title">
+            {t("toolsPage.title")}
+          </h1>
+          <p className="tools-page-subtitle">{t("toolsPage.subtitle")}</p>
+        </div>
 
-          <div className="tools-board">
+        <div className="tools-hero-metrics" aria-label={t("toolsPage.metrics.label")}>
+          <div className="tools-metric">
+            <span className="tools-metric-value">{t("toolsPage.metrics.tools.value")}</span>
+            <span className="tools-metric-label">{t("toolsPage.metrics.tools.label")}</span>
+          </div>
+          <div className="tools-metric">
+            <span className="tools-metric-value">{t("toolsPage.metrics.workflow.value")}</span>
+            <span className="tools-metric-label">{t("toolsPage.metrics.workflow.label")}</span>
+          </div>
+          <div className="tools-metric">
+            <span className="tools-metric-value">{t("toolsPage.metrics.status.value")}</span>
+            <span className="tools-metric-label">{t("toolsPage.metrics.status.label")}</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="tools-title-row">
+        <div>
+          <p className="tools-section-kicker">{t("toolsPage.sections.toolsKicker")}</p>
+          <h2 className="tools-section-title">{t("toolsPage.sections.toolsTitle")}</h2>
+          <p className="tools-section-description">{t("toolsPage.sections.toolsDescription")}</p>
+        </div>
+      </div>
+
+      <div className="tools-layout-grid">
+        <section className="tools-workspace min-w-0">
+          {featuredTool ? (
+            <Link
+              href={featuredTool.href}
+              className="tools-feature-card group"
+              aria-label={`${featuredTool.title} - ${t("toolsPage.openPlaceholder")}`}
+            >
+              <span className="tools-feature-glow" aria-hidden="true" />
+              <span className="tools-feature-icon">
+                <featuredTool.Icon className="size-6" />
+              </span>
+              <span className="tools-feature-copy">
+                <span className="tools-tool-category">{featuredTool.category}</span>
+                <span className="tools-feature-title">{featuredTool.title}</span>
+                <span className="tools-feature-description">{featuredTool.description}</span>
+              </span>
+              <span className="tools-feature-meta">
+                <span>{featuredTool.meta}</span>
+                <ArrowRightIcon className="size-4" />
+              </span>
+            </Link>
+          ) : null}
+
+          <div className="tools-board" aria-label={t("toolsPage.sections.gridLabel")}>
             <div className="tools-link-grid">
-              {tools.map((tool) => {
+              {supportingTools.map((tool) => {
                 const Icon = tool.Icon
                 return (
                   <Link
                     key={tool.slug}
                     href={tool.href}
                     className="tools-link-row group"
+                    data-tool={tool.slug}
                     aria-label={`${tool.title} - ${t("toolsPage.openPlaceholder")}`}
                   >
-                    <span className="tools-row-icon">
-                      <Icon className="size-4" />
+                    <span className="tools-row-topline">
+                      <span className="tools-row-icon">
+                        <Icon className="size-5" />
+                      </span>
+                      <span className="tools-row-state">{t("toolsPage.status")}</span>
                     </span>
                     <span className="tools-row-title">{tool.title}</span>
-                    <span className="tools-row-state">{t("toolsPage.status")}</span>
-                    <ArrowRightIcon className="tools-row-arrow size-4" />
+                    <span className="tools-row-description">{tool.description}</span>
+                    <span className="tools-row-footer">
+                      <span>{tool.meta}</span>
+                      <ArrowRightIcon className="tools-row-arrow size-4" />
+                    </span>
                   </Link>
                 )
               })}
@@ -257,9 +404,35 @@ function ToolsIndex({
         </section>
 
         <aside className="tools-side-rail min-w-0">
+          <section className="tools-workflow-rail">
+            <div className="tools-rail-heading">
+              <span>{t("toolsPage.workflow.title")}</span>
+              <ListChecksIcon className="size-4" />
+            </div>
+            <div className="tools-workflow-list">
+              {workflowSteps.map((step, index) => {
+                const Icon = step.Icon
+
+                return (
+                  <div key={step.key} className="tools-workflow-step">
+                    <span className="tools-workflow-number">{String(index + 1).padStart(2, "0")}</span>
+                    <span className="tools-workflow-icon">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="tools-workflow-copy">
+                      <span>{step.title}</span>
+                      <small>{step.description}</small>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
           <div className="tools-activity-rail">
             <div className="tools-rail-heading">
               <span>{t("toolsPage.activities.title")}</span>
+              <Clock3Icon className="size-4" />
             </div>
             <div className="tools-activity-list">
               {activityItems.map((item) => {
@@ -270,8 +443,11 @@ function ToolsIndex({
                       <Icon className="size-4" />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <h2 className="truncate text-sm font-semibold">{item.title}</h2>
-                      <p className="text-xs text-[var(--jw-muted)]">{item.reward}</p>
+                      <div className="tools-activity-title-row">
+                        <h2 className="truncate text-sm font-semibold">{item.title}</h2>
+                        <span>{item.reward}</span>
+                      </div>
+                      <p className="text-xs leading-5 text-[var(--jw-muted)]">{item.description}</p>
                     </div>
                   </div>
                 )
@@ -317,61 +493,90 @@ function ToolsIndex({
 function ToolDetail({
   tool,
 }: {
-  tool: {
-    slug: ToolSlug
-    Icon: typeof PenLineIcon
-    title: string
-    href: string
-  }
+  tool: ToolSummary
 }) {
   const { t, locale } = useTranslation()
   const Icon = tool.Icon
+  const noteKeys = ["account", "tasks", "activity"] as const
+  const previewKeys = ["input", "generate", "export"] as const
 
   return (
-    <section className="mx-auto max-w-5xl">
+    <section className="tools-detail-page">
       <Link
         href={buildLocalizedPath(locale, "/tools")}
-        className="jw-themed-link inline-flex items-center rounded-full px-3 py-1.5 text-sm font-medium"
+        className="jw-themed-link tools-detail-back"
       >
         ← {t("toolsPage.detail.back")}
       </Link>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] shadow-[var(--jw-card-shadow)]">
-        <div className="border-b border-[var(--jw-border-subtle)] p-6 sm:p-8">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="jw-heading-text text-4xl font-bold tracking-tight sm:text-5xl">{tool.title}</h1>
-            </div>
-            <span className="w-fit rounded-full border border-[var(--jw-border)] px-3 py-1.5 text-xs font-medium text-[var(--jw-muted)]">
+      <div className="tools-detail-shell">
+        <div className="tools-detail-header">
+          <div className="tools-detail-icon">
+            <Icon className="size-7" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="tools-tool-category">{tool.category}</p>
+            <h1 className="tools-detail-title">{tool.title}</h1>
+            <p className="tools-detail-description">{tool.description}</p>
+          </div>
+          <div className="tools-detail-status">
+            <span>{tool.meta}</span>
+            <strong>
               {t("toolsPage.status")}
-            </span>
+            </strong>
           </div>
         </div>
 
-        <div className="grid min-h-[420px] gap-0 lg:grid-cols-[1fr_320px]">
-          <div className="flex items-center justify-center p-6 sm:p-8">
-            <div className="w-full max-w-xl rounded-lg border border-dashed border-[var(--jw-border)] bg-[var(--jw-surface-muted)] p-8 text-center">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-[var(--jw-accent-soft)] text-[var(--jw-accent)]">
-                <Icon className="size-7" />
+        <div className="tools-detail-grid">
+          <div className="tools-detail-preview">
+            <div className="tools-preview-window">
+              <div className="tools-preview-toolbar" aria-hidden="true">
+                <span />
+                <span />
+                <span />
               </div>
-              <h2 className="jw-heading-text mt-5 text-2xl font-semibold tracking-tight">
+              <div className="tools-preview-body">
+                <div className="tools-preview-command">
+                  <SparklesIcon className="size-5" />
+                  <span>{t("toolsPage.detail.previewPrompt")}</span>
+                </div>
+                <div className="tools-preview-lines" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className="tools-preview-steps">
+                  {previewKeys.map((key) => (
+                    <span key={key}>{t(`toolsPage.detail.previewSteps.${key}`)}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="tools-detail-placeholder">
+              <h2>
                 {t("toolsPage.detail.placeholderTitle")}
               </h2>
-              <Button className="jw-primary-button mt-6 rounded-full" disabled>
+              <p>{t("toolsPage.detail.placeholderDescription")}</p>
+              <Button className="jw-primary-button rounded-full" disabled>
                 {t("toolsPage.detail.disabledAction")}
               </Button>
             </div>
           </div>
 
-          <div className="border-t border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] p-6 lg:border-l lg:border-t-0">
-            <div className="space-y-3">
-              {["account", "tasks", "activity"].map((key) => (
-                <div key={key} className="rounded-lg border border-[var(--jw-border-subtle)] p-4">
-                  <div className="jw-heading-text text-sm font-medium">{t(`toolsPage.detail.notes.${key}.title`)}</div>
+          <aside className="tools-detail-notes">
+            <div className="tools-rail-heading">
+              <span>{t("toolsPage.detail.notesTitle")}</span>
+            </div>
+            <div className="tools-detail-note-list">
+              {noteKeys.map((key) => (
+                <div key={key} className="tools-detail-note">
+                  <div className="jw-heading-text text-sm font-semibold">{t(`toolsPage.detail.notes.${key}.title`)}</div>
+                  <p>{t(`toolsPage.detail.notes.${key}.description`)}</p>
                 </div>
               ))}
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </section>

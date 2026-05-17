@@ -2283,29 +2283,30 @@ export const zh = {
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
-        badge: "AI 驱动的内容创作平台",
-        heading: "写出更好的内容，",
-        headingAccent: "更快",
-        description: "JoyfulWords 是一个 AI 驱动的写作工作台，你可以在这里收集、整理素材，并将它们转化为优质内容。",
+        badge: "AI 内容创作工作台",
+        heading: "让你的灵感",
+        headingAccent: "更快更好地",
+        headingSuffix: "孕育成稿",
+        description: "在 JoyfulWords 里收集灵感、整理素材、生成大纲与草稿，让 AI 帮你把零散想法推进成可以发布的文章、配图和演示内容。",
         cta: "立即开始创作",
         viewArticles: "查看我的文章",
         stats: {
             speed: "10×",
-            speedLabel: "写作提速",
+            speedLabel: "创作提速",
             tools: "6 合 1",
-            toolsLabel: "工具集成",
+            toolsLabel: "工具串联",
             seo: "实时",
             seoLabel: "全网搜索",
         },
         workflow: {
-            title: "实时创作工作台",
-            subtitle: "素材、草稿、视觉同步推进",
+            title: "创作工作台",
+            subtitle: "素材、提纲、草稿和配图同步推进",
             live: "运行中",
             canvasLabel: "Article Canvas",
             canvasTitle: "AI 工具出海选题草稿",
-            canvasStatus: "自动整理",
-            insightTitle: "AI 正在提炼",
-            insight: "从素材库中提取观点、案例和配图方向，生成可继续编辑的文章骨架。",
+            canvasStatus: "自动梳理",
+            insightTitle: "AI 正在整理思路",
+            insight: "从素材库提取观点、案例和配图方向，先生成可继续编辑的文章框架。",
             metrics: {
                 materials: "素材",
                 points: "观点",
@@ -2317,15 +2318,15 @@ export const zh = {
                     meta: "链接与灵感入库",
                 },
                 draft: {
-                    title: "生成大纲",
-                    meta: "结构自动展开",
+                    title: "梳理大纲",
+                    meta: "观点结构成型",
                 },
                 visual: {
                     title: "补齐配图",
-                    meta: "视觉素材同步生成",
+                    meta: "视觉方向同步生成",
                 },
                 publish: {
-                    title: "导出展示",
+                    title: "导出成稿",
                     meta: "文章与 PPT 就绪",
                 },
             },
@@ -2532,29 +2533,93 @@ export const zh = {
         },
         eyebrow: "Creator Toolbox",
         title: "免费工具箱",
+        subtitle: "把写作、改写、视觉生成、图表和演示文稿集中成一个清晰入口。从这里开始任务，再回到工作台完成长文和素材管理。",
         status: "待实现",
         openPlaceholder: "查看工具页",
+        metrics: {
+            label: "工具箱概览",
+            tools: {
+                value: "7",
+                label: "创作工具",
+            },
+            workflow: {
+                value: "4步",
+                label: "标准流程",
+            },
+            status: {
+                value: "Beta",
+                label: "独立页预留",
+            },
+        },
+        sections: {
+            toolsKicker: "Start Here",
+            toolsTitle: "按创作流程排列的工具入口",
+            toolsDescription: "优先展示高频写作入口，其余工具按从文本到视觉、从结构到发布的顺序排列，扫一眼就能知道下一步该用什么。",
+            gridLabel: "工具列表",
+        },
         tools: {
             "ai-writer": {
                 title: "AI 写作",
+                description: "从选题、提纲到初稿的完整起笔区，适合公众号、小红书、博客和长文内容。",
+                category: "文字生产",
+                meta: "从空白开始",
             },
             "smart-rewrite": {
                 title: "智能改写",
+                description: "压缩、扩写、换语气和优化表达，让已有草稿更贴合发布场景。",
+                category: "文字打磨",
+                meta: "改写与润色",
             },
             "image-generator": {
                 title: "AI 生图",
+                description: "为封面、配图和营销素材准备的视觉生成入口，后续接入任务中心。",
+                category: "视觉资产",
+                meta: "封面与配图",
             },
             infographic: {
                 title: "信息图",
+                description: "把文章结论、数据和清单整理成适合传播的信息图结构。",
+                category: "内容可视化",
+                meta: "知识卡片",
             },
             "mind-map": {
                 title: "思维导图",
+                description: "把复杂主题拆成层级结构，用来做选题拆解、课程大纲和文章规划。",
+                category: "结构整理",
+                meta: "大纲规划",
             },
             "ai-charts": {
                 title: "AI 图表",
+                description: "把数据、观点或分析结果转换成可读图表，适合报告和案例复盘。",
+                category: "数据表达",
+                meta: "图表生成",
             },
             "ppt-generator": {
                 title: "PPT 生成",
+                description: "把文章、提纲或研究材料转成演示结构，为汇报和课程做准备。",
+                category: "演示输出",
+                meta: "提纲到幻灯片",
+            },
+        },
+        workflow: {
+            title: "推荐流程",
+            steps: {
+                spark: {
+                    title: "确定选题",
+                    description: "先用写作或导图整理想法。",
+                },
+                draft: {
+                    title: "生成草稿",
+                    description: "完成初稿后再做改写。",
+                },
+                visual: {
+                    title: "补齐视觉",
+                    description: "配图、图表和信息图集中处理。",
+                },
+                ship: {
+                    title: "发布交付",
+                    description: "文章、PPT 和素材回到工作台。",
+                },
             },
         },
         activities: {
@@ -2563,14 +2628,17 @@ export const zh = {
             checkIn: {
                 title: "每日签到",
                 reward: "+ 积分",
+                description: "为轻量使用预留的积分入口。",
             },
             share: {
                 title: "分享得积分",
                 reward: "邀请",
+                description: "后续可承接邀请、推广和分享奖励。",
             },
             campaign: {
                 title: "限时活动",
                 reward: "活动",
+                description: "承载节日活动、功能试用和限时任务。",
             },
         },
         tasks: {
@@ -2581,22 +2649,33 @@ export const zh = {
         },
         workspaceCta: {
             title: "写出更专业的文章",
-            description: "想要书写更专业的文章，想要一个完美的 AI 笔记应用，请点击 Go to your Workspace。",
+            description: "进入工作台继续管理文章、素材和生成任务，让工具箱的轻量入口接上完整创作流程。",
             action: "Go to your Workspace",
         },
         detail: {
             back: "返回工具箱",
             placeholderTitle: "工具正在排期",
+            placeholderDescription: "当前页面先保留分享和 SEO 入口，正式能力接入后会在这里承载完整操作流。",
             disabledAction: "待实现",
+            previewPrompt: "输入创作目标，生成可继续编辑的结果",
+            previewSteps: {
+                input: "输入",
+                generate: "生成",
+                export: "回流",
+            },
+            notesTitle: "设计预留",
             notes: {
                 account: {
                     title: "账号上下文",
+                    description: "保留登录态、积分和会员能力接入位置。",
                 },
                 tasks: {
                     title: "任务中心",
+                    description: "图片、图表、PPT 等异步任务会在这里同步。",
                 },
                 activity: {
                     title: "活动激励",
+                    description: "为签到、分享奖励和活动曝光预留展示区域。",
                 },
             },
         },

@@ -373,6 +373,7 @@ export function HomePageContent() {
               {t("landing.heading")}
               <br />
               <em className="not-italic text-[var(--jw-accent)]">{t("landing.headingAccent")}</em>
+              {t("landing.headingSuffix")}
             </h1>
 
             <p className="jw-muted-text animate-fade-up animate-delay-2 mx-auto mb-9 max-w-xl text-lg leading-relaxed lg:mx-0">
