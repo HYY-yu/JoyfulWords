@@ -78,6 +78,45 @@ const FONT_OPTIONS = [
 
 const DEFAULT_TITLE_POSITION = { x: 110, y: 250 }
 const NANO_BANANA_FAST_MODEL_KEYWORDS = ["nano", "banana", "fast"]
+const COVER_TITLE_CHARACTER_LIMIT = 20
+const COVER_TITLE_WORD_LIMIT = 10
+
+function toCanvasSafeImageUrl(url: string): string {
+  if (typeof window === "undefined") return url
+
+  try {
+    const parsed = new URL(url, window.location.href)
+    if (parsed.protocol === "data:" || parsed.protocol === "blob:") {
+      return parsed.href
+    }
+    if (parsed.origin === window.location.origin) {
+      return parsed.href
+    }
+    if (parsed.protocol !== "https:") {
+      return parsed.href
+    }
+    return `/api/image-proxy?url=${encodeURIComponent(parsed.href)}`
+  } catch {
+    return url
+  }
+}
+
+function countTitleWords(text: string): number {
+  return text.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g)?.length ?? 0
+}
+
+function countTitleCharacters(text: string): number {
+  return Array.from(text.replace(/\s/g, "")).length
+}
+
+function needsStandardCoverTitle(text: string): boolean {
+  const trimmed = text.trim()
+  if (!trimmed) return false
+  return (
+    countTitleCharacters(trimmed) > COVER_TITLE_CHARACTER_LIMIT ||
+    countTitleWords(trimmed) > COVER_TITLE_WORD_LIMIT
+  )
+}
 
 function extractFirstImageUrl(value: unknown): string {
   return parseImageUrls(value)[0] ?? ""
@@ -96,7 +135,7 @@ function loadCrossOriginImage(url: string): Promise<HTMLImageElement> {
     image.crossOrigin = "anonymous"
     image.onload = () => resolve(image)
     image.onerror = () => reject(new Error("image_load_failed"))
-    image.src = url
+    image.src = toCanvasSafeImageUrl(url)
   })
 }
 
@@ -190,6 +229,7 @@ export function ArticleCoverDialog({
   const dragRef = useRef({ active: false, offsetX: 0, offsetY: 0 })
   const pendingFontTaskIdsRef = useRef<Set<string>>(new Set())
   const resolvingFontTaskIdsRef = useRef<Set<string>>(new Set())
+  const autoStandardizedTitleArticleRef = useRef<string | null>(null)
 
   const [title, setTitle] = useState("")
   const [fontMode, setFontMode] = useState<FontMode>("preset")
@@ -251,7 +291,8 @@ export function ArticleCoverDialog({
     setBackgroundImageUrl("")
     setBackgroundImage(null)
     setTitlePosition(DEFAULT_TITLE_POSITION)
-  }, [articleTitle, open])
+    autoStandardizedTitleArticleRef.current = null
+  }, [articleId, articleTitle, open])
 
   useEffect(() => {
     if (!open) {
@@ -334,7 +375,7 @@ export function ArticleCoverDialog({
     }
   }, [customFontUrl, t, toast])
 
-  const drawCover = useCallback(() => {
+  const drawCover = useCallback((overrideTitle?: string) => {
     const canvas = canvasRef.current
     const ctx = canvas?.getContext("2d")
     if (!canvas || !ctx) return
@@ -377,7 +418,7 @@ export function ArticleCoverDialog({
       return
     }
 
-    const displayTitle = title.trim() || t("imageGeneration.cover.previewPlaceholder")
+    const displayTitle = (overrideTitle ?? title).trim() || t("imageGeneration.cover.previewPlaceholder")
     ctx.font = `${fontWeight} ${fontSize}px ${selectedFontFamily}`
     ctx.textBaseline = "top"
     ctx.textAlign = "left"
@@ -494,23 +535,50 @@ export function ArticleCoverDialog({
     })
   }
 
-  const handleGenerateTitle = async () => {
+  const generateStandardTitle = useCallback(async (options?: { silent?: boolean }) => {
     if (typeof articleId !== "number") {
-      toast({ variant: "destructive", title: t("imageGeneration.cover.toast.articleRequired") })
-      return
+      if (!options?.silent) {
+        toast({ variant: "destructive", title: t("imageGeneration.cover.toast.articleRequired") })
+      }
+      return null
     }
     setIsGeneratingTitle(true)
     const result = await articlesClient.generateCoverTitle(articleId)
     setIsGeneratingTitle(false)
 
     if ("error" in result) {
-      toast({ variant: "destructive", title: t("imageGeneration.cover.toast.titleGenerateFailed") })
-      return
+      if (!options?.silent) {
+        toast({ variant: "destructive", title: t("imageGeneration.cover.toast.titleGenerateFailed") })
+      }
+      return null
     }
 
-    setTitle(result.title)
-    toast({ title: t("imageGeneration.cover.toast.titleGenerated") })
+    const nextTitle = result.title.trim()
+    setTitle(nextTitle)
+    if (!options?.silent) {
+      toast({ title: t("imageGeneration.cover.toast.titleGenerated") })
+    }
+    return nextTitle
+  }, [articleId, t, toast])
+
+  const handleGenerateTitle = () => {
+    void generateStandardTitle()
   }
+
+  useEffect(() => {
+    if (!open || typeof articleId !== "number") return
+    if (isGeneratingTitle || !needsStandardCoverTitle(title)) return
+
+    const articleKey = String(articleId)
+    if (autoStandardizedTitleArticleRef.current === articleKey) return
+
+    const timeoutId = window.setTimeout(() => {
+      autoStandardizedTitleArticleRef.current = articleKey
+      void generateStandardTitle({ silent: true })
+    }, 500)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [articleId, generateStandardTitle, isGeneratingTitle, open, title])
 
   const handleSearchUnsplash = async () => {
     const query = unsplashQuery.trim() || title.trim()
@@ -542,7 +610,8 @@ export function ArticleCoverDialog({
   }
 
   const handleGenerateFontPreview = async () => {
-    if (!title.trim()) {
+    let fontTitle = title.trim()
+    if (!fontTitle) {
       toast({ variant: "destructive", title: t("imageGeneration.cover.toast.titleRequired") })
       return
     }
@@ -555,10 +624,17 @@ export function ArticleCoverDialog({
       return
     }
 
+    if (needsStandardCoverTitle(fontTitle) && typeof articleId === "number") {
+      const generatedTitle = await generateStandardTitle({ silent: true })
+      if (generatedTitle) {
+        fontTitle = generatedTitle
+      }
+    }
+
     setIsGeneratingFont(true)
     const result = await imageGenerationClient.createFontPreviewTask({
       article_id: typeof articleId === "number" ? articleId : undefined,
-      title,
+      title: fontTitle,
       font_description: customFontDescription,
       model_name: selectedModel,
       width: 1536,
@@ -739,13 +815,13 @@ export function ArticleCoverDialog({
       toast({ variant: "destructive", title: t("imageGeneration.cover.toast.articleRequired") })
       return
     }
-    if (!title.trim()) {
+    let coverTitle = title.trim()
+    if (!coverTitle) {
       toast({ variant: "destructive", title: t("imageGeneration.cover.toast.titleRequired") })
       return
     }
 
     setIsExportingCover(true)
-    drawCover()
     const mimeType =
       exportFormat === "jpeg"
         ? "image/jpeg"
@@ -755,6 +831,14 @@ export function ArticleCoverDialog({
     const extension = exportFormat === "jpeg" ? "jpg" : exportFormat
 
     try {
+      if (needsStandardCoverTitle(coverTitle)) {
+        const generatedTitle = await generateStandardTitle({ silent: true })
+        if (generatedTitle) {
+          coverTitle = generatedTitle
+        }
+      }
+
+      drawCover(coverTitle)
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
           (result) => (result ? resolve(result) : reject(new Error("export_failed"))),
@@ -775,7 +859,7 @@ export function ArticleCoverDialog({
         throw new Error("upload_failed")
       }
 
-      const trimmedTitle = title.trim()
+      const trimmedTitle = coverTitle
       const materialResult = await materialsClient.createMaterial({
         title: `${trimmedTitle} - ${t("imageGeneration.cover.altText")}`,
         material_type: "image",
