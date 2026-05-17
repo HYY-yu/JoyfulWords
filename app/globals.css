@@ -528,12 +528,12 @@
 
 .jw-cover-dialog {
   color: var(--jw-heading);
-  background: var(--jw-surface-muted);
+  background: var(--background);
 }
 
 .jw-cover-dialog [data-slot="dialog-close"] {
-  top: 1.25rem;
-  right: 1.25rem;
+  top: 1rem;
+  right: 1rem;
   border-radius: 999px;
   color: var(--jw-muted);
   opacity: 1;
@@ -550,16 +550,20 @@
 }
 
 .jw-cover-dialog [data-slot="dialog-header"] {
-  border-color: var(--jw-border);
-  background:
-    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--jw-accent) 10%, transparent), transparent 26rem),
-    linear-gradient(180deg, var(--jw-surface-strong), var(--jw-surface-muted));
+  border-color: var(--border);
+  background: var(--background);
+  padding: 1rem 1.5rem;
+}
+
+.jw-cover-dialog [data-slot="dialog-title"] {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 .jw-cover-dialog [data-slot="dialog-footer"] {
-  border-color: var(--jw-border);
-  background: color-mix(in srgb, var(--jw-surface-strong) 88%, transparent);
-  backdrop-filter: blur(18px);
+  border-color: var(--border);
+  background: var(--background);
+  padding: 1rem 1.5rem;
 }
 
 .jw-cover-dialog * {

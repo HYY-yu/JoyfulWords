@@ -843,7 +843,8 @@ export function ArticleCoverDialog({
         title={t("imageGeneration.cover.title")}
         icon={<SparklesIcon className="h-5 w-5 text-[var(--jw-accent)]" />}
         size="large"
-        contentClassName="jw-cover-dialog border-[var(--jw-border)] bg-[var(--jw-surface-muted)] sm:max-w-[1440px]"
+        overlayClassName="bg-black/75"
+        contentClassName="jw-cover-dialog h-[min(86vh,900px)] w-[min(86vw,1600px)] max-w-[calc(100vw-2rem)] border-border bg-background sm:max-w-[min(86vw,1600px)]"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
             <div className="min-w-0 text-xs font-medium text-[var(--jw-muted)]">
