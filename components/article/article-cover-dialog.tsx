@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/base/select"
 import { Slider } from "@/components/ui/base/slider"
 import { Textarea } from "@/components/ui/base/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { CreatorMode } from "@/components/image-generator/creator-mode"
 import { ModelSelector } from "@/components/image-generator/ui/model-selector"
 import { useToast } from "@/hooks/use-toast"
@@ -196,7 +195,7 @@ export function ArticleCoverDialog({
   const [fontFamilyId, setFontFamilyId] = useState("headline")
   const [fontSize, setFontSize] = useState(86)
   const [fontWeight, setFontWeight] = useState(800)
-  const [titleColor, setTitleColor] = useState("#111827")
+  const [titleColor, setTitleColor] = useState("#101828")
   const [titlePosition, setTitlePosition] = useState(DEFAULT_TITLE_POSITION)
   const [customFontDescription, setCustomFontDescription] = useState("")
   const [customFontUrl, setCustomFontUrl] = useState("")
@@ -206,9 +205,9 @@ export function ArticleCoverDialog({
   const [isExportingCover, setIsExportingCover] = useState(false)
 
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("solid")
-  const [solidColor, setSolidColor] = useState("#ffffff")
+  const [solidColor, setSolidColor] = useState("#f8fafc")
   const [gradientFrom, setGradientFrom] = useState("#fff7ed")
-  const [gradientTo, setGradientTo] = useState("#bae6fd")
+  const [gradientTo, setGradientTo] = useState("#dbeafe")
   const [gradientDirection, setGradientDirection] = useState<GradientDirection>("135")
   const [backgroundImageUrl, setBackgroundImageUrl] = useState("")
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null)
@@ -247,7 +246,7 @@ export function ArticleCoverDialog({
     setTitle(nextTitle)
     setUnsplashQuery((current) => current || nextTitle || "editorial article cover")
     setBackgroundMode("solid")
-    setSolidColor("#ffffff")
+    setSolidColor("#f8fafc")
     setBackgroundImageUrl("")
     setBackgroundImage(null)
     setTitlePosition(DEFAULT_TITLE_POSITION)
@@ -687,6 +686,26 @@ export function ArticleCoverDialog({
     return () => window.clearInterval(intervalId)
   }, [activeFontTaskId, isGeneratingFont, loadFontTaskDetail])
 
+  const panelCardClass = "rounded-2xl border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-5 shadow-[0_18px_44px_-36px_rgba(0,0,0,0.34)]"
+  const panelTitleClass = "mb-5 flex items-center gap-2.5 border-b border-[var(--jw-border-subtle)] pb-3 text-[15px] font-semibold text-[var(--jw-heading)]"
+  const inspectorSectionClass = "rounded-2xl border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-4 shadow-[0_18px_42px_-36px_rgba(0,0,0,0.34)]"
+  const inspectorHeaderClass = "mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--jw-heading)]"
+  const fieldLabelClass = "text-xs font-semibold uppercase tracking-[0.12em] text-[var(--jw-muted)]"
+  const modeButtonClass = "h-10 justify-start gap-2 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] text-sm font-semibold text-[var(--jw-heading)] shadow-[var(--jw-soft-shadow)] hover:border-[color-mix(in_srgb,var(--jw-accent)_42%,transparent)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
+  const selectedModeButtonClass = "border-[var(--jw-accent)] bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:border-[var(--jw-accent)] hover:bg-[var(--jw-accent-hover)] hover:text-[var(--jw-accent-foreground)]"
+  const controlInputClass = "h-10 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] text-sm text-[var(--jw-heading)] shadow-[0_10px_22px_-20px_rgba(0,0,0,0.28)] focus-visible:ring-[color-mix(in_srgb,var(--jw-accent)_22%,transparent)]"
+  const colorInputClass = "h-10 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-1 shadow-[0_10px_22px_-20px_rgba(0,0,0,0.28)]"
+  const subtleButtonClass = "h-10 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] font-semibold text-[var(--jw-heading)] shadow-[0_10px_22px_-20px_rgba(0,0,0,0.28)] hover:border-[color-mix(in_srgb,var(--jw-accent)_42%,transparent)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
+  const fontSwitchButtonClass = "h-10 flex-1 rounded-lg border-0 bg-transparent text-sm font-semibold text-[var(--jw-muted)] shadow-none hover:bg-[var(--jw-surface-strong)] hover:text-[var(--jw-accent)]"
+  const selectedFontSwitchButtonClass = "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:bg-[var(--jw-accent-hover)] hover:text-[var(--jw-accent-foreground)]"
+
+  const renderBackgroundModeIcon = (mode: BackgroundMode) => {
+    if (mode === "solid") return <PaintbrushIcon className="h-4 w-4" />
+    if (mode === "gradient") return <SparklesIcon className="h-4 w-4" />
+    if (mode === "unsplash") return <ImageIcon className="h-4 w-4" />
+    return <ImagePlusIcon className="h-4 w-4" />
+  }
+
   const getCanvasPoint = (event: PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
     if (!canvas) return { x: 0, y: 0 }
@@ -822,17 +841,17 @@ export function ArticleCoverDialog({
         open={open}
         onOpenChange={onOpenChange}
         title={t("imageGeneration.cover.title")}
-        icon={<SparklesIcon className="h-5 w-5 text-primary" />}
+        icon={<SparklesIcon className="h-5 w-5 text-[var(--jw-accent)]" />}
         size="large"
-        contentClassName="sm:max-w-[1440px]"
+        contentClassName="jw-cover-dialog border-[var(--jw-border)] bg-[var(--jw-surface-muted)] sm:max-w-[1440px]"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
-            <div className="min-w-0 text-xs text-muted-foreground">
+            <div className="min-w-0 text-xs font-medium text-[var(--jw-muted)]">
               {activeFontTaskId ? t("imageGeneration.cover.activeTask", { id: activeFontTaskId, status: activeFontTaskStatus || "pending" }) : null}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Select value={exportFormat} onValueChange={(value) => setExportFormat(value as ExportFormat)}>
-                <SelectTrigger className="h-9 w-[118px]">
+                <SelectTrigger className={cn(controlInputClass, "w-[132px]")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -841,10 +860,10 @@ export function ArticleCoverDialog({
                   <SelectItem value="webp">WebP</SelectItem>
                 </SelectContent>
               </Select>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={cn(subtleButtonClass, "h-10 px-5")}>
                 {t("common.cancel")}
               </Button>
-              <Button type="button" onClick={exportCover} disabled={isExportingCover}>
+              <Button type="button" onClick={exportCover} disabled={isExportingCover} className="h-10 rounded-xl bg-[var(--jw-accent)] px-5 text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:bg-[var(--jw-accent-hover)]">
                 {isExportingCover ? (
                   <LoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
@@ -856,19 +875,20 @@ export function ArticleCoverDialog({
           </div>
         }
       >
-        <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)_380px]">
-          <aside className="min-h-0 overflow-y-auto border-b bg-background px-5 py-5 lg:border-b-0 lg:border-r">
-            <div className="mb-5 flex items-center gap-2 text-sm font-semibold">
-              <PaintbrushIcon className="h-4 w-4 text-primary" />
-              {t("imageGeneration.cover.panels.background")}
-            </div>
-            <div className="space-y-5">
+        <div className="jw-cover-layout min-h-0 flex-1 overflow-hidden bg-[var(--jw-surface-muted)]">
+          <aside className="min-h-0 overflow-y-auto border-b border-[var(--jw-border)] bg-[var(--jw-surface-muted)] px-4 py-4 lg:border-b-0 lg:border-r">
+            <div className={panelCardClass}>
+              <div className={panelTitleClass}>
+                <PaintbrushIcon className="h-4 w-4 text-[var(--jw-accent)]" />
+                {t("imageGeneration.cover.panels.background")}
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 {(["solid", "gradient", "unsplash", "material"] as BackgroundMode[]).map((mode) => (
                   <Button
                     key={mode}
                     type="button"
-                    variant={backgroundMode === mode ? "default" : "outline"}
+                    variant="outline"
+                    className={cn(modeButtonClass, backgroundMode === mode ? selectedModeButtonClass : "")}
                     onClick={() => {
                       setBackgroundMode(mode)
                       if (mode === "unsplash" && unsplashPhotos.length === 0) {
@@ -876,34 +896,35 @@ export function ArticleCoverDialog({
                       }
                     }}
                   >
+                    {renderBackgroundModeIcon(mode)}
                     {t(`imageGeneration.cover.backgroundModes.${mode}`)}
                   </Button>
                 ))}
               </div>
 
               {backgroundMode === "solid" ? (
-                <div className="space-y-2">
+                <div className="mt-5 space-y-2">
                   <Label>{t("imageGeneration.cover.solidColorLabel")}</Label>
-                  <Input type="color" value={solidColor} onChange={(event) => setSolidColor(event.target.value)} className="h-10 p-1" />
+                  <Input type="color" value={solidColor} onChange={(event) => setSolidColor(event.target.value)} className={colorInputClass} />
                 </div>
               ) : null}
 
               {backgroundMode === "gradient" ? (
-                <div className="space-y-4">
+                <div className="mt-5 space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label>{t("imageGeneration.cover.gradientFromLabel")}</Label>
-                      <Input type="color" value={gradientFrom} onChange={(event) => setGradientFrom(event.target.value)} className="h-10 p-1" />
+                      <Input type="color" value={gradientFrom} onChange={(event) => setGradientFrom(event.target.value)} className={colorInputClass} />
                     </div>
                     <div className="space-y-2">
                       <Label>{t("imageGeneration.cover.gradientToLabel")}</Label>
-                      <Input type="color" value={gradientTo} onChange={(event) => setGradientTo(event.target.value)} className="h-10 p-1" />
+                      <Input type="color" value={gradientTo} onChange={(event) => setGradientTo(event.target.value)} className={colorInputClass} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>{t("imageGeneration.cover.gradientDirectionLabel")}</Label>
                     <Select value={gradientDirection} onValueChange={(value) => setGradientDirection(value as GradientDirection)}>
-                      <SelectTrigger>
+                      <SelectTrigger className={controlInputClass}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -918,12 +939,11 @@ export function ArticleCoverDialog({
               ) : null}
 
               {backgroundMode === "unsplash" ? (
-                <div className="space-y-4">
+                <div className="mt-5 space-y-4">
                   <div className="flex gap-2">
-                    <Input value={unsplashQuery} onChange={(event) => setUnsplashQuery(event.target.value)} placeholder={t("imageGeneration.cover.unsplashPlaceholder")} />
-                    <Button type="button" onClick={handleSearchUnsplash} disabled={isSearchingUnsplash} className="shrink-0">
+                    <Input value={unsplashQuery} onChange={(event) => setUnsplashQuery(event.target.value)} placeholder={t("imageGeneration.cover.unsplashPlaceholder")} className={controlInputClass} />
+                    <Button type="button" onClick={handleSearchUnsplash} disabled={isSearchingUnsplash} className="h-11 shrink-0 rounded-xl bg-[var(--jw-accent)] px-3 text-[var(--jw-accent-foreground)] hover:bg-[var(--jw-accent-hover)]">
                       {isSearchingUnsplash ? <LoaderIcon className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
-                      {t("imageGeneration.cover.search")}
                     </Button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -933,12 +953,12 @@ export function ArticleCoverDialog({
                         type="button"
                         onClick={() => handleSelectUnsplashPhoto(photo)}
                         className={cn(
-                          "overflow-hidden rounded-md border bg-muted text-left transition hover:border-primary",
-                          backgroundImageUrl === photo.regular_url ? "border-primary" : "border-border"
+                          "overflow-hidden rounded-xl border bg-[var(--jw-surface-strong)] text-left shadow-[var(--jw-soft-shadow)] transition hover:border-[color-mix(in_srgb,var(--jw-accent)_48%,transparent)]",
+                          backgroundImageUrl === photo.regular_url ? "border-[var(--jw-accent)] ring-2 ring-[color-mix(in_srgb,var(--jw-accent)_18%,transparent)]" : "border-[var(--jw-border)]"
                         )}
                       >
                         <img src={photo.thumb_url} alt={photo.author_name} className="aspect-video w-full object-cover" />
-                        <span className="block truncate px-2 py-1 text-[11px] text-muted-foreground">
+                        <span className="block truncate px-2 py-1 text-[11px] text-[var(--jw-muted)]">
                           {t("imageGeneration.cover.unsplashBy", { name: photo.author_name })}
                         </span>
                       </button>
@@ -948,12 +968,11 @@ export function ArticleCoverDialog({
               ) : null}
 
               {backgroundMode === "material" ? (
-                <div className="space-y-4">
+                <div className="mt-5 space-y-4">
                   <div className="flex gap-2">
-                    <Input value={materialQuery} onChange={(event) => setMaterialQuery(event.target.value)} placeholder={t("imageGeneration.cover.materialSearchPlaceholder")} />
-                    <Button type="button" onClick={() => void fetchMaterials()} disabled={isLoadingMaterials} className="shrink-0">
+                    <Input value={materialQuery} onChange={(event) => setMaterialQuery(event.target.value)} placeholder={t("imageGeneration.cover.materialSearchPlaceholder")} className={controlInputClass} />
+                    <Button type="button" onClick={() => void fetchMaterials()} disabled={isLoadingMaterials} className="h-11 shrink-0 rounded-xl bg-[var(--jw-accent)] px-3 text-[var(--jw-accent-foreground)] hover:bg-[var(--jw-accent-hover)]">
                       {isLoadingMaterials ? <LoaderIcon className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
-                      {t("imageGeneration.cover.search")}
                     </Button>
                   </div>
                   {materialLoadError ? (
@@ -968,24 +987,24 @@ export function ArticleCoverDialog({
                         type="button"
                         onClick={() => setBackgroundImageUrl(material.content)}
                         className={cn(
-                          "overflow-hidden rounded-md border bg-muted text-left transition hover:border-primary",
-                          backgroundImageUrl === material.content ? "border-primary" : "border-border"
+                          "overflow-hidden rounded-xl border bg-[var(--jw-surface-strong)] text-left shadow-[var(--jw-soft-shadow)] transition hover:border-[color-mix(in_srgb,var(--jw-accent)_48%,transparent)]",
+                          backgroundImageUrl === material.content ? "border-[var(--jw-accent)] ring-2 ring-[color-mix(in_srgb,var(--jw-accent)_18%,transparent)]" : "border-[var(--jw-border)]"
                         )}
                       >
                         <img src={material.content} alt={material.title} className="aspect-video w-full object-cover" />
-                        <span className="block truncate px-2 py-1 text-[11px] text-muted-foreground">{material.title}</span>
+                        <span className="block truncate px-2 py-1 text-[11px] text-[var(--jw-muted)]">{material.title}</span>
                       </button>
                     ))}
                     <button
                       type="button"
                       onClick={() => setIsImageCreatorOpen(true)}
-                      className="flex aspect-video items-center justify-center gap-2 rounded-md border border-dashed border-primary/50 bg-primary/5 text-sm font-medium text-primary"
+                      className="flex aspect-video items-center justify-center gap-2 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--jw-accent)_46%,transparent)] bg-[var(--jw-accent-soft)] text-sm font-semibold text-[var(--jw-accent)] transition hover:bg-[color-mix(in_srgb,var(--jw-accent-soft)_70%,var(--jw-surface-strong))]"
                     >
                       <ImagePlusIcon className="h-4 w-4" />
                       {t("imageGeneration.cover.aiImage")}
                     </button>
                   </div>
-                  <Button type="button" variant="outline" onClick={() => void fetchMaterials()} disabled={isLoadingMaterials} className="w-full">
+                  <Button type="button" variant="outline" onClick={() => void fetchMaterials()} disabled={isLoadingMaterials} className={cn(subtleButtonClass, "w-full")}>
                     {isLoadingMaterials ? <LoaderIcon className="h-4 w-4 animate-spin" /> : <RefreshCwIcon className="h-4 w-4" />}
                     {t("imageGeneration.cover.refreshMaterials")}
                   </Button>
@@ -993,11 +1012,18 @@ export function ArticleCoverDialog({
               ) : null}
             </div>
           </aside>
-          <div className="flex min-h-0 flex-col gap-4 overflow-hidden bg-neutral-950 px-5 py-5">
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-md bg-[linear-gradient(45deg,#18181b_25%,transparent_25%),linear-gradient(-45deg,#18181b_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#18181b_75%),linear-gradient(-45deg,transparent_75%,#18181b_75%)] bg-[length:24px_24px] bg-[position:0_0,0_12px,12px_-12px,-12px_0] p-4">
+          <div className="flex min-h-0 flex-col gap-3 overflow-hidden bg-[var(--jw-surface-muted)] px-5 py-4">
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-4 py-3 text-xs font-medium text-[var(--jw-muted)] shadow-[0_16px_40px_-36px_rgba(0,0,0,0.34)]">
+              <div className="flex items-center gap-2">
+                <SparklesIcon className="h-4 w-4 text-[var(--jw-accent)]" />
+                <span>{t("imageGeneration.cover.canvasStatus")}</span>
+              </div>
+              <span className="font-mono text-[var(--jw-heading)]">{width} x {height}</span>
+            </div>
+            <div className="jw-cover-preview-stage flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-2xl border border-[var(--jw-border)] p-5 shadow-inner">
               <canvas
                 ref={canvasRef}
-                className="max-h-full max-w-full cursor-move rounded-sm shadow-2xl"
+                className="max-h-full max-w-full cursor-move rounded-xl bg-[var(--jw-surface-strong)] shadow-2xl shadow-slate-950/10 ring-1 ring-[var(--jw-border)]"
                 style={{ aspectRatio: `${width} / ${height}` }}
                 onPointerDown={handleCanvasPointerDown}
                 onPointerMove={handleCanvasPointerMove}
@@ -1005,78 +1031,82 @@ export function ArticleCoverDialog({
                 onPointerCancel={handleCanvasPointerUp}
               />
             </div>
-            <div className="flex items-center justify-between gap-3 text-xs text-white/70">
-              <span>{width} x {height}</span>
-              <span>{t("imageGeneration.cover.canvasStatus")}</span>
-            </div>
           </div>
 
-          <div className="min-h-0 overflow-y-auto border-t bg-background px-5 py-5 lg:border-l lg:border-t-0">
-            <div className="mb-5 flex items-center gap-2 text-sm font-semibold">
-              <TypeIcon className="h-4 w-4 text-primary" />
-              {t("imageGeneration.cover.panels.title")}
-            </div>
+          <div className="min-h-0 space-y-4 overflow-y-auto border-t border-[var(--jw-border)] bg-[var(--jw-surface-muted)] px-4 py-4 lg:border-l lg:border-t-0">
             {typeof articleId !== "number" ? (
-              <Alert variant="destructive" className="mb-5">
+              <Alert variant="destructive">
                 <AlertDescription>{t("imageGeneration.cover.articleRequired")}</AlertDescription>
               </Alert>
             ) : null}
-            <Tabs defaultValue="title" className="min-h-0">
-              <TabsList className="hidden">
-                <TabsTrigger value="title"><TypeIcon className="h-4 w-4" />{t("imageGeneration.cover.tabs.title")}</TabsTrigger>
-                <TabsTrigger value="background"><PaintbrushIcon className="h-4 w-4" />{t("imageGeneration.cover.tabs.background")}</TabsTrigger>
-                <TabsTrigger value="crop"><CropIcon className="h-4 w-4" />{t("imageGeneration.cover.tabs.crop")}</TabsTrigger>
-              </TabsList>
 
-              <TabsContent value="title" className="mt-5 space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="cover-title">{t("imageGeneration.cover.titleLabel")}</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="cover-title"
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      placeholder={t("imageGeneration.cover.titlePlaceholder")}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleGenerateTitle}
-                      disabled={isGeneratingTitle}
-                      className="shrink-0"
-                    >
-                      {isGeneratingTitle ? (
-                        <LoaderIcon className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <WandSparklesIcon className="h-4 w-4" />
-                      )}
-                      {t("imageGeneration.cover.generateTitle")}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
+            <section className={inspectorSectionClass}>
+              <div className={inspectorHeaderClass}>
+                <TypeIcon className="h-4 w-4 text-[var(--jw-accent)]" />
+                {t("imageGeneration.cover.panels.title")}
+              </div>
+              <div className="space-y-2.5">
+                <Label htmlFor="cover-title" className={fieldLabelClass}>{t("imageGeneration.cover.titleLabel")}</Label>
+                <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+                  <Input
+                    id="cover-title"
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder={t("imageGeneration.cover.titlePlaceholder")}
+                    className={controlInputClass}
+                  />
                   <Button
                     type="button"
-                    variant={fontMode === "preset" ? "default" : "outline"}
+                    variant="outline"
+                    onClick={handleGenerateTitle}
+                    disabled={isGeneratingTitle}
+                    className={cn(subtleButtonClass, "px-2 text-sm")}
+                  >
+                    {isGeneratingTitle ? (
+                      <LoaderIcon className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <WandSparklesIcon className="h-4 w-4" />
+                    )}
+                    {t("imageGeneration.cover.generateTitle")}
+                  </Button>
+                </div>
+              </div>
+            </section>
+
+            <section className={inspectorSectionClass}>
+              <div className={inspectorHeaderClass}>
+                <SparklesIcon className="h-4 w-4 text-[var(--jw-accent)]" />
+                {t("imageGeneration.cover.fontFamilyLabel")}
+              </div>
+              <div className="space-y-4">
+                <div className="flex rounded-lg bg-[color-mix(in_srgb,var(--jw-surface-muted)_82%,transparent)] p-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-pressed={fontMode === "preset"}
+                    className={cn(fontSwitchButtonClass, fontMode === "preset" ? selectedFontSwitchButtonClass : "")}
                     onClick={() => setFontMode("preset")}
                   >
+                    <TypeIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.fontModes.preset")}
                   </Button>
                   <Button
                     type="button"
-                    variant={fontMode === "custom" ? "default" : "outline"}
+                    variant="outline"
+                    aria-pressed={fontMode === "custom"}
+                    className={cn(fontSwitchButtonClass, fontMode === "custom" ? selectedFontSwitchButtonClass : "")}
                     onClick={() => setFontMode("custom")}
                   >
+                    <WandSparklesIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.fontModes.custom")}
                   </Button>
                 </div>
 
                 {fontMode === "preset" ? (
-                  <div className="space-y-2">
-                    <Label>{t("imageGeneration.cover.fontFamilyLabel")}</Label>
+                  <div className="space-y-2.5">
+                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontFamilyLabel")}</Label>
                     <Select value={fontFamilyId} onValueChange={setFontFamilyId}>
-                      <SelectTrigger>
+                      <SelectTrigger className={controlInputClass}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1089,13 +1119,14 @@ export function ArticleCoverDialog({
                     </Select>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="grid grid-cols-3 gap-2">
                       {(["shock", "handwriting", "cartoon"] as const).map((preset) => (
                         <Button
                           key={preset}
                           type="button"
                           variant="outline"
+                          className={subtleButtonClass}
                           onClick={() => setCustomFontDescription(t(`imageGeneration.cover.customFontPresets.${preset}Prompt`))}
                         >
                           {t(`imageGeneration.cover.customFontPresets.${preset}`)}
@@ -1103,15 +1134,13 @@ export function ArticleCoverDialog({
                       ))}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="custom-font-description">
-                        {t("imageGeneration.cover.customFontDescriptionLabel")}
-                      </Label>
+                      <Label htmlFor="custom-font-description" className={fieldLabelClass}>{t("imageGeneration.cover.customFontDescriptionLabel")}</Label>
                       <Textarea
                         id="custom-font-description"
                         value={customFontDescription}
                         onChange={(event) => setCustomFontDescription(event.target.value)}
                         placeholder={t("imageGeneration.cover.customFontDescriptionPlaceholder")}
-                        className="min-h-24 resize-none"
+                        className="min-h-24 resize-none rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] text-[var(--jw-heading)] shadow-[var(--jw-soft-shadow)] focus-visible:ring-[color-mix(in_srgb,var(--jw-accent)_22%,transparent)]"
                       />
                     </div>
                     {modelLoadError ? (
@@ -1129,7 +1158,7 @@ export function ArticleCoverDialog({
                       type="button"
                       onClick={handleGenerateFontPreview}
                       disabled={isGeneratingFont || isLoadingModels}
-                      className="w-full"
+                      className="h-10 w-full rounded-xl bg-[var(--jw-accent)] font-semibold text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:bg-[var(--jw-accent-hover)]"
                     >
                       {isGeneratingFont ? (
                         <LoaderIcon className="h-4 w-4 animate-spin" />
@@ -1140,234 +1169,73 @@ export function ArticleCoverDialog({
                     </Button>
                   </div>
                 )}
+              </div>
+            </section>
 
+            <section className={inspectorSectionClass}>
+              <div className={inspectorHeaderClass}>
+                <AlignCenterHorizontalIcon className="h-4 w-4 text-[var(--jw-accent)]" />
+                {t("imageGeneration.cover.positionLabel")}
+              </div>
+              <div className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label>{t("imageGeneration.cover.fontSizeLabel")}</Label>
-                    <span className="text-xs text-muted-foreground">{fontSize}px</span>
+                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontSizeLabel")}</Label>
+                    <span className="text-xs text-[var(--jw-muted)]">{fontSize}px</span>
                   </div>
-                  <Slider value={[fontSize]} min={32} max={180} step={1} onValueChange={([value]) => setFontSize(value)} />
+                  <Slider className="py-1" value={[fontSize]} min={32} max={180} step={1} onValueChange={([value]) => setFontSize(value)} />
                 </div>
-
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label>{t("imageGeneration.cover.fontWeightLabel")}</Label>
-                    <span className="text-xs text-muted-foreground">{fontWeight}</span>
+                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontWeightLabel")}</Label>
+                    <span className="text-xs text-[var(--jw-muted)]">{fontWeight}</span>
                   </div>
-                  <Slider value={[fontWeight]} min={300} max={900} step={100} onValueChange={([value]) => setFontWeight(value)} />
+                  <Slider className="py-1" value={[fontWeight]} min={300} max={900} step={100} onValueChange={([value]) => setFontWeight(value)} />
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label>{t("imageGeneration.cover.textColorLabel")}</Label>
-                    <Input type="color" value={titleColor} onChange={(event) => setTitleColor(event.target.value)} className="h-10 p-1" />
+                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.textColorLabel")}</Label>
+                    <Input type="color" value={titleColor} onChange={(event) => setTitleColor(event.target.value)} className={colorInputClass} />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t("imageGeneration.cover.positionLabel")}</Label>
-                    <Button type="button" variant="outline" onClick={() => setTitlePosition(DEFAULT_TITLE_POSITION)} className="w-full">
+                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.positionLabel")}</Label>
+                    <Button type="button" variant="outline" onClick={() => setTitlePosition(DEFAULT_TITLE_POSITION)} className={cn(subtleButtonClass, "w-full")}>
                       <RefreshCwIcon className="h-4 w-4" />
                       {t("imageGeneration.cover.resetPosition")}
                     </Button>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("centerX")}>
+                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("centerX")} className={subtleButtonClass}>
                     <AlignCenterHorizontalIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.positionActions.centerX")}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("centerY")}>
+                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("centerY")} className={subtleButtonClass}>
                     <AlignCenterVerticalIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.positionActions.centerY")}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("left")}>
+                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("left")} className={subtleButtonClass}>
                     <AlignHorizontalJustifyStartIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.positionActions.left")}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("right")}>
+                  <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("right")} className={subtleButtonClass}>
                     <AlignHorizontalJustifyEndIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.positionActions.right")}
                   </Button>
                 </div>
+              </div>
+            </section>
 
-                <div className="space-y-5 border-t pt-5">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <CropIcon className="h-4 w-4 text-primary" />
-                    {t("imageGeneration.cover.panels.crop")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>{t("imageGeneration.cover.platformLabel")}</Label>
-                    <Select value={presetId} onValueChange={handlePresetChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COVER_PRESETS.map((preset) => (
-                          <SelectItem key={preset.id} value={preset.id}>
-                            {t(`imageGeneration.cover.presets.${preset.id}`)} · {preset.width}x{preset.height}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="custom">{t("imageGeneration.cover.presets.custom")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="cover-width-inline">{t("imageGeneration.cover.widthLabel")}</Label>
-                      <Input
-                        id="cover-width-inline"
-                        type="number"
-                        min={256}
-                        max={4096}
-                        value={width}
-                        onChange={(event) => {
-                          setPresetId("custom")
-                          setWidth(Number(event.target.value) || 256)
-                        }}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cover-height-inline">{t("imageGeneration.cover.heightLabel")}</Label>
-                      <Input
-                        id="cover-height-inline"
-                        type="number"
-                        min={256}
-                        max={4096}
-                        value={height}
-                        onChange={(event) => {
-                          setPresetId("custom")
-                          setHeight(Number(event.target.value) || 256)
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="background" className="mt-5 space-y-5">
-                <div className="grid grid-cols-2 gap-2">
-                  {(["solid", "gradient", "unsplash", "material"] as BackgroundMode[]).map((mode) => (
-                    <Button
-                      key={mode}
-                      type="button"
-                      variant={backgroundMode === mode ? "default" : "outline"}
-                      onClick={() => setBackgroundMode(mode)}
-                    >
-                      {t(`imageGeneration.cover.backgroundModes.${mode}`)}
-                    </Button>
-                  ))}
-                </div>
-
-                {backgroundMode === "solid" ? (
-                  <div className="space-y-2">
-                    <Label>{t("imageGeneration.cover.solidColorLabel")}</Label>
-                    <Input type="color" value={solidColor} onChange={(event) => setSolidColor(event.target.value)} className="h-10 p-1" />
-                  </div>
-                ) : null}
-
-                {backgroundMode === "gradient" ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>{t("imageGeneration.cover.gradientFromLabel")}</Label>
-                        <Input type="color" value={gradientFrom} onChange={(event) => setGradientFrom(event.target.value)} className="h-10 p-1" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>{t("imageGeneration.cover.gradientToLabel")}</Label>
-                        <Input type="color" value={gradientTo} onChange={(event) => setGradientTo(event.target.value)} className="h-10 p-1" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("imageGeneration.cover.gradientDirectionLabel")}</Label>
-                      <Select value={gradientDirection} onValueChange={(value) => setGradientDirection(value as GradientDirection)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="135">{t("imageGeneration.cover.gradientDirections.diagonal")}</SelectItem>
-                          <SelectItem value="90">{t("imageGeneration.cover.gradientDirections.vertical")}</SelectItem>
-                          <SelectItem value="180">{t("imageGeneration.cover.gradientDirections.horizontal")}</SelectItem>
-                          <SelectItem value="45">{t("imageGeneration.cover.gradientDirections.reverse")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                ) : null}
-
-                {backgroundMode === "unsplash" ? (
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input value={unsplashQuery} onChange={(event) => setUnsplashQuery(event.target.value)} placeholder={t("imageGeneration.cover.unsplashPlaceholder")} />
-                      <Button type="button" onClick={handleSearchUnsplash} disabled={isSearchingUnsplash}>
-                        {isSearchingUnsplash ? <LoaderIcon className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                        {t("imageGeneration.cover.search")}
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {unsplashPhotos.map((photo) => (
-                        <button
-                          key={photo.id}
-                          type="button"
-                          onClick={() => handleSelectUnsplashPhoto(photo)}
-                          className={cn(
-                            "overflow-hidden rounded-md border bg-muted text-left transition hover:border-primary",
-                            backgroundImageUrl === photo.regular_url ? "border-primary" : "border-border"
-                          )}
-                        >
-                          <img src={photo.thumb_url} alt={photo.author_name} className="aspect-video w-full object-cover" />
-                          <span className="block truncate px-2 py-1 text-[11px] text-muted-foreground">
-                            {t("imageGeneration.cover.unsplashBy", { name: photo.author_name })}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {backgroundMode === "material" ? (
-                  <div className="space-y-4">
-                    {materialLoadError ? (
-                      <Alert variant="destructive">
-                        <AlertDescription>{t("imageGeneration.cover.materialLoadFailed")}</AlertDescription>
-                      </Alert>
-                    ) : null}
-                    <div className="grid grid-cols-2 gap-2">
-                      {materials.map((material) => (
-                        <button
-                          key={material.id}
-                          type="button"
-                          onClick={() => setBackgroundImageUrl(material.content)}
-                          className={cn(
-                            "overflow-hidden rounded-md border bg-muted text-left transition hover:border-primary",
-                            backgroundImageUrl === material.content ? "border-primary" : "border-border"
-                          )}
-                        >
-                          <img src={material.content} alt={material.title} className="aspect-video w-full object-cover" />
-                          <span className="block truncate px-2 py-1 text-[11px] text-muted-foreground">{material.title}</span>
-                        </button>
-                      ))}
-                      <button
-                        type="button"
-                        onClick={() => setIsImageCreatorOpen(true)}
-                        className="flex aspect-video items-center justify-center gap-2 rounded-md border border-dashed border-primary/50 bg-primary/5 text-sm font-medium text-primary"
-                      >
-                        <ImagePlusIcon className="h-4 w-4" />
-                        {t("imageGeneration.cover.aiImage")}
-                      </button>
-                    </div>
-                    <Button type="button" variant="outline" onClick={() => void fetchMaterials()} disabled={isLoadingMaterials} className="w-full">
-                      {isLoadingMaterials ? <LoaderIcon className="h-4 w-4 animate-spin" /> : <RefreshCwIcon className="h-4 w-4" />}
-                      {t("imageGeneration.cover.refreshMaterials")}
-                    </Button>
-                  </div>
-                ) : null}
-              </TabsContent>
-
-              <TabsContent value="crop" className="mt-5 space-y-5">
+            <section className={inspectorSectionClass}>
+              <div className={inspectorHeaderClass}>
+                <CropIcon className="h-4 w-4 text-[var(--jw-accent)]" />
+                {t("imageGeneration.cover.panels.crop")}
+              </div>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>{t("imageGeneration.cover.platformLabel")}</Label>
+                  <Label className={fieldLabelClass}>{t("imageGeneration.cover.platformLabel")}</Label>
                   <Select value={presetId} onValueChange={handlePresetChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className={controlInputClass}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1382,13 +1250,14 @@ export function ArticleCoverDialog({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="cover-width">{t("imageGeneration.cover.widthLabel")}</Label>
+                    <Label htmlFor="cover-width-inline" className={fieldLabelClass}>{t("imageGeneration.cover.widthLabel")}</Label>
                     <Input
-                      id="cover-width"
+                      id="cover-width-inline"
                       type="number"
                       min={256}
                       max={4096}
                       value={width}
+                      className={controlInputClass}
                       onChange={(event) => {
                         setPresetId("custom")
                         setWidth(Number(event.target.value) || 256)
@@ -1396,13 +1265,14 @@ export function ArticleCoverDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="cover-height">{t("imageGeneration.cover.heightLabel")}</Label>
+                    <Label htmlFor="cover-height-inline" className={fieldLabelClass}>{t("imageGeneration.cover.heightLabel")}</Label>
                     <Input
-                      id="cover-height"
+                      id="cover-height-inline"
                       type="number"
                       min={256}
                       max={4096}
                       value={height}
+                      className={controlInputClass}
                       onChange={(event) => {
                         setPresetId("custom")
                         setHeight(Number(event.target.value) || 256)
@@ -1410,8 +1280,8 @@ export function ArticleCoverDialog({
                     />
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+            </section>
           </div>
         </div>
       </AIFeatureDialogShell>

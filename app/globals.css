@@ -526,6 +526,119 @@
   animation-delay: 0.44s;
 }
 
+.jw-cover-dialog {
+  color: var(--jw-heading);
+  background: var(--jw-surface-muted);
+}
+
+.jw-cover-dialog [data-slot="dialog-close"] {
+  top: 1.25rem;
+  right: 1.25rem;
+  border-radius: 999px;
+  color: var(--jw-muted);
+  opacity: 1;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.jw-cover-dialog [data-slot="dialog-close"]:hover {
+  background: var(--jw-accent-soft);
+  color: var(--jw-accent);
+  transform: rotate(4deg);
+}
+
+.jw-cover-dialog [data-slot="dialog-header"] {
+  border-color: var(--jw-border);
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--jw-accent) 10%, transparent), transparent 26rem),
+    linear-gradient(180deg, var(--jw-surface-strong), var(--jw-surface-muted));
+}
+
+.jw-cover-dialog [data-slot="dialog-footer"] {
+  border-color: var(--jw-border);
+  background: color-mix(in srgb, var(--jw-surface-strong) 88%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.jw-cover-dialog * {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--jw-accent) 32%, transparent) transparent;
+}
+
+.jw-cover-dialog *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.jw-cover-dialog *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.jw-cover-dialog *::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--jw-accent) 32%, transparent);
+  background-clip: content-box;
+}
+
+.jw-cover-dialog *::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--jw-accent-hover) 42%, transparent);
+  background-clip: content-box;
+}
+
+.jw-cover-dialog [data-slot="slider-track"] {
+  height: 0.5rem;
+  background: color-mix(in srgb, var(--jw-border) 68%, transparent);
+}
+
+.jw-cover-dialog [data-slot="slider-range"] {
+  background: linear-gradient(90deg, var(--jw-accent), color-mix(in srgb, var(--jw-accent-hover) 74%, #ffd66b));
+}
+
+.jw-cover-dialog [data-slot="slider-thumb"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid var(--jw-accent);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--jw-accent) 12%, transparent),
+    0 8px 18px color-mix(in srgb, var(--jw-accent) 18%, transparent);
+}
+
+.jw-cover-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .jw-cover-layout {
+    grid-template-columns: 286px minmax(0, 1fr) 416px;
+  }
+}
+
+.jw-cover-preview-stage {
+  background-color: color-mix(in srgb, var(--jw-surface-strong) 82%, var(--jw-accent-soft));
+  background-image:
+    linear-gradient(45deg, color-mix(in srgb, var(--jw-accent) 7%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--jw-accent) 7%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--jw-accent) 7%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--jw-accent) 7%, transparent) 75%),
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--jw-accent) 12%, transparent), transparent 32rem);
+  background-position:
+    0 0,
+    0 12px,
+    12px -12px,
+    -12px 0,
+    center;
+  background-size:
+    24px 24px,
+    24px 24px,
+    24px 24px,
+    24px 24px,
+    auto;
+}
+
 .jw-theme-menu {
   border-color: var(--jw-border);
   background: var(--jw-theme-menu-bg);
