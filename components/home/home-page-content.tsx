@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import {
   ArrowRightIcon,
   BookOpenTextIcon,
+  FileCode2Icon,
   FilePenLineIcon,
   Globe,
   ImagePlusIcon,
@@ -99,6 +100,7 @@ export function HomePageContent() {
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
   const toolsHref = buildLocalizedPath(locale, "/tools")
+  const fileConverterHref = buildLocalizedPath(locale, "/file-converter")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -208,7 +210,7 @@ export function HomePageContent() {
         <BrandLogo />
         <div className="flex-1" />
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <JoyfulThemeSwitcher variant="compact" />
           <button
             onClick={() => {
@@ -246,6 +248,12 @@ export function HomePageContent() {
             {t("landing.nav.tools")}
           </Link>
           <Link
+            href={fileConverterHref}
+            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
+          >
+            {t("landing.nav.fileConverter")}
+          </Link>
+          <Link
             href={blogHref}
             className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
           >
@@ -266,7 +274,7 @@ export function HomePageContent() {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="xl:hidden"
               aria-label={t("landing.nav.menu")}
             >
               <MenuIcon className="size-5" />
@@ -327,6 +335,15 @@ export function HomePageContent() {
                 className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
               >
                 {t("landing.nav.tools")}
+              </Link>
+
+              <Link
+                href={fileConverterHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                <FileCode2Icon className="size-4" />
+                {t("landing.nav.fileConverter")}
               </Link>
 
               <Link

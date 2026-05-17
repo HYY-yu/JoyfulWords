@@ -2280,6 +2280,7 @@ export const en = {
             blog: "Blog",
             mcp: "MCP",
             tools: "Free Tools",
+            fileConverter: "File Converter",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },

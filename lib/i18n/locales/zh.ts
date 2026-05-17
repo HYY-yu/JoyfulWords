@@ -2280,6 +2280,7 @@ export const zh = {
             blog: "博客",
             mcp: "MCP",
             tools: "Free Tools",
+            fileConverter: "文件转换",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
