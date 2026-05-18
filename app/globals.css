@@ -624,7 +624,13 @@
 
 @media (min-width: 1024px) {
   .jw-cover-layout {
-    grid-template-columns: 286px minmax(0, 1fr) 416px;
+    grid-template-columns: 260px minmax(0, 1fr) 430px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .jw-cover-layout {
+    grid-template-columns: 286px minmax(420px, 1fr) 456px;
   }
 }
 

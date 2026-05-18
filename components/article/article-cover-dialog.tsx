@@ -867,7 +867,7 @@ export function ArticleCoverDialog({
   const controlInputClass = "h-10 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] text-sm text-[var(--jw-heading)] shadow-[0_10px_22px_-20px_rgba(0,0,0,0.28)] focus-visible:ring-[color-mix(in_srgb,var(--jw-accent)_22%,transparent)]"
   const colorInputClass = "h-10 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-1 shadow-[0_10px_22px_-20px_rgba(0,0,0,0.28)]"
   const subtleButtonClass = "h-10 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] font-semibold text-[var(--jw-heading)] shadow-[0_10px_22px_-20px_rgba(0,0,0,0.28)] hover:border-[color-mix(in_srgb,var(--jw-accent)_42%,transparent)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
-  const fontSwitchButtonClass = "h-10 flex-1 rounded-lg border-0 bg-transparent text-sm font-semibold text-[var(--jw-muted)] shadow-none hover:bg-[var(--jw-surface-strong)] hover:text-[var(--jw-accent)]"
+  const fontSwitchButtonClass = "h-10 min-w-0 flex-1 rounded-lg border-0 bg-transparent px-2 text-xs font-semibold text-[var(--jw-muted)] shadow-none hover:bg-[var(--jw-surface-strong)] hover:text-[var(--jw-accent)] xl:text-sm"
   const selectedFontSwitchButtonClass = "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:bg-[var(--jw-accent-hover)] hover:text-[var(--jw-accent-foreground)]"
 
   const renderBackgroundModeIcon = (mode: BackgroundMode) => {
@@ -1023,7 +1023,7 @@ export function ArticleCoverDialog({
         icon={<SparklesIcon className="h-5 w-5 text-[var(--jw-accent)]" />}
         size="large"
         overlayClassName="bg-black/75"
-        contentClassName="jw-cover-dialog h-[min(86vh,900px)] w-[min(86vw,1600px)] max-w-[calc(100vw-2rem)] border-border bg-background sm:max-w-[min(86vw,1600px)]"
+        contentClassName="jw-cover-dialog h-[min(86vh,900px)] w-[min(96vw,1680px)] max-w-[calc(100vw-1rem)] border-border bg-background sm:max-w-[min(96vw,1680px)]"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
             <div className="min-w-0 text-xs font-medium text-[var(--jw-muted)]">
@@ -1227,7 +1227,7 @@ export function ArticleCoverDialog({
               </div>
               <div className="space-y-2.5">
                 <Label htmlFor="cover-title" className={fieldLabelClass}>{t("imageGeneration.cover.titleLabel")}</Label>
-                <div className="grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+                <div className="grid grid-cols-[minmax(0,1fr)_max-content] gap-2">
                   <Input
                     id="cover-title"
                     value={title}
@@ -1240,7 +1240,7 @@ export function ArticleCoverDialog({
                     variant="outline"
                     onClick={handleGenerateTitle}
                     disabled={isGeneratingTitle}
-                    className={cn(subtleButtonClass, "px-2 text-sm")}
+                    className={cn(subtleButtonClass, "px-3 text-sm")}
                   >
                     {isGeneratingTitle ? (
                       <LoaderIcon className="h-4 w-4 animate-spin" />
