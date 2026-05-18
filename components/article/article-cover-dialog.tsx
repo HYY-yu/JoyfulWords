@@ -42,15 +42,23 @@ import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import type { UnsplashPhoto } from "@/lib/api/image-generation/types"
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
 import type { Material } from "@/lib/api/materials/types"
-import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
+import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { parseTaskCenterImageUrls, type TaskCenterImageTaskListItem } from "@/lib/api/taskcenter/types"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 
 type BackgroundMode = "solid" | "gradient" | "unsplash" | "material"
-type FontMode = "preset" | "custom"
+type FontMode = "preset" | "custom" | "task"
+type FontImageSource = Exclude<FontMode, "preset">
 type ExportFormat = "png" | "jpeg" | "webp"
 type GradientDirection = "135" | "90" | "180" | "45"
+
+interface FontTaskImage {
+  id: string
+  url: string
+  title: string
+}
 
 interface CoverPreset {
   id: string
@@ -80,7 +88,7 @@ const NANO_BANANA_FAST_MODEL_KEYWORDS = ["nano", "banana", "fast"]
 const COVER_TITLE_CHARACTER_LIMIT = 20
 const COVER_TITLE_WORD_LIMIT = 10
 
-function toCanvasSafeImageUrl(url: string): string {
+function toCanvasSafeImageUrl(url: string, cacheKey?: string): string {
   if (typeof window === "undefined") return url
 
   try {
@@ -89,12 +97,20 @@ function toCanvasSafeImageUrl(url: string): string {
       return parsed.href
     }
     if (parsed.origin === window.location.origin) {
+      if (cacheKey) {
+        parsed.searchParams.set("jw_font_v", cacheKey)
+      }
       return parsed.href
     }
     if (parsed.protocol !== "https:") {
       return parsed.href
     }
-    return `/api/image-proxy?url=${encodeURIComponent(parsed.href)}`
+    const proxyUrl = new URL("/api/image-proxy", window.location.origin)
+    proxyUrl.searchParams.set("url", parsed.href)
+    if (cacheKey) {
+      proxyUrl.searchParams.set("v", cacheKey)
+    }
+    return `${proxyUrl.pathname}${proxyUrl.search}`
   } catch {
     return url
   }
@@ -128,13 +144,13 @@ function parseImageUrls(value: unknown): string[] {
   return []
 }
 
-function loadCrossOriginImage(url: string): Promise<HTMLImageElement> {
+function loadCrossOriginImage(url: string, cacheKey?: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image()
     image.crossOrigin = "anonymous"
     image.onload = () => resolve(image)
     image.onerror = () => reject(new Error("image_load_failed"))
-    image.src = toCanvasSafeImageUrl(url)
+    image.src = toCanvasSafeImageUrl(url, cacheKey)
   })
 }
 
@@ -239,9 +255,16 @@ export function ArticleCoverDialog({
   const [titlePosition, setTitlePosition] = useState(DEFAULT_TITLE_POSITION)
   const [customFontDescription, setCustomFontDescription] = useState("")
   const [customFontUrl, setCustomFontUrl] = useState("")
+  const [customFontSource, setCustomFontSource] = useState<FontImageSource | null>(null)
+  const [customFontImageUrl, setCustomFontImageUrl] = useState("")
+  const [customFontImageVersion, setCustomFontImageVersion] = useState(0)
   const [isGeneratingFont, setIsGeneratingFont] = useState(false)
   const [activeFontTaskId, setActiveFontTaskId] = useState<string | null>(null)
   const [activeFontTaskStatus, setActiveFontTaskStatus] = useState("")
+  const [fontTaskImages, setFontTaskImages] = useState<FontTaskImage[]>([])
+  const [isLoadingFontTaskImages, setIsLoadingFontTaskImages] = useState(false)
+  const [fontTaskImageLoadError, setFontTaskImageLoadError] = useState(false)
+  const [hasLoadedFontTaskImages, setHasLoadedFontTaskImages] = useState(false)
   const [isExportingCover, setIsExportingCover] = useState(false)
 
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("solid")
@@ -278,6 +301,14 @@ export function ArticleCoverDialog({
     () => FONT_OPTIONS.find((font) => font.id === fontFamilyId)?.family ?? FONT_OPTIONS[0].family,
     [fontFamilyId]
   )
+  const applyFontImageUrl = useCallback((url: string, source: FontImageSource) => {
+    setCustomFontImage(null)
+    setCustomFontImageUrl("")
+    setCustomFontUrl(url)
+    setCustomFontSource(source)
+    setCustomFontImageVersion((version) => version + 1)
+    setFontMode(source)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -354,17 +385,24 @@ export function ArticleCoverDialog({
   useEffect(() => {
     if (!customFontUrl) {
       setCustomFontImage(null)
+      setCustomFontImageUrl("")
       return
     }
 
     let cancelled = false
-    loadCrossOriginImage(customFontUrl)
+    setCustomFontImage(null)
+    setCustomFontImageUrl("")
+    loadCrossOriginImage(customFontUrl, String(customFontImageVersion))
       .then((image) => {
-        if (!cancelled) setCustomFontImage(image)
+        if (!cancelled) {
+          setCustomFontImage(image)
+          setCustomFontImageUrl(customFontUrl)
+        }
       })
       .catch(() => {
         if (!cancelled) {
           setCustomFontImage(null)
+          setCustomFontImageUrl("")
           toast({ variant: "destructive", title: t("imageGeneration.cover.toast.fontLoadFailed") })
         }
       })
@@ -372,7 +410,7 @@ export function ArticleCoverDialog({
     return () => {
       cancelled = true
     }
-  }, [customFontUrl, t, toast])
+  }, [customFontImageVersion, customFontUrl, t, toast])
 
   const drawCover = useCallback((overrideTitle?: string) => {
     const canvas = canvasRef.current
@@ -402,7 +440,12 @@ export function ArticleCoverDialog({
     ctx.fillRect(0, 0, width, height)
 
     const maxTitleWidth = width * 0.74
-    if (fontMode === "custom" && customFontImage) {
+    if (
+      fontMode !== "preset" &&
+      customFontSource === fontMode &&
+      customFontImageUrl === customFontUrl &&
+      customFontImage
+    ) {
       const imageHeight = Math.max(64, fontSize * 2.2)
       const ratio = customFontImage.naturalWidth / customFontImage.naturalHeight
       const imageWidth = Math.min(maxTitleWidth, imageHeight * ratio)
@@ -449,6 +492,9 @@ export function ArticleCoverDialog({
     backgroundImage,
     backgroundMode,
     customFontImage,
+    customFontImageUrl,
+    customFontSource,
+    customFontUrl,
     fontMode,
     fontSize,
     fontWeight,
@@ -654,6 +700,47 @@ export function ArticleCoverDialog({
     toast({ title: t("imageGeneration.cover.toast.fontTaskCreated") })
   }
 
+  const fetchFontTaskImages = useCallback(async () => {
+    setIsLoadingFontTaskImages(true)
+    setFontTaskImageLoadError(false)
+
+    const result = await taskCenterClient.getTasks({
+      type: "image",
+      status: "success",
+      page_size: 80,
+    })
+
+    if ("error" in result) {
+      setFontTaskImageLoadError(true)
+      setIsLoadingFontTaskImages(false)
+      setHasLoadedFontTaskImages(true)
+      toast({ variant: "destructive", title: t("imageGeneration.cover.fontTaskImageLoadFailed") })
+      return
+    }
+
+    const images = result.items
+      .filter((task): task is TaskCenterImageTaskListItem => task.type === "image" && task.details.gen_mode === "font")
+      .flatMap((task) =>
+        parseImageUrls(task.details.image_urls).map((url, index) => ({
+          id: `${task.id}-${index}`,
+          url,
+          title: t("imageGeneration.cover.fontTaskImageTitle", { id: task.id }),
+        }))
+      )
+
+    setFontTaskImages(images)
+    setIsLoadingFontTaskImages(false)
+    setHasLoadedFontTaskImages(true)
+  }, [t, toast])
+
+  useEffect(() => {
+    if (!open || fontMode !== "task" || hasLoadedFontTaskImages || isLoadingFontTaskImages) {
+      return
+    }
+
+    void fetchFontTaskImages()
+  }, [fetchFontTaskImages, fontMode, hasLoadedFontTaskImages, isLoadingFontTaskImages, open])
+
   const finishFontTaskFailure = useCallback((taskId: string) => {
     if (!pendingFontTaskIdsRef.current.has(taskId)) return
 
@@ -693,13 +780,21 @@ export function ArticleCoverDialog({
         return
       }
 
-      setCustomFontUrl(imageUrl)
-      setFontMode("custom")
+      applyFontImageUrl(imageUrl, "custom")
+      setFontTaskImages((currentImages) => [
+        {
+          id: `${taskId}-0`,
+          url: imageUrl,
+          title: t("imageGeneration.cover.fontTaskImageTitle", { id: taskId }),
+        },
+        ...currentImages.filter((image) => image.url !== imageUrl),
+      ])
+      setHasLoadedFontTaskImages(true)
       toast({ title: t("imageGeneration.cover.toast.fontGenerated") })
     } else if (result.status === "failed") {
       finishFontTaskFailure(taskId)
     }
-  }, [finishFontTaskFailure, t, toast])
+  }, [applyFontImageUrl, finishFontTaskFailure, t, toast])
 
   const completeFontTask = useCallback((payload: TaskUpdatePayload) => {
     const taskId = String(payload.task_id)
@@ -1185,6 +1280,16 @@ export function ArticleCoverDialog({
                     <WandSparklesIcon className="h-4 w-4" />
                     {t("imageGeneration.cover.fontModes.custom")}
                   </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    aria-pressed={fontMode === "task"}
+                    className={cn(fontSwitchButtonClass, fontMode === "task" ? selectedFontSwitchButtonClass : "")}
+                    onClick={() => setFontMode("task")}
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    {t("imageGeneration.cover.fontModes.task")}
+                  </Button>
                 </div>
 
                 {fontMode === "preset" ? (
@@ -1203,7 +1308,7 @@ export function ArticleCoverDialog({
                       </SelectContent>
                     </Select>
                   </div>
-                ) : (
+                ) : fontMode === "custom" ? (
                   <div className="space-y-3">
                     <div className="grid grid-cols-3 gap-2">
                       {(["shock", "handwriting", "cartoon"] as const).map((preset) => (
@@ -1251,6 +1356,56 @@ export function ArticleCoverDialog({
                         <ImagePlusIcon className="h-4 w-4" />
                       )}
                       {t("imageGeneration.cover.generateFont")}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {fontTaskImageLoadError ? (
+                      <Alert variant="destructive">
+                        <AlertDescription>{t("imageGeneration.cover.fontTaskImageLoadFailed")}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                    {isLoadingFontTaskImages ? (
+                      <div className="flex items-center justify-center rounded-xl border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] py-8 text-[var(--jw-muted)]">
+                        <LoaderIcon className="h-5 w-5 animate-spin" />
+                      </div>
+                    ) : fontTaskImages.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {fontTaskImages.map((image) => (
+                          <button
+                            key={image.id}
+                            type="button"
+                            onClick={() => applyFontImageUrl(image.url, "task")}
+                            className={cn(
+                              "overflow-hidden rounded-xl border bg-[var(--jw-surface-strong)] text-left shadow-[var(--jw-soft-shadow)] transition hover:border-[color-mix(in_srgb,var(--jw-accent)_48%,transparent)]",
+                              customFontSource === "task" && customFontUrl === image.url ? "border-[var(--jw-accent)] ring-2 ring-[color-mix(in_srgb,var(--jw-accent)_18%,transparent)]" : "border-[var(--jw-border)]"
+                            )}
+                          >
+                            <img src={image.url} alt={image.title} className="aspect-[3/1] w-full object-cover" />
+                            <span className="block truncate px-2 py-1 text-[11px] text-[var(--jw-muted)]">
+                              {image.title}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-dashed border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-3 py-8 text-center text-sm text-[var(--jw-muted)]">
+                        {t("imageGeneration.cover.noFontTaskImages")}
+                      </div>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void fetchFontTaskImages()}
+                      disabled={isLoadingFontTaskImages}
+                      className={cn(subtleButtonClass, "w-full")}
+                    >
+                      {isLoadingFontTaskImages ? (
+                        <LoaderIcon className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCwIcon className="h-4 w-4" />
+                      )}
+                      {t("imageGeneration.cover.refreshFontTaskImages")}
                     </Button>
                   </div>
                 )}

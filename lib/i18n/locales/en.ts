@@ -698,6 +698,7 @@ export const en = {
             fontModes: {
                 preset: "Preset Fonts",
                 custom: "Custom Font",
+                task: "Task Images",
             },
             tabs: {
                 title: "Title",
@@ -729,6 +730,10 @@ export const en = {
             customFontDescriptionLabel: "Font Description",
             customFontDescriptionPlaceholder: "Describe the font style, such as retro newspaper headline, neon tech lettering, brush calligraphy...",
             generateFont: "Generate Font Image",
+            fontTaskImageTitle: "Font task #{id}",
+            noFontTaskImages: "No font image tasks available",
+            refreshFontTaskImages: "Refresh Font Tasks",
+            fontTaskImageLoadFailed: "Failed to load font task images",
             fontSizeLabel: "Title / Font Image Size",
             fontWeightLabel: "Title Weight",
             textColorLabel: "Text Color",
@@ -2280,6 +2285,7 @@ export const en = {
             blog: "Blog",
             mcp: "MCP",
             tools: "Free Tools",
+            fileConverter: "File Converter",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },

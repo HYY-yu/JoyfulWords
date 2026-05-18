@@ -698,6 +698,7 @@ export const zh = {
             fontModes: {
                 preset: "预设字体",
                 custom: "自定义字体",
+                task: "任务图片",
             },
             tabs: {
                 title: "标题",
@@ -729,6 +730,10 @@ export const zh = {
             customFontDescriptionLabel: "字体描述",
             customFontDescriptionPlaceholder: "描述你想要的字体风格，例如：复古报纸标题、科技霓虹字、毛笔飞白...",
             generateFont: "生成字体图片",
+            fontTaskImageTitle: "字体任务 #{id}",
+            noFontTaskImages: "暂无可用的字体图片任务",
+            refreshFontTaskImages: "刷新字体任务",
+            fontTaskImageLoadFailed: "字体任务图片加载失败",
             fontSizeLabel: "标题/字体图片大小",
             fontWeightLabel: "标题粗细",
             textColorLabel: "文字颜色",
@@ -2280,6 +2285,7 @@ export const zh = {
             blog: "博客",
             mcp: "MCP",
             tools: "Free Tools",
+            fileConverter: "文件转换",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
