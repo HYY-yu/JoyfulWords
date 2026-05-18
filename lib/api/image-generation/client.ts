@@ -112,7 +112,7 @@ export const imageGenerationClient = {
   },
 
   /**
-   * 创建透明字体预览图任务
+   * 创建绿幕字体预览图任务
    * POST /image-generation/font-preview
    */
   async createFontPreviewTask(request: CreateFontPreviewTaskRequest) {
