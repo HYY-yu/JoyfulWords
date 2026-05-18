@@ -2539,7 +2539,11 @@ export const zh = {
         },
         eyebrow: "Creator Toolbox",
         title: "免费工具箱",
-        subtitle: "把写作、改写、视觉生成、图表和演示文稿集中成一个清晰入口。从这里开始任务，再回到工作台完成长文和素材管理。",
+        subtitle: {
+            intro: "快速使用 AI 完成您的要求，免费使用。",
+            workspacePrompt: "寻求更专业的文章、笔记管理？请进入您的专属工作台",
+            workspaceLink: "Go to your Workspace",
+        },
         status: "待实现",
         openPlaceholder: "查看工具页",
         metrics: {
@@ -2552,15 +2556,8 @@ export const zh = {
                 value: "4步",
                 label: "标准流程",
             },
-            status: {
-                value: "Beta",
-                label: "独立页预留",
-            },
         },
         sections: {
-            toolsKicker: "Start Here",
-            toolsTitle: "按创作流程排列的工具入口",
-            toolsDescription: "优先展示高频写作入口，其余工具按从文本到视觉、从结构到发布的顺序排列，扫一眼就能知道下一步该用什么。",
             gridLabel: "工具列表",
         },
         tools: {
@@ -2655,7 +2652,7 @@ export const zh = {
         },
         workspaceCta: {
             title: "写出更专业的文章",
-            description: "进入工作台继续管理文章、素材和生成任务，让工具箱的轻量入口接上完整创作流程。",
+            description: "进入工作台继续管理文章、素材和生成任务，接入您的完整创作流程。",
             action: "Go to your Workspace",
         },
         detail: {

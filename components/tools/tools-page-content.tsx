@@ -300,6 +300,7 @@ function ToolsIndex({
   activityItems: ActivitySummary[]
 }) {
   const { t } = useTranslation()
+  const workspaceHref = "/articles"
   const featuredTool = tools[0]
   const supportingTools = tools.slice(1)
   const workflowSteps = (["spark", "draft", "visual", "ship"] as const).map((key) => {
@@ -317,11 +318,15 @@ function ToolsIndex({
     <div className="tools-composition">
       <section className="tools-hero" aria-labelledby="tools-page-title">
         <div className="tools-hero-copy">
-          <p className="tools-eyebrow">{t("toolsPage.eyebrow")}</p>
           <h1 id="tools-page-title" className="tools-page-title">
             {t("toolsPage.title")}
           </h1>
-          <p className="tools-page-subtitle">{t("toolsPage.subtitle")}</p>
+          <p className="tools-page-subtitle">
+            {t("toolsPage.subtitle.intro")} {t("toolsPage.subtitle.workspacePrompt")}{" "}
+            <Link href={workspaceHref} className="tools-page-subtitle-link">
+              {t("toolsPage.subtitle.workspaceLink")}
+            </Link>
+          </p>
         </div>
 
         <div className="tools-hero-metrics" aria-label={t("toolsPage.metrics.label")}>
@@ -333,20 +338,8 @@ function ToolsIndex({
             <span className="tools-metric-value">{t("toolsPage.metrics.workflow.value")}</span>
             <span className="tools-metric-label">{t("toolsPage.metrics.workflow.label")}</span>
           </div>
-          <div className="tools-metric">
-            <span className="tools-metric-value">{t("toolsPage.metrics.status.value")}</span>
-            <span className="tools-metric-label">{t("toolsPage.metrics.status.label")}</span>
-          </div>
         </div>
       </section>
-
-      <div className="tools-title-row">
-        <div>
-          <p className="tools-section-kicker">{t("toolsPage.sections.toolsKicker")}</p>
-          <h2 className="tools-section-title">{t("toolsPage.sections.toolsTitle")}</h2>
-          <p className="tools-section-description">{t("toolsPage.sections.toolsDescription")}</p>
-        </div>
-      </div>
 
       <div className="tools-layout-grid">
         <section className="tools-workspace min-w-0">

@@ -2539,7 +2539,11 @@ export const en = {
         },
         eyebrow: "Creator Toolbox",
         title: "Creator Toolbox",
-        subtitle: "Writing, rewriting, visuals, charts, and decks live in one focused launchpad. Start a lightweight task here, then continue the full workflow in your workspace.",
+        subtitle: {
+            intro: "Use AI quickly to complete what you need, for free.",
+            workspacePrompt: "Looking for more professional article and note management?",
+            workspaceLink: "Go to your Workspace",
+        },
         status: "Coming soon",
         openPlaceholder: "View tool page",
         metrics: {
@@ -2552,15 +2556,8 @@ export const en = {
                 value: "4 steps",
                 label: "Standard flow",
             },
-            status: {
-                value: "Beta",
-                label: "SEO pages reserved",
-            },
         },
         sections: {
-            toolsKicker: "Start Here",
-            toolsTitle: "Tools arranged by creation flow",
-            toolsDescription: "The most common writing entry is promoted first, then the rest move from text to visuals, structure, and delivery so the next action is easy to scan.",
             gridLabel: "Tool list",
         },
         tools: {
@@ -2655,7 +2652,7 @@ export const en = {
         },
         workspaceCta: {
             title: "Write More Professional Articles",
-            description: "Open the workspace to manage articles, materials, and generation tasks, connecting this lightweight toolbox to the full creation flow.",
+            description: "Open the workspace to keep managing articles, materials, and generation tasks, connecting to your complete creation flow.",
             action: "Go to your Workspace",
         },
         detail: {
