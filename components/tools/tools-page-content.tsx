@@ -34,6 +34,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/base/sheet"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
+import { ToolboxAICharts } from "@/components/tools/toolbox-ai-charts"
+import { ToolboxCreateImage } from "@/components/tools/toolbox-create-image"
+import { ToolboxInfographic } from "@/components/tools/toolbox-infographic"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import type { Locale } from "@/lib/i18n/shared"
@@ -369,6 +372,10 @@ function ToolsIndex({
             <div className="tools-link-grid">
               {supportingTools.map((tool) => {
                 const Icon = tool.Icon
+                const isAvailableTool =
+                  tool.slug === "image-generator" ||
+                  tool.slug === "infographic" ||
+                  tool.slug === "ai-charts"
                 return (
                   <Link
                     key={tool.slug}
@@ -381,7 +388,9 @@ function ToolsIndex({
                       <span className="tools-row-icon">
                         <Icon className="size-5" />
                       </span>
-                      <span className="tools-row-state">{t("toolsPage.status")}</span>
+                      <span className="tools-row-state">
+                        {isAvailableTool ? t("toolsPage.availableStatus") : t("toolsPage.status")}
+                      </span>
                     </span>
                     <span className="tools-row-title">{tool.title}</span>
                     <span className="tools-row-description">{tool.description}</span>
@@ -492,6 +501,48 @@ function ToolDetail({
   const Icon = tool.Icon
   const noteKeys = ["account", "tasks", "activity"] as const
   const previewKeys = ["input", "generate", "export"] as const
+
+  if (tool.slug === "image-generator") {
+    return (
+      <section className="tools-detail-page tools-image-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <ToolboxCreateImage />
+      </section>
+    )
+  }
+
+  if (tool.slug === "infographic") {
+    return (
+      <section className="tools-detail-page tools-image-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <ToolboxInfographic />
+      </section>
+    )
+  }
+
+  if (tool.slug === "ai-charts") {
+    return (
+      <section className="tools-detail-page tools-image-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <ToolboxAICharts />
+      </section>
+    )
+  }
 
   return (
     <section className="tools-detail-page">

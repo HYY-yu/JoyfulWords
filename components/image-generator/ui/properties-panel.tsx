@@ -3,13 +3,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { Layer, MetaSettings, GlobalStyleSettings, CompositionSettings, LayerProps } from "../types"
-import { Image as ImageIcon, Palette, Camera, Lightbulb, Layers, Cpu } from "lucide-react"
+import { Image as ImageIcon, Palette, Camera, Lightbulb, Layers, Cpu, Loader2, Upload } from "lucide-react"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
 import { Slider } from "@/components/ui/base/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { Button } from "@/components/ui/base/button"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useToast } from "@/hooks/use-toast"
 import { ModelSelector } from "./model-selector"
 import { MaterialSelectorDialog } from "./material-selector-dialog"
 import { useState, useMemo } from "react"
@@ -33,6 +34,8 @@ interface PropertiesPanelProps {
   onLayerPropsChange: (props: LayerProps) => void
   // 新增
   onModelChange: (model: string) => void
+  allowReferenceMaterialSelector?: boolean
+  uploadReferenceImage?: (file: File) => Promise<string>
 }
 
 export function PropertiesPanel({
@@ -49,11 +52,15 @@ export function PropertiesPanel({
   onCompositionSettingsChange,
   onLayerPropsChange,
   onModelChange,
+  allowReferenceMaterialSelector = true,
+  uploadReferenceImage,
 }: PropertiesPanelProps) {
   const { t } = useTranslation()
+  const { toast } = useToast()
 
   // 新增：对话框状态
   const [showMaterialSelector, setShowMaterialSelector] = useState(false)
+  const [isUploadingReferenceImage, setIsUploadingReferenceImage] = useState(false)
 
   // 新增：使用无限滚动素材 Hook，只在对话框打开时启用
   const {
@@ -93,6 +100,36 @@ export function PropertiesPanel({
 
   const handleLayerPropChange = (key: keyof LayerProps, value: string | number) => {
     onLayerPropsChange({ ...layerProps, [key]: value })
+  }
+
+  const handleReferenceImageUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.error.invalidFileType"),
+      })
+      return
+    }
+
+    if (!uploadReferenceImage) return
+
+    setIsUploadingReferenceImage(true)
+    try {
+      const imageUrl = await uploadReferenceImage(file)
+      handleLayerPropChange("reference_image", imageUrl)
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error("[ImageGeneration] Reference image upload failed", {
+        error: errorMessage,
+      })
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.properties.referenceUploadFailed"),
+        description: errorMessage,
+      })
+    } finally {
+      setIsUploadingReferenceImage(false)
+    }
   }
 
   return (
@@ -219,22 +256,53 @@ export function PropertiesPanel({
                   {t("imageGeneration.properties.referenceImage")} {t("imageGeneration.properties.referenceImageOptional")}
                 </Label>
 
-                {/* 选择按钮 */}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setShowMaterialSelector(true)}
-                  disabled={materialsLoading}
-                >
-                  {layerProps.reference_image ? (
+                {allowReferenceMaterialSelector ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setShowMaterialSelector(true)}
+                    disabled={materialsLoading}
+                  >
+                    {layerProps.reference_image ? (
+                      <span className="truncate">
+                        {t("imageGeneration.properties.imageSelected")}{selectedMaterialTitle || layerProps.reference_image}
+                      </span>
+                    ) : (
+                      t("imageGeneration.properties.selectImageFromMaterials")
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    disabled={isUploadingReferenceImage || !uploadReferenceImage}
+                    onClick={() => {
+                      const input = document.createElement("input")
+                      input.type = "file"
+                      input.accept = "image/*"
+                      input.onchange = (event) => {
+                        const file = (event.target as HTMLInputElement).files?.[0]
+                        if (file) {
+                          void handleReferenceImageUpload(file)
+                        }
+                      }
+                      input.click()
+                    }}
+                  >
+                    {isUploadingReferenceImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                     <span className="truncate">
-                      {t("imageGeneration.properties.imageSelected")}{selectedMaterialTitle || layerProps.reference_image}
+                      {layerProps.reference_image
+                        ? t("imageGeneration.properties.referenceUploadReplace")
+                        : t("imageGeneration.properties.referenceUpload")}
                     </span>
-                  ) : (
-                    t("imageGeneration.properties.selectImageFromMaterials")
-                  )}
-                </Button>
+                  </Button>
+                )}
 
                 {/* 预览缩略图 */}
                 {layerProps.reference_image && (
@@ -257,17 +325,19 @@ export function PropertiesPanel({
                 )}
 
                 {/* 获取了所有数据后传递给对话框 */}
-                <MaterialSelectorDialog
-                  open={showMaterialSelector}
-                  onOpenChange={setShowMaterialSelector}
-                  materials={imageMaterials}
-                  isLoading={materialsLoading}
-                  hasMore={hasMoreMaterials}
-                  onLoadMore={loadMoreMaterials}
-                  observerTarget={materialsObserverTarget}
-                  onSelect={(url) => handleLayerPropChange("reference_image", url)}
-                  currentUrl={layerProps.reference_image}
-                />
+                {allowReferenceMaterialSelector ? (
+                  <MaterialSelectorDialog
+                    open={showMaterialSelector}
+                    onOpenChange={setShowMaterialSelector}
+                    materials={imageMaterials}
+                    isLoading={materialsLoading}
+                    hasMore={hasMoreMaterials}
+                    onLoadMore={loadMoreMaterials}
+                    observerTarget={materialsObserverTarget}
+                    onSelect={(url) => handleLayerPropChange("reference_image", url)}
+                    currentUrl={layerProps.reference_image}
+                  />
+                ) : null}
               </div>
 
               <div className="space-y-2">

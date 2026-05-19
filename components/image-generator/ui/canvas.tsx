@@ -5,12 +5,13 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import type { Layer, ToolType, ResizeHandle } from "../types"
 import type { MetaSettings } from "../types"
-import { Code, Sparkles, Loader2, WandSparkles } from "lucide-react"
+import { Code, Download, Sparkles, Loader2, WandSparkles } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { downloadImageFromUrl } from "@/lib/images/download-image"
 
 interface CanvasProps {
   layers: Layer[]
@@ -32,6 +33,7 @@ interface CanvasProps {
   onGenerateImage: () => void
   onToggleImageVisibility: () => void
   onSaveImageToMaterials: () => void
+  allowSaveToMaterials?: boolean
 }
 
 export function Canvas({
@@ -54,6 +56,7 @@ export function Canvas({
   onGenerateImage,
   onToggleImageVisibility,
   onSaveImageToMaterials,
+  allowSaveToMaterials = true,
 }: CanvasProps) {
   const { t } = useTranslation()
   const [isDragging, setIsDragging] = useState(false)
@@ -93,6 +96,18 @@ export function Canvas({
     if (selectedTool === "delete") return t("imageGeneration.canvas.toolHints.delete")
     return ""
   }
+
+  const handleDownloadGeneratedImage = useCallback(async () => {
+    if (!generatedImageUrl) return
+
+    setShowImageMenu(false)
+
+    try {
+      await downloadImageFromUrl(generatedImageUrl)
+    } catch {
+      // downloadImageFromUrl logs the concrete failure and opens the image as a fallback.
+    }
+  }, [generatedImageUrl])
 
   // 开始拖动
   const handleMouseDown = useCallback((e: React.MouseEvent, layer: Layer) => {
@@ -386,14 +401,25 @@ export function Canvas({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setShowImageMenu(false)
-                        onSaveImageToMaterials()
-                      }}
+                      className="w-full justify-start gap-2"
+                      onClick={handleDownloadGeneratedImage}
                     >
-                      {t("imageGeneration.canvas.saveToMaterials")}
+                      <Download className="h-4 w-4" />
+                      {t("imageGeneration.canvas.downloadImage")}
                     </Button>
+                    {allowSaveToMaterials ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setShowImageMenu(false)
+                          onSaveImageToMaterials()
+                        }}
+                      >
+                        {t("imageGeneration.canvas.saveToMaterials")}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               )}

@@ -15,7 +15,7 @@ interface ToolDetailPageProps {
 const toolMetadata: Record<ToolSlug, { zh: string; en: string }> = {
   "ai-writer": { zh: "AI 写作", en: "AI Writer" },
   "smart-rewrite": { zh: "智能改写", en: "Smart Rewrite" },
-  "image-generator": { zh: "AI 生图", en: "AI Image Generator" },
+  "image-generator": { zh: "创作图片", en: "Create Image" },
   infographic: { zh: "信息图", en: "Infographic" },
   "mind-map": { zh: "思维导图", en: "Mind Map" },
   "ai-charts": { zh: "AI 图表", en: "AI Charts" },
@@ -48,9 +48,17 @@ export async function generateMetadata({ params }: ToolDetailPageProps): Promise
 
   return buildMetadata({
     title: isZh ? `${toolTitle} - 免费工具` : `${toolTitle} - Free Tool`,
-    description: isZh
-      ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，当前功能预留中，后续支持分享、SEO 和任务中心联动。`
-      : `${toolTitle} is an independent JoyfulWords free tool page prepared for sharing, SEO, and Task Center integration.`,
+    description: slug === "image-generator"
+      ? isZh
+        ? "使用 JoyfulWords 创作图片工具，通过文字描述和参考图生成封面、配图与营销素材，支持游客试用。"
+        : "Use JoyfulWords Create Image to generate covers, supporting visuals, and campaign assets from prompts and reference images, with guest trial support."
+      : slug === "infographic"
+        ? isZh
+          ? "登录 JoyfulWords 后，输入或粘贴一段文字，自动分析主题并生成适合传播的信息图。"
+          : "Log in to JoyfulWords, paste or write a passage, and generate a shareable infographic from the analyzed topic."
+        : isZh
+          ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，当前功能预留中，后续支持分享、SEO 和任务中心联动。`
+          : `${toolTitle} is an independent JoyfulWords free tool page prepared for sharing, SEO, and Task Center integration.`,
     path: buildLocalizedPath(locale, `/tools/${slug}`),
     locale,
     alternatePaths: {

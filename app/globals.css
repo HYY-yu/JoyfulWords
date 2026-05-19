@@ -1266,6 +1266,10 @@
   max-width: 68rem;
 }
 
+.tools-image-detail-page {
+  max-width: min(100%, 96rem);
+}
+
 .tools-detail-back {
   display: inline-flex;
   align-items: center;
@@ -1479,6 +1483,73 @@
   line-height: 1.55;
 }
 
+.tools-image-workbench {
+  margin-top: 1rem;
+  min-height: min(760px, calc(100svh - 8.5rem));
+  overflow: hidden;
+  border: 1px solid var(--jw-border-subtle);
+  border-radius: 8px;
+  background: hsl(var(--background));
+  box-shadow: var(--jw-soft-shadow);
+}
+
+.tools-image-workbench-header {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--jw-border-subtle);
+  background: hsl(var(--background) / 0.96);
+  padding: 0.9rem 1rem;
+}
+
+.tools-image-workbench-icon {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--jw-accent-soft);
+  color: var(--jw-accent);
+}
+
+.tools-image-workbench-title {
+  color: var(--jw-heading);
+  font-size: clamp(1.25rem, 2.2vw, 1.85rem);
+  font-weight: 820;
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.tools-image-workbench-status {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--jw-border-subtle);
+  border-radius: 999px;
+  color: var(--jw-muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+  padding: 0.45rem 0.7rem;
+}
+
+.tools-image-workbench-status svg {
+  color: var(--jw-accent);
+}
+
+.tools-image-workbench-body {
+  height: calc(100% - 4.5rem);
+  min-height: calc(min(760px, calc(100svh - 8.5rem)) - 4.5rem);
+  overflow: hidden;
+}
+
+.tools-chart-workbench .tools-image-workbench-body {
+  overflow: auto;
+}
+
 @media (min-width: 768px) {
   .tools-hero {
     align-items: center;
@@ -1550,6 +1621,19 @@
 
   .tools-link-row {
     min-height: auto;
+  }
+
+  .tools-image-workbench-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .tools-image-workbench {
+    min-height: calc(100svh - 7rem);
+  }
+
+  .tools-image-workbench-body {
+    min-height: calc(100svh - 12rem);
   }
 }
 
