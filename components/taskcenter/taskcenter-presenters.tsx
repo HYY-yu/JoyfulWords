@@ -177,6 +177,18 @@ export function getTaskCenterTaskSummary(
   }
 
   if (task.type === "presentation") {
+    if (task.details.task_kind === "storycard_generate" && t) {
+      if (task.status === "failed") {
+        return t("contentWriting.taskCenter.taskSummaries.presentationStorycardFailed")
+      }
+
+      if (task.status === "success" || task.status === "succeeded") {
+        return t("contentWriting.taskCenter.taskSummaries.presentationStorycardSuccess")
+      }
+
+      return t("contentWriting.taskCenter.taskSummaries.presentationStorycardProcessing")
+    }
+
     const slideSummary = task.details.slide_summary
     if (slideSummary && slideSummary.total > 0) {
       if (slideSummary.failed > 0) {
@@ -271,11 +283,13 @@ export function TaskCenterTaskDetailView({
   taskRef,
   detail,
   onOpenArticle,
+  onContinuePresentation,
   className,
 }: {
   taskRef: TaskCenterTaskReference
   detail: TaskCenterTaskDetailResponse
   onOpenArticle?: (articleId: number) => void
+  onContinuePresentation?: (articleId: number) => void
   className?: string
 }) {
   const { t } = useTranslation()
@@ -485,6 +499,7 @@ export function TaskCenterTaskDetailView({
       {taskRef.type === "presentation" ? (
         <PresentationTaskDetail
           detail={detail as TaskCenterPresentationTaskDetail}
+          onContinuePresentation={onContinuePresentation}
         />
       ) : taskRef.type === "echarts" ? (
         <EChartsTaskDetail detail={detail as TaskCenterEChartsTaskDetail} />

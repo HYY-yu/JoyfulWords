@@ -5,10 +5,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AlertCircleIcon,
+  CheckCircle2Icon,
   DownloadIcon,
   Loader2Icon,
   RefreshCwIcon,
   SaveIcon,
+  SparklesIcon,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Badge } from "@/components/ui/base/badge"
@@ -328,6 +330,7 @@ function PresentationSlideProgressPanel({ detail }: { detail: TaskCenterPresenta
 
 interface PresentationTaskDetailProps {
   detail: TaskCenterPresentationTaskDetail
+  onContinuePresentation?: (articleId: number) => void
 }
 
 function isPresentationHTMLReady(detail: TaskCenterPresentationTaskDetail): boolean {
@@ -346,7 +349,10 @@ function isPresentationHTMLReady(detail: TaskCenterPresentationTaskDetail): bool
   return ["render_html", "render_ppt", "uploaded_ppt", "completed"].includes(detail.stage ?? "")
 }
 
-export function PresentationTaskDetail({ detail }: PresentationTaskDetailProps) {
+export function PresentationTaskDetail({
+  detail,
+  onContinuePresentation,
+}: PresentationTaskDetailProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const [storycardRecord, setStorycardRecord] = useState<PresentationStorycardRecord | null>(null)
@@ -642,12 +648,65 @@ export function PresentationTaskDetail({ detail }: PresentationTaskDetailProps) 
   }, [detail.id, hasPPTUrl, presentationDownloadUrl, t, toast])
 
   if (detail.task_kind === "storycard_generate") {
+    const isProcessing = detail.status === "pending" || detail.status === "processing"
+    const isFailed = detail.status === "failed"
+
     return (
-      <div className="flex items-center justify-center rounded-2xl border bg-muted/20 px-6 py-8">
-        <div className="max-w-md text-center">
-          <p className="text-sm text-muted-foreground">
-            {t("presentation.detail.storycardGenerateHint")}
-          </p>
+      <div
+        className={cn(
+          "rounded-xl border px-5 py-5",
+          isFailed
+            ? "border-destructive/25 bg-destructive/5"
+            : isProcessing
+            ? "border-primary/25 bg-primary/5"
+            : "border-emerald-500/25 bg-emerald-500/5"
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className={cn(
+              "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+              isFailed
+                ? "bg-destructive/10 text-destructive"
+                : isProcessing
+                ? "bg-primary/10 text-primary"
+                : "bg-emerald-500/10 text-emerald-600"
+            )}
+          >
+            {isFailed ? (
+              <AlertCircleIcon className="h-4 w-4" />
+            ) : isProcessing ? (
+              <Loader2Icon className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2Icon className="h-4 w-4" />
+            )}
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground">
+              {isFailed
+                ? t("presentation.detail.storycardGenerate.failedTitle")
+                : isProcessing
+                ? t("presentation.detail.storycardGenerate.processingTitle")
+                : t("presentation.detail.storycardGenerate.successTitle")}
+            </h3>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {isFailed
+                ? t("presentation.detail.storycardGenerate.failedDescription")
+                : isProcessing
+                ? t("presentation.detail.storycardGenerate.processingDescription")
+                : t("presentation.detail.storycardGenerate.successDescription")}
+            </p>
+            {!isFailed && !isProcessing && onContinuePresentation ? (
+              <Button
+                type="button"
+                className="mt-4"
+                onClick={() => onContinuePresentation(detail.article_id)}
+              >
+                <SparklesIcon className="h-4 w-4" />
+                {t("presentation.detail.storycardGenerate.continueToDeck")}
+              </Button>
+            ) : null}
+          </div>
         </div>
       </div>
     )

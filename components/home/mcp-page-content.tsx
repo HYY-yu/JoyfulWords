@@ -1,53 +1,24 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
 import {
-  ArrowLeftIcon,
   CheckIcon,
   CopyIcon,
-  GlobeIcon,
   ServerIcon,
   TerminalIcon,
 } from "lucide-react"
+import { LandingHeader } from "@/components/home/landing-header"
 import { Button } from "@/components/ui/base/button"
-import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
-import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
-import type { Locale } from "@/lib/i18n/shared"
+import { useTranslation } from "@/lib/i18n/i18n-context"
+import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 
 const mcpCommand =
   "claude mcp add --transport http --client-id joyfulwords-mcp-server joyfulwords https://api.joyword.link/mcp"
 
-function McpLogo({ href }: { href: string }) {
-  return (
-    <Link href={href} className="flex items-center gap-2.5">
-      <Image
-        src="/logo.jpeg"
-        alt="JoyfulWords logo"
-        width={32}
-        height={32}
-        className="h-8 w-8 shrink-0 rounded-sm object-cover"
-      />
-      <span className="text-base font-semibold tracking-tight text-[var(--jw-heading)]">JoyfulWords</span>
-    </Link>
-  )
-}
-
 export function McpPageContent() {
-  const router = useRouter()
-  const pathname = usePathname()
   const { t, locale } = useTranslation()
   const [copied, setCopied] = useState(false)
   const homeHref = buildLocalizedPath(locale)
-
-  const handleLocaleChange = (nextLocale: Locale) => {
-    if (nextLocale === locale) return
-
-    persistLocalePreference(nextLocale)
-    router.replace(switchLocalePathname(pathname, nextLocale))
-  }
 
   const handleCopyCommand = async () => {
     try {
@@ -79,48 +50,11 @@ export function McpPageContent() {
 
   return (
     <main className="jw-app-shell min-h-screen overflow-x-hidden">
-      <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
-        <McpLogo href={homeHref} />
-        <div className="flex-1" />
+      <LandingHeader activeItem="mcp" featuresHref={`${homeHref}#features`} />
 
-        <Link
-          href={homeHref}
-          className="jw-themed-link hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-all sm:flex"
-        >
-          <ArrowLeftIcon className="size-4" />
-          {t("mcpPage.nav.backHome")}
-        </Link>
-
-        <div className="flex items-center gap-1 rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-1 py-1 shadow-[var(--jw-soft-shadow)]">
-          <GlobeIcon className="ml-2 size-4 text-[var(--jw-muted)]" />
-          <button
-            type="button"
-            onClick={() => handleLocaleChange("zh")}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              locale === "zh"
-                ? "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]"
-                : "text-[var(--jw-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
-            }`}
-          >
-            中文
-          </button>
-          <button
-            type="button"
-            onClick={() => handleLocaleChange("en")}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              locale === "en"
-                ? "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]"
-                : "text-[var(--jw-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
-            }`}
-          >
-            EN
-          </button>
-        </div>
-      </header>
-
-      <section className="relative isolate border-b border-[var(--jw-border-subtle)] pt-14">
+      <section className="relative isolate border-b border-[var(--jw-border-subtle)] pt-16">
         <div className="absolute inset-0 -z-10 bg-[var(--jw-hero-bg)]" />
-        <div className="mx-auto grid min-h-[calc(100svh-3.5rem)] max-w-6xl items-center gap-10 px-5 py-10 sm:px-6 sm:py-14 md:px-10 lg:grid-cols-[0.88fr_1.12fr] lg:py-16">
+        <div className="mx-auto grid min-h-[calc(100svh-4rem)] max-w-6xl items-center gap-10 px-5 py-10 sm:px-6 sm:py-14 md:px-10 lg:grid-cols-[0.88fr_1.12fr] lg:py-16">
           <div className="max-w-xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--jw-border)] bg-[var(--jw-accent-soft)] px-4 py-1.5 text-[13px] font-medium text-[var(--jw-accent)]">
               <ServerIcon className="size-4" />

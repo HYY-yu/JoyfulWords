@@ -683,6 +683,20 @@ export function EditorAIPanel({
     }
   }
 
+  const handleContinuePresentationFromTask = useCallback(
+    (nextArticleId: number) => {
+      if (typeof articleId === "number" && nextArticleId !== articleId) {
+        return
+      }
+
+      setIsTaskDetailOpen(false)
+      window.setTimeout(() => {
+        setIsPresentationOpen(true)
+      }, 0)
+    },
+    [articleId]
+  )
+
   function renderImageFeatureDialog(
     open: boolean,
     onOpenChange: (nextOpen: boolean) => void,
@@ -899,6 +913,7 @@ export function EditorAIPanel({
                 <TaskCenterTaskDetailView
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
+                  onContinuePresentation={handleContinuePresentationFromTask}
                 />
               </div>
 

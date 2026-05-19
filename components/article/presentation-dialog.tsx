@@ -28,6 +28,7 @@ import type {
 } from "@/lib/api/presentations/types"
 import { normalizePresentationStorycardDocument } from "@/lib/api/presentations/types"
 import type { TaskCenterTaskReference } from "@/lib/api/taskcenter/types"
+import { cn } from "@/lib/utils"
 
 function cloneStorycard(storycard: PresentationStorycardDocument): PresentationStorycardDocument {
   return normalizePresentationStorycardDocument(storycard)
@@ -51,6 +52,50 @@ function parseStorycardText(input: string): PresentationStorycardDocument {
 }
 
 const TRANSITIONS: PresentationTransition[] = ["none", "fade", "push", "wipe", "cut"]
+
+function PresentationFlowStep({
+  step,
+  title,
+  description,
+  active,
+  complete,
+}: {
+  step: number
+  title: string
+  description: string
+  active?: boolean
+  complete?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 items-start gap-3 rounded-lg border px-4 py-3",
+        complete
+          ? "border-emerald-500/25 bg-emerald-500/5"
+          : active
+          ? "border-primary/30 bg-primary/5"
+          : "border-border bg-background"
+      )}
+    >
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+          complete
+            ? "bg-emerald-500 text-white"
+            : active
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground"
+        )}
+      >
+        {complete ? <CheckCircle2Icon className="h-4 w-4" /> : step}
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  )
+}
 
 interface PresentationDialogProps {
   open: boolean
@@ -400,6 +445,22 @@ export function PresentationDialog({
     transition,
   ])
 
+  const storycardBusy = storycardStatus === "checking" || storycardStatus === "generating"
+  const storycardReady = storycardStatus === "ready"
+  const primaryBusy = storycardReady ? submittingLayout : storycardBusy
+  const primaryDisabled = storycardReady
+    ? submittingLayout
+    : storycardBusy || typeof articleId !== "number"
+  const footerStatus = storycardReady
+    ? t("presentation.dialog.flow.footerReady")
+    : storycardStatus === "checking"
+    ? t("presentation.dialog.flow.footerChecking")
+    : storycardStatus === "generating"
+    ? t("presentation.dialog.flow.footerGenerating")
+    : storycardStatus === "error"
+    ? t("presentation.dialog.flow.footerError")
+    : t("presentation.dialog.flow.footerStart")
+
   return (
     <AIFeatureDialogShell
       open={open}
@@ -411,15 +472,7 @@ export function PresentationDialog({
       footer={
         <div className="flex w-full items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">
-            {storycardStatus === "generating"
-              ? t("presentation.dialog.storycard.generating")
-              : storycardStatus === "checking"
-              ? t("presentation.dialog.storycard.checking")
-              : storycardStatus === "ready"
-              ? t("presentation.dialog.storycard.ready")
-              : storycardStatus === "error"
-              ? t("presentation.dialog.storycard.error")
-              : ""}
+            {footerStatus}
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
@@ -427,20 +480,42 @@ export function PresentationDialog({
             </Button>
             <Button
               type="button"
-              onClick={() => void handleGenerateLayout()}
-              disabled={storycardStatus !== "ready" || submittingLayout}
+              onClick={() =>
+                storycardReady ? void handleGenerateLayout() : void startFlow(false)
+              }
+              disabled={primaryDisabled}
             >
-              {submittingLayout ? (
+              {primaryBusy ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <SparklesIcon className="h-4 w-4" />
               )}
-              {t("presentation.dialog.layout.generate")}
+              {storycardReady
+                ? t("presentation.dialog.layout.generate")
+                : t("presentation.dialog.storycard.generate")}
             </Button>
           </div>
         </div>
       }
     >
+      <div className="shrink-0 border-b bg-muted/20 px-6 py-4">
+        <div className="grid gap-3 lg:grid-cols-2">
+          <PresentationFlowStep
+            step={1}
+            title={t("presentation.dialog.flow.outlineTitle")}
+            description={t("presentation.dialog.flow.outlineDescription")}
+            active={!storycardReady}
+            complete={storycardReady}
+          />
+          <PresentationFlowStep
+            step={2}
+            title={t("presentation.dialog.flow.deckTitle")}
+            description={t("presentation.dialog.flow.deckDescription")}
+            active={storycardReady}
+          />
+        </div>
+      </div>
+
       <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,420px)]">
         <section className="flex h-full min-h-0 flex-col overflow-hidden border-b lg:border-r lg:border-b-0">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b px-6 py-4 shrink-0">
@@ -448,6 +523,9 @@ export function PresentationDialog({
               <h3 className="text-sm font-semibold text-foreground">
                 {t("presentation.dialog.storycard.sectionTitle")}
               </h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("presentation.dialog.storycard.sectionDescription")}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Select
@@ -468,12 +546,11 @@ export function PresentationDialog({
                 variant={storycardStatus === "ready" ? "outline" : "default"}
                 onClick={() => void startFlow(storycardStatus === "ready")}
                 disabled={
-                  storycardStatus === "checking" ||
-                  storycardStatus === "generating" ||
+                  storycardBusy ||
                   typeof articleId !== "number"
                 }
               >
-                {storycardStatus === "checking" || storycardStatus === "generating" ? (
+                {storycardBusy ? (
                   <Loader2Icon className="h-4 w-4 animate-spin" />
                 ) : (
                   <SparklesIcon className="h-4 w-4" />
@@ -515,6 +592,18 @@ export function PresentationDialog({
             ) : storycardStatus === "ready" && storycardDraft ? (
               <ScrollArea className="flex-1 min-h-0">
                 <div className="space-y-5 p-6">
+                  <div className="flex items-start gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3">
+                    <CheckCircle2Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        {t("presentation.dialog.flow.readyCalloutTitle")}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {t("presentation.dialog.flow.readyCalloutDescription")}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
                       {t("presentation.dialog.storycard.storyTitle")}
@@ -595,8 +684,27 @@ export function PresentationDialog({
                 </div>
               </ScrollArea>
           ) : (
-            <div className="flex flex-1 items-center justify-center px-6 text-sm text-muted-foreground">
-              {t("presentation.dialog.storycard.empty")}
+            <div className="flex flex-1 items-center justify-center px-6 text-center">
+              <div className="max-w-sm space-y-3">
+                <p className="text-base font-semibold text-foreground">
+                  {t("presentation.dialog.storycard.emptyTitle")}
+                </p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {t("presentation.dialog.storycard.emptyDescription")}
+                </p>
+                <Button
+                  type="button"
+                  onClick={() => void startFlow(false)}
+                  disabled={storycardBusy || typeof articleId !== "number"}
+                >
+                  {storycardBusy ? (
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SparklesIcon className="h-4 w-4" />
+                  )}
+                  {t("presentation.dialog.storycard.generate")}
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -607,6 +715,11 @@ export function PresentationDialog({
             <h3 className="text-sm font-semibold text-foreground">
               {t("presentation.dialog.layout.sectionTitle")}
             </h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {storycardReady
+                ? t("presentation.dialog.layout.readyDescription")
+                : t("presentation.dialog.layout.waitingDescription")}
+            </p>
           </div>
 
           <ScrollArea className="flex-1 min-h-0">

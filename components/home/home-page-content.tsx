@@ -3,15 +3,12 @@
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import {
   ArrowRightIcon,
   BookOpenTextIcon,
   FilePenLineIcon,
-  Globe,
   ImagePlusIcon,
   LibraryBigIcon,
-  MenuIcon,
   PanelTopIcon,
   SearchCheckIcon,
   SparklesIcon,
@@ -19,19 +16,11 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/base/button"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/base/accordion"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/base/sheet"
 import { BrandLogo } from "@/components/brand/brand-logo"
-import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
+import { LandingHeader } from "@/components/home/landing-header"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
-import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 
 const featureKeys = [
   {
@@ -81,7 +70,6 @@ const workflowStepIcons = {
 const ctaSignalKeys = ["material", "outline", "image", "presentation"] as const
 
 export function HomePageContent() {
-  const router = useRouter()
   const { t, locale } = useTranslation()
   const [visibleFeatures, setVisibleFeatures] = useState<Record<string, boolean>>({})
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0)
@@ -92,13 +80,8 @@ export function HomePageContent() {
     visible: false,
   })
   const [isSpriteLeaping, setIsSpriteLeaping] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const featuresStageRef = useRef<HTMLDivElement | null>(null)
   const previousActiveFeatureIndexRef = useRef(activeFeatureIndex)
-  const blogHref = buildLocalizedPath(locale, "/blog")
-  const mcpHref = buildLocalizedPath(locale, "/mcp")
-  const pricingHref = buildLocalizedPath(locale, "/pricing")
-  const toolsHref = buildLocalizedPath(locale, "/tools")
 
   const stats = [
     { value: t("landing.stats.speed"), label: t("landing.stats.speedLabel") },
@@ -204,159 +187,7 @@ export function HomePageContent() {
 
   return (
     <div className="jw-app-shell overflow-x-hidden">
-      <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
-        <BrandLogo />
-        <div className="flex-1" />
-
-        <div className="hidden items-center gap-3 lg:flex">
-          <JoyfulThemeSwitcher variant="compact" />
-          <button
-            onClick={() => {
-              const nextLocale = locale === "zh" ? "en" : "zh"
-              persistLocalePreference(nextLocale)
-              router.replace(buildLocalizedPath(nextLocale))
-            }}
-            className="jw-themed-link flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
-          >
-            <Globe className="h-4 w-4" />
-            {locale === "zh" ? "EN" : "中文"}
-          </button>
-          <a
-            href="#features"
-            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
-          >
-            {t("landing.nav.features")}
-          </a>
-          <Link
-            href={pricingHref}
-            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
-          >
-            {t("landing.nav.pricing")}
-          </Link>
-          <Link
-            href={mcpHref}
-            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
-          >
-            {t("landing.nav.mcp")}
-          </Link>
-          <Link
-            href={toolsHref}
-            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
-          >
-            {t("landing.nav.tools")}
-          </Link>
-          <Link
-            href={blogHref}
-            className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm"
-          >
-            {t("landing.nav.blog")}
-          </Link>
-          <Button variant="outline" size="sm" className="jw-secondary-button rounded-full shadow-sm" asChild>
-            <Link href="/articles" prefetch={false}>{t("landing.nav.myArticles")}</Link>
-          </Button>
-          <Button size="sm" className="jw-primary-button rounded-full" asChild>
-            <Link href="/articles" prefetch={false}>
-              {t("landing.nav.startCreating")}
-            </Link>
-          </Button>
-        </div>
-
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
-              aria-label={t("landing.nav.menu")}
-            >
-              <MenuIcon className="size-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="gap-0">
-            <SheetHeader className="pb-2">
-              <SheetTitle>{t("landing.nav.menu")}</SheetTitle>
-              <SheetDescription className="sr-only">
-                {t("landing.nav.menuDescription")}
-              </SheetDescription>
-            </SheetHeader>
-
-            <nav className="flex flex-col gap-1 px-4 pb-6">
-              <div className="mb-2">
-                <JoyfulThemeSwitcher variant="compact" className="w-full justify-between" />
-              </div>
-              <button
-                onClick={() => {
-                  const nextLocale = locale === "zh" ? "en" : "zh"
-                  persistLocalePreference(nextLocale)
-                  router.replace(buildLocalizedPath(nextLocale))
-                  setMobileMenuOpen(false)
-                }}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                <Globe className="h-4 w-4" />
-                {locale === "zh" ? "EN" : "中文"}
-              </button>
-
-              <a
-                href="#features"
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                {t("landing.nav.features")}
-              </a>
-
-              <Link
-                href={pricingHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                {t("landing.nav.pricing")}
-              </Link>
-
-              <Link
-                href={mcpHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                {t("landing.nav.mcp")}
-              </Link>
-
-              <Link
-                href={toolsHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                {t("landing.nav.tools")}
-              </Link>
-
-              <Link
-                href={blogHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                {t("landing.nav.blog")}
-              </Link>
-
-              <div className="my-2 h-px bg-border" />
-
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                asChild
-              >
-                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
-                  {t("landing.nav.myArticles")}
-                </Link>
-              </Button>
-              <Button className="w-full justify-start" asChild>
-                <Link href="/articles" prefetch={false} onClick={() => setMobileMenuOpen(false)}>
-                  {t("landing.nav.startCreating")}
-                </Link>
-              </Button>
-            </nav>
-          </SheetContent>
-        </Sheet>
-      </header>
+      <LandingHeader />
 
       <section className="relative isolate min-h-screen overflow-hidden px-6 pt-28 pb-16 md:px-10">
         <div className="jw-hero-wash pointer-events-none absolute inset-0 -z-10" />
