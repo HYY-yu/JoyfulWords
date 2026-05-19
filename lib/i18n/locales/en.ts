@@ -689,6 +689,8 @@ export const en = {
             selectPlaceholder: "Select a model",
             noModelsAvailable: "No models available",
             fetchFailed: "Failed to load models",
+            loginRequiredTitle: "Sign in to use advanced models",
+            loginRequiredDescription: "Guest trial only supports nano-banana-2-fast.",
         },
 
         cover: {
@@ -703,6 +705,7 @@ export const en = {
             fontModes: {
                 preset: "Preset Fonts",
                 custom: "Custom Font",
+                task: "Task Images",
             },
             tabs: {
                 title: "Title",
@@ -734,6 +737,10 @@ export const en = {
             customFontDescriptionLabel: "Font Description",
             customFontDescriptionPlaceholder: "Describe the font style, such as retro newspaper headline, neon tech lettering, brush calligraphy...",
             generateFont: "Generate Font Image",
+            fontTaskImageTitle: "Font task #{id}",
+            noFontTaskImages: "No font image tasks available",
+            refreshFontTaskImages: "Refresh Font Tasks",
+            fontTaskImageLoadFailed: "Failed to load font task images",
             fontSizeLabel: "Title / Font Image Size",
             fontWeightLabel: "Title Weight",
             textColorLabel: "Text Color",
@@ -823,6 +830,7 @@ export const en = {
             generateImage: "Generate Image",
             generating: "Generating...",
             viewOriginal: "View Original",
+            downloadImage: "Download this image",
             saveToMaterials: "Save to Materials",
             laterImplementation: "Coming Soon",
             showGeneratedImage: "Show Generated Image",
@@ -863,6 +871,9 @@ export const en = {
             referenceImageOptional: "(Optional)",
             selectReferenceImage: "Select Reference Image",
             selectImageFromMaterials: "Select from materials",
+            referenceUpload: "Upload local reference image",
+            referenceUploadReplace: "Replace reference image",
+            referenceUploadFailed: "Failed to upload reference image",
             noImageMaterials: "No image materials available. Please upload in materials module first.",
             imageSelected: "Selected: ",
             materialsLoading: "Loading materials...",
@@ -1041,6 +1052,11 @@ export const en = {
                 serverError: "Server error, please try again later",
                 unauthorized: "Please login first",
                 invalidFileType: "Invalid file type",
+            },
+            errorCodes: {
+                imgGenPromptRejected: "The prompt did not pass the safety check. Please adjust it and try again.",
+                imgGenModerationUnavailable: "Safety check is temporarily unavailable. Please try again later.",
+                generationFailed: "Image generation failed. Please try again later.",
             },
         },
         reset: {
@@ -2312,6 +2328,7 @@ export const en = {
             blog: "Blog",
             mcp: "MCP",
             tools: "Free Tools",
+            fileConverter: "File Converter",
             myArticles: "My Articles",
             startCreating: "Start Creating →",
         },
@@ -2565,8 +2582,13 @@ export const en = {
         },
         eyebrow: "Creator Toolbox",
         title: "Creator Toolbox",
-        subtitle: "Writing, rewriting, visuals, charts, and decks live in one focused launchpad. Start a lightweight task here, then continue the full workflow in your workspace.",
+        subtitle: {
+            intro: "Use AI quickly to complete what you need, for free.",
+            workspacePrompt: "Looking for more professional article and note management?",
+            workspaceLink: "Go to your Workspace",
+        },
         status: "Coming soon",
+        availableStatus: "Available",
         openPlaceholder: "View tool page",
         metrics: {
             label: "Toolbox overview",
@@ -2578,15 +2600,8 @@ export const en = {
                 value: "4 steps",
                 label: "Standard flow",
             },
-            status: {
-                value: "Beta",
-                label: "SEO pages reserved",
-            },
         },
         sections: {
-            toolsKicker: "Start Here",
-            toolsTitle: "Tools arranged by creation flow",
-            toolsDescription: "The most common writing entry is promoted first, then the rest move from text to visuals, structure, and delivery so the next action is easy to scan.",
             gridLabel: "Tool list",
         },
         tools: {
@@ -2603,10 +2618,10 @@ export const en = {
                 meta: "Rewrite and polish",
             },
             "image-generator": {
-                title: "AI Image Generator",
-                description: "A visual generation entry for covers, supporting images, and campaign assets, ready for Task Center integration.",
+                title: "Create Image",
+                description: "Generate covers, supporting images, and campaign assets from a prompt and optional canvas areas. Guests can try it directly.",
                 category: "Visual assets",
-                meta: "Covers and images",
+                meta: "Create Image",
             },
             infographic: {
                 title: "Infographic",
@@ -2673,6 +2688,70 @@ export const en = {
                 description: "A home for seasonal campaigns, trials, and limited tasks.",
             },
         },
+        imageGenerator: {
+            authChecking: "Checking session",
+            guestTrial: "Guest trial: 3 images daily",
+            signedIn: "Signed in: account credits",
+            balanceLoading: "Refreshing credits",
+            signedInBalance: "Account credits: {credits}",
+        },
+        infographic: {
+            signedIn: "Signed in: account credits",
+            loginRequiredTitle: "Log in required",
+            loginRequiredDescription: "Infographic generation requires an account. You can fill in the content and options now, then submit after logging in.",
+            sourceTextLabel: "Infographic Content",
+            sourceTextPlaceholder: "Write or paste a paragraph. JoyfulWords will analyze the topic and generate an infographic.",
+            sourceTextHint: "Use takeaways, steps, lists, data notes, or an article summary. The system will extract the theme and organize it into an infographic.",
+            toast: {
+                enterTextFirst: "Enter content first",
+                enterTextFirstDesc: "Infographics need a text passage to generate from.",
+            },
+        },
+        aiCharts: {
+            guestTrial: "Guest trial: 20 charts daily",
+            signedIn: "Signed in: account credits",
+            timelineLabel: "AI chart generation steps",
+            steps: {
+                data: {
+                    title: "Input Data",
+                    description: "Paste tables, lists, or analysis text",
+                },
+                requirement: {
+                    title: "Describe Chart",
+                    description: "Choose the message and base style",
+                },
+                preview: {
+                    title: "View Chart",
+                    description: "Tune the style and download PNG",
+                },
+            },
+            dataTextLabel: "Data Text",
+            dataTextPlaceholder: "Paste data, takeaways, tables, or an analysis passage with numbers.",
+            requirementLabel: "Generation Requirement",
+            requirementPlaceholder: "Example: Use a bar chart to show quarterly revenue and highlight Q2 growth.",
+            charCount: "{count} chars",
+            useExample: "Use example",
+            generate: "Generate Chart",
+            previewTitle: "Chart Preview",
+            previewEmpty: "Waiting for generation",
+            emptyPreview: "Enter data and a generation requirement. The chart will render here.",
+            generatingPreview: "Generating chart...",
+            guestResult: "Guest result: preview and download only",
+            accountResult: "Account chart #{id}",
+            displaySettings: "Display Settings",
+            downloadPng: "Download PNG",
+            example: {
+                data: "Q1 12800, Q2 16400, Q3 14200, Q4 19800",
+                requirement: "Use a bar chart to show quarterly revenue and highlight Q4 growth.",
+            },
+            toast: {
+                enterInputTitle: "Add data and a requirement",
+                enterInputDescription: "AI Charts need both data text and a generation requirement.",
+                generated: "Chart generated",
+                downloaded: "PNG downloaded",
+                downloadFailed: "PNG download failed",
+            },
+        },
         tasks: {
             title: "Task List",
             subtitle: "Global task records without article binding.",
@@ -2681,7 +2760,7 @@ export const en = {
         },
         workspaceCta: {
             title: "Write More Professional Articles",
-            description: "Open the workspace to manage articles, materials, and generation tasks, connecting this lightweight toolbox to the full creation flow.",
+            description: "Open the workspace to keep managing articles, materials, and generation tasks, connecting to your complete creation flow.",
             action: "Go to your Workspace",
         },
         detail: {

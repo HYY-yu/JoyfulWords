@@ -123,7 +123,9 @@ export interface TaskResultFailed {
   task_id: string
   status: 'failed'
   error_message: string
+  error_code?: string
   created_at: string
+  completed_at?: string
 }
 
 /**

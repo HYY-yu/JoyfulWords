@@ -6,8 +6,13 @@ import type {
   InfographicLogDetailResponse,
   InfographicStatus,
 } from "@/lib/api/infographics/types"
+import type { ErrorResponse } from "@/lib/api/types"
 
 export type InfographicPollingState = "idle" | "submitting" | InfographicStatus
+
+type GetInfographicLogDetail = (
+  logId: number
+) => Promise<InfographicLogDetailResponse | ErrorResponse>
 
 const POLL_INTERVAL_MS = 5000
 const POLLING_TIMEOUT_MS = 5 * 60 * 1000
@@ -23,7 +28,9 @@ interface UseInfographicPollingReturn {
   reset: () => void
 }
 
-export function useInfographicPolling(): UseInfographicPollingReturn {
+export function useInfographicPolling(
+  getLogDetail: GetInfographicLogDetail = infographicsClient.getLogDetail
+): UseInfographicPollingReturn {
   const [currentLogId, setCurrentLogId] = useState<number | null>(null)
   const [detail, setDetail] = useState<InfographicLogDetailResponse | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -67,7 +74,7 @@ export function useInfographicPolling(): UseInfographicPollingReturn {
     }
 
     try {
-      const result = await infographicsClient.getLogDetail(logId)
+      const result = await getLogDetail(logId)
 
       if ("error" in result) {
         console.error("[Infographics] Failed to fetch infographic detail:", {
@@ -120,7 +127,7 @@ export function useInfographicPolling(): UseInfographicPollingReturn {
       setState("failed")
       setErrorMessage(message)
     }
-  }, [scheduleNextPoll, stopPolling])
+  }, [getLogDetail, scheduleNextPoll, stopPolling])
 
   const startPolling = useCallback(async (logId: number) => {
     stopPolling()

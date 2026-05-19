@@ -18,6 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/", changeFrequency: "weekly" as const, priority: 1 },
     { path: "/pricing", changeFrequency: "monthly" as const, priority: 0.85 },
     { path: "/tools", changeFrequency: "weekly" as const, priority: 0.82 },
+    { path: "/file-converter", changeFrequency: "monthly" as const, priority: 0.78 },
     ...TOOL_SLUGS.map((slug) => ({
       path: `/tools/${slug}`,
       changeFrequency: "monthly" as const,

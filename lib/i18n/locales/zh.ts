@@ -689,6 +689,8 @@ export const zh = {
             selectPlaceholder: "选择模型",
             noModelsAvailable: "暂无可用模型",
             fetchFailed: "加载模型失败",
+            loginRequiredTitle: "登录后可使用高级模型",
+            loginRequiredDescription: "游客试用仅支持 nano-banana-2-fast。",
         },
 
         cover: {
@@ -703,6 +705,7 @@ export const zh = {
             fontModes: {
                 preset: "预设字体",
                 custom: "自定义字体",
+                task: "任务图片",
             },
             tabs: {
                 title: "标题",
@@ -734,6 +737,10 @@ export const zh = {
             customFontDescriptionLabel: "字体描述",
             customFontDescriptionPlaceholder: "描述你想要的字体风格，例如：复古报纸标题、科技霓虹字、毛笔飞白...",
             generateFont: "生成字体图片",
+            fontTaskImageTitle: "字体任务 #{id}",
+            noFontTaskImages: "暂无可用的字体图片任务",
+            refreshFontTaskImages: "刷新字体任务",
+            fontTaskImageLoadFailed: "字体任务图片加载失败",
             fontSizeLabel: "标题/字体图片大小",
             fontWeightLabel: "标题粗细",
             textColorLabel: "文字颜色",
@@ -823,6 +830,7 @@ export const zh = {
             generateImage: "生成图片",
             generating: "生成中...",
             viewOriginal: "查看原图",
+            downloadImage: "下载此图片",
             saveToMaterials: "保存到素材库",
             laterImplementation: "待实现",
             showGeneratedImage: "显示生成的图片",
@@ -863,6 +871,9 @@ export const zh = {
             referenceImageOptional: "(可选)",
             selectReferenceImage: "选择参考图片",
             selectImageFromMaterials: "从素材库选择",
+            referenceUpload: "上传本地参考图",
+            referenceUploadReplace: "替换参考图",
+            referenceUploadFailed: "参考图上传失败",
             noImageMaterials: "暂无图片素材，请先在素材模块上传",
             imageSelected: "已选择: ",
             materialsLoading: "正在加载素材...",
@@ -1041,6 +1052,11 @@ export const zh = {
                 serverError: "服务器错误，请稍后重试",
                 unauthorized: "请先登录",
                 invalidFileType: "文件类型无效",
+            },
+            errorCodes: {
+                imgGenPromptRejected: "图片描述未通过安全检查，请调整后重试",
+                imgGenModerationUnavailable: "安全检查暂时不可用，请稍后重试",
+                generationFailed: "图片生成失败，请稍后重试",
             },
         },
         reset: {
@@ -2312,6 +2328,7 @@ export const zh = {
             blog: "博客",
             mcp: "MCP",
             tools: "Free Tools",
+            fileConverter: "文件转换",
             myArticles: "我的文章",
             startCreating: "开始创作 →",
         },
@@ -2565,8 +2582,13 @@ export const zh = {
         },
         eyebrow: "Creator Toolbox",
         title: "免费工具箱",
-        subtitle: "把写作、改写、视觉生成、图表和演示文稿集中成一个清晰入口。从这里开始任务，再回到工作台完成长文和素材管理。",
+        subtitle: {
+            intro: "快速使用 AI 完成您的要求，免费使用。",
+            workspacePrompt: "寻求更专业的文章、笔记管理？请进入您的专属工作台",
+            workspaceLink: "Go to your Workspace",
+        },
         status: "待实现",
+        availableStatus: "可使用",
         openPlaceholder: "查看工具页",
         metrics: {
             label: "工具箱概览",
@@ -2578,15 +2600,8 @@ export const zh = {
                 value: "4步",
                 label: "标准流程",
             },
-            status: {
-                value: "Beta",
-                label: "独立页预留",
-            },
         },
         sections: {
-            toolsKicker: "Start Here",
-            toolsTitle: "按创作流程排列的工具入口",
-            toolsDescription: "优先展示高频写作入口，其余工具按从文本到视觉、从结构到发布的顺序排列，扫一眼就能知道下一步该用什么。",
             gridLabel: "工具列表",
         },
         tools: {
@@ -2603,10 +2618,10 @@ export const zh = {
                 meta: "改写与润色",
             },
             "image-generator": {
-                title: "AI 生图",
-                description: "为封面、配图和营销素材准备的视觉生成入口，后续接入任务中心。",
+                title: "创作图片",
+                description: "用文字描述和画布区域生成封面、配图和营销素材，游客可直接试用。",
                 category: "视觉资产",
-                meta: "封面与配图",
+                meta: "Create Image",
             },
             infographic: {
                 title: "信息图",
@@ -2673,6 +2688,70 @@ export const zh = {
                 description: "承载节日活动、功能试用和限时任务。",
             },
         },
+        imageGenerator: {
+            authChecking: "检查登录状态",
+            guestTrial: "游客试用：每日 3 张",
+            signedIn: "已登录：使用账户额度",
+            balanceLoading: "正在刷新积分",
+            signedInBalance: "账户积分：{credits}",
+        },
+        infographic: {
+            signedIn: "已登录：使用账户额度",
+            loginRequiredTitle: "请登录后操作",
+            loginRequiredDescription: "生成信息图需要登录账户。你可以先填写内容和参数，登录后再提交生成。",
+            sourceTextLabel: "信息图内容",
+            sourceTextPlaceholder: "书写或复制一段文字，自动分析主题并生成信息图。",
+            sourceTextHint: "建议输入观点、步骤、清单、数据说明或文章摘要，系统会自动提炼主题并组织成信息图。",
+            toast: {
+                enterTextFirst: "请先输入内容",
+                enterTextFirstDesc: "信息图需要基于一段文字生成。",
+            },
+        },
+        aiCharts: {
+            guestTrial: "游客试用：每日 20 次",
+            signedIn: "已登录：使用账户额度",
+            timelineLabel: "AI 图表生成步骤",
+            steps: {
+                data: {
+                    title: "输入数据",
+                    description: "粘贴表格、清单或分析文本",
+                },
+                requirement: {
+                    title: "描述图表",
+                    description: "选择表达方式和基础样式",
+                },
+                preview: {
+                    title: "查看图表",
+                    description: "微调样式并下载 PNG",
+                },
+            },
+            dataTextLabel: "数据文本",
+            dataTextPlaceholder: "粘贴数据、结论、表格或一段包含数字的分析文本。",
+            requirementLabel: "生成要求",
+            requirementPlaceholder: "例如：用柱状图展示季度收入变化，突出 Q2 增长。",
+            charCount: "{count} 字",
+            useExample: "使用示例",
+            generate: "生成图表",
+            previewTitle: "图表预览",
+            previewEmpty: "等待生成",
+            emptyPreview: "输入数据和生成要求后，图表会显示在这里。",
+            generatingPreview: "正在生成图表...",
+            guestResult: "游客结果：仅本页预览与下载",
+            accountResult: "账户图表 #{id}",
+            displaySettings: "展示设置",
+            downloadPng: "下载 PNG",
+            example: {
+                data: "Q1 12800, Q2 16400, Q3 14200, Q4 19800",
+                requirement: "用柱状图展示季度收入变化，突出 Q4 的增长。",
+            },
+            toast: {
+                enterInputTitle: "请补充数据和要求",
+                enterInputDescription: "AI 图表需要数据文本和生成要求。",
+                generated: "图表已生成",
+                downloaded: "PNG 已下载",
+                downloadFailed: "PNG 下载失败",
+            },
+        },
         tasks: {
             title: "任务列表",
             subtitle: "不绑定文章的全局任务记录。",
@@ -2681,7 +2760,7 @@ export const zh = {
         },
         workspaceCta: {
             title: "写出更专业的文章",
-            description: "进入工作台继续管理文章、素材和生成任务，让工具箱的轻量入口接上完整创作流程。",
+            description: "进入工作台继续管理文章、素材和生成任务，接入您的完整创作流程。",
             action: "Go to your Workspace",
         },
         detail: {

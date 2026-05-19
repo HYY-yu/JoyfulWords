@@ -3,6 +3,7 @@
 import { faro, getWebInstrumentations, initializeFaro } from '@grafana/faro-web-sdk'
 import { getDefaultOTELInstrumentations, TracingInstrumentation } from '@grafana/faro-web-tracing'
 import { API_BASE_URL } from '@/lib/config'
+import { installConsoleNormalizer } from '@/lib/otel/console-normalizer'
 
 let isInitialized = false
 
@@ -123,6 +124,7 @@ export function initClientTracing() {
       ],
     })
 
+    installConsoleNormalizer()
     isInitialized = true
 
     // Log initialization in development

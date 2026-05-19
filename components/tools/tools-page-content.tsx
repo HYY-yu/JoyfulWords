@@ -8,6 +8,7 @@ import {
   BookOpenTextIcon,
   CalendarCheckIcon,
   Clock3Icon,
+  FileCode2Icon,
   FileTextIcon,
   GlobeIcon,
   ImageIcon,
@@ -34,6 +35,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/base/sheet"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
+import { ToolboxAICharts } from "@/components/tools/toolbox-ai-charts"
+import { ToolboxCreateImage } from "@/components/tools/toolbox-create-image"
+import { ToolboxInfographic } from "@/components/tools/toolbox-infographic"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import type { Locale } from "@/lib/i18n/shared"
@@ -98,6 +102,7 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
   const toolsHref = buildLocalizedPath(locale, "/tools")
+  const fileConverterHref = buildLocalizedPath(locale, "/file-converter")
   const tools = TOOL_SLUGS.map((slug) => {
     const Icon = toolIconMap[slug]
     return {
@@ -143,7 +148,7 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
         </Link>
         <div className="flex-1" />
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-2 xl:flex">
           <JoyfulThemeSwitcher variant="compact" />
           <button
             onClick={() => handleLocaleChange(locale === "zh" ? "en" : "zh")}
@@ -171,6 +176,9 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
           >
             {t("landing.nav.tools")}
           </Link>
+          <Link href={fileConverterHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
+            {t("landing.nav.fileConverter")}
+          </Link>
           <Link href={blogHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
             {t("landing.nav.blog")}
           </Link>
@@ -191,7 +199,7 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden"
+              className="xl:hidden"
               aria-label={t("landing.nav.menu")}
             >
               <MenuIcon className="size-5" />
@@ -257,6 +265,15 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
               </Link>
 
               <Link
+                href={fileConverterHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
+              >
+                <FileCode2Icon className="size-4" />
+                {t("landing.nav.fileConverter")}
+              </Link>
+
+              <Link
                 href={blogHref}
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
@@ -300,6 +317,7 @@ function ToolsIndex({
   activityItems: ActivitySummary[]
 }) {
   const { t } = useTranslation()
+  const workspaceHref = "/articles"
   const featuredTool = tools[0]
   const supportingTools = tools.slice(1)
   const workflowSteps = (["spark", "draft", "visual", "ship"] as const).map((key) => {
@@ -317,11 +335,15 @@ function ToolsIndex({
     <div className="tools-composition">
       <section className="tools-hero" aria-labelledby="tools-page-title">
         <div className="tools-hero-copy">
-          <p className="tools-eyebrow">{t("toolsPage.eyebrow")}</p>
           <h1 id="tools-page-title" className="tools-page-title">
             {t("toolsPage.title")}
           </h1>
-          <p className="tools-page-subtitle">{t("toolsPage.subtitle")}</p>
+          <p className="tools-page-subtitle">
+            {t("toolsPage.subtitle.intro")} {t("toolsPage.subtitle.workspacePrompt")}{" "}
+            <Link href={workspaceHref} className="tools-page-subtitle-link">
+              {t("toolsPage.subtitle.workspaceLink")}
+            </Link>
+          </p>
         </div>
 
         <div className="tools-hero-metrics" aria-label={t("toolsPage.metrics.label")}>
@@ -333,20 +355,8 @@ function ToolsIndex({
             <span className="tools-metric-value">{t("toolsPage.metrics.workflow.value")}</span>
             <span className="tools-metric-label">{t("toolsPage.metrics.workflow.label")}</span>
           </div>
-          <div className="tools-metric">
-            <span className="tools-metric-value">{t("toolsPage.metrics.status.value")}</span>
-            <span className="tools-metric-label">{t("toolsPage.metrics.status.label")}</span>
-          </div>
         </div>
       </section>
-
-      <div className="tools-title-row">
-        <div>
-          <p className="tools-section-kicker">{t("toolsPage.sections.toolsKicker")}</p>
-          <h2 className="tools-section-title">{t("toolsPage.sections.toolsTitle")}</h2>
-          <p className="tools-section-description">{t("toolsPage.sections.toolsDescription")}</p>
-        </div>
-      </div>
 
       <div className="tools-layout-grid">
         <section className="tools-workspace min-w-0">
@@ -376,6 +386,10 @@ function ToolsIndex({
             <div className="tools-link-grid">
               {supportingTools.map((tool) => {
                 const Icon = tool.Icon
+                const isAvailableTool =
+                  tool.slug === "image-generator" ||
+                  tool.slug === "infographic" ||
+                  tool.slug === "ai-charts"
                 return (
                   <Link
                     key={tool.slug}
@@ -388,7 +402,9 @@ function ToolsIndex({
                       <span className="tools-row-icon">
                         <Icon className="size-5" />
                       </span>
-                      <span className="tools-row-state">{t("toolsPage.status")}</span>
+                      <span className="tools-row-state">
+                        {isAvailableTool ? t("toolsPage.availableStatus") : t("toolsPage.status")}
+                      </span>
                     </span>
                     <span className="tools-row-title">{tool.title}</span>
                     <span className="tools-row-description">{tool.description}</span>
@@ -499,6 +515,48 @@ function ToolDetail({
   const Icon = tool.Icon
   const noteKeys = ["account", "tasks", "activity"] as const
   const previewKeys = ["input", "generate", "export"] as const
+
+  if (tool.slug === "image-generator") {
+    return (
+      <section className="tools-detail-page tools-image-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <ToolboxCreateImage />
+      </section>
+    )
+  }
+
+  if (tool.slug === "infographic") {
+    return (
+      <section className="tools-detail-page tools-image-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <ToolboxInfographic />
+      </section>
+    )
+  }
+
+  if (tool.slug === "ai-charts") {
+    return (
+      <section className="tools-detail-page tools-image-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <ToolboxAICharts />
+      </section>
+    )
+  }
 
   return (
     <section className="tools-detail-page">

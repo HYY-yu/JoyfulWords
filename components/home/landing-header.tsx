@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Globe, MenuIcon } from "lucide-react"
+import { FileCode2Icon, Globe, MenuIcon, type LucideIcon } from "lucide-react"
 
 import { BrandLogo } from "@/components/brand/brand-logo"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
@@ -20,7 +20,7 @@ import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import { cn } from "@/lib/utils"
 
-type LandingNavItem = "features" | "pricing" | "mcp" | "tools" | "blog"
+type LandingNavItem = "features" | "pricing" | "mcp" | "tools" | "fileConverter" | "blog"
 
 interface LandingHeaderProps {
   activeItem?: LandingNavItem
@@ -40,6 +40,7 @@ export function LandingHeader({
     key: LandingNavItem
     label: string
     href: string
+    Icon?: LucideIcon
   }> = [
     {
       key: "features",
@@ -60,6 +61,12 @@ export function LandingHeader({
       key: "tools",
       label: t("landing.nav.tools"),
       href: buildLocalizedPath(locale, "/tools"),
+    },
+    {
+      key: "fileConverter",
+      label: t("landing.nav.fileConverter"),
+      href: buildLocalizedPath(locale, "/file-converter"),
+      Icon: FileCode2Icon,
     },
     {
       key: "blog",
@@ -84,7 +91,7 @@ export function LandingHeader({
       </Link>
       <div className="flex-1" />
 
-      <div className="hidden items-center gap-3 lg:flex">
+      <div className="hidden items-center gap-2 xl:flex">
         <JoyfulThemeSwitcher variant="compact" />
         <button
           type="button"
@@ -144,7 +151,7 @@ export function LandingHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="xl:hidden"
             aria-label={t("landing.nav.menu")}
           >
             <MenuIcon className="size-5" />
@@ -176,8 +183,9 @@ export function LandingHeader({
 
             {navItems.map((item) => {
               const isActive = activeItem === item.key
+              const Icon = item.Icon
               const className = cn(
-                "rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground",
+                "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground",
                 isActive &&
                   "bg-[var(--jw-accent-soft)] font-medium text-[var(--jw-heading)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-heading)]"
               )
@@ -191,6 +199,7 @@ export function LandingHeader({
                     onClick={closeMobileMenu}
                     className={className}
                   >
+                    {Icon ? <Icon className="size-4" /> : null}
                     {item.label}
                   </a>
                 )
@@ -204,6 +213,7 @@ export function LandingHeader({
                   onClick={closeMobileMenu}
                   className={className}
                 >
+                  {Icon ? <Icon className="size-4" /> : null}
                   {item.label}
                 </Link>
               )

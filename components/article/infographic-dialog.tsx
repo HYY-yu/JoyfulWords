@@ -519,7 +519,7 @@ export function InfographicDialog({
                 </Label>
               </div>
 
-              <div className="grid gap-3 p-3 xl:grid-cols-3">
+              <div className="grid gap-3 p-3 lg:grid-cols-2 2xl:grid-cols-3">
                 <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-sm font-semibold">
                   <LayoutTemplateIcon className="h-4 w-4 text-primary" />
@@ -534,13 +534,15 @@ export function InfographicDialog({
                         setFormState((prev) => ({ ...prev, screenOrientation: value }))
                       }
                       className={cn(
-                        "h-9 rounded-md px-2 text-sm font-medium transition-colors",
+                        "h-9 min-w-0 overflow-hidden rounded-md px-1 text-xs font-medium leading-none transition-colors sm:px-1.5 sm:text-[13px]",
                         formState.screenOrientation === value
                           ? "bg-background text-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {t(`infographicDialog.orientations.${value}`)}
+                      <span className="block min-w-0 truncate">
+                        {t(`infographicDialog.orientations.${value}`)}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -558,13 +560,15 @@ export function InfographicDialog({
                       type="button"
                       onClick={() => setFormState((prev) => ({ ...prev, language: value }))}
                       className={cn(
-                        "h-9 rounded-md px-2 text-sm font-medium transition-colors",
+                        "h-9 min-w-0 overflow-hidden rounded-md px-1 text-xs font-medium leading-none transition-colors sm:px-1.5 sm:text-[13px]",
                         formState.language === value
                           ? "bg-background text-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {t(`infographicDialog.languages.${value}`)}
+                      <span className="block min-w-0 truncate">
+                        {t(`infographicDialog.languages.${value}`)}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -584,13 +588,15 @@ export function InfographicDialog({
                         setFormState((prev) => ({ ...prev, decorationLevel: value }))
                       }
                       className={cn(
-                        "h-9 rounded-md px-2 text-sm font-medium transition-colors",
+                        "h-9 min-w-0 overflow-hidden rounded-md px-1 text-xs font-medium leading-none transition-colors sm:px-1.5 sm:text-[13px]",
                         formState.decorationLevel === value
                           ? "bg-background text-foreground shadow-sm"
                           : "text-muted-foreground hover:text-foreground"
                       )}
                     >
-                      {t(`infographicDialog.decorations.${value}`)}
+                      <span className="block min-w-0 truncate">
+                        {t(`infographicDialog.decorations.${value}`)}
+                      </span>
                     </button>
                   ))}
                 </div>

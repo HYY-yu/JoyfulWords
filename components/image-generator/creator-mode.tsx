@@ -8,8 +8,19 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
-import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import {
+  clearTaskFromStorage,
+  loadTaskFromStorage,
+  saveTaskToStorage,
+} from "@/hooks/use-image-generation-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
+import type {
+  CreateGenerationTaskRequest,
+  CreateGenerationTaskResponse,
+  GetModelsResponse,
+  PollingConfig,
+  TaskResultResponse,
+} from "@/lib/api/image-generation/types"
 import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
 import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 
@@ -51,6 +62,26 @@ interface CreatorModeProps {
   preferredModelKeywords?: string[]
   autoCopyToMaterials?: boolean
   onGenerationComplete?: (payload: { taskId: number; imageUrl: string }) => void
+  client?: CreatorModeClient
+  modelOptions?: string[]
+  defaultModel?: string
+  onModelChangeRequest?: (model: string, currentModel: string) => string | void
+  pollingConfig?: PollingConfig
+  useRealtimeUpdates?: boolean
+  allowSaveToMaterials?: boolean
+  allowReferenceMaterialSelector?: boolean
+  uploadReferenceImage?: (file: File) => Promise<string>
+}
+
+interface CreatorModeClient {
+  createGenerationTask: (
+    request: CreateGenerationTaskRequest
+  ) => Promise<CreateGenerationTaskResponse | { error: unknown; status?: number; reason?: string }>
+  getTaskResult: (
+    taskId: string,
+    signal?: AbortSignal
+  ) => Promise<TaskResultResponse | { error: unknown; status?: number; reason?: string }>
+  getModels?: () => Promise<GetModelsResponse | { error: unknown; status?: number; reason?: string }>
 }
 
 function pickPreferredModel(models: string[], keywords: string[] = []) {
@@ -73,11 +104,33 @@ function getFirstGenerationImageUrl(value: unknown) {
   return parseTaskCenterImageUrls(value)[0] ?? ""
 }
 
+function getImageGenerationFailureMessageKey(errorCode: unknown) {
+  switch (errorCode) {
+    case "img_gen_prompt_rejected":
+      return "imageGeneration.toast.errorCodes.imgGenPromptRejected"
+    case "img_gen_moderation_unavailable":
+      return "imageGeneration.toast.errorCodes.imgGenModerationUnavailable"
+    case "generation_failed":
+      return "imageGeneration.toast.errorCodes.generationFailed"
+    default:
+      return "imageGeneration.toast.errorCodes.generationFailed"
+  }
+}
+
 export function CreatorMode({
   articleId,
   preferredModelKeywords,
   autoCopyToMaterials = false,
   onGenerationComplete,
+  client = imageGenerationClient,
+  modelOptions,
+  defaultModel,
+  onModelChangeRequest,
+  pollingConfig = DEFAULT_POLLING_CONFIG,
+  useRealtimeUpdates = true,
+  allowSaveToMaterials = true,
+  allowReferenceMaterialSelector = true,
+  uploadReferenceImage,
 }: CreatorModeProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -184,6 +237,7 @@ export function CreatorMode({
         setIsGenerating(false)
         setGeneratingMessage("")
         setCurrentTaskId(null)
+        clearTaskFromStorage(pollingConfig)
         taskToast.showFailure({
           title: t("imageGeneration.toast.generationFailed"),
         })
@@ -195,6 +249,7 @@ export function CreatorMode({
       setCurrentTaskId(null)
       setGeneratedImageUrl(imageUrl)
       setShowGeneratedImage(true)
+      clearTaskFromStorage(pollingConfig)
 
       // 保存生成记录ID
       setCurrentGenerationLogId(Number(data.task_id))
@@ -212,7 +267,7 @@ export function CreatorMode({
         onGenerationComplete?.({ taskId: Number(data.task_id), imageUrl })
       }
     }
-  }, [autoCopyToMaterials, copyGeneratedImageToMaterials, currentTaskId, onGenerationComplete, t, taskToast])
+  }, [autoCopyToMaterials, copyGeneratedImageToMaterials, currentTaskId, onGenerationComplete, pollingConfig, t, taskToast])
 
   // 处理任务失败
   const handleTaskFailed = useCallback((data: any) => {
@@ -226,15 +281,19 @@ export function CreatorMode({
       setIsGenerating(false)
       setGeneratingMessage("")
       setCurrentTaskId(null)
+      clearTaskFromStorage(pollingConfig)
 
       taskToast.showFailure({
         title: t("imageGeneration.toast.generationFailed"),
+        description: data.error_code
+          ? t(getImageGenerationFailureMessageKey(data.error_code))
+          : data.error_message,
       })
     }
-  }, [currentTaskId, t, taskToast])
+  }, [currentTaskId, pollingConfig, t, taskToast])
 
   const fetchTaskDetailAndFinish = useCallback(async (taskId: string) => {
-    const result = await imageGenerationClient.getTaskResult(taskId)
+    const result = await client.getTaskResult(taskId)
     if ('error' in result) {
       return
     }
@@ -246,7 +305,7 @@ export function CreatorMode({
     } else {
       setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
     }
-  }, [handleTaskComplete, handleTaskFailed, t])
+  }, [client, handleTaskComplete, handleTaskFailed, t])
 
   const handleRealtimeTaskComplete = useCallback((payload: TaskUpdatePayload) => {
     if (payload.task_type !== "image") return
@@ -267,6 +326,8 @@ export function CreatorMode({
   }, [currentTaskId, t])
 
   useEffect(() => {
+    if (!useRealtimeUpdates) return
+
     webSocketService.on('image:task:update', handleRealtimeTaskUpdate)
     webSocketService.on('image:task:complete', handleRealtimeTaskComplete)
     webSocketService.on('image:task:failed', handleRealtimeTaskFailed)
@@ -275,7 +336,7 @@ export function CreatorMode({
       webSocketService.off('image:task:complete', handleRealtimeTaskComplete)
       webSocketService.off('image:task:failed', handleRealtimeTaskFailed)
     }
-  }, [handleRealtimeTaskComplete, handleRealtimeTaskFailed, handleRealtimeTaskUpdate])
+  }, [handleRealtimeTaskComplete, handleRealtimeTaskFailed, handleRealtimeTaskUpdate, useRealtimeUpdates])
 
   // 轮询任务状态
   useEffect(() => {
@@ -283,7 +344,7 @@ export function CreatorMode({
 
     const checkTaskStatus = async () => {
       try {
-        const result = await imageGenerationClient.getTaskResult(currentTaskId)
+        const result = await client.getTaskResult(currentTaskId)
 
         if ('error' in result) {
           console.error('[ImageGeneration] Failed to get task status:', result.error)
@@ -328,14 +389,14 @@ export function CreatorMode({
         clearInterval(pollingIntervalRef.current)
       }
     }
-  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
+  }, [client, currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
-    const savedTask = loadTaskFromStorage(DEFAULT_POLLING_CONFIG)
+    const savedTask = loadTaskFromStorage(pollingConfig)
 
     if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
-      // INFO: 发现未完成的任务，等待 WebSocket 通知
+      // INFO: 发现未完成的任务，继续轮询恢复
       console.info('[ImageGeneration] Found pending task in localStorage:', {
         taskId: savedTask.task_id,
         status: savedTask.status,
@@ -353,12 +414,26 @@ export function CreatorMode({
   // 组件 mount 时获取可用模型列表
   useEffect(() => {
     const fetchModels = async () => {
+      if (modelOptions && modelOptions.length > 0) {
+        setAvailableModels(modelOptions)
+        setSelectedModel(defaultModel ?? pickPreferredModel(modelOptions, preferredModelKeywords))
+        setIsLoadingModels(false)
+        return
+      }
+
+      if (!client.getModels) {
+        setAvailableModels(defaultModel ? [defaultModel] : [])
+        setSelectedModel(defaultModel ?? "")
+        setIsLoadingModels(false)
+        return
+      }
+
       console.debug('[ImageGeneration] Fetching available models...')
       setIsLoadingModels(true)
       setModelsLoadError(null)
 
       try {
-        const result = await imageGenerationClient.getModels()
+        const result = await client.getModels()
 
         if ('error' in result) {
           console.error('[ImageGeneration] Failed to fetch models:', result.error)
@@ -379,9 +454,9 @@ export function CreatorMode({
 
         setAvailableModels(result.models)
         if (result.models.length > 0) {
-          const defaultModel = pickPreferredModel(result.models, preferredModelKeywords)
-          setSelectedModel(defaultModel)
-          console.debug('[ImageGeneration] Default model selected:', defaultModel)
+          const nextDefaultModel = defaultModel ?? pickPreferredModel(result.models, preferredModelKeywords)
+          setSelectedModel(nextDefaultModel)
+          console.debug('[ImageGeneration] Default model selected:', nextDefaultModel)
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -399,7 +474,7 @@ export function CreatorMode({
 
     fetchModels()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preferredModelKeywords, t, toast])  // 只在 mount 时执行一次
+  }, [client, defaultModel, modelOptions, preferredModelKeywords, t, toast])  // 只在 mount 时执行一次
 
   // 元数据参数
   const [metaSettings, setMetaSettings] = useState<MetaSettings>(DEFAULT_META_SETTINGS)
@@ -657,7 +732,7 @@ export function CreatorMode({
       })
 
       // 调用 API 创建生成任务
-      const result = await imageGenerationClient.createGenerationTask({
+      const result = await client.createGenerationTask({
         gen_mode: 'creator', // 创作模式
         prompt,
         model_name: selectedModel,  // 新增
@@ -688,7 +763,15 @@ export function CreatorMode({
       })
 
       // 保存任务状态
-      setCurrentTaskId(result.task_id)
+      const taskId = String(result.task_id)
+      saveTaskToStorage({
+        task_id: taskId,
+        status: result.status,
+        prompt,
+        created_at: new Date().toISOString(),
+        estimated_eta: result.estimated_eta,
+      }, pollingConfig)
+      setCurrentTaskId(taskId)
       
       // 发送事件通知主页面刷新任务列表
       window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
@@ -706,7 +789,7 @@ export function CreatorMode({
         title: t("imageGeneration.toast.generationFailed"),
       })
     }
-  }, [articleId, pollingToastDescription, pollingToastTitle, selectedModel, submittingToastDescription, submittingToastTitle, t, taskToast])
+  }, [articleId, client, pollingConfig, pollingToastDescription, pollingToastTitle, selectedModel, submittingToastDescription, submittingToastTitle, t, taskToast])
 
   const handleGenerateImage = async () => {
     const creatorConfig = buildCreatorConfig()
@@ -736,7 +819,7 @@ export function CreatorMode({
 
       // INFO: 直接使用 config 创建生成任务（API 支持直接传 config）
       console.debug('[ImageGeneration] Creating task with config...')
-      const result = await imageGenerationClient.createGenerationTask({
+      const result = await client.createGenerationTask({
         gen_mode: 'creator', // 创作模式
         config: creatorConfig,
         model_name: selectedModel,  // 新增
@@ -767,7 +850,16 @@ export function CreatorMode({
       })
 
       // 保存任务状态
-      setCurrentTaskId(result.task_id)
+      const taskId = String(result.task_id)
+      saveTaskToStorage({
+        task_id: taskId,
+        status: result.status,
+        config: creatorConfig,
+        prompt: quickPrompt.trim(),
+        created_at: new Date().toISOString(),
+        estimated_eta: result.estimated_eta,
+      }, pollingConfig)
+      setCurrentTaskId(taskId)
       
       // 发送事件通知主页面刷新任务列表
       window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
@@ -875,6 +967,7 @@ export function CreatorMode({
         onGenerateImage={handleGenerateImage}
         onToggleImageVisibility={handleToggleImageVisibility}
         onSaveImageToMaterials={handleSaveImageToMaterials}
+        allowSaveToMaterials={allowSaveToMaterials}
       />
 
       {/* Right Column - Properties Panel */}
@@ -893,7 +986,12 @@ export function CreatorMode({
         onCompositionSettingsChange={setCompositionSettings}
         onLayerPropsChange={handleLayerPropsChange}
         // 新增回调
-        onModelChange={setSelectedModel}
+        onModelChange={(model) => {
+          const nextModel = onModelChangeRequest?.(model, selectedModel)
+          setSelectedModel(nextModel || model)
+        }}
+        allowReferenceMaterialSelector={allowReferenceMaterialSelector}
+        uploadReferenceImage={uploadReferenceImage}
       />
 
       {/* JSON 预览弹框 */}
