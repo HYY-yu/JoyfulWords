@@ -5,6 +5,7 @@
 ## 当前实现
 
 - 浏览器端: `lib/otel/client-instrumentation.ts` 使用 `@grafana/faro-web-sdk` 初始化 Faro,并通过 `@grafana/faro-web-tracing` 自动采集 Web Vitals、错误、资源、导航和 `fetch` traces。
+- 浏览器 console: `lib/otel/console-normalizer.ts` 会在 Faro 初始化后安装到 console 最外层,把 `console.log(message, { ... })`、`console.warn(message, { ... })`、`console.error(message, error)` 等多参数日志归一成单行 `key=value` 文本,避免线上聚合后出现 `[object Object]`。
 - Next.js server 端: `instrumentation.ts` 使用 `@vercel/otel` 注册服务端 OpenTelemetry。
 - 前后端 trace 关联:
   - 浏览器请求 API 时,Faro fetch instrumentation 会向允许的 API origin 注入 W3C `traceparent`/`tracestate`。
@@ -91,6 +92,7 @@ next.ServeHTTP(w, r)
 ## 故障排查
 
 - 没有浏览器数据: 检查 `NEXT_PUBLIC_ENABLE_TELEMETRY=true` 和 `NEXT_PUBLIC_FARO_URL`。
+- 线上日志出现 `[object Object]`: 优先检查 `lib/otel/console-normalizer.ts` 是否在 `initializeFaro` 后安装到 console 最外层,以及日志是否使用了原生 console formatter 占位符。新日志建议保留稳定字段名,例如 `reason`、`status`、`requestId`、`taskId`。
 - API 请求没有 `traceparent`: 检查 `NEXT_PUBLIC_FARO_PROPAGATE_TRACE_URLS` 是否包含 API origin。
 - CORS preflight 失败: 后端没有允许 `traceparent`/`tracestate`/`baggage`。
 - 服务端 spans 没上报: 检查 `OTEL_EXPORTER_OTLP_ENDPOINT`、`OTEL_EXPORTER_OTLP_PROTOCOL`、`OTEL_EXPORTER_OTLP_HEADERS`。

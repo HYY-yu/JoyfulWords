@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { toast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { apiClient } from '@/lib/api/client'
-import { refreshAccessSession, setupTokenRefresh } from '@/lib/tokens/refresh'
+import { getLastRefreshFailure, refreshAccessSession, setupTokenRefresh } from '@/lib/tokens/refresh'
 import { tokenStore } from '@/lib/tokens/token-store'
 import { isSignupEmailAlreadyRegisteredError } from '@/lib/auth/auth-error-resolver'
 import { saveOAuthState } from '@/lib/auth/oauth-state'
@@ -150,8 +150,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!result) {
+        const refreshFailure = getLastRefreshFailure()
         console.warn('[Auth] Session restore failed', {
           pathname: currentPathname,
+          refreshFailureStatus: refreshFailure?.status ?? null,
+          refreshFailureReason: refreshFailure?.reason ?? null,
+          refreshFailureError: refreshFailure?.error ?? null,
+          refreshFailureErrorDescription: refreshFailure?.errorDescription ?? null,
+          refreshFailureHasApiResponse: refreshFailure?.hasApiResponse ?? null,
         })
 
         setUser(null)
