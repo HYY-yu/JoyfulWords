@@ -2593,29 +2593,41 @@ export const zh = {
         metrics: {
             label: "工具箱概览",
             tools: {
-                value: "7",
+                value: "10",
                 label: "创作工具",
             },
             workflow: {
-                value: "4步",
-                label: "标准流程",
+                value: "3步",
+                label: "推荐工具",
             },
         },
         sections: {
             gridLabel: "工具列表",
         },
+        categories: {
+            visual: {
+                title: "视觉生成",
+                description: "配图、信息图和表情素材集中处理。",
+            },
+            data: {
+                title: "数据可视化",
+                description: "把数据和观点转换成可读图表。",
+            },
+            documents: {
+                title: "文档转换",
+                description: "围绕 Word、PPT 和 Markdown 的文件流转。",
+            },
+            writing: {
+                title: "写作与结构",
+                description: "从想法、草稿到结构整理。",
+            },
+        },
         tools: {
             "ai-writer": {
                 title: "AI 写作",
-                description: "从选题、提纲到初稿的完整起笔区，适合公众号、小红书、博客和长文内容。",
+                description: "随便写点，先把想法变成可以继续整理的文字。",
                 category: "文字生产",
-                meta: "从空白开始",
-            },
-            "smart-rewrite": {
-                title: "智能改写",
-                description: "压缩、扩写、换语气和优化表达，让已有草稿更贴合发布场景。",
-                category: "文字打磨",
-                meta: "改写与润色",
+                meta: "随便写点",
             },
             "image-generator": {
                 title: "创作图片",
@@ -2647,25 +2659,46 @@ export const zh = {
                 category: "演示输出",
                 meta: "提纲到幻灯片",
             },
+            "markdown-to-word": {
+                title: "Markdown 转 Word",
+                description: "把 Markdown 内容转换成更适合审阅、交付和二次编辑的 Word 文档。",
+                category: "文档转换",
+                meta: "MD 到 DOCX",
+            },
+            "ppt-to-word": {
+                title: "PPT 转 Word",
+                description: "提取演示文稿的标题、要点和备注，整理成 Word 文档。",
+                category: "文档转换",
+                meta: "PPTX 到 DOCX",
+            },
+            "word-to-ppt": {
+                title: "Word 转 PPT",
+                description: "把文档内容整理为演示结构，快速生成可继续加工的幻灯片大纲。",
+                category: "文档转换",
+                meta: "DOCX 到 PPTX",
+            },
+            "meme-inserter": {
+                title: "智能插入表情包",
+                description: "根据段落语气和上下文，推荐适合插入文章或社媒内容的表情包。",
+                category: "视觉资产",
+                meta: "情绪增强",
+            },
         },
         workflow: {
             title: "推荐流程",
+            recommendedTools: "推荐工具",
             steps: {
-                spark: {
-                    title: "确定选题",
-                    description: "先用写作或导图整理想法。",
-                },
-                draft: {
-                    title: "生成草稿",
-                    description: "完成初稿后再做改写。",
-                },
                 visual: {
-                    title: "补齐视觉",
-                    description: "配图、图表和信息图集中处理。",
+                    title: "需要配图",
+                    description: "推荐工具：创作图片、信息图、AI 图表工具。",
                 },
-                ship: {
-                    title: "发布交付",
-                    description: "文章、PPT 和素材回到工作台。",
+                data: {
+                    title: "数据可视化",
+                    description: "推荐工具：AI 图表。",
+                },
+                freewrite: {
+                    title: "随便写点",
+                    description: "没有明确目标时，先用 AI 写作把内容起出来。",
                 },
             },
         },

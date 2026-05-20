@@ -14,12 +14,15 @@ interface ToolDetailPageProps {
 
 const toolMetadata: Record<ToolSlug, { zh: string; en: string }> = {
   "ai-writer": { zh: "AI 写作", en: "AI Writer" },
-  "smart-rewrite": { zh: "智能改写", en: "Smart Rewrite" },
   "image-generator": { zh: "创作图片", en: "Create Image" },
   infographic: { zh: "信息图", en: "Infographic" },
   "mind-map": { zh: "思维导图", en: "Mind Map" },
   "ai-charts": { zh: "AI 图表", en: "AI Charts" },
   "ppt-generator": { zh: "PPT 生成", en: "PPT Generator" },
+  "markdown-to-word": { zh: "Markdown 转 Word", en: "Markdown to Word" },
+  "ppt-to-word": { zh: "PPT 转 Word", en: "PPT to Word" },
+  "word-to-ppt": { zh: "Word 转 PPT", en: "Word to PPT" },
+  "meme-inserter": { zh: "智能插入表情包", en: "Smart Meme Inserter" },
 }
 
 export function generateStaticParams() {
@@ -56,6 +59,10 @@ export async function generateMetadata({ params }: ToolDetailPageProps): Promise
         ? isZh
           ? "登录 JoyfulWords 后，输入或粘贴一段文字，自动分析主题并生成适合传播的信息图。"
           : "Log in to JoyfulWords, paste or write a passage, and generate a shareable infographic from the analyzed topic."
+        : slug === "ai-charts"
+          ? isZh
+            ? "使用 JoyfulWords AI 图表工具，把数据、观点或分析结果转换成可读图表。"
+            : "Use JoyfulWords AI Charts to turn data, claims, or analysis into readable charts."
         : isZh
           ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，当前功能预留中，后续支持分享、SEO 和任务中心联动。`
           : `${toolTitle} is an independent JoyfulWords free tool page prepared for sharing, SEO, and Task Center integration.`,
