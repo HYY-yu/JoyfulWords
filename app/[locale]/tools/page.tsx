@@ -33,8 +33,8 @@ export async function generateMetadata({ params }: LocalePageProps): Promise<Met
   return buildMetadata({
     title: isZh ? "免费工具箱" : "Creator Toolbox",
     description: isZh
-      ? "JoyfulWords 免费工具箱提供 AI 写作、改写、生图、图表、思维导图、PPT 等创作者工具入口，支持独立页面分享和 SEO 收录。"
-      : "JoyfulWords Creator Toolbox collects AI writing, rewriting, image, chart, mind map, and PPT tools as shareable SEO-ready pages.",
+      ? "JoyfulWords 免费工具箱提供 AI 写作、生图、信息图、图表、思维导图、PPT 和文档转换等创作者工具入口，支持独立页面分享和 SEO 收录。"
+      : "JoyfulWords Creator Toolbox collects AI writing, image, infographic, chart, mind map, PPT, and document conversion tools as shareable SEO-ready pages.",
     path: buildLocalizedPath(locale, "/tools"),
     locale,
     alternatePaths: {
@@ -42,8 +42,8 @@ export async function generateMetadata({ params }: LocalePageProps): Promise<Met
       en: buildLocalizedPath("en", "/tools"),
     },
     keywords: isZh
-      ? ["免费 AI 工具", "创作者工具箱", "AI 写作工具", "AI 生图工具", "PPT 生成工具"]
-      : ["free AI tools", "creator toolbox", "AI writing tool", "AI image tool", "PPT generator"],
+      ? ["免费 AI 工具", "创作者工具箱", "AI 写作工具", "AI 生图工具", "PPT 生成工具", "Markdown 转 Word"]
+      : ["free AI tools", "creator toolbox", "AI writing tool", "AI image tool", "PPT generator", "Markdown to Word"],
   })
 }
 
@@ -60,8 +60,8 @@ export default async function ToolsPage({ params }: LocalePageProps) {
     name: locale === "zh" ? "JoyfulWords 免费工具箱" : "JoyfulWords Creator Toolbox",
     description:
       locale === "zh"
-        ? "面向创作者的免费工具目录，每个工具都预留独立页面，便于分享和 SEO 收录。"
-        : "A creator toolbox directory with independent pages prepared for sharing and SEO.",
+        ? "面向创作者的免费工具目录，覆盖视觉生成、数据可视化、文档转换和写作结构，每个工具都预留独立页面。"
+        : "A creator toolbox directory covering visual generation, data visualization, document conversion, and writing structure.",
     url: buildCanonicalUrl(buildLocalizedPath(locale, "/tools")),
     publisher: {
       "@type": "Organization",

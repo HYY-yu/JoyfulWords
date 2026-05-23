@@ -2617,29 +2617,41 @@ export const en = {
         metrics: {
             label: "Toolbox overview",
             tools: {
-                value: "7",
+                value: "10",
                 label: "Creator tools",
             },
             workflow: {
-                value: "4 steps",
-                label: "Standard flow",
+                value: "3 steps",
+                label: "Recommended tools",
             },
         },
         sections: {
             gridLabel: "Tool list",
         },
+        categories: {
+            visual: {
+                title: "Visual Generation",
+                description: "Images, infographics, charts, and expressive inserts in one place.",
+            },
+            data: {
+                title: "Data Visualization",
+                description: "Turn data and claims into readable charts.",
+            },
+            documents: {
+                title: "Document Conversion",
+                description: "Move content between Word, PPT, and Markdown.",
+            },
+            writing: {
+                title: "Writing & Structure",
+                description: "Move from ideas and drafts into clearer structure.",
+            },
+        },
         tools: {
             "ai-writer": {
                 title: "AI Writer",
-                description: "A complete starting area for topics, outlines, and first drafts across posts, blogs, newsletters, and long-form content.",
+                description: "Write something first, then turn a loose idea into text you can keep shaping.",
                 category: "Writing",
-                meta: "Blank page start",
-            },
-            "smart-rewrite": {
-                title: "Smart Rewrite",
-                description: "Shorten, expand, retone, and polish existing drafts for the channel you plan to publish on.",
-                category: "Editing",
-                meta: "Rewrite and polish",
+                meta: "Free writing",
             },
             "image-generator": {
                 title: "Create Image",
@@ -2671,25 +2683,46 @@ export const en = {
                 category: "Presentation",
                 meta: "Outline to slides",
             },
+            "markdown-to-word": {
+                title: "Markdown to Word",
+                description: "Convert Markdown content into a Word document for review, handoff, and further editing.",
+                category: "Document conversion",
+                meta: "MD to DOCX",
+            },
+            "ppt-to-word": {
+                title: "PPT to Word",
+                description: "Extract slide titles, points, and speaker notes into a structured Word document.",
+                category: "Document conversion",
+                meta: "PPTX to DOCX",
+            },
+            "word-to-ppt": {
+                title: "Word to PPT",
+                description: "Turn document content into a presentation structure you can keep refining.",
+                category: "Document conversion",
+                meta: "DOCX to PPTX",
+            },
+            "meme-inserter": {
+                title: "Smart Meme Inserter",
+                description: "Suggest memes that match the paragraph tone and context for articles or social posts.",
+                category: "Visual assets",
+                meta: "Tone boost",
+            },
         },
         workflow: {
             title: "Suggested Flow",
+            recommendedTools: "Recommended tools",
             steps: {
-                spark: {
-                    title: "Pick the angle",
-                    description: "Use writing or mind maps to shape the idea.",
-                },
-                draft: {
-                    title: "Generate draft",
-                    description: "Create the first pass, then rewrite.",
-                },
                 visual: {
-                    title: "Add visuals",
-                    description: "Handle images, charts, and infographics together.",
+                    title: "Need visuals",
+                    description: "Recommended tools: Create Image, Infographic, and AI Charts.",
                 },
-                ship: {
-                    title: "Publish or hand off",
-                    description: "Move articles, decks, and assets to the workspace.",
+                data: {
+                    title: "Data visualization",
+                    description: "Recommended tool: AI Charts.",
+                },
+                freewrite: {
+                    title: "Write anything",
+                    description: "When the goal is loose, start with AI Writer and shape it later.",
                 },
             },
         },
