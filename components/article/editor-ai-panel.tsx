@@ -31,6 +31,7 @@ import { infographicsClient } from "@/lib/api/infographics/client"
 import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
   TaskCenterEChartsTaskListItem,
+  TaskCenterPresentationTaskListItem,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
@@ -359,6 +360,21 @@ export function EditorAIPanel({
         .sort((left, right) => right.startedAt - left.startedAt),
     [deletingTaskKeys, liveTasks, t]
   )
+  const latestPresentationLayoutTask = useMemo(() => {
+    return (
+      liveTasks
+        .filter(
+          (task): task is TaskCenterPresentationTaskListItem =>
+            task.type === "presentation" &&
+            task.details.article_id === articleId &&
+            task.details.task_kind !== "storycard_generate"
+        )
+        .sort(
+          (left, right) =>
+            new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+        )[0] ?? null
+    )
+  }, [articleId, liveTasks])
   const localAnalysisTasks = useMemo(() => {
     if (!echartsArticleAnalysisSession) return []
 
@@ -1024,6 +1040,7 @@ export function EditorAIPanel({
         open={isPresentationOpen}
         onOpenChange={setIsPresentationOpen}
         articleId={articleId}
+        latestPresentationTask={latestPresentationLayoutTask}
         onTaskSubmitted={(taskRef) => {
           void refetch({ silent: true })
           console.info("[EditorAIPanel] Submitted presentation task", {

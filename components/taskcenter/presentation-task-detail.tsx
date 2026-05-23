@@ -962,7 +962,7 @@ export function PresentationTaskDetail({
                 variant="outline"
                 size="sm"
                 onClick={() => void loadHTML()}
-                disabled={htmlLoading || detail.status !== "success"}
+                disabled={htmlLoading || !htmlReady}
               >
                 {htmlLoading ? (
                   <Loader2Icon className="h-4 w-4 animate-spin" />
@@ -975,9 +975,9 @@ export function PresentationTaskDetail({
                 type="button"
                 size="sm"
                 onClick={() => void handleExportPPT()}
-                disabled={exportingPPT || detail.status !== "success"}
+                disabled={exportInProgress || !htmlReady}
               >
-                {exportingPPT ? (
+                {exportInProgress ? (
                   <Loader2Icon className="h-4 w-4 animate-spin" />
                 ) : (
                   <DownloadIcon className="h-4 w-4" />
@@ -1002,7 +1002,7 @@ export function PresentationTaskDetail({
             </div>
           ) : null}
 
-          {detail.status !== "success" ? (
+          {!htmlReady ? (
             hasSlideProgress ? null : (
               <div className="px-4 py-8 text-sm text-muted-foreground">
                 {t("presentation.detail.preview.waiting")}
