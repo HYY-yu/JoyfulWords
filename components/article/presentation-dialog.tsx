@@ -23,14 +23,15 @@ import {
   SelectValue,
 } from "@/components/ui/base/select"
 import { Textarea } from "@/components/ui/base/textarea"
+import { PresentationSvgPreview } from "@/components/presentation/presentation-svg-preview"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { presentationsClient } from "@/lib/api/presentations/client"
-import { preparePresentationPreviewHTML } from "@/lib/api/presentations/preview-html"
 import type {
   PresentationImageStyle,
   PresentationLanguage,
   PresentationLogDetailResponse,
+  PresentationPreviewManifest,
   PresentationStorycardDocument,
   PresentationStorycardRecord,
   PresentationThemesResponse,
@@ -67,7 +68,6 @@ function parseStorycardText(input: string): PresentationStorycardDocument {
 const TRANSITIONS: PresentationTransition[] = ["none", "fade", "push", "wipe", "cut"]
 const COMPLETE_LAYOUT_STAGES = new Set([
   "slides_success",
-  "render_html",
   "render_ppt",
   "uploaded_ppt",
   "completed",
@@ -92,6 +92,19 @@ function getPresentationLogDownloadUrl(detail: PresentationLayoutDetail | null):
   return downloadUrl.length > 0 ? downloadUrl : null
 }
 
+function getPresentationLogPreview(
+  detail: PresentationLayoutDetail | null
+): PresentationPreviewManifest | null {
+  if (!detail?.preview || !Array.isArray(detail.preview.slides)) {
+    return null
+  }
+
+  const slides = detail.preview.slides.filter(
+    (slide) => typeof slide?.url === "string" && slide.url.trim().length > 0
+  )
+  return slides.length > 0 ? { ...detail.preview, slides } : null
+}
+
 function hasCompletedSlideSummary(detail: PresentationLayoutDetail | null): boolean {
   const summary = detail?.slide_summary
   if (!summary || summary.total <= 0) return false
@@ -99,7 +112,7 @@ function hasCompletedSlideSummary(detail: PresentationLayoutDetail | null): bool
   return summary.success >= summary.total && summary.failed === 0
 }
 
-function isPresentationLayoutHTMLReady(detail: PresentationLayoutDetail | null): boolean {
+function isPresentationLayoutPPTReady(detail: PresentationLayoutDetail | null): boolean {
   if (!detail || detail.task_kind !== "layout_generate") {
     return false
   }
@@ -108,15 +121,11 @@ function isPresentationLayoutHTMLReady(detail: PresentationLayoutDetail | null):
     return true
   }
 
-  if (typeof detail.render_html === "string" && detail.render_html.trim().length > 0) {
-    return true
-  }
-
   return COMPLETE_LAYOUT_STAGES.has(detail.stage ?? "") || hasCompletedSlideSummary(detail)
 }
 
 function isPresentationLayoutComplete(detail: PresentationLayoutDetail | null): boolean {
-  return isPresentationLayoutHTMLReady(detail) || Boolean(getPresentationLogDownloadUrl(detail))
+  return isPresentationLayoutPPTReady(detail) || Boolean(getPresentationLogDownloadUrl(detail))
 }
 
 function isPresentationLayoutFailed(detail: PresentationLayoutDetail | null): boolean {
@@ -143,6 +152,7 @@ function mapPresentationTaskToLayoutDetail(
       task.details.PPT_URL ??
       task.details.artifact_url ??
       task.details.artifactUrl,
+    preview: task.details.preview ?? null,
     created_at: task.created_at,
     updated_at: task.details.completed_at ?? task.created_at,
     completed_at: task.details.completed_at ?? null,
@@ -269,10 +279,8 @@ export function PresentationDialog({
   const [layoutTaskId, setLayoutTaskId] = useState<number | null>(null)
   const [layoutDetail, setLayoutDetail] = useState<PresentationLayoutDetail | null>(null)
   const [layoutError, setLayoutError] = useState<string | null>(null)
-  const [layoutHTML, setLayoutHTML] = useState<string | null>(null)
-  const [layoutHTMLLoading, setLayoutHTMLLoading] = useState(false)
+  const [ignoredLayoutTaskId, setIgnoredLayoutTaskId] = useState<number | null>(null)
   const [exportingLayoutPPT, setExportingLayoutPPT] = useState(false)
-  const [pendingLayoutDownloadTaskId, setPendingLayoutDownloadTaskId] = useState<number | null>(null)
   const [loadingOptions, setLoadingOptions] = useState(false)
   const [submittingLayout, setSubmittingLayout] = useState(false)
   const [themes, setThemes] = useState<PresentationThemesResponse["themes"]>({})
@@ -301,10 +309,8 @@ export function PresentationDialog({
     setLayoutTaskId(null)
     setLayoutDetail(null)
     setLayoutError(null)
-    setLayoutHTML(null)
-    setLayoutHTMLLoading(false)
+    setIgnoredLayoutTaskId(null)
     setExportingLayoutPPT(false)
-    setPendingLayoutDownloadTaskId(null)
     setLoadingOptions(false)
     setSubmittingLayout(false)
     setThemes({})
@@ -418,40 +424,6 @@ export function PresentationDialog({
     }
   }, [layoutTaskId])
 
-  const loadLayoutHTML = useCallback(async (detail: PresentationLayoutDetail | null = layoutDetail) => {
-    if (!detail || !isPresentationLayoutHTMLReady(detail)) {
-      setLayoutHTML(null)
-      return
-    }
-
-    if (typeof detail?.render_html === "string" && detail.render_html.trim().length > 0) {
-      setLayoutHTML(preparePresentationPreviewHTML(detail.render_html))
-      setLayoutHTMLLoading(false)
-      return
-    }
-
-    setLayoutHTMLLoading(true)
-
-    try {
-      const result = await presentationsClient.getHTML(detail.id)
-      if ("error" in result) {
-        throw new Error(String(result.error))
-      }
-
-      setLayoutHTML(preparePresentationPreviewHTML(result.html_content || ""))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load HTML preview"
-      console.error("[PresentationDialog] Failed to load layout HTML preview", {
-        layoutTaskId: detail.id,
-        error,
-      })
-      setLayoutError(message)
-      setLayoutHTML(null)
-    } finally {
-      setLayoutHTMLLoading(false)
-    }
-  }, [layoutDetail])
-
   const startFlow = useCallback(async (forceRegenerate = false) => {
     if (typeof articleId !== "number") return
 
@@ -461,8 +433,6 @@ export function PresentationDialog({
     setLayoutTaskId(null)
     setLayoutDetail(null)
     setLayoutError(null)
-    setLayoutHTML(null)
-    setPendingLayoutDownloadTaskId(null)
     syncStorycardRecord(null)
 
     try {
@@ -545,18 +515,19 @@ export function PresentationDialog({
       return
     }
 
+    if (latestPresentationTask.id === ignoredLayoutTaskId) {
+      return
+    }
+
     if (typeof layoutTaskId === "number" && layoutTaskId !== latestPresentationTask.id) {
       return
     }
 
     const nextDetail = mapPresentationTaskToLayoutDetail(latestPresentationTask)
     setLayoutTaskId(latestPresentationTask.id)
-    setLayoutDetail((current) => ({
-      ...nextDetail,
-      render_html: current?.id === nextDetail.id ? current.render_html : undefined,
-    }))
+    setLayoutDetail(nextDetail)
     void loadLayoutDetail(latestPresentationTask.id)
-  }, [articleId, latestPresentationTask, layoutTaskId, loadLayoutDetail, open])
+  }, [articleId, ignoredLayoutTaskId, latestPresentationTask, layoutTaskId, loadLayoutDetail, open])
 
   const slides = useMemo(() => {
     if (!storycardDraft?.slides || !Array.isArray(storycardDraft.slides)) {
@@ -632,8 +603,7 @@ export function PresentationDialog({
     setLayoutTaskId(null)
     setLayoutDetail(null)
     setLayoutError(null)
-    setLayoutHTML(null)
-    setPendingLayoutDownloadTaskId(null)
+    setIgnoredLayoutTaskId(null)
 
     try {
       const updated = await presentationsClient.updateStorycard(storycardRecord.id, {
@@ -644,6 +614,16 @@ export function PresentationDialog({
       if ("error" in updated) {
         throw new Error(String(updated.error))
       }
+
+      setStorycardRecord((current) =>
+        current?.id === storycardRecord.id
+          ? {
+              ...current,
+              version: updated.version,
+              storycard_json: nextDraft,
+            }
+          : current
+      )
 
       const layoutResult = await presentationsClient.generateLayout({
         storycard_id: storycardRecord.id,
@@ -670,6 +650,7 @@ export function PresentationDialog({
         type: "presentation",
       })
       setLayoutTaskId(layoutResult.presentation_log_id)
+      setIgnoredLayoutTaskId(null)
       void loadLayoutDetail(layoutResult.presentation_log_id)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to generate layout"
@@ -696,20 +677,32 @@ export function PresentationDialog({
     transition,
   ])
 
+  const handlePrepareRegenerateLayout = useCallback(() => {
+    const currentTaskId = layoutDetail?.id ?? layoutTaskId
+    console.info("[PresentationDialog] Preparing PPT regeneration", {
+      layoutTaskId: currentTaskId,
+    })
+    setIgnoredLayoutTaskId(typeof currentTaskId === "number" ? currentTaskId : null)
+    setLayoutTaskId(null)
+    setLayoutDetail(null)
+    setLayoutError(null)
+    setExportingLayoutPPT(false)
+  }, [layoutDetail?.id, layoutTaskId])
+
   const storycardBusy = storycardStatus === "checking" || storycardStatus === "generating"
   const storycardReady = storycardStatus === "ready"
   const layoutDownloadUrl = getPresentationLogDownloadUrl(layoutDetail)
-  const layoutHTMLReady = isPresentationLayoutHTMLReady(layoutDetail)
+  const layoutPreview = getPresentationLogPreview(layoutDetail)
+  const layoutPreviewReady = Boolean(layoutPreview)
   const layoutComplete = isPresentationLayoutComplete(layoutDetail)
   const layoutFailed = isPresentationLayoutFailed(layoutDetail)
   const layoutProcessing =
     submittingLayout || (typeof layoutTaskId === "number" && !layoutComplete && !layoutFailed)
   const layoutWaitingForDownload =
     !layoutDownloadUrl &&
-    (pendingLayoutDownloadTaskId === layoutDetail?.id ||
-      layoutDetail?.stage === "render_ppt" ||
-      layoutDetail?.stage === "uploaded_ppt")
+    (layoutDetail?.stage === "render_ppt" || layoutDetail?.stage === "uploaded_ppt")
   const layoutExportInProgress = exportingLayoutPPT || layoutWaitingForDownload
+  const layoutOptionsReady = Boolean(theme && selectedImageStyle)
   const outlineStepState: PresentationStepState =
     storycardStatus === "error"
       ? "error"
@@ -729,8 +722,12 @@ export function PresentationDialog({
     : "waiting"
   const primaryBusy = storycardReady ? layoutProcessing : storycardBusy
   const primaryDisabled = storycardReady
-    ? layoutProcessing || layoutComplete
+    ? layoutProcessing || !layoutOptionsReady
     : storycardBusy || typeof articleId !== "number"
+  const layoutPrimaryLabel =
+    layoutComplete || layoutFailed
+      ? t("presentation.dialog.layout.regenerate")
+      : t("presentation.dialog.layout.generate")
   const footerStatus = layoutComplete
     ? t("presentation.dialog.flow.footerDeckReady")
     : layoutProcessing
@@ -753,7 +750,7 @@ export function PresentationDialog({
     if (
       !open ||
       typeof layoutTaskId !== "number" ||
-      ((layoutComplete || layoutFailed) && !layoutWaitingForDownload)
+      ((layoutDownloadUrl || layoutFailed) && !layoutWaitingForDownload)
     ) {
       return
     }
@@ -764,7 +761,7 @@ export function PresentationDialog({
 
     return () => window.clearInterval(timer)
   }, [
-    layoutComplete,
+    layoutDownloadUrl,
     layoutFailed,
     layoutTaskId,
     layoutWaitingForDownload,
@@ -772,26 +769,7 @@ export function PresentationDialog({
     open,
   ])
 
-  useEffect(() => {
-    if (!open || !layoutDetail) {
-      setLayoutHTML(null)
-      return
-    }
-
-    void loadLayoutHTML(layoutDetail)
-  }, [layoutDetail, loadLayoutHTML, open])
-
-  useEffect(() => {
-    if (
-      pendingLayoutDownloadTaskId !== null &&
-      layoutDetail?.id === pendingLayoutDownloadTaskId &&
-      layoutDownloadUrl
-    ) {
-      setPendingLayoutDownloadTaskId(null)
-    }
-  }, [layoutDetail?.id, layoutDownloadUrl, pendingLayoutDownloadTaskId])
-
-  const handleLayoutExportPPT = useCallback(async () => {
+  const handleLayoutDownloadPPT = useCallback(async () => {
     const currentTaskId = layoutDetail?.id ?? layoutTaskId
     if (typeof currentTaskId !== "number") return
 
@@ -818,19 +796,11 @@ export function PresentationDialog({
         return
       }
 
-      const exported = await presentationsClient.exportPPT(currentTaskId)
-      if ("error" in exported) {
-        throw new Error(String(exported.error))
-      }
-
-      setPendingLayoutDownloadTaskId(currentTaskId)
-      toast({
-        description: t("presentation.dialog.layoutResult.exportStarted"),
-      })
       void loadLayoutDetail(currentTaskId)
+      throw new Error(t("presentation.dialog.layoutResult.downloadNotReady"))
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to export PPT"
-      console.error("[PresentationDialog] Failed to export layout PPT", {
+      const message = error instanceof Error ? error.message : "Failed to download PPT"
+      console.error("[PresentationDialog] Failed to download layout PPT", {
         layoutTaskId: currentTaskId,
         error,
       })
@@ -838,7 +808,7 @@ export function PresentationDialog({
     } finally {
       setExportingLayoutPPT(false)
     }
-  }, [layoutDetail?.id, layoutDownloadUrl, layoutTaskId, loadLayoutDetail, t, toast])
+  }, [layoutDetail?.id, layoutDownloadUrl, layoutTaskId, loadLayoutDetail, t])
 
   return (
     <AIFeatureDialogShell
@@ -860,7 +830,11 @@ export function PresentationDialog({
             <Button
               type="button"
               onClick={() =>
-                storycardReady ? void handleGenerateLayout() : void startFlow(false)
+                storycardReady
+                  ? layoutComplete || layoutFailed
+                    ? handlePrepareRegenerateLayout()
+                    : void handleGenerateLayout()
+                  : void startFlow(false)
               }
               disabled={primaryDisabled}
             >
@@ -869,9 +843,7 @@ export function PresentationDialog({
               ) : (
                 <SparklesIcon className="h-4 w-4" />
               )}
-              {storycardReady
-                ? t("presentation.dialog.layout.generate")
-                : t("presentation.dialog.storycard.generate")}
+              {storycardReady ? layoutPrimaryLabel : t("presentation.dialog.storycard.generate")}
             </Button>
           </div>
         </div>
@@ -1168,7 +1140,7 @@ export function PresentationDialog({
                       </>
                     )}
                   </span>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-foreground">
                       {layoutFailed
                         ? t("presentation.dialog.layoutResult.failedTitle")
@@ -1183,6 +1155,19 @@ export function PresentationDialog({
                         ? t("presentation.dialog.layoutResult.readyDescription")
                         : t("presentation.dialog.layoutResult.processingDescription")}
                     </p>
+                    {(layoutComplete || layoutFailed) ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handlePrepareRegenerateLayout}
+                        disabled={layoutProcessing || !layoutOptionsReady}
+                        className="mt-3 bg-background/80"
+                      >
+                        <SparklesIcon className="h-4 w-4" />
+                        {t("presentation.dialog.layout.regenerate")}
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -1200,7 +1185,7 @@ export function PresentationDialog({
                         {t("presentation.dialog.layoutResult.previewTitle")}
                       </h4>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {layoutComplete
+                        {layoutPreviewReady
                           ? t("presentation.dialog.layoutResult.previewReady")
                           : t("presentation.dialog.layoutResult.previewWaiting")}
                       </p>
@@ -1211,66 +1196,33 @@ export function PresentationDialog({
                         size="sm"
                         variant="outline"
                         onClick={() => void loadLayoutDetail(layoutTaskId)}
-                        disabled={layoutHTMLLoading}
                       >
-                        {layoutHTMLLoading ? (
-                          <Loader2Icon className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCwIcon className="h-4 w-4" />
-                        )}
+                        <RefreshCwIcon className="h-4 w-4" />
                         {t("common.refresh")}
                       </Button>
                       <Button
                         type="button"
                         size="sm"
-                        onClick={() => void handleLayoutExportPPT()}
-                        disabled={layoutExportInProgress || (!layoutHTMLReady && !layoutDownloadUrl)}
+                        onClick={() => void handleLayoutDownloadPPT()}
+                        disabled={layoutExportInProgress || !layoutComplete}
                       >
                         {layoutExportInProgress ? (
                           <Loader2Icon className="h-4 w-4 animate-spin" />
                         ) : (
                           <DownloadIcon className="h-4 w-4" />
                         )}
-                        {layoutDownloadUrl
-                          ? t("presentation.detail.preview.downloadPpt")
-                          : t("presentation.detail.preview.exportPpt")}
+                        {t("presentation.detail.preview.downloadPpt")}
                       </Button>
                     </div>
                   </div>
 
                   <div className="p-4">
-                    <div
-                      className="relative flex min-h-[220px] w-full items-center justify-center overflow-hidden rounded-lg border bg-muted/20"
-                      style={{ aspectRatio: "16 / 9" }}
-                    >
-                      {!layoutHTMLReady ? (
-                        <div className="flex flex-col items-center gap-3 px-6 text-center text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            {[0, 1, 2].map((index) => (
-                              <span
-                                key={index}
-                                className="h-2 w-2 rounded-full bg-primary animate-bounce"
-                                style={{ animationDelay: `${index * 120}ms` }}
-                              />
-                            ))}
-                          </div>
-                          {t("presentation.dialog.layoutResult.previewWaiting")}
-                        </div>
-                      ) : layoutHTMLLoading ? (
-                        <Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" />
-                      ) : layoutHTML ? (
-                        <iframe
-                          title={`presentation-preview-${layoutTaskId}`}
-                          srcDoc={layoutHTML}
-                          className="absolute inset-0 h-full w-full bg-white"
-                          sandbox="allow-same-origin allow-scripts allow-downloads"
-                        />
-                      ) : (
-                        <div className="px-6 text-center text-sm text-muted-foreground">
-                          {t("presentation.dialog.layoutResult.previewEmpty")}
-                        </div>
-                      )}
-                    </div>
+                    <PresentationSvgPreview
+                      preview={layoutPreview}
+                      loading={!layoutComplete}
+                      waitingLabel={t("presentation.dialog.layoutResult.previewWaiting")}
+                      emptyLabel={t("presentation.dialog.layoutResult.previewEmpty")}
+                    />
                   </div>
                 </div>
               </div>

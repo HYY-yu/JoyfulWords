@@ -1,12 +1,10 @@
 import { authenticatedApiRequest } from "@/lib/api/client"
 import type { ErrorResponse } from "@/lib/api/types"
 import type {
-  ExportPresentationPPTResponse,
   GeneratePresentationLayoutRequest,
   GeneratePresentationLayoutResponse,
   GeneratePresentationStorycardRequest,
   GeneratePresentationStorycardResponse,
-  PresentationHTMLResponse,
   PresentationImageStylesResponse,
   PresentationLogDetailResponse,
   PresentationPPTResponse,
@@ -167,26 +165,6 @@ export const presentationsClient = {
     return authenticatedApiRequest<PresentationLogDetailResponse>(`/presentations/logs/${id}`, {
       method: "GET",
     })
-  },
-
-  async getHTML(
-    id: number
-  ): Promise<PresentationHTMLResponse | ErrorResponse> {
-    return authenticatedApiRequest<PresentationHTMLResponse>(`/presentations/logs/${id}/html`, {
-      method: "GET",
-    })
-  },
-
-  async exportPPT(
-    id: number
-  ): Promise<ExportPresentationPPTResponse | ErrorResponse> {
-    console.info("[Presentations] Exporting PPT", { presentationLogId: id })
-    return authenticatedApiRequest<ExportPresentationPPTResponse>(
-      `/presentations/logs/${id}/ppt/export`,
-      {
-        method: "POST",
-      }
-    )
   },
 
   async getPPT(

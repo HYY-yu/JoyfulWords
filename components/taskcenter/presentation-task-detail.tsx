@@ -20,11 +20,12 @@ import { Progress } from "@/components/ui/base/progress"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { Textarea } from "@/components/ui/base/textarea"
+import { PresentationSvgPreview } from "@/components/presentation/presentation-svg-preview"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { presentationsClient } from "@/lib/api/presentations/client"
-import { preparePresentationPreviewHTML } from "@/lib/api/presentations/preview-html"
 import type {
+  PresentationPreviewManifest,
   PresentationStorycardDocument,
   PresentationStorycardRecord,
 } from "@/lib/api/presentations/types"
@@ -333,7 +334,7 @@ interface PresentationTaskDetailProps {
   onContinuePresentation?: (articleId: number) => void
 }
 
-function isPresentationHTMLReady(detail: TaskCenterPresentationTaskDetail): boolean {
+function isPresentationPPTReady(detail: TaskCenterPresentationTaskDetail): boolean {
   if (detail.task_kind !== "layout_generate") {
     return false
   }
@@ -342,11 +343,20 @@ function isPresentationHTMLReady(detail: TaskCenterPresentationTaskDetail): bool
     return true
   }
 
-  if (typeof detail.render_html === "string" && detail.render_html.trim().length > 0) {
-    return true
+  return ["render_ppt", "uploaded_ppt", "completed"].includes(detail.stage ?? "")
+}
+
+function getPresentationPreview(
+  detail: TaskCenterPresentationTaskDetail
+): PresentationPreviewManifest | null {
+  if (!detail.preview || !Array.isArray(detail.preview.slides)) {
+    return null
   }
 
-  return ["render_html", "render_ppt", "uploaded_ppt", "completed"].includes(detail.stage ?? "")
+  const slides = detail.preview.slides.filter(
+    (slide) => typeof slide?.url === "string" && slide.url.trim().length > 0
+  )
+  return slides.length > 0 ? { ...detail.preview, slides } : null
 }
 
 export function PresentationTaskDetail({
@@ -358,28 +368,24 @@ export function PresentationTaskDetail({
   const [storycardRecord, setStorycardRecord] = useState<PresentationStorycardRecord | null>(null)
   const [storycardDraft, setStorycardDraft] = useState<PresentationStorycardDocument | null>(null)
   const [storycardJSONText, setStorycardJSONText] = useState("{}")
-  const [htmlContent, setHTMLContent] = useState<string | null>(null)
+  const [downloadUrlOverride, setDownloadUrlOverride] = useState<string | null>(null)
   const [storycardLoading, setStorycardLoading] = useState(false)
-  const [htmlLoading, setHTMLLoading] = useState(false)
   const [savingStorycard, setSavingStorycard] = useState(false)
   const [regeneratingStorycard, setRegeneratingStorycard] = useState(false)
-  const [exportingPPT, setExportingPPT] = useState(false)
+  const [downloadingPPT, setDownloadingPPT] = useState(false)
   const [storycardError, setStorycardError] = useState<string | null>(null)
-  const [htmlError, setHTMLError] = useState<string | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
   const [storycardTab, setStorycardTab] = useState("slides")
-  const [pendingDownloadTaskId, setPendingDownloadTaskId] = useState<number | null>(null)
 
-  const presentationDownloadUrl = getTaskCenterPresentationDownloadUrl(detail)
+  const presentationDownloadUrl = downloadUrlOverride ?? getTaskCenterPresentationDownloadUrl(detail)
   const hasPPTUrl = typeof presentationDownloadUrl === "string"
   const hasSlideProgress = Boolean(getNormalizedSlideSummary(detail) || detail.slides?.length)
-  const htmlReady = isPresentationHTMLReady(detail)
+  const pptReady = isPresentationPPTReady(detail)
+  const preview = getPresentationPreview(detail)
   const exportInProgress =
     detail.task_kind === "layout_generate" &&
     !hasPPTUrl &&
-    (exportingPPT ||
-      pendingDownloadTaskId === detail.id ||
-      detail.stage === "render_ppt" ||
-      detail.stage === "uploaded_ppt")
+    (downloadingPPT || detail.stage === "render_ppt" || detail.stage === "uploaded_ppt")
 
   const slides = useMemo(() => {
     if (!storycardDraft?.slides || !Array.isArray(storycardDraft.slides)) {
@@ -421,60 +427,14 @@ export function PresentationTaskDetail({
     }
   }, [detail.article_id, detail.id, syncStorycardDraft])
 
-  const loadHTML = useCallback(async () => {
-    if (!htmlReady) {
-      setHTMLContent(null)
-      setHTMLError(null)
-      return
-    }
-
-    setHTMLLoading(true)
-    setHTMLError(null)
-
-    try {
-      const result = await presentationsClient.getHTML(detail.id)
-      if ("error" in result) {
-        throw new Error(String(result.error))
-      }
-
-      setHTMLContent(preparePresentationPreviewHTML(result.html_content || ""))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to load HTML preview"
-      console.error("[PresentationTaskDetail] Failed to load HTML preview", {
-        detailId: detail.id,
-        error,
-      })
-      setHTMLError(message)
-      setHTMLContent(null)
-    } finally {
-      setHTMLLoading(false)
-    }
-  }, [detail.id, htmlReady])
-
   useEffect(() => {
     void loadStorycard()
   }, [loadStorycard])
 
   useEffect(() => {
-    void loadHTML()
-  }, [loadHTML])
-
-  useEffect(() => {
     if (storycardTab !== "json") return
     setStorycardJSONText(stringifyJSON(storycardDraft ?? {}))
   }, [storycardDraft, storycardTab])
-
-  useEffect(() => {
-    if (
-      pendingDownloadTaskId !== null &&
-      detail.id === pendingDownloadTaskId &&
-      hasPPTUrl &&
-      presentationDownloadUrl
-    ) {
-      triggerDownload(presentationDownloadUrl)
-      setPendingDownloadTaskId(null)
-    }
-  }, [detail.id, hasPPTUrl, pendingDownloadTaskId, presentationDownloadUrl])
 
   const handleStorycardFieldChange = useCallback(
     (key: "title", value: string) => {
@@ -614,38 +574,38 @@ export function PresentationTaskDetail({
     }
   }, [detail.article_id, loadStorycard, storycardRecord?.language, syncStorycardDraft, t, toast])
 
-  const handleExportPPT = useCallback(async () => {
+  const handleDownloadPPT = useCallback(async () => {
     if (hasPPTUrl && presentationDownloadUrl) {
       triggerDownload(presentationDownloadUrl)
       return
     }
 
-    setExportingPPT(true)
+    setDownloadingPPT(true)
+    setPreviewError(null)
 
     try {
-      const exported = await presentationsClient.exportPPT(detail.id)
-      if ("error" in exported) {
-        throw new Error(String(exported.error))
+      const result = await presentationsClient.getPPT(detail.id)
+      if ("error" in result) {
+        throw new Error(String(result.error))
       }
 
-      setPendingDownloadTaskId(detail.id)
-      toast({
-        description: t("presentation.detail.preview.exportStarted"),
-      })
+      setDownloadUrlOverride(result.ppt_url)
+      triggerDownload(result.ppt_url)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to export PPT"
-      console.error("[PresentationTaskDetail] Failed to export PPT", {
+      const message = error instanceof Error ? error.message : "Failed to download PPT"
+      console.error("[PresentationTaskDetail] Failed to download PPT", {
         detailId: detail.id,
         error,
       })
+      setPreviewError(message)
       toast({
         variant: "destructive",
         description: message,
       })
     } finally {
-      setExportingPPT(false)
+      setDownloadingPPT(false)
     }
-  }, [detail.id, hasPPTUrl, presentationDownloadUrl, t, toast])
+  }, [detail.id, hasPPTUrl, presentationDownloadUrl, toast])
 
   if (detail.task_kind === "storycard_generate") {
     const isProcessing = detail.status === "pending" || detail.status === "processing"
@@ -716,10 +676,10 @@ export function PresentationTaskDetail({
     return (
       <div className="flex min-h-[320px] max-h-[calc(82vh-12rem)] flex-col overflow-hidden rounded-2xl border bg-background">
         <div className="min-h-0 flex-1 overflow-y-auto">
-          {htmlError ? (
+          {previewError ? (
             <Alert variant="destructive" className="m-4">
               <AlertCircleIcon className="h-4 w-4" />
-              <AlertDescription>{htmlError}</AlertDescription>
+              <AlertDescription>{previewError}</AlertDescription>
             </Alert>
           ) : null}
 
@@ -729,30 +689,19 @@ export function PresentationTaskDetail({
             </div>
           ) : null}
 
-          {!htmlReady ? (
+          {!pptReady ? (
             hasSlideProgress ? null : (
               <div className="px-4 py-8 text-sm text-muted-foreground">
                 {t("presentation.detail.preview.waiting")}
               </div>
             )
-          ) : htmlLoading ? (
-            <div className="flex items-center justify-center px-4 py-12">
-              <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : htmlContent ? (
-            <div className="flex min-h-full w-full bg-muted/20 p-4">
-              <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-                <iframe
-                  title={`presentation-preview-${detail.id}`}
-                  srcDoc={htmlContent}
-                  className="absolute inset-0 h-full w-full rounded-xl border bg-white"
-                  sandbox="allow-same-origin allow-scripts allow-downloads"
-                />
-              </div>
-            </div>
           ) : (
-            <div className="px-4 py-8 text-sm text-muted-foreground">
-              {t("presentation.detail.preview.empty")}
+            <div className="bg-muted/20 p-4">
+              <PresentationSvgPreview
+                preview={preview}
+                waitingLabel={t("presentation.detail.preview.waiting")}
+                emptyLabel={t("presentation.detail.preview.empty")}
+              />
             </div>
           )}
         </div>
@@ -762,17 +711,15 @@ export function PresentationTaskDetail({
             <Button
               type="button"
               size="sm"
-              onClick={() => void handleExportPPT()}
-              disabled={exportInProgress || !htmlReady}
+              onClick={() => void handleDownloadPPT()}
+              disabled={exportInProgress || !pptReady}
             >
               {exportInProgress ? (
                 <Loader2Icon className="h-4 w-4 animate-spin" />
               ) : (
                 <DownloadIcon className="h-4 w-4" />
               )}
-              {hasPPTUrl
-                ? t("presentation.detail.preview.downloadPpt")
-                : t("presentation.detail.preview.exportPpt")}
+              {t("presentation.detail.preview.downloadPpt")}
             </Button>
           </div>
         </div>
@@ -959,40 +906,24 @@ export function PresentationTaskDetail({
             <div className="flex items-center gap-2">
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
-                onClick={() => void loadHTML()}
-                disabled={htmlLoading || !htmlReady}
-              >
-                {htmlLoading ? (
-                  <Loader2Icon className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCwIcon className="h-4 w-4" />
-                )}
-                {t("common.refresh")}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => void handleExportPPT()}
-                disabled={exportInProgress || !htmlReady}
+                onClick={() => void handleDownloadPPT()}
+                disabled={exportInProgress || !pptReady}
               >
                 {exportInProgress ? (
                   <Loader2Icon className="h-4 w-4 animate-spin" />
                 ) : (
                   <DownloadIcon className="h-4 w-4" />
                 )}
-                {hasPPTUrl
-                  ? t("presentation.detail.preview.downloadPpt")
-                  : t("presentation.detail.preview.exportPpt")}
+                {t("presentation.detail.preview.downloadPpt")}
               </Button>
             </div>
           </div>
 
-          {htmlError ? (
+          {previewError ? (
             <Alert variant="destructive" className="m-4">
               <AlertCircleIcon className="h-4 w-4" />
-              <AlertDescription>{htmlError}</AlertDescription>
+              <AlertDescription>{previewError}</AlertDescription>
             </Alert>
           ) : null}
 
@@ -1002,30 +933,19 @@ export function PresentationTaskDetail({
             </div>
           ) : null}
 
-          {!htmlReady ? (
+          {!pptReady ? (
             hasSlideProgress ? null : (
               <div className="px-4 py-8 text-sm text-muted-foreground">
                 {t("presentation.detail.preview.waiting")}
               </div>
             )
-          ) : htmlLoading ? (
-            <div className="flex items-center justify-center px-4 py-12">
-              <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : htmlContent ? (
-            <div className="w-full bg-muted/20 p-4">
-              <div className="relative w-full" style={{ aspectRatio: '16 / 9' }}>
-                <iframe
-                  title={`presentation-preview-${detail.id}`}
-                  srcDoc={htmlContent}
-                  className="absolute inset-0 h-full w-full rounded-xl border bg-white"
-                  sandbox="allow-same-origin allow-scripts allow-downloads"
-                />
-              </div>
-            </div>
           ) : (
-            <div className="px-4 py-8 text-sm text-muted-foreground">
-              {t("presentation.detail.preview.empty")}
+            <div className="w-full bg-muted/20 p-4">
+              <PresentationSvgPreview
+                preview={preview}
+                waitingLabel={t("presentation.detail.preview.waiting")}
+                emptyLabel={t("presentation.detail.preview.empty")}
+              />
             </div>
           )}
         </section>

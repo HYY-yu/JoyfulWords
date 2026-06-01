@@ -1,5 +1,7 @@
 "use client"
 
+import type { PresentationPreviewManifest } from "@/lib/api/presentations/types"
+
 export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "presentation", "echarts"] as const
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
@@ -80,6 +82,7 @@ export interface TaskCenterPresentationListDetails {
   PPT_URL?: string
   artifact_url?: string
   artifactUrl?: string
+  preview?: PresentationPreviewManifest | null
   cached?: boolean
   error?: string
 }
@@ -244,12 +247,12 @@ export interface TaskCenterPresentationTaskDetail {
   cached?: boolean
   layouts_json?: unknown
   deck_model_json?: unknown
-  render_html?: string
   ppt_url?: string
   pptUrl?: string
   PPT_URL?: string
   artifact_url?: string
   artifactUrl?: string
+  preview?: PresentationPreviewManifest | null
   created_at: string
   updated_at: string
   completed_at?: string | null

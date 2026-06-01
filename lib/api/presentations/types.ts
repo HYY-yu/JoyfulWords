@@ -10,7 +10,6 @@ export type PresentationStage =
   | "slides_processing"
   | "build_deck"
   | "generate_images"
-  | "render_html"
   | "render_ppt"
   | "uploaded_ppt"
   | "completed"
@@ -130,28 +129,34 @@ export interface PresentationLogDetailResponse {
   error_message: string
   layouts_json?: unknown
   deck_model_json?: unknown
-  render_html?: string
   ppt_url?: string
+  preview?: PresentationPreviewManifest | null
   created_at: string
   updated_at: string
   completed_at?: string | null
-}
-
-export interface PresentationHTMLResponse {
-  id: number
-  status: PresentationStatus
-  html_content: string
-}
-
-export interface ExportPresentationPPTResponse {
-  presentation_log_id: number
-  status: "processing"
 }
 
 export interface PresentationPPTResponse {
   id: number
   status: PresentationStatus
   ppt_url: string
+}
+
+export interface PresentationPreviewSlide {
+  slide_number: number
+  url: string
+  width?: number
+  height?: number
+}
+
+export interface PresentationPreviewManifest {
+  version?: number
+  format?: "svg" | string
+  generator?: string
+  generated_at?: string
+  slide_count?: number
+  slides?: PresentationPreviewSlide[]
+  url?: string
 }
 
 export interface PresentationDownloadResult {

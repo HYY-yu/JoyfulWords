@@ -1792,6 +1792,7 @@ export const en = {
                 selectTransition: "Select a transition",
                 missingOptions: "Please confirm both theme and image style first.",
                 generate: "Generate Full PPT",
+                regenerate: "Regenerate PPT",
                 submitSuccess: "PPT generation task submitted. This dialog will refresh the progress automatically.",
             },
             layoutResult: {
@@ -1804,8 +1805,9 @@ export const en = {
                 previewTitle: "PPT Preview",
                 previewWaiting: "The preview is still being generated. It will appear automatically when ready.",
                 previewReady: "Preview is ready. Check the slide result here.",
-                previewEmpty: "No HTML preview is available yet. Refresh again later.",
-                exportStarted: "PPT export started. Keep waiting in this dialog.",
+                previewEmpty: "No PPT preview snapshot is available yet. You can still download the PPT.",
+                exportStarted: "PPT is being prepared. Keep waiting in this dialog.",
+                downloadNotReady: "The PPT download URL is not ready yet. Refresh again later.",
             },
         },
         detail: {
@@ -1839,12 +1841,12 @@ export const en = {
             },
             preview: {
                 title: "PPT Preview",
-                description: "After the full PPT task succeeds, the generated HTML preview appears here and can be exported as a PPT file.",
-                waiting: "The task has not completed yet. HTML preview will appear after success.",
-                empty: "No HTML result is available yet.",
+                description: "After the full PPT task succeeds, the backend-generated SVG preview snapshot appears here.",
+                waiting: "The task has not completed yet. PPT preview will appear after success.",
+                empty: "No PPT preview snapshot is available yet. You can still download the PPT.",
                 openNewTab: "Open in New Tab",
-                exportPpt: "Export PPT",
-                exportStarted: "PPT export started. Keep waiting in this task.",
+                exportPpt: "Download PPT",
+                exportStarted: "PPT is being prepared. Keep waiting in this task.",
                 downloadPpt: "Download PPT",
             },
             slides: {

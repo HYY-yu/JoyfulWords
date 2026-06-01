@@ -1792,6 +1792,7 @@ export const zh = {
                 selectTransition: "选择转场",
                 missingOptions: "请先确认 theme 和 image style",
                 generate: "生成完整 PPT",
+                regenerate: "重新生成 PPT",
                 submitSuccess: "PPT 生成任务已提交，弹窗会自动刷新进度",
             },
             layoutResult: {
@@ -1804,8 +1805,9 @@ export const zh = {
                 previewTitle: "PPT 预览",
                 previewWaiting: "预览正在生成，完成后会自动显示。",
                 previewReady: "预览已就绪，可检查页面效果。",
-                previewEmpty: "暂时没有 HTML 预览，请稍后刷新。",
-                exportStarted: "已开始导出 PPT，请在当前弹窗继续等待。",
+                previewEmpty: "暂时没有 PPT 预览快照，可直接下载 PPT。",
+                exportStarted: "PPT 正在准备，请在当前弹窗继续等待。",
+                downloadNotReady: "PPT 下载地址还未就绪，请稍后刷新。",
             },
         },
         detail: {
@@ -1839,12 +1841,12 @@ export const zh = {
             },
             preview: {
                 title: "PPT 预览",
-                description: "完整 PPT 任务成功后，这里会展示 HTML 预览，并支持继续导出 PPT 文件。",
-                waiting: "当前任务尚未完成，HTML 预览会在任务成功后出现。",
-                empty: "暂时没有 HTML 结果。",
+                description: "完整 PPT 任务成功后，这里会展示后端生成的 SVG 预览快照。",
+                waiting: "当前任务尚未完成，PPT 预览会在任务成功后出现。",
+                empty: "暂时没有 PPT 预览快照，可直接下载 PPT。",
                 openNewTab: "新窗口打开",
-                exportPpt: "导出 PPT",
-                exportStarted: "已开始导出 PPT，请在当前任务继续等待",
+                exportPpt: "下载 PPT",
+                exportStarted: "PPT 正在准备，请在当前任务继续等待",
                 downloadPpt: "下载 PPT",
             },
             slides: {
