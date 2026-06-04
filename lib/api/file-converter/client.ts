@@ -1,12 +1,16 @@
 import { API_BASE_URL } from "@/lib/config"
 import { getLanguageHeader } from "@/lib/api/client"
+import { getValidAccessToken } from "@/lib/tokens/refresh"
+import { tokenStore } from "@/lib/tokens/token-store"
 import type {
   ApiErrorResponse,
-  ConvertResult,
-  FileConverterFormat,
-  TextConvertRequest,
-  TextConvertResponse,
+  ConversionTaskResponse,
+  DocumentTemplateRecord,
+  MarkdownToWordRequest,
+  TemplateListResponse,
 } from "./types"
+
+const DOCUMENT_CONVERTER_BASE = `${API_BASE_URL}/api/document-converter`
 
 export class FileConverterApiError extends Error {
   status: number
@@ -18,54 +22,95 @@ export class FileConverterApiError extends Error {
   }
 }
 
-export async function convertUploadedFile(file: File, targetType: FileConverterFormat): Promise<ConvertResult> {
-  const formData = new FormData()
-  formData.append("file", file)
-  formData.append("target_type", targetType)
-
-  return requestConversion({
-    method: "POST",
-    body: formData,
-    headers: {
-      "Accept-Language": getLanguageHeader(),
-    },
+export async function listWordTemplates(): Promise<DocumentTemplateRecord[]> {
+  const response = await fetch(`${DOCUMENT_CONVERTER_BASE}/templates?type=word`, {
+    method: "GET",
+    credentials: "include",
+    headers: await optionalHeaders(),
   })
-}
-
-export async function convertTextContent(request: TextConvertRequest): Promise<ConvertResult> {
-  return requestConversion({
-    method: "POST",
-    body: JSON.stringify(request),
-    headers: {
-      "Accept-Language": getLanguageHeader(),
-      "Content-Type": "application/json",
-    },
-  })
-}
-
-async function requestConversion(init: RequestInit): Promise<ConvertResult> {
-  const response = await fetch(`${API_BASE_URL}/api/convert`, init)
-  const contentType = response.headers.get("content-type") ?? ""
-
   if (!response.ok) {
     throw new FileConverterApiError(await readErrorMessage(response), response.status)
   }
+  const payload = (await response.json()) as TemplateListResponse
+  return payload.templates ?? []
+}
 
-  if (contentType.includes("application/json")) {
-    const payload = (await response.json()) as TextConvertResponse
-    return {
-      kind: "text",
-      data: payload.data,
+export async function uploadWordTemplate(file: File, name: string): Promise<DocumentTemplateRecord> {
+  const token = await getValidAccessToken()
+  if (!token) {
+    throw new FileConverterApiError("请先登录后上传模板", 401)
+  }
+
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("name", name)
+
+  const response = await fetch(`${DOCUMENT_CONVERTER_BASE}/templates/word`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+    headers: {
+      "Accept-Language": getLanguageHeader(),
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  if (!response.ok) {
+    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+  }
+  return (await response.json()) as DocumentTemplateRecord
+}
+
+export async function convertMarkdownToWord(request: MarkdownToWordRequest): Promise<ConversionTaskResponse> {
+  const response = await fetch(`${DOCUMENT_CONVERTER_BASE}/convert/markdown-to-word`, {
+    method: "POST",
+    credentials: "include",
+    body: JSON.stringify({
+      markdown: request.markdown,
+      template_id: request.template_id ?? "",
+    }),
+    headers: await optionalHeaders({ "Content-Type": "application/json" }),
+  })
+  if (!response.ok) {
+    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+  }
+  return (await response.json()) as ConversionTaskResponse
+}
+
+export async function convertPptToWord(file: File, templateId: string): Promise<ConversionTaskResponse> {
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("template_id", templateId)
+
+  const response = await fetch(`${DOCUMENT_CONVERTER_BASE}/convert/ppt-to-word`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+    headers: await optionalHeaders(),
+  })
+  if (!response.ok) {
+    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+  }
+  return (await response.json()) as ConversionTaskResponse
+}
+
+export function absoluteDownloadURL(downloadURL: string): string {
+  if (!downloadURL) return ""
+  if (/^https?:\/\//i.test(downloadURL)) return downloadURL
+  return `${API_BASE_URL}${downloadURL.startsWith("/") ? downloadURL : `/${downloadURL}`}`
+}
+
+async function optionalHeaders(extra?: HeadersInit): Promise<HeadersInit> {
+  const headers = new Headers(extra)
+  headers.set("Accept-Language", getLanguageHeader())
+
+  const currentToken = tokenStore.getAccessToken()
+  if (currentToken) {
+    const token = await getValidAccessToken()
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`)
     }
   }
-
-  const blob = await response.blob()
-  return {
-    kind: "file",
-    blob,
-    fileName: getFileNameFromDisposition(response.headers.get("content-disposition")) ?? fallbackFileName(contentType),
-    contentType: contentType || blob.type,
-  }
+  return headers
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
@@ -81,22 +126,4 @@ async function readErrorMessage(response: Response): Promise<string> {
 
   const text = await response.text()
   return text || "转换失败，请稍后重试"
-}
-
-function getFileNameFromDisposition(disposition: string | null): string | null {
-  if (!disposition) return null
-
-  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
-  if (utf8Match?.[1]) {
-    return decodeURIComponent(utf8Match[1])
-  }
-
-  const asciiMatch = disposition.match(/filename="?([^";]+)"?/i)
-  return asciiMatch?.[1] ?? null
-}
-
-function fallbackFileName(contentType: string): string {
-  if (contentType.includes("pdf")) return "converted.pdf"
-  if (contentType.includes("wordprocessingml")) return "converted.docx"
-  return "converted.bin"
 }
