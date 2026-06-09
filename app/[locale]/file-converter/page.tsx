@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: FileConverterPageProps): Prom
   return buildMetadata({
     title: isZh ? "文件转换" : "File Converter",
     description: isZh
-      ? "在 JoyfulWords 中转换 PDF、Word、JSON 与 Markdown 文件或文本。"
-      : "Convert PDF, Word, JSON, and Markdown files or text in JoyfulWords.",
+      ? "在 JoyfulWords 中使用 Word 模板完成 Markdown 转 Word 与 PPT 转 Word。"
+      : "Convert Markdown and PPT files into Word documents with reusable Word templates in JoyfulWords.",
     path: buildLocalizedPath(locale, "/file-converter"),
     locale,
     alternatePaths: {
@@ -41,8 +41,8 @@ export async function generateMetadata({ params }: FileConverterPageProps): Prom
       en: buildLocalizedPath("en", "/file-converter"),
     },
     keywords: isZh
-      ? ["文件转换", "PDF转Markdown", "Word转JSON", "Markdown转PDF", "JSON转Word"]
-      : ["file converter", "PDF to Markdown", "Word to JSON", "Markdown to PDF", "JSON to Word"],
+      ? ["文件转换", "Markdown转Word", "PPT转Word", "Word模板", "文档模板"]
+      : ["file converter", "Markdown to Word", "PPT to Word", "Word template", "document template"],
   })
 }
 
