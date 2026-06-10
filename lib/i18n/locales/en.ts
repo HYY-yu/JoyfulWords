@@ -2378,7 +2378,7 @@ export const en = {
             subtitle: "Materials, draft, and visuals move together",
             live: "Live",
             canvasLabel: "Article Canvas",
-            canvasTitle: "AI Tools Going Global",
+            canvasTitle: "How to Write a Good Article",
             canvasStatus: "Auto sorting",
             insightTitle: "AI is extracting",
             insight: "JoyfulWords pulls viewpoints, examples, and visual directions from your material library into an editable article skeleton.",
