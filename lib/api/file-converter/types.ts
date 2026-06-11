@@ -1,4 +1,4 @@
-export type DocumentConversionMode = "markdown-to-word" | "ppt-to-word"
+export type DocumentConversionMode = "markdown-to-word" | "ppt-to-word" | "pdf-to-word"
 
 export interface DocumentTemplateRecord {
   template_id: string

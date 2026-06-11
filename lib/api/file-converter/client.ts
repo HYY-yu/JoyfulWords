@@ -93,6 +93,23 @@ export async function convertPptToWord(file: File, templateId: string): Promise<
   return (await response.json()) as ConversionTaskResponse
 }
 
+export async function convertPdfToWord(file: File, templateId: string): Promise<ConversionTaskResponse> {
+  const formData = new FormData()
+  formData.append("file", file)
+  formData.append("template_id", templateId)
+
+  const response = await fetch(`${DOCUMENT_CONVERTER_BASE}/convert/pdf-to-word`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+    headers: await optionalHeaders(),
+  })
+  if (!response.ok) {
+    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+  }
+  return (await response.json()) as ConversionTaskResponse
+}
+
 export function absoluteDownloadURL(downloadURL: string): string {
   if (!downloadURL) return ""
   if (/^https?:\/\//i.test(downloadURL)) return downloadURL

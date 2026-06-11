@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from "react"
 import {
   DownloadIcon,
+  FileIcon,
   FileTextIcon,
   FileUpIcon,
   ImageIcon,
@@ -26,6 +27,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   absoluteDownloadURL,
   convertMarkdownToWord,
+  convertPdfToWord,
   convertPptToWord,
   listWordTemplates,
   uploadWordTemplate,
@@ -69,10 +71,12 @@ type HoverState = {
 export function FileConverterPageContent() {
   const { toast } = useToast()
   const pptInputRef = useRef<HTMLInputElement | null>(null)
+  const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const templateInputRef = useRef<HTMLInputElement | null>(null)
   const [mode, setMode] = useState<DocumentConversionMode>("markdown-to-word")
   const [markdown, setMarkdown] = useState(DEFAULT_MARKDOWN)
   const [pptFile, setPptFile] = useState<File | null>(null)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [templates, setTemplates] = useState<DocumentTemplateRecord[]>([])
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [templateName, setTemplateName] = useState("")
@@ -133,6 +137,21 @@ export function FileConverterPageContent() {
     setPptFile(file)
   }
 
+  const handlePdfSelect = (file: File | null) => {
+    if (!file) return
+    if (!isPdfFile(file)) {
+      toast({ title: "文件格式不支持", description: "请选择 .pdf 文件。", variant: "destructive" })
+      resetFileInput(pdfInputRef)
+      return
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast({ title: "文件过大", description: "请上传 50MB 以内的文件。", variant: "destructive" })
+      resetFileInput(pdfInputRef)
+      return
+    }
+    setPdfFile(file)
+  }
+
   const handleTemplateSelect = (file: File | null) => {
     if (!file) return
     if (!isDocxFile(file)) {
@@ -180,10 +199,14 @@ export function FileConverterPageContent() {
     setIsConverting(true)
     setResult(null)
     try {
-      const converted =
-        mode === "markdown-to-word"
-          ? await convertMarkdownToWord({ markdown, template_id: selectedTemplateId })
-          : await convertPptToWord(assertPptFile(pptFile), selectedTemplateId)
+      let converted: ConversionTaskResponse
+      if (mode === "markdown-to-word") {
+        converted = await convertMarkdownToWord({ markdown, template_id: selectedTemplateId })
+      } else if (mode === "ppt-to-word") {
+        converted = await convertPptToWord(assertPptFile(pptFile), selectedTemplateId)
+      } else {
+        converted = await convertPdfToWord(assertPdfFile(pdfFile), selectedTemplateId)
+      }
       setResult(converted)
       toast({ title: "转换完成" })
     } catch (error) {
@@ -197,7 +220,8 @@ export function FileConverterPageContent() {
     }
   }
 
-  const canConvert = mode === "markdown-to-word" ? markdown.trim().length > 0 : Boolean(pptFile)
+  const canConvert = mode === "markdown-to-word" ? markdown.trim().length > 0 : mode === "ppt-to-word" ? Boolean(pptFile) : Boolean(pdfFile)
+  const sourceLabel = mode === "markdown-to-word" ? "Markdown" : mode === "ppt-to-word" ? pptFile?.name ?? "PPT" : pdfFile?.name ?? "PDF"
   const downloadHref = result ? absoluteDownloadURL(result.download_url) : ""
 
   return (
@@ -234,7 +258,7 @@ export function FileConverterPageContent() {
           <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)]">
             <div className="border-b border-[var(--jw-border-subtle)] p-4">
               <Tabs value={mode} onValueChange={(value) => setMode(value as DocumentConversionMode)}>
-                <TabsList className="grid h-10 w-full min-w-0 grid-cols-2 rounded-md">
+                <TabsList className="grid h-10 w-full min-w-0 grid-cols-3 rounded-md">
                   <TabsTrigger value="markdown-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
                     <FileTextIcon className="size-4" />
                     <span className="truncate">Markdown 转 Word</span>
@@ -242,6 +266,10 @@ export function FileConverterPageContent() {
                   <TabsTrigger value="ppt-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
                     <LayersIcon className="size-4" />
                     <span className="truncate">PPT 转 Word</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="pdf-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
+                    <FileIcon className="size-4" />
+                    <span className="truncate">PDF 转 Word</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -259,35 +287,25 @@ export function FileConverterPageContent() {
                   />
                 </div>
               ) : (
-                <div className="flex h-full min-h-[520px] flex-col gap-4">
-                  <button
-                    type="button"
-                    onClick={() => pptInputRef.current?.click()}
-                    className="flex min-h-[340px] flex-1 flex-col items-center justify-center rounded-md border border-dashed border-[var(--jw-border)] bg-[var(--jw-surface)] px-5 text-center transition-colors hover:border-[var(--jw-accent)] hover:bg-[var(--jw-accent-soft)]"
-                  >
-                    <FileUpIcon className="mb-3 size-10 text-[var(--jw-accent)]" />
-                    <span className="text-base font-semibold text-foreground">选择 PPT 文件</span>
-                    <span className="mt-2 text-sm text-[var(--jw-muted)]">.pptx · 50MB</span>
-                  </button>
-                  <input
-                    ref={pptInputRef}
-                    type="file"
-                    accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                    className="hidden"
-                    onChange={(event) => handlePptSelect(event.target.files?.[0] ?? null)}
-                  />
-                  {pptFile ? (
-                    <FileSummary
-                      icon={<LayersIcon className="size-4" />}
-                      name={pptFile.name}
-                      meta={formatFileSize(pptFile.size)}
-                      onClear={() => {
-                        setPptFile(null)
-                        resetFileInput(pptInputRef)
-                      }}
-                    />
-                  ) : null}
-                </div>
+                <FileUploadArea
+                  inputRef={mode === "ppt-to-word" ? pptInputRef : pdfInputRef}
+                  file={mode === "ppt-to-word" ? pptFile : pdfFile}
+                  uploadIcon={<FileUpIcon className="mb-3 size-10 text-[var(--jw-accent)]" />}
+                  summaryIcon={mode === "ppt-to-word" ? <LayersIcon className="size-4" /> : <FileIcon className="size-4" />}
+                  title={mode === "ppt-to-word" ? "选择 PPT 文件" : "选择 PDF 文件"}
+                  hint={mode === "ppt-to-word" ? ".pptx · 50MB" : ".pdf · 50MB"}
+                  accept={mode === "ppt-to-word" ? ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" : ".pdf,application/pdf"}
+                  onSelect={(file) => (mode === "ppt-to-word" ? handlePptSelect(file) : handlePdfSelect(file))}
+                  onClear={() => {
+                    if (mode === "ppt-to-word") {
+                      setPptFile(null)
+                      resetFileInput(pptInputRef)
+                    } else {
+                      setPdfFile(null)
+                      resetFileInput(pdfInputRef)
+                    }
+                  }}
+                />
               )}
             </div>
 
@@ -313,7 +331,7 @@ export function FileConverterPageContent() {
               ) : (
                 <div className="flex items-center justify-between text-xs text-[var(--jw-muted)]">
                   <span>模板：{selectedTemplate?.name ?? "系统默认模板"}</span>
-                  <span>{mode === "markdown-to-word" ? "Markdown" : pptFile?.name ?? "PPT"} → Word</span>
+                  <span>{sourceLabel} → Word</span>
                 </div>
               )}
             </div>
@@ -387,6 +405,57 @@ export function FileConverterPageContent() {
           </section>
         </div>
       </main>
+    </div>
+  )
+}
+
+function FileUploadArea({
+  inputRef,
+  file,
+  uploadIcon,
+  summaryIcon,
+  title,
+  hint,
+  accept,
+  onSelect,
+  onClear,
+}: {
+  inputRef: RefObject<HTMLInputElement | null>
+  file: File | null
+  uploadIcon: ReactNode
+  summaryIcon: ReactNode
+  title: string
+  hint: string
+  accept: string
+  onSelect: (file: File | null) => void
+  onClear: () => void
+}) {
+  return (
+    <div className="flex h-full min-h-[520px] flex-col gap-4">
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="flex min-h-[340px] flex-1 flex-col items-center justify-center rounded-md border border-dashed border-[var(--jw-border)] bg-[var(--jw-surface)] px-5 text-center transition-colors hover:border-[var(--jw-accent)] hover:bg-[var(--jw-accent-soft)]"
+      >
+        {uploadIcon}
+        <span className="text-base font-semibold text-foreground">{title}</span>
+        <span className="mt-2 text-sm text-[var(--jw-muted)]">{hint}</span>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(event) => onSelect(event.target.files?.[0] ?? null)}
+      />
+      {file ? (
+        <FileSummary
+          icon={summaryIcon}
+          name={file.name}
+          meta={formatFileSize(file.size)}
+          onClear={onClear}
+        />
+      ) : null}
     </div>
   )
 }
@@ -674,8 +743,17 @@ function isPptFile(file: File): boolean {
   return file.name.toLowerCase().endsWith(".pptx") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 }
 
+function isPdfFile(file: File): boolean {
+  return file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf"
+}
+
 function assertPptFile(file: File | null): File {
   if (!file) throw new Error("请选择 PPT 文件")
+  return file
+}
+
+function assertPdfFile(file: File | null): File {
+  if (!file) throw new Error("请选择 PDF 文件")
   return file
 }
 
