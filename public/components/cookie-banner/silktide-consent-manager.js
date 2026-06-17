@@ -765,7 +765,9 @@ class SilktideCookieBanner {
 
   getBannerSuffix() {
     if (this.config.bannerSuffix) {
-      return '_' + this.config.bannerSuffix;
+      return this.config.bannerSuffix.startsWith('_')
+        ? this.config.bannerSuffix
+        : '_' + this.config.bannerSuffix;
     }
     return '';
   }
@@ -790,6 +792,15 @@ class SilktideCookieBanner {
   let config = {};
   let cookieBanner;
 
+  function hasRenderableConfig() {
+    return (
+      Array.isArray(config.cookieTypes) &&
+      config.cookieTypes.length > 0 &&
+      !!config.text?.banner &&
+      !!config.text?.preferences
+    );
+  }
+
   function updateCookieBannerConfig(userConfig = {}) {
     config = {...config, ...userConfig};
 
@@ -809,6 +820,10 @@ class SilktideCookieBanner {
   }
 
   function initCookieBanner() {
+    if (!hasRenderableConfig()) {
+      return;
+    }
+
     if (!cookieBanner) {
       cookieBanner = new SilktideCookieBanner(config); // Pass config to the CookieBanner instance
     }
@@ -837,10 +852,4 @@ class SilktideCookieBanner {
   window.silktideCookieBannerManager.initCookieBanner = initCookieBanner;
   window.silktideCookieBannerManager.updateCookieBannerConfig = updateCookieBannerConfig;
   window.silktideCookieBannerManager.injectScript = injectScript;
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCookieBanner, {once: true});
-  } else {
-    initCookieBanner();
-  }
 })();

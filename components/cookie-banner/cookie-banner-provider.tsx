@@ -6,11 +6,13 @@ import type { SilktideConfig } from "./types"
 import { BANNER_SUFFIX } from "./types"
 import { notifyAnalyticsConsentChanged } from "@/lib/analytics/cookie-consent"
 
+const SILKTIDE_SCRIPT_SRC = "/components/cookie-banner/silktide-consent-manager.js?v=20260617-no-auto-init"
+
 /**
  * CookieBannerProvider - Silktide Cookie Banner 包装组件
  *
  * 功能:
- * - 动态加载 Silktide 脚本和样式（确保全局只加载一次）
+ * - 动态加载 Silktide 脚本（确保全局只加载一次）
  * - 将 i18n 翻译转换为 Silktide 配置
  * - 监听语言切换,动态更新配置
  * - 处理组件卸载和清理
@@ -22,7 +24,7 @@ export function CookieBannerProvider() {
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
   const cleanupRef = useRef<(() => void) | null>(null)
 
-  // 加载 Silktide 脚本和样式
+  // 加载 Silktide 脚本
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_ENABLE_COOKIE_BANNER !== "true") {
       return
@@ -70,7 +72,7 @@ export function CookieBannerProvider() {
 }
 
 /**
- * 动态加载 Silktide CSS 和 JS 文件
+ * 动态加载 Silktide JS 文件
  * 确保每个资源只被加载一次
  *
  * @returns 清理函数,用于移除添加的 DOM 元素
@@ -78,27 +80,14 @@ export function CookieBannerProvider() {
 function loadSilktideAssets(onReady: () => void) {
   try {
     // 检查是否已经加载过这些资源
-    const existingCss = document.querySelector<HTMLLinkElement>('link[data-silktide-cookie-banner]')
     const existingScript = document.querySelector<HTMLScriptElement>('script[data-silktide-cookie-banner]')
-
-    // 加载 CSS
-    const cssLink =
-      existingCss ??
-      (() => {
-        const cssLink = document.createElement("link")
-        cssLink.rel = "stylesheet"
-        cssLink.href = "/components/cookie-banner/silktide-consent-manager.css"
-        cssLink.dataset.silktideCookieBanner = ""
-        document.head.appendChild(cssLink)
-        return cssLink
-      })()
 
     // 加载 JS
     const script =
       existingScript ??
       (() => {
         const script = document.createElement("script")
-        script.src = "/components/cookie-banner/silktide-consent-manager.js"
+        script.src = SILKTIDE_SCRIPT_SRC
         script.dataset.silktideCookieBanner = ""
         script.defer = true
         document.head.appendChild(script)
@@ -107,16 +96,13 @@ function loadSilktideAssets(onReady: () => void) {
 
     const cleanupListeners: Array<() => void> = []
 
-    Promise.all([
-      waitForStylesheet(cssLink, cleanupListeners),
-      waitForSilktideScript(script, cleanupListeners),
-    ])
+    waitForSilktideScript(script, cleanupListeners)
       .then(() => {
-        console.debug("[Cookie Banner] Assets loaded")
+        console.debug("[Cookie Banner] Script loaded")
         onReady()
       })
       .catch((error) => {
-        console.error("[Cookie Banner] Failed to load assets:", error)
+        console.error("[Cookie Banner] Failed to load script:", error)
       })
 
     // 返回事件监听清理函数（保留脚本在全局）
@@ -129,24 +115,6 @@ function loadSilktideAssets(onReady: () => void) {
     console.error("[Cookie Banner] Failed to load assets:", error)
     return () => {}
   }
-}
-
-function waitForStylesheet(link: HTMLLinkElement, cleanupListeners: Array<() => void>) {
-  if (link.sheet) {
-    return Promise.resolve()
-  }
-
-  return new Promise<void>((resolve, reject) => {
-    const handleLoad = () => resolve()
-    const handleError = () => reject(new Error(`Failed to load stylesheet: ${link.href}`))
-
-    link.addEventListener("load", handleLoad, { once: true })
-    link.addEventListener("error", handleError, { once: true })
-    cleanupListeners.push(() => {
-      link.removeEventListener("load", handleLoad)
-      link.removeEventListener("error", handleError)
-    })
-  })
 }
 
 function waitForSilktideScript(script: HTMLScriptElement, cleanupListeners: Array<() => void>) {
