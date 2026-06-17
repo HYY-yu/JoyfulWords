@@ -536,7 +536,7 @@ export const zh = {
             imageErrorCta: "修改提示词后重新生成",
         },
         materialPanel: {
-            sourceTitle: "素材上下文",
+            sourceTitle: "素材管理器",
             search: "搜索",
             library: "素材库",
             searchPlaceholder: "搜索素材...",
@@ -1587,7 +1587,7 @@ export const zh = {
             title: "AI 功能",
             studioTitle: "AI 工作室",
             groups: {
-                writing: "写作增强",
+                writing: "文章增强",
                 visual: "视觉生成",
                 structure: "结构化输出",
             },
@@ -1596,9 +1596,9 @@ export const zh = {
                 visual: "为文章生成配图、拆分图层或统一风格。",
                 structure: "把文章内容转成思维导图、信息图和演示文稿。",
             },
-            aiEdit: "文章 AI 编辑",
+            aiEdit: "AI 编辑",
             aiWrite: "AI 写作",
-            mindmap: "AI 思维导图",
+            mindmap: "思维导图",
             aiCover: "AI 封面",
             createImage: "创作图片",
             aiGenerate: "AI 生成文章",
@@ -2052,7 +2052,7 @@ export const zh = {
         },
     },
     aiMindmap: {
-        title: "AI 思维导图",
+        title: "思维导图",
         description: "打开历史导图，或基于全文/选区重建；支持拖拽、双击编辑与快捷键操作",
         loading: "正在生成思维导图...",
         empty: "暂无可展示的思维导图",

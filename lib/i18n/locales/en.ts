@@ -536,7 +536,7 @@ export const en = {
             imageErrorCta: "Revise prompt and generate again",
         },
         materialPanel: {
-            sourceTitle: "Source Context",
+            sourceTitle: "Materials Manager",
             search: "Search",
             library: "Library",
             searchPlaceholder: "Search materials...",
@@ -1587,7 +1587,7 @@ export const en = {
             title: "AI Features",
             studioTitle: "AI Studio",
             groups: {
-                writing: "Writing Boost",
+                writing: "Article Enhancement",
                 visual: "Visual Generation",
                 structure: "Structured Output",
             },

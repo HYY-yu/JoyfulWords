@@ -96,10 +96,6 @@ const FEATURE_GROUPS = [
     titleKey: "tiptapEditor.aiPanel.groups.writing",
   },
   {
-    id: "visual",
-    titleKey: "tiptapEditor.aiPanel.groups.visual",
-  },
-  {
     id: "structure",
     titleKey: "tiptapEditor.aiPanel.groups.structure",
   },
@@ -144,7 +140,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     icon: ImageIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
-    groupKey: "visual",
+    groupKey: "writing",
   },
   {
     id: "reversal-mode",
