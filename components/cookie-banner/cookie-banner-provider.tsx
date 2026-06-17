@@ -34,20 +34,17 @@ export function CookieBannerProvider() {
       return
     }
 
-    const cleanup = loadSilktideAssets()
+    let cancelled = false
+    const cleanup = loadSilktideAssets(() => {
+      if (cancelled) return
+      setIsScriptLoaded(true)
+    })
     cleanupRef.current = cleanup
 
-    // 轮询检查脚本是否加载完成
-    const checkInterval = setInterval(() => {
-      if (window.silktideCookieBannerManager) {
-        setIsScriptLoaded(true)
-        clearInterval(checkInterval)
-      }
-    }, 100)
-
     return () => {
-      clearInterval(checkInterval)
-      // 注意：不执行 cleanup，因为脚本需要保留在全局
+      cancelled = true
+      cleanupRef.current?.()
+      // 注意：只清理事件监听，不移除资源，因为脚本需要保留在全局。
       // 这样即使用户在页面间切换，脚本也不会重复加载
     }
   }, [isScriptLoaded])
@@ -61,6 +58,7 @@ export function CookieBannerProvider() {
     const config = buildSilktideConfig(t)
 
     try {
+      migrateLegacySilktideStorage()
       window.silktideCookieBannerManager.updateCookieBannerConfig(config)
       console.debug("[Cookie Banner] Configuration updated", { locale })
     } catch (error) {
@@ -77,45 +75,114 @@ export function CookieBannerProvider() {
  *
  * @returns 清理函数,用于移除添加的 DOM 元素
  */
-function loadSilktideAssets() {
+function loadSilktideAssets(onReady: () => void) {
   try {
     // 检查是否已经加载过这些资源
-    const existingCss = document.querySelector('link[data-silktide-cookie-banner]')
-    const existingScript = document.querySelector('script[data-silktide-cookie-banner]')
-
-    // 如果已经加载过，直接返回空清理函数
-    if (existingCss && existingScript) {
-      console.debug("[Cookie Banner] Assets already loaded, skipping...")
-      return () => {}
-    }
+    const existingCss = document.querySelector<HTMLLinkElement>('link[data-silktide-cookie-banner]')
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-silktide-cookie-banner]')
 
     // 加载 CSS
-    if (!existingCss) {
-      const cssLink = document.createElement("link")
-      cssLink.rel = "stylesheet"
-      cssLink.href = "/components/cookie-banner/silktide-consent-manager.css"
-      cssLink.dataset.silktideCookieBanner = ""
-      document.head.appendChild(cssLink)
-    }
+    const cssLink =
+      existingCss ??
+      (() => {
+        const cssLink = document.createElement("link")
+        cssLink.rel = "stylesheet"
+        cssLink.href = "/components/cookie-banner/silktide-consent-manager.css"
+        cssLink.dataset.silktideCookieBanner = ""
+        document.head.appendChild(cssLink)
+        return cssLink
+      })()
 
     // 加载 JS
-    if (!existingScript) {
-      const script = document.createElement("script")
-      script.src = "/components/cookie-banner/silktide-consent-manager.js"
-      script.dataset.silktideCookieBanner = ""
-      document.head.appendChild(script)
-    }
+    const script =
+      existingScript ??
+      (() => {
+        const script = document.createElement("script")
+        script.src = "/components/cookie-banner/silktide-consent-manager.js"
+        script.dataset.silktideCookieBanner = ""
+        script.defer = true
+        document.head.appendChild(script)
+        return script
+      })()
 
-    console.debug("[Cookie Banner] Assets loaded")
+    const cleanupListeners: Array<() => void> = []
 
-    // 返回空的清理函数（保留脚本在全局）
+    Promise.all([
+      waitForStylesheet(cssLink, cleanupListeners),
+      waitForSilktideScript(script, cleanupListeners),
+    ])
+      .then(() => {
+        console.debug("[Cookie Banner] Assets loaded")
+        onReady()
+      })
+      .catch((error) => {
+        console.error("[Cookie Banner] Failed to load assets:", error)
+      })
+
+    // 返回事件监听清理函数（保留脚本在全局）
     return () => {
+      cleanupListeners.forEach((cleanup) => cleanup())
       // 不清理，因为脚本需要在全局保持活跃
       // 这样可以避免用户在页面间切换时重复加载
     }
   } catch (error) {
     console.error("[Cookie Banner] Failed to load assets:", error)
     return () => {}
+  }
+}
+
+function waitForStylesheet(link: HTMLLinkElement, cleanupListeners: Array<() => void>) {
+  if (link.sheet) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const handleLoad = () => resolve()
+    const handleError = () => reject(new Error(`Failed to load stylesheet: ${link.href}`))
+
+    link.addEventListener("load", handleLoad, { once: true })
+    link.addEventListener("error", handleError, { once: true })
+    cleanupListeners.push(() => {
+      link.removeEventListener("load", handleLoad)
+      link.removeEventListener("error", handleError)
+    })
+  })
+}
+
+function waitForSilktideScript(script: HTMLScriptElement, cleanupListeners: Array<() => void>) {
+  if (window.silktideCookieBannerManager) {
+    return Promise.resolve()
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const handleLoad = () => resolve()
+    const handleError = () => reject(new Error(`Failed to load script: ${script.src}`))
+
+    script.addEventListener("load", handleLoad, { once: true })
+    script.addEventListener("error", handleError, { once: true })
+    cleanupListeners.push(() => {
+      script.removeEventListener("load", handleLoad)
+      script.removeEventListener("error", handleError)
+    })
+  })
+}
+
+function migrateLegacySilktideStorage() {
+  const migrations = [
+    ["silktideCookieBanner_InitialChoice__global", "silktideCookieBanner_InitialChoice_global"],
+    ["silktideCookieChoice_necessary__global", "silktideCookieChoice_necessary_global"],
+    ["silktideCookieChoice_analytics__global", "silktideCookieChoice_analytics_global"],
+  ] as const
+
+  for (const [legacyKey, currentKey] of migrations) {
+    const legacyValue = localStorage.getItem(legacyKey)
+    if (legacyValue === null || localStorage.getItem(currentKey) !== null) continue
+
+    localStorage.setItem(currentKey, legacyValue)
+    console.info("[Cookie Banner] Migrated legacy storage key", {
+      legacyKey,
+      currentKey,
+    })
   }
 }
 
