@@ -22,6 +22,7 @@ import type {
 } from "@/lib/api/taskcenter/types"
 import {
   getTaskCenterPresentationDownloadUrl,
+  isTaskCenterArticleWriterDetails,
   parseTaskCenterImageUrls,
 } from "@/lib/api/taskcenter/types"
 import { cn } from "@/lib/utils"
@@ -83,7 +84,7 @@ export function getTaskCenterTaskIcon(task: TaskCenterTaskListItem) {
 function getArticleTaskTitle(
   details: Pick<TaskCenterArticleListDetails, "operate_type" | "operation_type">
 ): string {
-  if (details.operate_type === "writer" || details.operation_type) {
+  if (isTaskCenterArticleWriterDetails(details)) {
     if (details.operation_type === "writer_create") return "articleWriteCreate"
     if (details.operation_type === "writer_update") return "articleWriteUpdate"
     return "articleWrite"
@@ -327,8 +328,7 @@ export function TaskCenterTaskDetailView({
       ? getTaskCenterPresentationDownloadUrl(detail as TaskCenterPresentationTaskDetail)
       : null
   const articleDetail = taskRef.type === "article" ? (detail as TaskCenterArticleTaskDetail) : null
-  const isWriterArticleTask =
-    articleDetail?.operate_type === "writer" || Boolean(articleDetail?.operation_type)
+  const isWriterArticleTask = isTaskCenterArticleWriterDetails(articleDetail)
   const articleReqTextLabel = isWriterArticleTask
     ? t("contentWriting.taskCenter.fields.writingPrompt")
     : t("contentWriting.taskCenter.fields.sourceText")

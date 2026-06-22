@@ -533,82 +533,47 @@
   animation-delay: 0.44s;
 }
 
-.jw-cover-dialog {
+.jw-cover-appearance {
   color: var(--jw-heading);
   background: var(--background);
 }
 
-.jw-cover-dialog [data-slot="dialog-close"] {
-  top: 1rem;
-  right: 1rem;
-  border-radius: 999px;
-  color: var(--jw-muted);
-  opacity: 1;
-  transition:
-    color 160ms ease,
-    background-color 160ms ease,
-    transform 160ms ease;
-}
-
-.jw-cover-dialog [data-slot="dialog-close"]:hover {
-  background: var(--jw-accent-soft);
-  color: var(--jw-accent);
-  transform: rotate(4deg);
-}
-
-.jw-cover-dialog [data-slot="dialog-header"] {
-  border-color: var(--border);
-  background: var(--background);
-  padding: 1rem 1.5rem;
-}
-
-.jw-cover-dialog [data-slot="dialog-title"] {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-}
-
-.jw-cover-dialog [data-slot="dialog-footer"] {
-  border-color: var(--border);
-  background: var(--background);
-  padding: 1rem 1.5rem;
-}
-
-.jw-cover-dialog * {
+.jw-cover-appearance * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--jw-accent) 32%, transparent) transparent;
 }
 
-.jw-cover-dialog *::-webkit-scrollbar {
+.jw-cover-appearance *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
-.jw-cover-dialog *::-webkit-scrollbar-track {
+.jw-cover-appearance *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.jw-cover-dialog *::-webkit-scrollbar-thumb {
+.jw-cover-appearance *::-webkit-scrollbar-thumb {
   border: 3px solid transparent;
   border-radius: 999px;
   background: color-mix(in srgb, var(--jw-accent) 32%, transparent);
   background-clip: content-box;
 }
 
-.jw-cover-dialog *::-webkit-scrollbar-thumb:hover {
+.jw-cover-appearance *::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--jw-accent-hover) 42%, transparent);
   background-clip: content-box;
 }
 
-.jw-cover-dialog [data-slot="slider-track"] {
+.jw-cover-appearance [data-slot="slider-track"] {
   height: 0.5rem;
   background: color-mix(in srgb, var(--jw-border) 68%, transparent);
 }
 
-.jw-cover-dialog [data-slot="slider-range"] {
+.jw-cover-appearance [data-slot="slider-range"] {
   background: linear-gradient(90deg, var(--jw-accent), color-mix(in srgb, var(--jw-accent-hover) 74%, #ffd66b));
 }
 
-.jw-cover-dialog [data-slot="slider-thumb"] {
+.jw-cover-appearance [data-slot="slider-thumb"] {
   width: 1.125rem;
   height: 1.125rem;
   border: 2px solid var(--jw-accent);
@@ -624,13 +589,13 @@
 
 @media (min-width: 1024px) {
   .jw-cover-layout {
-    grid-template-columns: 260px minmax(0, 1fr) 430px;
+    grid-template-columns: 288px minmax(0, 1fr) 430px;
   }
 }
 
 @media (min-width: 1280px) {
   .jw-cover-layout {
-    grid-template-columns: 286px minmax(420px, 1fr) 456px;
+    grid-template-columns: 320px minmax(420px, 1fr) 456px;
   }
 }
 

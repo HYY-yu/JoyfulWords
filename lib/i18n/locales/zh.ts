@@ -696,6 +696,7 @@ export const zh = {
 
         cover: {
             title: "AI 封面",
+            description: "一键自动生成文章封面，快速完成背景、标题字体与导出参数配置。",
             articleRequired: "请先保存文章后再创作封面",
             export: "导出封面",
             canvasStatus: "实时预览",

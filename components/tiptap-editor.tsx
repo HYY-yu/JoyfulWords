@@ -38,6 +38,7 @@ import type {
   TaskCenterArticleTaskDetail,
   TaskCenterTaskReference,
 } from "@/lib/api/taskcenter/types";
+import { isTaskCenterArticleWriterDetails } from "@/lib/api/taskcenter/types";
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks";
 
 const NON_TEXT_EDITOR_CONTENT_PATTERN = /<(img|video|table|hr|ul|ol|blockquote|pre)\b/i;
@@ -147,7 +148,7 @@ export function TiptapEditor({
       }
 
       const articleTask = result as TaskCenterArticleTaskDetail;
-      if (articleTask.operate_type === "writer" || articleTask.operation_type) {
+      if (isTaskCenterArticleWriterDetails(articleTask)) {
         throw new Error("Unsupported article task operation");
       }
 

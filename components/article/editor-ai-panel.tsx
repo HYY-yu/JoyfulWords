@@ -36,7 +36,10 @@ import type {
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
 } from "@/lib/api/taskcenter/types"
-import { getTaskCenterTaskKey } from "@/lib/api/taskcenter/types"
+import {
+  getTaskCenterTaskKey,
+  isTaskCenterArticleWriterDetails,
+} from "@/lib/api/taskcenter/types"
 import {
   clearEChartsArticleAnalysisSession,
   loadEChartsArticleAnalysisSession,
@@ -243,7 +246,7 @@ function mapTaskCenterTaskToProgressItem(
 function isArticleEditTask(task: TaskCenterTaskListItem): boolean {
   if (task.type !== "article") return false
 
-  if (task.details.operate_type === "writer" || task.details.operation_type) {
+  if (isTaskCenterArticleWriterDetails(task.details)) {
     return false
   }
 

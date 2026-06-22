@@ -396,7 +396,7 @@ export function AIRewriteDialog({
       title={t("aiRewrite.title")}
       description={t("aiRewrite.description")}
       size="compact"
-      contentClassName="h-[min(76vh,720px)] sm:h-[min(74vh,760px)]"
+      contentClassName="h-[min(92vh,980px)] sm:h-[min(88vh,980px)] w-[min(94vw,1320px)] sm:w-[min(82vw,1240px)] lg:w-[min(68vw,1280px)] xl:w-[min(64vw,1180px)] max-w-[min(94vw,1320px)] sm:max-w-[min(82vw,1240px)] lg:max-w-[min(68vw,1280px)] xl:max-w-[min(64vw,1180px)]"
       footer={
         <>
           <Button
@@ -410,7 +410,7 @@ export function AIRewriteDialog({
               <Button
                 onClick={handleGenerate}
                 disabled={isGenerateDisabled() || !selectedText.trim()}
-                variant="secondary"
+                variant="default"
               >
                 {isSubmitting ? (
                   <>

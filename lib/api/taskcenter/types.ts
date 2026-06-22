@@ -7,7 +7,7 @@ export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "prese
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
 
 export type TaskCenterArticleOperateType = "edit" | "writer"
-export type TaskCenterArticleOperationType = "" | "writer_create" | "writer_update"
+export type TaskCenterArticleOperationType = "" | "edit" | "writer_create" | "writer_update"
 export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
@@ -287,6 +287,23 @@ export type TaskCenterTaskDetailResponse =
 export interface TaskCenterTaskReference {
   id: number
   type: TaskCenterTaskType
+}
+
+type TaskCenterArticleOperationDetails = {
+  operate_type?: TaskCenterArticleOperateType | string
+  operation_type?: TaskCenterArticleOperationType | string
+}
+
+export function isTaskCenterArticleWriterDetails(
+  details: TaskCenterArticleOperationDetails | null | undefined
+): boolean {
+  if (!details) return false
+
+  return (
+    details.operate_type === "writer" ||
+    details.operation_type === "writer_create" ||
+    details.operation_type === "writer_update"
+  )
 }
 
 export function getTaskCenterTaskKey(task: TaskCenterTaskReference): string {

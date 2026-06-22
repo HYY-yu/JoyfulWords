@@ -1020,10 +1020,11 @@ export function ArticleCoverDialog({
         open={open}
         onOpenChange={onOpenChange}
         title={t("imageGeneration.cover.title")}
+        description={t("imageGeneration.cover.description")}
         icon={<SparklesIcon className="h-5 w-5 text-[var(--jw-accent)]" />}
         size="large"
         overlayClassName="bg-black/75"
-        contentClassName="jw-cover-dialog h-[min(86vh,900px)] w-[min(96vw,1680px)] max-w-[calc(100vw-1rem)] border-border bg-background sm:max-w-[min(96vw,1680px)]"
+        contentClassName="jw-cover-appearance h-[min(86vh,900px)] w-[min(96vw,1680px)] max-w-[calc(100vw-1rem)] border-border bg-background sm:max-w-[min(96vw,1680px)]"
         footer={
           <div className="flex w-full items-center justify-between gap-3">
             <div className="min-w-0 text-xs font-medium text-[var(--jw-muted)]">

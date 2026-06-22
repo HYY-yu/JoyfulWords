@@ -1,7 +1,10 @@
 "use client"
 
 import { API_BASE_URL } from "@/lib/config"
-import type { TaskCenterTaskType } from "@/lib/api/taskcenter/types"
+import {
+  isTaskCenterArticleWriterDetails,
+  type TaskCenterTaskType,
+} from "@/lib/api/taskcenter/types"
 import { getImageTaskErrorMessage } from "@/lib/api/taskcenter/image-error-messages"
 import { tokenStore } from "@/lib/tokens/token-store"
 
@@ -744,7 +747,10 @@ class WebSocketService {
     const operationType =
       typeof outputs.operation_type === "string" ? outputs.operation_type : ""
 
-    if (operateType === "writer" || operationType) {
+    if (isTaskCenterArticleWriterDetails({
+      operate_type: operateType,
+      operation_type: operationType,
+    })) {
       if (operationType === "writer_create") {
         return locale === "zh" ? "AI 文章写作完成" : "AI article writing completed"
       }

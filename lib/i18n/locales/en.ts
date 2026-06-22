@@ -696,6 +696,7 @@ export const en = {
 
         cover: {
             title: "AI Cover",
+            description: "Generate article cover images automatically with one click, including background, typography, and export settings.",
             articleRequired: "Please save the article before creating a cover",
             export: "Export Cover",
             canvasStatus: "Live preview",
