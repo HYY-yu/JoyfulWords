@@ -49,7 +49,7 @@ export interface MaterialLog {
   material_type: MaterialType
   status: MaterialStatus
   query: string // 查询的字符串
-  remark: string // n8n 标注的执行信息
+  remark: string // 搜索执行信息
   created_at: string // ISO 8601 格式时间
   updated_at: string // ISO 8601 格式时间
 }
@@ -86,6 +86,8 @@ export interface MaterialFavorite {
 export interface SearchMaterialsRequest {
   material_type: MaterialType
   search_text: string // 1-500 字符
+  page?: number
+  page_size?: number
 }
 
 /**
@@ -135,6 +137,9 @@ export interface MaterialSearchDetailAIResult {
   ai_answer?: string
   ai_result?: MaterialSearchResultItem[]
   images?: string[]
+  page?: number
+  page_size?: number
+  total?: number
 }
 
 /**
@@ -174,6 +179,7 @@ export interface CreateMaterialFavoriteRequest {
  */
 export interface AddMaterialsFromLogResponse {
   ids: number[]
+  materials?: Material[]
   message: string
 }
 

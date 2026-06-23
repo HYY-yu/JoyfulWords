@@ -49,13 +49,16 @@ export const materialsClient = {
    */
   async search(
     materialType: SearchMaterialsRequest['material_type'],
-    searchText: SearchMaterialsRequest['search_text']
+    searchText: SearchMaterialsRequest['search_text'],
+    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>
   ): Promise<MessageResponse | ErrorResponse> {
     return authenticatedApiRequest<MessageResponse>('/materials/search', {
       method: 'POST',
       body: JSON.stringify({
         material_type: materialType,
         search_text: searchText,
+        page: params?.page,
+        page_size: params?.page_size,
       } as SearchMaterialsRequest),
     })
   },
@@ -68,13 +71,16 @@ export const materialsClient = {
    */
   async searchV2(
     materialType: SearchMaterialsRequest['material_type'],
-    searchText: SearchMaterialsRequest['search_text']
+    searchText: SearchMaterialsRequest['search_text'],
+    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>
   ): Promise<TriggerMaterialSearchV2Response | ErrorResponse> {
     return authenticatedApiRequest<TriggerMaterialSearchV2Response>('/materials/search-v2', {
       method: 'POST',
       body: JSON.stringify({
         material_type: materialType,
         search_text: searchText,
+        page: params?.page,
+        page_size: params?.page_size,
       } as SearchMaterialsRequest),
     })
   },

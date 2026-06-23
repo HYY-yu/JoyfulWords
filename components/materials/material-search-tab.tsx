@@ -40,12 +40,10 @@ export function MaterialSearchTab() {
 
   const handleLogsPageChange = (page: number) => {
     updatePagination('logs', { page })
-    fetchSearchLogs(logTypeFilter, logStatusFilter)
   }
 
   const handleLogsPageSizeChange = (pageSize: number) => {
     updatePagination('logs', { pageSize, page: 1 })
-    fetchSearchLogs(logTypeFilter, logStatusFilter)
   }
 
   return (

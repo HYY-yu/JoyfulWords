@@ -570,6 +570,8 @@ export const zh = {
             imageResultAlt: "搜索结果图片",
             openImage: "打开",
             resultCardTitle: "AI 搜索结果",
+            previousPage: "上一页",
+            nextPage: "下一页",
             aiSummary: "AI 总结",
             importSelected: "导入所选（{count}）",
             importToLibrary: "加入素材库",

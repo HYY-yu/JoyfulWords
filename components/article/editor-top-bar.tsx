@@ -394,6 +394,7 @@ export function EditorTopBar({
         articleId={article.id}
         currentContent={currentContent}
         currentTitle={article.title}
+        currentUpdatedAt={article.updated_at}
         onVersionRollback={onVersionRollback}
         onSave={onSave}
       />

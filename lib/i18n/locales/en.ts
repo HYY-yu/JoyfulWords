@@ -570,6 +570,8 @@ export const en = {
             imageResultAlt: "Search result image",
             openImage: "Open",
             resultCardTitle: "AI Search Result",
+            previousPage: "Previous page",
+            nextPage: "Next page",
             aiSummary: "AI Summary",
             importSelected: "Import Selected ({count})",
             importToLibrary: "Add to Materials",

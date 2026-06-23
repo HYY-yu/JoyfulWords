@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
-import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff } from "lucide-react"
+import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { useInfiniteMaterialFavorites } from "@/lib/hooks/use-infinite-material-favorites"
@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/t
 import { Skeleton } from "@/components/ui/base/skeleton"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { Textarea } from "@/components/ui/base/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { cn, formatDate } from "@/lib/utils"
 import type { CheckedState } from "@radix-ui/react-checkbox"
 import type { Material, MaterialType, MaterialFavorite, MaterialParseStatus, MaterialSearchDetailResponse, MaterialSearchResultItem } from "@/lib/api/materials/types"
@@ -298,6 +299,8 @@ const SEARCH_TYPE_TABS = [
 
 const SEARCH_POLL_INTERVAL_MS = 3000
 const SEARCH_MAX_FAIL_COUNT = 3
+const SEARCH_RESULT_DEFAULT_PAGE_SIZE = 10
+const SEARCH_RESULT_PAGE_SIZE_OPTIONS = [10, 20, 50] as const
 
 interface PersistedMaterialSearchTask {
   logId: number
@@ -305,6 +308,8 @@ interface PersistedMaterialSearchTask {
   userId: number
   query: string
   materialType: MaterialType
+  page: number
+  pageSize: number
   createdAt: string
 }
 
@@ -330,9 +335,26 @@ function loadPersistedMaterialSearchTask(userId: number, articleId: number): Per
   try {
     const raw = localStorage.getItem(buildMaterialSearchStorageKey(userId, articleId))
     if (!raw) return null
-    return JSON.parse(raw) as PersistedMaterialSearchTask
+    return normalizePersistedMaterialSearchTask(JSON.parse(raw) as Partial<PersistedMaterialSearchTask>)
   } catch {
     return null
+  }
+}
+
+function normalizePersistedMaterialSearchTask(task: Partial<PersistedMaterialSearchTask>): PersistedMaterialSearchTask | null {
+  if (!task.logId || !task.articleId || !task.userId || !task.query || !task.materialType || !task.createdAt) {
+    return null
+  }
+
+  return {
+    logId: task.logId,
+    articleId: task.articleId,
+    userId: task.userId,
+    query: task.query,
+    materialType: task.materialType,
+    page: task.page && task.page > 0 ? task.page : 1,
+    pageSize: task.pageSize && task.pageSize > 0 ? task.pageSize : SEARCH_RESULT_DEFAULT_PAGE_SIZE,
+    createdAt: task.createdAt,
   }
 }
 
@@ -554,29 +576,43 @@ function SearchImageItem({
 
 function SearchResultCard({
   result,
+  page,
+  pageSize,
   selectedUrls,
   resultDrafts,
   importLoading,
+  pageLoading,
   onToggleUrl,
   onDraftChange,
+  onPageChange,
+  onPageSizeChange,
   onDelete,
   onImport,
 }: {
   result: MaterialSearchDetailResponse
+  page: number
+  pageSize: number
   selectedUrls: Set<string>
   resultDrafts: Record<string, EditableSearchResultDraft>
   importLoading: boolean
+  pageLoading: boolean
   onToggleUrl: (url: string, checked: boolean) => void
   onDraftChange: (url: string, draft: EditableSearchResultDraft) => void
+  onPageChange: (page: number) => void
+  onPageSizeChange: (pageSize: number) => void
   onDelete: () => void
   onImport: () => void
 }) {
   const { t } = useTranslation()
   const aiResultItems = result.ai_result?.ai_result ?? []
   const imageItems = result.ai_result?.images ?? []
+  const currentItemCount = result.material_type === "image" ? imageItems.length : aiResultItems.length
+  const total = result.ai_result?.total ?? currentItemCount
+  const totalPages = Math.max(page, Math.max(1, Math.ceil(total / pageSize)))
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const selectedCount = selectedUrls.size
-  const importDisabled = selectedCount === 0 || importLoading
+  const canGoNext = page < totalPages
+  const importDisabled = selectedCount === 0 || importLoading || pageLoading
 
   return (
     <>
@@ -587,8 +623,55 @@ function SearchResultCard({
               <p className="text-sm font-semibold text-foreground">
                 {t("contentWriting.materialPanel.resultCardTitle")}
               </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>
+                  {page} {t("contentWriting.materials.pagination.pageOf")} {totalPages}
+                </span>
+                <span className="text-muted-foreground/50">/</span>
+                <span>
+                  {t("contentWriting.materials.pagination.perPage")}
+                </span>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value) => onPageSizeChange(Number(value))}
+                  disabled={pageLoading || importLoading}
+                >
+                  <SelectTrigger className="h-7 w-[70px] text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SEARCH_RESULT_PAGE_SIZE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={String(option)}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1 self-start">
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="h-8 w-8"
+                onClick={() => onPageChange(page - 1)}
+                disabled={page <= 1 || pageLoading || importLoading}
+                aria-label={t("contentWriting.materialPanel.previousPage")}
+                title={t("contentWriting.materialPanel.previousPage")}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon-sm"
+                className="h-8 w-8"
+                onClick={() => onPageChange(page + 1)}
+                disabled={!canGoNext || pageLoading || importLoading}
+                aria-label={t("contentWriting.materialPanel.nextPage")}
+                title={t("contentWriting.materialPanel.nextPage")}
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
               <Button
                 size="icon-sm"
                 className="h-8 w-8"
@@ -597,7 +680,7 @@ function SearchResultCard({
                 aria-label={t("contentWriting.materialPanel.importToLibrary")}
                 title={t("contentWriting.materialPanel.importToLibrary")}
               >
-                {importLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Inbox className="h-3.5 w-3.5" />}
+                {importLoading || pageLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Inbox className="h-3.5 w-3.5" />}
               </Button>
               <Button
                 variant="ghost"
@@ -692,6 +775,7 @@ function SearchTab({
   const [resultDrafts, setResultDrafts] = useState<Record<string, EditableSearchResultDraft>>({})
   const [isImporting, setIsImporting] = useState(false)
   const [isTriggeringSearch, setIsTriggeringSearch] = useState(false)
+  const [isPagingSearch, setIsPagingSearch] = useState(false)
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const networkFailCountRef = useRef(0)
@@ -732,6 +816,7 @@ function SearchTab({
     setSelectedUrls(new Set())
     setResultDrafts({})
     setIsTriggeringSearch(false)
+    setIsPagingSearch(false)
     if (userId && articleId) {
       clearPersistedMaterialSearchTask(userId, articleId)
     }
@@ -835,8 +920,8 @@ function SearchTab({
   useEffect(() => stopPolling, [stopPolling])
 
   useEffect(() => {
-    onSearchLockedChange?.(Boolean(activeTask) || isTriggeringSearch)
-  }, [activeTask, isTriggeringSearch, onSearchLockedChange])
+    onSearchLockedChange?.(Boolean(activeTask) || isTriggeringSearch || isPagingSearch)
+  }, [activeTask, isPagingSearch, isTriggeringSearch, onSearchLockedChange])
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
@@ -856,6 +941,8 @@ function SearchTab({
       userId,
       query: trimmed,
       materialType: searchType,
+      page: 1,
+      pageSize: SEARCH_RESULT_DEFAULT_PAGE_SIZE,
       createdAt: new Date().toISOString(),
     }
 
@@ -866,7 +953,10 @@ function SearchTab({
       query: trimmed,
     })
 
-    const searchResult = await materialsClient.searchV2(searchType, trimmed)
+    const searchResult = await materialsClient.searchV2(searchType, trimmed, {
+      page: nextTaskBase.page,
+      page_size: nextTaskBase.pageSize,
+    })
     if (searchRequestSeqRef.current !== requestSeq) {
       console.debug("[MaterialSearch] ignoring stale trigger response", {
         materialType: searchType,
@@ -904,6 +994,84 @@ function SearchTab({
     setIsTriggeringSearch(false)
     void handlePollResult(task)
   }, [activeTask, articleId, handlePollResult, persistTask, searchText, searchType, stopPolling, t, toast, userId])
+
+  const handleSearchPageChange = useCallback(
+    async (page: number, pageSize = activeTask?.pageSize ?? SEARCH_RESULT_DEFAULT_PAGE_SIZE) => {
+      if (!activeTask || page < 1 || isPagingSearch || isImporting) return
+      if (page === activeTask.page && pageSize === activeTask.pageSize) return
+
+      const requestSeq = searchRequestSeqRef.current + 1
+      searchRequestSeqRef.current = requestSeq
+      setIsPagingSearch(true)
+      stopPolling()
+      setSelectedUrls(new Set())
+      setResultDrafts({})
+
+      console.info("[MaterialSearch] triggering paged v2 search", {
+        articleId: activeTask.articleId,
+        userId: activeTask.userId,
+        materialType: activeTask.materialType,
+        query: activeTask.query,
+        page,
+        pageSize,
+      })
+
+      const searchResult = await materialsClient.searchV2(activeTask.materialType, activeTask.query, {
+        page,
+        page_size: pageSize,
+      })
+
+      if (searchRequestSeqRef.current !== requestSeq) {
+        console.debug("[MaterialSearch] ignoring stale paged trigger response", {
+          materialType: activeTask.materialType,
+          query: activeTask.query,
+          page,
+          pageSize,
+        })
+        return
+      }
+
+      if ("error" in searchResult) {
+        console.warn("[MaterialSearch] paged trigger failed", {
+          materialType: activeTask.materialType,
+          query: activeTask.query,
+          page,
+          pageSize,
+          error: searchResult.error,
+        })
+        toast({
+          variant: "destructive",
+          title: t("contentWriting.materialPanel.searchFailed"),
+          description: searchResult.error,
+        })
+        setIsPagingSearch(false)
+        return
+      }
+
+      const task: PersistedMaterialSearchTask = {
+        ...activeTask,
+        logId: searchResult.id,
+        page,
+        pageSize,
+        createdAt: new Date().toISOString(),
+      }
+
+      activeSearchLogIdRef.current = task.logId
+      persistTask(task)
+      setActiveTask(task)
+      setBannerStatus("triggered")
+      setIsPagingSearch(false)
+      void handlePollResult(task)
+    },
+    [activeTask, handlePollResult, isImporting, isPagingSearch, persistTask, stopPolling, t, toast]
+  )
+
+  const handleSearchPageSizeChange = useCallback(
+    (pageSize: number) => {
+      void handleSearchPageChange(1, pageSize)
+    },
+    [handleSearchPageChange]
+  )
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -982,7 +1150,7 @@ function SearchTab({
     setIsImporting(false)
   }, [activeTask, clearSearchTask, onImportSuccess, resultDrafts, selectedUrls, t, toast])
 
-  const isSearchLocked = Boolean(activeTask) || isTriggeringSearch
+  const isSearchLocked = Boolean(activeTask) || isTriggeringSearch || isPagingSearch
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
@@ -1020,11 +1188,16 @@ function SearchTab({
           {activeTask && detail?.status === "success" ? (
             <SearchResultCard
               result={detail}
+              page={activeTask.page}
+              pageSize={activeTask.pageSize}
               selectedUrls={selectedUrls}
               resultDrafts={resultDrafts}
               importLoading={isImporting}
+              pageLoading={isPagingSearch}
               onToggleUrl={handleToggleUrl}
               onDraftChange={handleDraftChange}
+              onPageChange={(page) => void handleSearchPageChange(page)}
+              onPageSizeChange={handleSearchPageSizeChange}
               onDelete={clearSearchTask}
               onImport={() => void handleImport()}
             />
