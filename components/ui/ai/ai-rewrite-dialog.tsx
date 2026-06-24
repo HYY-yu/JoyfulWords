@@ -16,10 +16,14 @@ import { Textarea } from "../base/textarea";
 import { Input } from "../base/input";
 import { Label } from "../base/label";
 import { Dialog, DialogContent, DialogTitle } from "../base/dialog";
+import { ToggleGroup, ToggleGroupItem } from "../base/toggle-group";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { articlesClient } from "@/lib/api/articles/client";
-import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials";
+import {
+  useInfiniteMaterialPicker,
+  type MaterialPickerScope,
+} from "@/lib/hooks/use-infinite-material-picker";
 import type {
   ArticleEditType,
   StyleType,
@@ -147,7 +151,7 @@ function MaterialSelectionCard({
         }
       }}
       className={cn(
-        "flex min-h-[124px] cursor-pointer items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+        "flex min-h-[124px] min-w-0 cursor-pointer items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition-colors",
         selected
           ? "border-primary bg-primary/5 shadow-sm"
           : "border-border bg-background hover:bg-muted/50"
@@ -165,8 +169,10 @@ function MaterialSelectionCard({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-sm font-medium text-foreground">{material.title}</div>
+          <div className="min-w-0 flex-1">
+            <div className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+              {material.title}
+            </div>
             <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/70">
               {typeLabel}
             </div>
@@ -190,7 +196,7 @@ function MaterialSelectionCard({
         </div>
 
         {!isImage && material.content ? (
-          <div className="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">
+          <div className="mt-2 line-clamp-3 break-words text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">
             {material.content}
           </div>
         ) : null}
@@ -220,6 +226,8 @@ export function AIRewriteDialog({
 
   // 素材扩充状态
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
+  const [materialScope, setMaterialScope] = useState<MaterialPickerScope>("article");
+  const [materialSearch, setMaterialSearch] = useState("");
   const materialsScrollPositionRef = useRef(0);
   const materialsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -246,8 +254,11 @@ export function AIRewriteDialog({
     hasMore: hasMoreMaterials,
     reset: resetMaterials,
     observerTarget: materialsObserverTarget,
-  } = useInfiniteMaterials({
+  } = useInfiniteMaterialPicker({
     enabled: open && !isTaskMode && rewriteType === 'material',
+    articleId,
+    scope: materialScope,
+    nameFilter: materialSearch.trim() || undefined,
     pageSize: 20,
   });
 
@@ -256,6 +267,8 @@ export function AIRewriteDialog({
     if (open) {
       setCustomText("");
       materialsScrollPositionRef.current = 0;
+      setMaterialScope("article");
+      setMaterialSearch("");
 
       if (initialRewrittenText) {
         setRewrittenText(initialRewrittenText);
@@ -283,6 +296,12 @@ export function AIRewriteDialog({
     if (materialsScrollRef.current) {
       materialsScrollPositionRef.current = materialsScrollRef.current.scrollTop;
     }
+  };
+
+  const handleMaterialScopeChange = (value: string) => {
+    if (!value) return;
+    setMaterialScope(value as MaterialPickerScope);
+    materialsScrollPositionRef.current = 0;
   };
 
   // 验证表单
@@ -584,17 +603,37 @@ export function AIRewriteDialog({
             </div>
 
             {/* 二级菜单：根据类型动态渲染 */}
-            {isLoadingMaterials && materials.length === 0 && rewriteType === 'material' ? (
-              <div className="flex min-h-[120px] flex-1 items-center justify-center rounded-md border">
-                <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">{t("aiRewrite.material.loadingMaterials")}</span>
-              </div>
-            ) : (
               <>
                 {/* 素材扩充配置 */}
                 {rewriteType === 'material' && (
                   <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
                     <Label>{t("aiRewrite.material.selectMaterials")}</Label>
+                    <div className="flex flex-col gap-2">
+                      <ToggleGroup
+                        type="single"
+                        value={materialScope}
+                        onValueChange={handleMaterialScopeChange}
+                        variant="outline"
+                        size="sm"
+                        className="w-full shrink-0 sm:w-auto"
+                      >
+                        <ToggleGroupItem value="all" className="px-3 text-xs">
+                          {t("aiRewrite.material.scopeAll")}
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="article" className="px-3 text-xs">
+                          {t("aiRewrite.material.scopeArticle")}
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="favorites" className="px-3 text-xs">
+                          {t("aiRewrite.material.scopeFavorites")}
+                        </ToggleGroupItem>
+                      </ToggleGroup>
+                      <Input
+                        value={materialSearch}
+                        onChange={(event) => setMaterialSearch(event.target.value)}
+                        placeholder={t("aiRewrite.material.searchPlaceholder")}
+                        className="h-9 min-w-0 flex-1"
+                      />
+                    </div>
                     {materials.length === 0 && !isLoadingMaterials ? (
                       <div className="flex min-h-[120px] flex-1 items-center justify-center rounded-md border text-sm text-muted-foreground">
                         {t("aiRewrite.material.noMaterials")}
@@ -605,22 +644,29 @@ export function AIRewriteDialog({
                         onScroll={handleMaterialsScroll}
                         className="grid min-h-[132px] w-full flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2"
                       >
-                        {materials.map((material) => (
-                          <MaterialSelectionCard
-                            key={material.id}
-                            material={material}
-                            selected={selectedMaterialIds.includes(material.id)}
-                            onToggleSelected={() => {
-                              if (selectedMaterialIds.includes(material.id)) {
-                                setSelectedMaterialIds(selectedMaterialIds.filter((id) => id !== material.id));
-                                return;
-                              }
-                              setSelectedMaterialIds([...selectedMaterialIds, material.id]);
-                            }}
-                            onPreview={() => setPreviewMaterial(material)}
-                            typeLabel={t(`aiRewrite.material.typeLabels.${material.material_type}`)}
-                          />
-                        ))}
+                        {isLoadingMaterials && materials.length === 0 ? (
+                          <div className="flex min-h-[120px] items-center justify-center md:col-span-2">
+                            <Loader2Icon className="h-5 w-5 animate-spin text-muted-foreground" />
+                            <span className="ml-2 text-sm text-muted-foreground">{t("aiRewrite.material.loadingMaterials")}</span>
+                          </div>
+                        ) : (
+                          materials.map((material) => (
+                            <MaterialSelectionCard
+                              key={material.id}
+                              material={material}
+                              selected={selectedMaterialIds.includes(material.id)}
+                              onToggleSelected={() => {
+                                if (selectedMaterialIds.includes(material.id)) {
+                                  setSelectedMaterialIds(selectedMaterialIds.filter((id) => id !== material.id));
+                                  return;
+                                }
+                                setSelectedMaterialIds([...selectedMaterialIds, material.id]);
+                              }}
+                              onPreview={() => setPreviewMaterial(material)}
+                              typeLabel={t(`aiRewrite.material.typeLabels.${material.material_type}`)}
+                            />
+                          ))
+                        )}
                         {/* 无限滚动 observer */}
                         {(hasMoreMaterials || isLoadingMaterials) && materials.length > 0 && (
                           <div ref={materialsObserverTarget} className="flex justify-center py-2 md:col-span-2">
@@ -687,7 +733,6 @@ export function AIRewriteDialog({
                   </div>
                 )}
               </>
-            )}
             </div>
           ) : null}
 
@@ -719,7 +764,7 @@ export function AIRewriteDialog({
                 {t(`aiRewrite.material.typeLabels.${previewMaterial.material_type}`)}
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto rounded-md border p-4">
-                <div className="whitespace-pre-wrap text-sm leading-6 text-foreground">
+                <div className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground [overflow-wrap:anywhere]">
                   {previewMaterial.content}
                 </div>
               </div>

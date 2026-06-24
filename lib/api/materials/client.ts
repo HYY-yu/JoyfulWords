@@ -166,6 +166,7 @@ export const materialsClient = {
     const searchParams = new URLSearchParams()
     if (params?.page) searchParams.append('page', String(params.page))
     if (params?.page_size) searchParams.append('page_size', String(params.page_size))
+    if (params?.name) searchParams.append('name', params.name)
 
     const queryString = searchParams.toString()
     const url = queryString ? `/materials/favorites/list?${queryString}` : '/materials/favorites/list'

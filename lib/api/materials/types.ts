@@ -115,6 +115,7 @@ export interface GetSearchLogsRequest {
 export interface GetMaterialFavoritesRequest {
   page?: number
   page_size?: number
+  name?: string
 }
 
 /**

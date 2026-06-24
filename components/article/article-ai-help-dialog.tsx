@@ -18,13 +18,19 @@ import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Checkbox } from "@/components/ui/base/checkbox"
 import { Badge } from "@/components/ui/base/badge"
-import { SparklesIcon, FileTextIcon, PenToolIcon, XIcon, LoaderIcon, UploadIcon, CheckIcon } from "lucide-react"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/base/toggle-group"
+import { SparklesIcon, FileTextIcon, PenToolIcon, XIcon, LoaderIcon, UploadIcon, CheckIcon, CheckCircle2Icon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
 import { AI_WRITE_STYLE_OPTIONS } from "@/lib/api/articles/enums"
 import { materialsClient } from "@/lib/api/materials/client"
-import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
+import {
+  useInfiniteMaterialPicker,
+  type MaterialPickerScope,
+} from "@/lib/hooks/use-infinite-material-picker"
 import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
+import type { Material } from "@/lib/api/materials/types"
+import { cn } from "@/lib/utils"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -33,6 +39,74 @@ interface ArticleAIHelpDialogProps {
   onArticleCreated: (article: Article) => void  // 接收后端返回的 Article 对象
   articleId?: number | null
   variant?: "default" | "feature" | "feature-compact"
+}
+
+function AIHelpMaterialCard({
+  material,
+  selected,
+  onToggleSelected,
+  onPreview,
+  typeLabel,
+}: {
+  material: Material
+  selected: boolean
+  onToggleSelected: () => void
+  onPreview: () => void
+  typeLabel: string
+}) {
+  const isImage = material.material_type === "image"
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onPreview}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onPreview()
+        }
+      }}
+      className={cn(
+        "flex min-h-[112px] min-w-0 cursor-pointer items-start gap-3 overflow-hidden rounded-lg border p-3 text-left transition-colors",
+        selected
+          ? "border-primary bg-primary/5 shadow-sm"
+          : "border-border bg-background hover:bg-muted/50"
+      )}
+    >
+      <Checkbox
+        checked={selected}
+        onCheckedChange={onToggleSelected}
+        onClick={(event) => event.stopPropagation()}
+        className="mt-0.5"
+        aria-label={material.title}
+      />
+
+      {isImage && material.content ? (
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded border bg-muted/40">
+          <img src={material.content} alt={material.title} className="h-full w-full object-cover" />
+        </div>
+      ) : (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border bg-muted/40">
+          <CheckCircle2Icon className="h-5 w-5 text-muted-foreground" />
+        </div>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <div className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+          {material.title}
+        </div>
+        <div className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground/70">
+          {typeLabel}
+        </div>
+        {!isImage && material.content ? (
+          <div className="mt-2 line-clamp-3 break-words text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">
+            {material.content}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 export function ArticleAIHelpDialog({
@@ -50,7 +124,9 @@ export function ArticleAIHelpDialog({
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>([])
   const [selectedStyleId, setSelectedStyleId] = useState<AIWriteStyleId | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [materialScope, setMaterialScope] = useState<MaterialPickerScope>("article")
   const [materialSearch, setMaterialSearch] = useState("")
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null)
 
   // 文件上传状态
   const [uploadedFile, setUploadedFile] = useState<{
@@ -72,11 +148,12 @@ export function ArticleAIHelpDialog({
     loadMore: loadMoreMaterials,
     reset: resetMaterials,
     observerTarget: materialsObserverTarget,
-  } = useInfiniteMaterials({
+  } = useInfiniteMaterialPicker({
     enabled: open,
     pageSize: 20,
     nameFilter: materialSearch || undefined,
     articleId: articleIdFilter,
+    scope: materialScope,
   })
 
   const dialogDescription = articleIdFilter
@@ -87,6 +164,8 @@ export function ArticleAIHelpDialog({
   useEffect(() => {
     if (!open) {
       resetMaterials()
+      setMaterialScope("article")
+      setMaterialSearch("")
       materialsScrollPositionRef.current = 0
     }
   }, [open, resetMaterials])
@@ -106,6 +185,12 @@ export function ArticleAIHelpDialog({
     if (materialsScrollRef.current) {
       materialsScrollPositionRef.current = materialsScrollRef.current.scrollTop
     }
+  }
+
+  const handleMaterialScopeChange = (value: string) => {
+    if (!value) return
+    setMaterialScope(value as MaterialPickerScope)
+    materialsScrollPositionRef.current = 0
   }
 
   const handleToggleMaterial = (id: number) => {
@@ -314,6 +399,7 @@ export function ArticleAIHelpDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         overlayClassName={variant === "feature" || variant === "feature-compact" ? "bg-black/75" : undefined}
@@ -477,6 +563,24 @@ export function ArticleAIHelpDialog({
                     </div>
 
                     <div className="space-y-2">
+                      <ToggleGroup
+                        type="single"
+                        value={materialScope}
+                        onValueChange={handleMaterialScopeChange}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <ToggleGroupItem value="all" className="px-3 text-xs">
+                          {t("contentWriting.aiHelp.materialScopeAll")}
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="article" className="px-3 text-xs">
+                          {t("contentWriting.aiHelp.materialScopeArticle")}
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="favorites" className="px-3 text-xs">
+                          {t("contentWriting.aiHelp.materialScopeFavorites")}
+                        </ToggleGroupItem>
+                      </ToggleGroup>
                       <Input
                         placeholder={t("contentWriting.aiHelp.materialPlaceholder")}
                         value={materialSearch}
@@ -495,22 +599,14 @@ export function ArticleAIHelpDialog({
                         ) : (
                           <div className="space-y-1">
                             {materials.map((material) => (
-                              <div
+                              <AIHelpMaterialCard
                                 key={material.id}
-                                className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                                onClick={() => handleToggleMaterial(material.id)}
-                              >
-                                <Checkbox checked={selectedMaterials.includes(material.id)} />
-                                {material.material_type === 'image' && material.content ? (
-                                  <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden border">
-                                    <img src={material.content} alt={material.title} className="w-full h-full object-cover" />
-                                  </div>
-                                ) : null}
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium truncate">{material.title}</div>
-                                  <div className="text-xs text-muted-foreground">{material.material_type}</div>
-                                </div>
-                              </div>
+                                material={material}
+                                selected={selectedMaterials.includes(material.id)}
+                                onToggleSelected={() => handleToggleMaterial(material.id)}
+                                onPreview={() => setPreviewMaterial(material)}
+                                typeLabel={t(`aiRewrite.material.typeLabels.${material.material_type}`)}
+                              />
                             ))}
                             {(hasMoreMaterials || materialsLoading) && materials.length > 0 && (
                               <div ref={materialsObserverTarget} className="flex justify-center py-2">
@@ -714,6 +810,24 @@ export function ArticleAIHelpDialog({
               </div>
 
               <div className="space-y-2">
+                <ToggleGroup
+                  type="single"
+                  value={materialScope}
+                  onValueChange={handleMaterialScopeChange}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <ToggleGroupItem value="all" className="px-3 text-xs">
+                    {t("contentWriting.aiHelp.materialScopeAll")}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="article" className="px-3 text-xs">
+                    {t("contentWriting.aiHelp.materialScopeArticle")}
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="favorites" className="px-3 text-xs">
+                    {t("contentWriting.aiHelp.materialScopeFavorites")}
+                  </ToggleGroupItem>
+                </ToggleGroup>
                 <Input
                   placeholder={t("contentWriting.aiHelp.materialPlaceholder")}
                   value={materialSearch}
@@ -732,22 +846,14 @@ export function ArticleAIHelpDialog({
                   ) : (
                     <div className="space-y-1">
                       {materials.map((material) => (
-                        <div
+                        <AIHelpMaterialCard
                           key={material.id}
-                          className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                          onClick={() => handleToggleMaterial(material.id)}
-                        >
-                          <Checkbox checked={selectedMaterials.includes(material.id)} />
-                          {material.material_type === 'image' && material.content ? (
-                            <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden border">
-                              <img src={material.content} alt={material.title} className="w-full h-full object-cover" />
-                            </div>
-                          ) : null}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{material.title}</div>
-                            <div className="text-xs text-muted-foreground">{material.material_type}</div>
-                          </div>
-                        </div>
+                          material={material}
+                          selected={selectedMaterials.includes(material.id)}
+                          onToggleSelected={() => handleToggleMaterial(material.id)}
+                          onPreview={() => setPreviewMaterial(material)}
+                          typeLabel={t(`aiRewrite.material.typeLabels.${material.material_type}`)}
+                        />
                       ))}
                       {/* 无限滚动 observer */}
                       {(hasMoreMaterials || materialsLoading) && materials.length > 0 && (
@@ -814,5 +920,54 @@ export function ArticleAIHelpDialog({
         )}
       </DialogContent>
     </Dialog>
+    <Dialog open={previewMaterial !== null} onOpenChange={(open) => !open && setPreviewMaterial(null)}>
+      {previewMaterial?.material_type === "image" && previewMaterial.content ? (
+        <DialogContent className="max-w-[min(96vw,1400px)] border-none bg-transparent p-2 shadow-none [&>button]:hidden">
+          <DialogTitle className="sr-only">{previewMaterial.title}</DialogTitle>
+          <div className="flex max-h-[90vh] flex-col gap-3">
+            <div className="overflow-hidden rounded-lg bg-black/90 p-2">
+              <img
+                src={previewMaterial.content}
+                alt={previewMaterial.title}
+                className="max-h-[78vh] w-full rounded object-contain"
+              />
+            </div>
+            <div className="rounded-lg bg-background/95 px-4 py-3 backdrop-blur">
+              <div className="text-sm font-medium text-foreground">{previewMaterial.title}</div>
+            </div>
+          </div>
+        </DialogContent>
+      ) : previewMaterial ? (
+        <DialogContent className="flex max-h-[85vh] max-w-[min(92vw,1100px)] flex-col overflow-hidden">
+          <DialogTitle>{previewMaterial.title}</DialogTitle>
+          <div className="mt-2 flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+            <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+              {t(`aiRewrite.material.typeLabels.${previewMaterial.material_type}`)}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-md border p-4">
+              <div className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground [overflow-wrap:anywhere]">
+                {previewMaterial.content}
+              </div>
+            </div>
+            {previewMaterial.source_url ? (
+              <div className="shrink-0 rounded-md border bg-muted/20 p-3">
+                <div className="mb-1 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {t("contentWriting.materialPanel.viewSource")}
+                </div>
+                <a
+                  href={previewMaterial.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-sm text-primary underline-offset-4 hover:underline"
+                >
+                  {previewMaterial.source_url}
+                </a>
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      ) : null}
+    </Dialog>
+    </>
   )
 }
