@@ -1,4 +1,4 @@
-import { apiRequest, authenticatedApiRequest } from '@/lib/api/client'
+import { authenticatedApiRequest } from '@/lib/api/client'
 import type {
   SearchMaterialsRequest,
   GetMaterialsRequest,
@@ -50,10 +50,12 @@ export const materialsClient = {
   async search(
     materialType: SearchMaterialsRequest['material_type'],
     searchText: SearchMaterialsRequest['search_text'],
-    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>
+    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>,
+    options?: { signal?: AbortSignal }
   ): Promise<MessageResponse | ErrorResponse> {
     return authenticatedApiRequest<MessageResponse>('/materials/search', {
       method: 'POST',
+      signal: options?.signal,
       body: JSON.stringify({
         material_type: materialType,
         search_text: searchText,
@@ -72,10 +74,12 @@ export const materialsClient = {
   async searchV2(
     materialType: SearchMaterialsRequest['material_type'],
     searchText: SearchMaterialsRequest['search_text'],
-    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>
+    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>,
+    options?: { signal?: AbortSignal }
   ): Promise<TriggerMaterialSearchV2Response | ErrorResponse> {
     return authenticatedApiRequest<TriggerMaterialSearchV2Response>('/materials/search-v2', {
       method: 'POST',
+      signal: options?.signal,
       body: JSON.stringify({
         material_type: materialType,
         search_text: searchText,

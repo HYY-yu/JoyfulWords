@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/base/t
 import { Skeleton } from "@/components/ui/base/skeleton"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { Textarea } from "@/components/ui/base/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { cn, formatDate } from "@/lib/utils"
 import type { CheckedState } from "@radix-ui/react-checkbox"
 import type { Material, MaterialType, MaterialFavorite, MaterialParseStatus, MaterialSearchDetailResponse, MaterialSearchResultItem } from "@/lib/api/materials/types"
@@ -300,7 +299,6 @@ const SEARCH_TYPE_TABS = [
 const SEARCH_POLL_INTERVAL_MS = 3000
 const SEARCH_MAX_FAIL_COUNT = 3
 const SEARCH_RESULT_DEFAULT_PAGE_SIZE = 10
-const SEARCH_RESULT_PAGE_SIZE_OPTIONS = [10, 20, 50] as const
 
 interface PersistedMaterialSearchTask {
   logId: number
@@ -353,7 +351,7 @@ function normalizePersistedMaterialSearchTask(task: Partial<PersistedMaterialSea
     query: task.query,
     materialType: task.materialType,
     page: task.page && task.page > 0 ? task.page : 1,
-    pageSize: task.pageSize && task.pageSize > 0 ? task.pageSize : SEARCH_RESULT_DEFAULT_PAGE_SIZE,
+    pageSize: SEARCH_RESULT_DEFAULT_PAGE_SIZE,
     createdAt: task.createdAt,
   }
 }
@@ -380,28 +378,47 @@ function buildImageSelectableUrl(url: string) {
 function SearchStatusBanner({
   status,
   query,
+  onCancel,
 }: {
-  status: "triggered" | "polling"
+  status: "submitting" | "triggered" | "polling"
   query: string
+  onCancel?: () => void
 }) {
   const { t } = useTranslation()
 
   return (
-    <div className="rounded-2xl border border-primary/15 bg-primary/[0.06] px-3 py-2.5">
-      <div className="flex items-start gap-2.5">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Clock3 className="h-4 w-4 animate-pulse" />
+    <div className="rounded-lg border border-primary/15 bg-primary/[0.06] px-3 py-2.5">
+      <div className="flex items-start justify-between gap-2.5">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Clock3 className="h-4 w-4 animate-pulse" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              {status === "submitting"
+                ? t("contentWriting.materialPanel.searchSubmitting")
+                : status === "triggered"
+                  ? t("contentWriting.materialPanel.searchTriggered")
+                  : t("contentWriting.materialPanel.searching")}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {t("contentWriting.materialPanel.searchingHint", { query })}
+            </p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">
-            {status === "triggered"
-              ? t("contentWriting.materialPanel.searchTriggered")
-              : t("contentWriting.materialPanel.searching")}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {t("contentWriting.materialPanel.searchingHint", { query })}
-          </p>
-        </div>
+        {onCancel ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="h-7 w-7 shrink-0"
+            onClick={onCancel}
+            aria-label={t("contentWriting.materialPanel.cancelSearch")}
+            title={t("contentWriting.materialPanel.cancelSearch")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        ) : null}
       </div>
     </div>
   )
@@ -577,7 +594,6 @@ function SearchImageItem({
 function SearchResultCard({
   result,
   page,
-  pageSize,
   selectedUrls,
   resultDrafts,
   importLoading,
@@ -585,13 +601,11 @@ function SearchResultCard({
   onToggleUrl,
   onDraftChange,
   onPageChange,
-  onPageSizeChange,
   onDelete,
   onImport,
 }: {
   result: MaterialSearchDetailResponse
   page: number
-  pageSize: number
   selectedUrls: Set<string>
   resultDrafts: Record<string, EditableSearchResultDraft>
   importLoading: boolean
@@ -599,7 +613,6 @@ function SearchResultCard({
   onToggleUrl: (url: string, checked: boolean) => void
   onDraftChange: (url: string, draft: EditableSearchResultDraft) => void
   onPageChange: (page: number) => void
-  onPageSizeChange: (pageSize: number) => void
   onDelete: () => void
   onImport: () => void
 }) {
@@ -608,7 +621,7 @@ function SearchResultCard({
   const imageItems = result.ai_result?.images ?? []
   const currentItemCount = result.material_type === "image" ? imageItems.length : aiResultItems.length
   const total = result.ai_result?.total ?? currentItemCount
-  const totalPages = Math.max(page, Math.max(1, Math.ceil(total / pageSize)))
+  const totalPages = Math.max(page, Math.max(1, Math.ceil(total / SEARCH_RESULT_DEFAULT_PAGE_SIZE)))
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const selectedCount = selectedUrls.size
   const canGoNext = page < totalPages
@@ -623,55 +636,8 @@ function SearchResultCard({
               <p className="text-sm font-semibold text-foreground">
                 {t("contentWriting.materialPanel.resultCardTitle")}
               </p>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>
-                  {page} {t("contentWriting.materials.pagination.pageOf")} {totalPages}
-                </span>
-                <span className="text-muted-foreground/50">/</span>
-                <span>
-                  {t("contentWriting.materials.pagination.perPage")}
-                </span>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(value) => onPageSizeChange(Number(value))}
-                  disabled={pageLoading || importLoading}
-                >
-                  <SelectTrigger className="h-7 w-[70px] text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SEARCH_RESULT_PAGE_SIZE_OPTIONS.map((option) => (
-                      <SelectItem key={option} value={String(option)}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1 self-start">
-              <Button
-                variant="outline"
-                size="icon-sm"
-                className="h-8 w-8"
-                onClick={() => onPageChange(page - 1)}
-                disabled={page <= 1 || pageLoading || importLoading}
-                aria-label={t("contentWriting.materialPanel.previousPage")}
-                title={t("contentWriting.materialPanel.previousPage")}
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon-sm"
-                className="h-8 w-8"
-                onClick={() => onPageChange(page + 1)}
-                disabled={!canGoNext || pageLoading || importLoading}
-                aria-label={t("contentWriting.materialPanel.nextPage")}
-                title={t("contentWriting.materialPanel.nextPage")}
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
               <Button
                 size="icon-sm"
                 className="h-8 w-8"
@@ -735,6 +701,36 @@ function SearchResultCard({
             </div>
           )}
         </div>
+
+        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-3 border-t border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)] px-4 py-3 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.55)]">
+          <div className="text-xs text-muted-foreground">
+            {page} {t("contentWriting.materials.pagination.pageOf")} {totalPages}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className="h-8 w-8"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1 || pageLoading || importLoading}
+              aria-label={t("contentWriting.materialPanel.previousPage")}
+              title={t("contentWriting.materialPanel.previousPage")}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className="h-8 w-8"
+              onClick={() => onPageChange(page + 1)}
+              disabled={!canGoNext || pageLoading || importLoading}
+              aria-label={t("contentWriting.materialPanel.nextPage")}
+              title={t("contentWriting.materialPanel.nextPage")}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </SearchCardShell>
 
       <Dialog open={previewImageUrl !== null} onOpenChange={(open) => !open && setPreviewImageUrl(null)}>
@@ -770,7 +766,7 @@ function SearchTab({
   const [searchText, setSearchText] = useState("")
   const [activeTask, setActiveTask] = useState<PersistedMaterialSearchTask | null>(null)
   const [detail, setDetail] = useState<MaterialSearchDetailResponse | null>(null)
-  const [bannerStatus, setBannerStatus] = useState<"triggered" | "polling" | null>(null)
+  const [bannerStatus, setBannerStatus] = useState<"submitting" | "triggered" | "polling" | null>(null)
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
   const [resultDrafts, setResultDrafts] = useState<Record<string, EditableSearchResultDraft>>({})
   const [isImporting, setIsImporting] = useState(false)
@@ -782,6 +778,7 @@ function SearchTab({
   const searchTriggerLockedRef = useRef(false)
   const activeSearchLogIdRef = useRef<number | null>(null)
   const searchRequestSeqRef = useRef(0)
+  const searchAbortControllerRef = useRef<AbortController | null>(null)
 
   const persistTask = useCallback(
     (task: PersistedMaterialSearchTask | null) => {
@@ -807,6 +804,8 @@ function SearchTab({
   const clearSearchTask = useCallback(() => {
     console.info("[MaterialSearch] clearing active card")
     searchRequestSeqRef.current += 1
+    searchAbortControllerRef.current?.abort()
+    searchAbortControllerRef.current = null
     searchTriggerLockedRef.current = false
     activeSearchLogIdRef.current = null
     stopPolling()
@@ -925,12 +924,16 @@ function SearchTab({
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
-    if (!trimmed || !userId || !articleId || activeTask || searchTriggerLockedRef.current) return
+    if (trimmed.length < 2 || !userId || !articleId || activeTask || searchTriggerLockedRef.current) return
 
     const requestSeq = searchRequestSeqRef.current + 1
     searchRequestSeqRef.current = requestSeq
+    searchAbortControllerRef.current?.abort()
+    const abortController = new AbortController()
+    searchAbortControllerRef.current = abortController
     searchTriggerLockedRef.current = true
     setIsTriggeringSearch(true)
+    setBannerStatus("submitting")
     stopPolling()
     setDetail(null)
     setSelectedUrls(new Set())
@@ -953,56 +956,72 @@ function SearchTab({
       query: trimmed,
     })
 
-    const searchResult = await materialsClient.searchV2(searchType, trimmed, {
-      page: nextTaskBase.page,
-      page_size: nextTaskBase.pageSize,
-    })
-    if (searchRequestSeqRef.current !== requestSeq) {
-      console.debug("[MaterialSearch] ignoring stale trigger response", {
-        materialType: searchType,
-        query: trimmed,
-      })
-      return
-    }
+    try {
+      const searchResult = await materialsClient.searchV2(
+        searchType,
+        trimmed,
+        {
+          page: nextTaskBase.page,
+          page_size: nextTaskBase.pageSize,
+        },
+        { signal: abortController.signal }
+      )
+      if (searchRequestSeqRef.current !== requestSeq || abortController.signal.aborted) {
+        console.debug("[MaterialSearch] ignoring stale trigger response", {
+          materialType: searchType,
+          query: trimmed,
+        })
+        return
+      }
 
-    if ("error" in searchResult) {
-      console.warn("[MaterialSearch] trigger failed", {
-        materialType: searchType,
-        query: trimmed,
-        error: searchResult.error,
-      })
-      toast({
-        variant: "destructive",
-        title: t("contentWriting.materialPanel.searchFailed"),
-        description: searchResult.error,
-      })
-      searchTriggerLockedRef.current = false
+      if ("error" in searchResult) {
+        console.warn("[MaterialSearch] trigger failed", {
+          materialType: searchType,
+          query: trimmed,
+          error: searchResult.error,
+        })
+        toast({
+          variant: "destructive",
+          title: t("contentWriting.materialPanel.searchFailed"),
+          description: searchResult.error,
+        })
+        searchTriggerLockedRef.current = false
+        setIsTriggeringSearch(false)
+        setBannerStatus(null)
+        return
+      }
+
+      const task: PersistedMaterialSearchTask = {
+        ...nextTaskBase,
+        logId: searchResult.id,
+      }
+
+      activeSearchLogIdRef.current = task.logId
+      persistTask(task)
+      setActiveTask(task)
+      setBannerStatus("triggered")
       setIsTriggeringSearch(false)
-      setBannerStatus(null)
-      return
+      void handlePollResult(task)
+    } finally {
+      if (searchAbortControllerRef.current === abortController) {
+        searchAbortControllerRef.current = null
+      }
     }
-
-    const task: PersistedMaterialSearchTask = {
-      ...nextTaskBase,
-      logId: searchResult.id,
-    }
-
-    activeSearchLogIdRef.current = task.logId
-    persistTask(task)
-    setActiveTask(task)
-    setBannerStatus("triggered")
-    setIsTriggeringSearch(false)
-    void handlePollResult(task)
   }, [activeTask, articleId, handlePollResult, persistTask, searchText, searchType, stopPolling, t, toast, userId])
 
   const handleSearchPageChange = useCallback(
-    async (page: number, pageSize = activeTask?.pageSize ?? SEARCH_RESULT_DEFAULT_PAGE_SIZE) => {
+    async (page: number) => {
+      const pageSize = SEARCH_RESULT_DEFAULT_PAGE_SIZE
       if (!activeTask || page < 1 || isPagingSearch || isImporting) return
       if (page === activeTask.page && pageSize === activeTask.pageSize) return
 
       const requestSeq = searchRequestSeqRef.current + 1
       searchRequestSeqRef.current = requestSeq
+      searchAbortControllerRef.current?.abort()
+      const abortController = new AbortController()
+      searchAbortControllerRef.current = abortController
       setIsPagingSearch(true)
+      setBannerStatus("submitting")
       stopPolling()
       setSelectedUrls(new Set())
       setResultDrafts({})
@@ -1016,61 +1035,66 @@ function SearchTab({
         pageSize,
       })
 
-      const searchResult = await materialsClient.searchV2(activeTask.materialType, activeTask.query, {
-        page,
-        page_size: pageSize,
-      })
+      try {
+        const searchResult = await materialsClient.searchV2(
+          activeTask.materialType,
+          activeTask.query,
+          {
+            page,
+            page_size: pageSize,
+          },
+          { signal: abortController.signal }
+        )
 
-      if (searchRequestSeqRef.current !== requestSeq) {
-        console.debug("[MaterialSearch] ignoring stale paged trigger response", {
-          materialType: activeTask.materialType,
-          query: activeTask.query,
+        if (searchRequestSeqRef.current !== requestSeq || abortController.signal.aborted) {
+          console.debug("[MaterialSearch] ignoring stale paged trigger response", {
+            materialType: activeTask.materialType,
+            query: activeTask.query,
+            page,
+            pageSize,
+          })
+          return
+        }
+
+        if ("error" in searchResult) {
+          console.warn("[MaterialSearch] paged trigger failed", {
+            materialType: activeTask.materialType,
+            query: activeTask.query,
+            page,
+            pageSize,
+            error: searchResult.error,
+          })
+          toast({
+            variant: "destructive",
+            title: t("contentWriting.materialPanel.searchFailed"),
+            description: searchResult.error,
+          })
+          setIsPagingSearch(false)
+          setBannerStatus(null)
+          return
+        }
+
+        const task: PersistedMaterialSearchTask = {
+          ...activeTask,
+          logId: searchResult.id,
           page,
           pageSize,
-        })
-        return
-      }
+          createdAt: new Date().toISOString(),
+        }
 
-      if ("error" in searchResult) {
-        console.warn("[MaterialSearch] paged trigger failed", {
-          materialType: activeTask.materialType,
-          query: activeTask.query,
-          page,
-          pageSize,
-          error: searchResult.error,
-        })
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.materialPanel.searchFailed"),
-          description: searchResult.error,
-        })
+        activeSearchLogIdRef.current = task.logId
+        persistTask(task)
+        setActiveTask(task)
+        setBannerStatus("triggered")
         setIsPagingSearch(false)
-        return
+        void handlePollResult(task)
+      } finally {
+        if (searchAbortControllerRef.current === abortController) {
+          searchAbortControllerRef.current = null
+        }
       }
-
-      const task: PersistedMaterialSearchTask = {
-        ...activeTask,
-        logId: searchResult.id,
-        page,
-        pageSize,
-        createdAt: new Date().toISOString(),
-      }
-
-      activeSearchLogIdRef.current = task.logId
-      persistTask(task)
-      setActiveTask(task)
-      setBannerStatus("triggered")
-      setIsPagingSearch(false)
-      void handlePollResult(task)
     },
     [activeTask, handlePollResult, isImporting, isPagingSearch, persistTask, stopPolling, t, toast]
-  )
-
-  const handleSearchPageSizeChange = useCallback(
-    (pageSize: number) => {
-      void handleSearchPageChange(1, pageSize)
-    },
-    [handleSearchPageChange]
   )
 
   const handleKeyDown = useCallback(
@@ -1150,13 +1174,21 @@ function SearchTab({
     setIsImporting(false)
   }, [activeTask, clearSearchTask, onImportSuccess, resultDrafts, selectedUrls, t, toast])
 
+  const trimmedSearchText = searchText.trim()
   const isSearchLocked = Boolean(activeTask) || isTriggeringSearch || isPagingSearch
+  const searchTextTooShort = trimmedSearchText.length > 0 && trimmedSearchText.length < 2
+  const canSubmitSearch = !isSearchLocked && trimmedSearchText.length >= 2
+  const canCancelSearch =
+    isTriggeringSearch ||
+    isPagingSearch ||
+    (Boolean(activeTask) && detail?.status !== "success" && detail?.status !== "failed" && detail?.status !== "nodata")
+  const activeSearchQuery = activeTask?.query ?? trimmedSearchText
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
       <div className="space-y-2">
-        <div className="flex gap-2">
-          <div className="flex-1">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
             <Input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
@@ -1165,31 +1197,39 @@ function SearchTab({
               className="h-9"
               disabled={isSearchLocked}
             />
+            <p className={cn("mt-1 text-xs", searchTextTooShort ? "text-destructive" : "text-muted-foreground")}>
+              {t("contentWriting.materialPanel.searchMinLengthHint")}
+            </p>
           </div>
           <Button
             size="icon"
             className="h-9 w-9 shrink-0"
             onClick={() => void handleSearch()}
-            disabled={isSearchLocked || !searchText.trim()}
+            disabled={!canSubmitSearch}
+            aria-label={t("contentWriting.materialPanel.searchButton")}
+            title={t("contentWriting.materialPanel.searchButton")}
           >
             {isSearchLocked ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
 
-        {bannerStatus && activeTask ? (
-          <SearchStatusBanner status={bannerStatus} query={activeTask.query} />
+        {bannerStatus && activeSearchQuery ? (
+          <SearchStatusBanner
+            status={bannerStatus}
+            query={activeSearchQuery}
+            onCancel={canCancelSearch ? clearSearchTask : undefined}
+          />
         ) : null}
       </div>
 
       <ScrollArea className="min-h-0 flex-1 min-w-0 [&_[data-slot=scroll-area-scrollbar]]:hidden">
-        <div className="flex min-w-0 flex-col gap-3 px-0.5">
-          {!activeTask ? <SearchEmptyState /> : null}
+        <div className="flex min-w-0 flex-col gap-3 px-0.5 pb-20">
+          {!activeTask && !isTriggeringSearch ? <SearchEmptyState /> : null}
 
           {activeTask && detail?.status === "success" ? (
             <SearchResultCard
               result={detail}
               page={activeTask.page}
-              pageSize={activeTask.pageSize}
               selectedUrls={selectedUrls}
               resultDrafts={resultDrafts}
               importLoading={isImporting}
@@ -1197,7 +1237,6 @@ function SearchTab({
               onToggleUrl={handleToggleUrl}
               onDraftChange={handleDraftChange}
               onPageChange={(page) => void handleSearchPageChange(page)}
-              onPageSizeChange={handleSearchPageSizeChange}
               onDelete={clearSearchTask}
               onImport={() => void handleImport()}
             />
@@ -1222,8 +1261,7 @@ function SearchTab({
               onDelete={clearSearchTask}
             />
           ) : null}
-
-          <div className="h-10 shrink-0" aria-hidden="true" />
+          <div className="h-4 shrink-0" aria-hidden="true" />
         </div>
       </ScrollArea>
     </div>

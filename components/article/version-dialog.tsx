@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { useToast } from '@/hooks/use-toast'
 import { versionsClient } from '@/lib/api/versions/client'
 import { Button } from '@/components/ui/base/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/base/dialog'
 import { GitBranchIcon, ArrowRightIcon, Loader2, Trash2, FileText, Clock3, CheckIcon } from 'lucide-react'
-import { TiptapEditor } from '@/components/tiptap-editor'
 import type { Version } from '@/lib/api/versions/types'
 import { cn } from '@/lib/utils'
 
@@ -48,6 +47,45 @@ type SavedTimelineNode = {
 
 type TimelineNode = CurrentTimelineNode | SavedTimelineNode
 
+function decodeHtmlEntity(entity: string) {
+  const namedEntities: Record<string, string> = {
+    amp: '&',
+    lt: '<',
+    gt: '>',
+    quot: '"',
+    apos: "'",
+    nbsp: ' ',
+  }
+
+  if (entity.startsWith('#x')) {
+    const codePoint = Number.parseInt(entity.slice(2), 16)
+    return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+      ? String.fromCodePoint(codePoint)
+      : `&${entity};`
+  }
+
+  if (entity.startsWith('#')) {
+    const codePoint = Number.parseInt(entity.slice(1), 10)
+    return Number.isInteger(codePoint) && codePoint >= 0 && codePoint <= 0x10ffff
+      ? String.fromCodePoint(codePoint)
+      : `&${entity};`
+  }
+
+  return namedEntities[entity] ?? `&${entity};`
+}
+
+function htmlToPlainText(content: string) {
+  return content
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<\/(p|div|section|article|h[1-6]|li|blockquote|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&(#x?[0-9a-f]+|\w+);/gi, (_, entity: string) => decodeHtmlEntity(entity))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 export function VersionDialog({
   open,
   onOpenChange,
@@ -66,6 +104,7 @@ export function VersionDialog({
   const [applyingVersion, setApplyingVersion] = useState(false)
   const [deletingVersionId, setDeletingVersionId] = useState<number | null>(null)
   const [dialogOpenedAt, setDialogOpenedAt] = useState(new Date().toISOString())
+  const timelineScrollRef = useRef<HTMLDivElement | null>(null)
 
   const currentNode = useMemo<CurrentTimelineNode>(() => ({
     kind: 'current',
@@ -92,11 +131,10 @@ export function VersionDialog({
   }, [versions])
 
   const timelineNodes = useMemo<TimelineNode[]>(() => {
-    return [currentNode, ...savedNodes].sort((left, right) => {
-      if (left.kind === 'current') return -1
-      if (right.kind === 'current') return 1
-      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    const sortedSavedNodes = [...savedNodes].sort((left, right) => {
+      return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
     })
+    return [...sortedSavedNodes, currentNode]
   }, [currentNode, savedNodes])
 
   const selectedNode = timelineNodes.find((node) => node.id === selectedNodeId) ?? currentNode
@@ -106,6 +144,7 @@ export function VersionDialog({
   const selectedContent = selectedNode.kind === 'current'
     ? selectedNode.content
     : selectedNode.data.content || ''
+  const selectedPlainText = htmlToPlainText(selectedContent)
 
   const fetchVersions = useCallback(async () => {
     if (!articleId) return
@@ -147,6 +186,19 @@ export function VersionDialog({
       setSelectedNodeId('current')
     }
   }, [selectedNodeId, timelineNodes])
+
+  useEffect(() => {
+    if (!open || loading) return
+
+    const frame = window.requestAnimationFrame(() => {
+      const scrollArea = timelineScrollRef.current
+      if (scrollArea) {
+        scrollArea.scrollLeft = scrollArea.scrollWidth
+      }
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [loading, open, timelineNodes.length])
 
   const handleApplyVersion = async () => {
     if (selectedNode.kind !== 'saved') return
@@ -251,7 +303,7 @@ export function VersionDialog({
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : (
-              <div className="overflow-x-auto pb-1">
+              <div ref={timelineScrollRef} className="overflow-x-auto pb-1">
                 <div className="relative flex min-w-max items-start gap-0 px-1">
                   <div className="absolute left-8 right-8 top-[21px] h-px bg-border" />
                   {timelineNodes.map((node, index) => {
@@ -350,12 +402,10 @@ export function VersionDialog({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <TiptapEditor
-                content={selectedContent}
-                editable={false}
-                mode="edit"
-              />
+            <div className="min-h-0 flex-1 overflow-auto bg-background px-6 py-5">
+              <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-7 text-foreground">
+                {selectedPlainText}
+              </pre>
             </div>
           </div>
         </div>
