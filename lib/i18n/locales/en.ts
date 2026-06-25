@@ -1600,7 +1600,7 @@ export const en = {
             groupDescriptions: {
                 writing: "Rewrite, expand, and summarize selected text or the full article.",
                 visual: "Create images, split image layers, or apply consistent visual style.",
-                structure: "Turn article content into mind maps, infographics, and slides.",
+                structure: "Turn article content into mind maps, infographics, slides, or Word documents.",
             },
             aiEdit: "AI Edit",
             aiWrite: "AI Write",
@@ -1614,6 +1614,8 @@ export const en = {
             infographic: "Infographic",
             aiCharts: "AI Charts",
             generatePpt: "Generate PPT",
+            wordConverter: "Word Format Converter",
+            wordConverterDesc: "Convert Markdown, PPT, or PDF into Word and apply Word template styles.",
             generateVideo: "Generate Video",
             generateVideoComingSoon: "Feature in development. Coming soon.",
             taskProgress: "Task Progress",

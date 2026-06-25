@@ -11,6 +11,7 @@ import {
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
 import { ArticleCoverDialog } from "@/components/article/article-cover-dialog"
+import { FileConverterPageContent } from "@/components/file-converter/file-converter-page-content"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
 import {
@@ -53,6 +54,7 @@ import {
   BrainCircuitIcon,
   BarChart3Icon,
   ChartNoAxesCombinedIcon,
+  FileType2Icon,
   GalleryHorizontalEndIcon,
   ImagePlusIcon,
   ImageIcon,
@@ -80,6 +82,7 @@ type ActiveDialog =
   | "infographic"
   | "echarts"
   | "presentation"
+  | "word-converter"
   | null
 
 interface FeatureButton {
@@ -181,6 +184,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     id: "presentation",
     labelKey: "tiptapEditor.aiPanel.generatePpt",
     icon: PresentationIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "structure",
+  },
+  {
+    id: "word-converter",
+    labelKey: "tiptapEditor.aiPanel.wordConverter",
+    icon: FileType2Icon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
@@ -330,6 +341,7 @@ export function EditorAIPanel({
   const [isInfographicOpen, setIsInfographicOpen] = useState(false)
   const [isEChartsOpen, setIsEChartsOpen] = useState(false)
   const [isPresentationOpen, setIsPresentationOpen] = useState(false)
+  const [isWordConverterOpen, setIsWordConverterOpen] = useState(false)
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
   const [selectedEChartsText, setSelectedEChartsText] = useState("")
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
@@ -695,6 +707,8 @@ export function EditorAIPanel({
       setIsEChartsOpen(true)
     } else if (id === "presentation") {
       setIsPresentationOpen(true)
+    } else if (id === "word-converter") {
+      setIsWordConverterOpen(true)
     }
   }
 
@@ -1049,6 +1063,17 @@ export function EditorAIPanel({
           })
         }}
       />
+
+      <AIFeatureDialogShell
+        open={isWordConverterOpen}
+        onOpenChange={setIsWordConverterOpen}
+        title={t("tiptapEditor.aiPanel.wordConverter")}
+        description={t("tiptapEditor.aiPanel.wordConverterDesc")}
+        icon={<FileType2Icon className="h-5 w-5 text-primary" />}
+        size="fullscreen"
+      >
+        <FileConverterPageContent variant="studio" />
+      </AIFeatureDialogShell>
     </div>
   )
 }

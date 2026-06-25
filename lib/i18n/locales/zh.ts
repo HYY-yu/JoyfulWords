@@ -1600,7 +1600,7 @@ export const zh = {
             groupDescriptions: {
                 writing: "基于选中文本或全文进行改写、扩写与总结。",
                 visual: "为文章生成配图、拆分图层或统一风格。",
-                structure: "把文章内容转成思维导图、信息图和演示文稿。",
+                structure: "把文章内容转成思维导图、信息图、演示文稿或 Word 文档。",
             },
             aiEdit: "AI 编辑",
             aiWrite: "AI 写作",
@@ -1614,6 +1614,8 @@ export const zh = {
             infographic: "信息图",
             aiCharts: "AI 图表",
             generatePpt: "生成 PPT",
+            wordConverter: "Word 格式转换",
+            wordConverterDesc: "将 Markdown、PPT 或 PDF 转换为 Word，并可套用 Word 模板样式。",
             generateVideo: "生成视频",
             generateVideoComingSoon: "功能开发中，敬请期待",
             taskProgress: "任务进度",
