@@ -6,6 +6,28 @@
 
 ---
 
+## Article Editor Clue Board
+
+文章编辑页的 Materials Manager Search 区域包含一个素材线索白板入口。白板调用 `/materials/clue-board/expand`，该接口同步返回搜索词解释、可继续探索的 Markdown 链接，以及可展示在节点卡片底部的图片。
+
+预留契约:
+
+```typescript
+type ExpandMaterialClueRequest = {
+  query: string
+}
+
+type ExpandMaterialClueResponse = {
+  query: string
+  markdown: string
+  images?: string[]
+}
+```
+
+Markdown 中的链接 `href` 会被当作下一轮搜索词，例如 `[大语言模型](llm)` 会展开 `llm` 节点。`images` 内的 URL 会以缩略图形式显示在节点卡片底部，点击后打开大图预览。
+
+---
+
 ## 📚 目录
 
 1. [快速开始](#快速开始)

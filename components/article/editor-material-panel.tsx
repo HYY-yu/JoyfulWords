@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
-import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff } from "lucide-react"
+import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, Network } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { useInfiniteMaterialFavorites } from "@/lib/hooks/use-infinite-material-favorites"
@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/base/label"
 import { markdownToHTML } from "@/lib/tiptap-utils"
 import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
+import { MaterialClueBoardDialog } from "@/components/article/material-clue-board"
 
 // ==================== MaterialCard ====================
 
@@ -403,6 +404,42 @@ function SearchEmptyState() {
   )
 }
 
+function SearchClueBoardEntry({
+  onOpen,
+}: {
+  onOpen: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="rounded-[8px] border border-primary/15 bg-primary/[0.04] px-3 py-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Network className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground">
+            {t("contentWriting.materialPanel.clueBoardEntryTitle")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {t("contentWriting.materialPanel.clueBoardEntryDescription")}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3 h-8 gap-1.5 px-2.5 text-xs"
+            onClick={onOpen}
+          >
+            <Network className="h-3.5 w-3.5" />
+            {t("contentWriting.materialPanel.clueBoardOpen")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SearchCardShell({
   children,
   className,
@@ -692,6 +729,7 @@ function SearchTab({
   const [resultDrafts, setResultDrafts] = useState<Record<string, EditableSearchResultDraft>>({})
   const [isImporting, setIsImporting] = useState(false)
   const [isTriggeringSearch, setIsTriggeringSearch] = useState(false)
+  const [clueBoardOpen, setClueBoardOpen] = useState(false)
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
   const networkFailCountRef = useRef(0)
@@ -985,6 +1023,7 @@ function SearchTab({
   const isSearchLocked = Boolean(activeTask) || isTriggeringSearch
 
   return (
+    <>
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
       <div className="space-y-2">
         <div className="flex gap-2">
@@ -1015,7 +1054,19 @@ function SearchTab({
 
       <ScrollArea className="min-h-0 flex-1 min-w-0 [&_[data-slot=scroll-area-scrollbar]]:hidden">
         <div className="flex min-w-0 flex-col gap-3 px-0.5">
-          {!activeTask ? <SearchEmptyState /> : null}
+          {!activeTask ? (
+            <>
+              <SearchEmptyState />
+              <SearchClueBoardEntry
+                onOpen={() => {
+                  console.info("[MaterialClueBoard] entry clicked from material search", {
+                    hasQuery: Boolean(searchText.trim()),
+                  })
+                  setClueBoardOpen(true)
+                }}
+              />
+            </>
+          ) : null}
 
           {activeTask && detail?.status === "success" ? (
             <SearchResultCard
@@ -1054,6 +1105,12 @@ function SearchTab({
         </div>
       </ScrollArea>
     </div>
+    <MaterialClueBoardDialog
+      open={clueBoardOpen}
+      onOpenChange={setClueBoardOpen}
+      initialQuery={searchText}
+    />
+    </>
   )
 }
 
