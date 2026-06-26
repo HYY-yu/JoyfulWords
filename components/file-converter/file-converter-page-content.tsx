@@ -41,6 +41,7 @@ import type {
   WordStyleDetails,
   WordTemplateConfig,
 } from "@/lib/api/file-converter/types"
+import { cn } from "@/lib/utils"
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
@@ -68,8 +69,13 @@ type HoverState = {
   y: number
 } | null
 
-export function FileConverterPageContent() {
+interface FileConverterPageContentProps {
+  variant?: "page" | "studio"
+}
+
+export function FileConverterPageContent({ variant = "page" }: FileConverterPageContentProps = {}) {
   const { toast } = useToast()
+  const isStudio = variant === "studio"
   const pptInputRef = useRef<HTMLInputElement | null>(null)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const templateInputRef = useRef<HTMLInputElement | null>(null)
@@ -225,15 +231,29 @@ export function FileConverterPageContent() {
   const downloadHref = result ? absoluteDownloadURL(result.download_url) : ""
 
   return (
-    <div className="jw-app-shell min-h-screen">
-      <LandingHeader activeItem="fileConverter" />
+    <div className={cn("jw-app-shell", isStudio ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-screen")}>
+      {isStudio ? null : <LandingHeader activeItem="fileConverter" />}
 
-      <main className="mx-auto flex min-h-screen max-w-[1560px] flex-col overflow-x-hidden px-4 pt-20 pb-5 sm:px-6">
+      <main
+        className={cn(
+          isStudio
+            ? "flex min-h-0 flex-1 flex-col overflow-y-auto p-4"
+            : "mx-auto flex min-h-screen max-w-[1560px] flex-col overflow-x-hidden px-4 pt-20 pb-5 sm:px-6"
+        )}
+      >
         <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--jw-muted)]">Document Converter</p>
-            <h1 className="jw-heading-text text-2xl font-semibold">文件转换</h1>
-          </div>
+          {isStudio ? (
+            <div className="min-w-0">
+              <p className="text-xs leading-5 text-[var(--jw-muted)]">
+                Markdown、PPT 与 PDF 转 Word，可套用 Word 模板样式。
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--jw-muted)]">Document Converter</p>
+              <h1 className="jw-heading-text text-2xl font-semibold">文件转换</h1>
+            </div>
+          )}
           <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
             {result ? (
               <Button asChild className="jw-primary-button h-9 flex-1 rounded-md sm:flex-none">
@@ -254,7 +274,12 @@ export function FileConverterPageContent() {
           </div>
         </div>
 
-        <div className="grid min-h-[calc(100vh-132px)] w-full min-w-0 gap-4 xl:grid-cols-[minmax(420px,0.92fr)_minmax(0,1.08fr)]">
+        <div
+          className={cn(
+            "grid w-full min-w-0 gap-4 xl:grid-cols-[minmax(420px,0.92fr)_minmax(0,1.08fr)]",
+            isStudio ? "min-h-0 flex-1" : "min-h-[calc(100vh-132px)]"
+          )}
+        >
           <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)]">
             <div className="border-b border-[var(--jw-border-subtle)] p-4">
               <Tabs value={mode} onValueChange={(value) => setMode(value as DocumentConversionMode)}>

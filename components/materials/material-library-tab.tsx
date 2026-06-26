@@ -85,12 +85,10 @@ export function MaterialLibraryTab() {
 
   const handleMaterialsPageChange = (page: number) => {
     updatePagination('materials', { page })
-    fetchMaterials(nameFilter, activeCategory)
   }
 
   const handleMaterialsPageSizeChange = (pageSize: number) => {
     updatePagination('materials', { pageSize, page: 1 })
-    fetchMaterials(nameFilter, activeCategory)
   }
 
   return (
