@@ -7,10 +7,11 @@ import {
   CheckCircle2Icon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ImageIcon,
+  FileTextIcon,
   LanguagesIcon,
   LayoutTemplateIcon,
   Loader2Icon,
+  MousePointer2Icon,
   PaletteIcon,
   SparklesIcon,
   WandSparklesIcon,
@@ -27,13 +28,16 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import {
   parseInfographicImageUrls,
+  type GenerateInfographicFromArticleRequest,
   type GenerateInfographicRequest,
   type InfographicCardStyle,
   type InfographicDecorationLevel,
   type InfographicLanguage,
+  type InfographicLogDetailResponse,
   type InfographicScreenOrientation,
 } from "@/lib/api/infographics/types"
 import {
+  useInfographicBatchPolling,
   useInfographicPolling,
   type InfographicPollingState,
 } from "@/lib/hooks/use-infographic-polling"
@@ -62,17 +66,28 @@ const STYLE_PREVIEWS: Array<{
 const ORIENTATION_OPTIONS: InfographicScreenOrientation[] = ["square", "landscape", "portrait"]
 const LANGUAGE_OPTIONS: InfographicLanguage[] = ["zh", "en"]
 const DECORATION_OPTIONS: InfographicDecorationLevel[] = ["simple", "moderate", "rich"]
+const SELECTION_TEXT_LIMIT = 300
+const MAX_IMAGE_OPTIONS = [1, 2, 3, 4, 5] as const
 const SOFT_NATIVE_SCROLLBAR_CLASS =
   "[scrollbar-color:color-mix(in_oklch,var(--primary)_18%,transparent)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-0 [&::-webkit-scrollbar-thumb]:bg-primary/12 hover:[&::-webkit-scrollbar-thumb]:bg-primary/28"
 const SOFT_RADIX_SCROLLBAR_CLASS =
   "[&_[data-slot=scroll-area-scrollbar]]:w-0.5 [&_[data-slot=scroll-area-scrollbar]]:bg-transparent [&_[data-slot=scroll-area-scrollbar]]:opacity-25 hover:[&_[data-slot=scroll-area-scrollbar]]:opacity-60 [&_[data-slot=scroll-area-thumb]]:bg-primary/18 hover:[&_[data-slot=scroll-area-thumb]]:bg-primary/32"
+
+type InfographicSourceMode = "selection" | "article"
 
 type InfographicFormState = {
   cardStyle: InfographicCardStyle
   screenOrientation: InfographicScreenOrientation
   language: InfographicLanguage
   decorationLevel: InfographicDecorationLevel
+  maxImages: number
   userCustom: string
+}
+
+type InfographicResultImageItem = {
+  key: string
+  url: string
+  detail: InfographicLogDetailResponse | null
 }
 
 const DEFAULT_FORM_STATE_BY_LOCALE: Record<InfographicLanguage, InfographicFormState> = {
@@ -81,6 +96,7 @@ const DEFAULT_FORM_STATE_BY_LOCALE: Record<InfographicLanguage, InfographicFormS
     screenOrientation: "square",
     language: "zh",
     decorationLevel: "moderate",
+    maxImages: 5,
     userCustom: "",
   },
   en: {
@@ -88,6 +104,7 @@ const DEFAULT_FORM_STATE_BY_LOCALE: Record<InfographicLanguage, InfographicFormS
     screenOrientation: "square",
     language: "en",
     decorationLevel: "moderate",
+    maxImages: 5,
     userCustom: "",
   },
 }
@@ -110,10 +127,21 @@ export function InfographicDialog({
     startPolling,
     reset,
   } = useInfographicPolling()
+  const {
+    details: batchDetails,
+    errorMessage: batchPollingErrorMessage,
+    progress: batchProgress,
+    state: batchPollingState,
+    markSubmitting: markBatchSubmitting,
+    startPolling: startBatchPolling,
+    reset: resetBatch,
+  } = useInfographicBatchPolling()
 
   const [formState, setFormState] = useState<InfographicFormState>(
     DEFAULT_FORM_STATE_BY_LOCALE[locale]
   )
+  const [sourceMode, setSourceMode] = useState<InfographicSourceMode>("article")
+  const [resultMode, setResultMode] = useState<InfographicSourceMode>("article")
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
@@ -129,52 +157,112 @@ export function InfographicDialog({
   useEffect(() => {
     if (!open) {
       reset()
+      resetBatch()
       setCopyingToMaterials(false)
       setActiveImageIndex(0)
       setRequestErrorMessage(null)
+      lastAnnouncedPollingStateRef.current = "idle"
       return
     }
 
+    const nextSelectedText = selectedText.trim()
     setFormState(DEFAULT_FORM_STATE_BY_LOCALE[locale])
+    setSourceMode(nextSelectedText ? "selection" : "article")
+    setResultMode(nextSelectedText ? "selection" : "article")
     setCopyingToMaterials(false)
     setActiveImageIndex(0)
     setRequestErrorMessage(null)
+    lastAnnouncedPollingStateRef.current = "idle"
     reset()
-  }, [locale, open, reset])
+    resetBatch()
+  }, [locale, open, reset, resetBatch, selectedText])
 
-  const imageUrls = useMemo(() => {
+  const singleImageUrls = useMemo(() => {
     return parseInfographicImageUrls(detail?.image_urls)
   }, [detail?.image_urls])
 
+  const singleImageItems = useMemo<InfographicResultImageItem[]>(() => {
+    return singleImageUrls.map((url, index) => ({
+      key: `single-${detail?.id ?? "pending"}-${index}`,
+      url,
+      detail,
+    }))
+  }, [detail, singleImageUrls])
+
+  const batchImageItems = useMemo<InfographicResultImageItem[]>(() => {
+    return batchDetails.flatMap((batchDetail) =>
+      parseInfographicImageUrls(batchDetail.image_urls).map((url, index) => ({
+        key: `batch-${batchDetail.id}-${index}`,
+        url,
+        detail: batchDetail,
+      }))
+    )
+  }, [batchDetails])
+
+  const resultImageItems = resultMode === "article" ? batchImageItems : singleImageItems
+  const resultPollingState = resultMode === "article" ? batchPollingState : pollingState
+  const resultPollingErrorMessage =
+    resultMode === "article" ? batchPollingErrorMessage : pollingErrorMessage
+
   useEffect(() => {
-    if (activeImageIndex >= imageUrls.length) {
+    if (activeImageIndex >= resultImageItems.length) {
       setActiveImageIndex(0)
     }
-  }, [activeImageIndex, imageUrls.length])
+  }, [activeImageIndex, resultImageItems.length])
 
-  const isGenerating = pollingState === "submitting" || pollingState === "pending" || pollingState === "processing"
+  const isSelectionGenerating =
+    pollingState === "submitting" || pollingState === "pending" || pollingState === "processing"
+  const isArticleGenerating =
+    batchPollingState === "submitting" || batchPollingState === "pending" || batchPollingState === "processing"
+  const isGenerating = sourceMode === "article" ? isArticleGenerating : isSelectionGenerating
   const canCopyToMaterials =
-    pollingState === "success" && currentLogId !== null && imageUrls.length > 0 && !copyingToMaterials
+    resultMode === "article"
+      ? batchPollingState === "success" &&
+        batchDetails.some((batchDetail) => batchDetail.status === "success" && parseInfographicImageUrls(batchDetail.image_urls).length > 0) &&
+        !copyingToMaterials
+      : pollingState === "success" && currentLogId !== null && singleImageUrls.length > 0 && !copyingToMaterials
 
-  const activeImageUrl = imageUrls[activeImageIndex] ?? null
+  const activeImageItem = resultImageItems[activeImageIndex] ?? null
   const selectedTextPreview = selectedText.trim()
+  const selectedTextLength = selectedTextPreview.length
+  const hasSelectedText = selectedTextLength > 0
+  const isSelectionTooLong = selectedTextLength > SELECTION_TEXT_LIMIT
+  const isArticleMode = sourceMode === "article"
+  const canGenerateSelection =
+    sourceMode === "selection" && hasSelectedText && !isSelectionTooLong && !isGenerating
+  const canSubmitArticleAnalysis =
+    sourceMode === "article" && typeof articleId === "number" && !isGenerating
   const selectedStyle = STYLE_PREVIEWS.find((style) => style.value === formState.cardStyle) ?? STYLE_PREVIEWS[0]
 
   const statusText = (() => {
-    if (pollingState === "pending" || pollingState === "processing") {
-      return t(`infographicDialog.status.${pollingState}`)
+    if (resultMode === "article" && (batchPollingState === "pending" || batchPollingState === "processing")) {
+      return t("infographicDialog.status.batchProcessing", {
+        completed: batchProgress.completed,
+        total: batchProgress.total,
+      })
     }
-    if (pollingState === "success" || pollingState === "failed") {
-      return t(`infographicDialog.status.${pollingState}`)
+    if (resultPollingState === "pending" || resultPollingState === "processing") {
+      return t(`infographicDialog.status.${resultPollingState}`)
     }
-    return t("infographicDialog.resultHint")
+    if (resultMode === "article" && resultPollingState === "success") {
+      return t("infographicDialog.status.batchSuccess", {
+        success: batchProgress.success,
+        total: batchProgress.total,
+      })
+    }
+    if (resultPollingState === "success" || resultPollingState === "failed") {
+      return t(`infographicDialog.status.${resultPollingState}`)
+    }
+    return resultMode === "article" || isArticleMode
+      ? t("infographicDialog.articleResultHint")
+      : t("infographicDialog.resultHint")
   })()
 
   const errorMessage =
     requestErrorMessage ||
-    (pollingErrorMessage === "polling_timeout"
+    (resultPollingErrorMessage === "polling_timeout"
       ? t("infographicDialog.toast.pollingTimeout")
-      : pollingErrorMessage)
+      : resultPollingErrorMessage)
 
   useEffect(() => {
     if (pollingState === lastAnnouncedPollingStateRef.current) return
@@ -195,8 +283,112 @@ export function InfographicDialog({
     }
   }, [pollingState, t, taskToast])
 
+  useEffect(() => {
+    if (batchPollingState === lastAnnouncedPollingStateRef.current) return
+
+    lastAnnouncedPollingStateRef.current = batchPollingState
+
+    if (batchPollingState === "success") {
+      taskToast.showSuccess({
+        title: t("infographicDialog.status.batchSuccess", {
+          success: batchProgress.success,
+          total: batchProgress.total,
+        }),
+      })
+      return
+    }
+
+    if (batchPollingState === "failed") {
+      taskToast.showFailure({
+        title: t("infographicDialog.status.failed"),
+      })
+    }
+  }, [batchPollingState, batchProgress.success, batchProgress.total, t, taskToast])
+
   const handleGenerate = async () => {
-    if (!selectedTextPreview) {
+    if (sourceMode === "article") {
+      if (typeof articleId !== "number") {
+        toast({
+          variant: "destructive",
+          title: t("infographicDialog.toast.articleRequired"),
+          description: t("infographicDialog.toast.articleRequiredDesc"),
+        })
+        return
+      }
+
+      const request: GenerateInfographicFromArticleRequest = {
+        article_id: articleId,
+        max_count: formState.maxImages,
+        card_style: formState.cardStyle,
+        screen_orientation: formState.screenOrientation,
+        language: formState.language,
+        decoration_level: formState.decorationLevel,
+      }
+
+      setResultMode("article")
+      setRequestErrorMessage(null)
+      lastAnnouncedPollingStateRef.current = "idle"
+      reset()
+      markBatchSubmitting()
+      taskToast.showSubmitting({
+        title: submittingToastTitle,
+        description: submittingToastDescription,
+      })
+
+      try {
+        const result = await infographicsClient.generateFromArticle(request)
+
+        if ("error" in result) {
+          console.error("[InfographicDialog] Failed to create article infographic batch:", {
+            articleId,
+            error: result.error,
+          })
+          resetBatch()
+          setRequestErrorMessage(String(result.error))
+          taskToast.showFailure({
+            title: t("infographicDialog.toast.createFailed"),
+          })
+          return
+        }
+
+        if (result.count === 0 || result.log_ids.length === 0) {
+          console.info("[InfographicDialog] Article infographic batch returned no candidates:", {
+            articleId,
+            batchId: result.batch_id,
+            count: result.count,
+          })
+          resetBatch()
+          toast({
+            title: t("infographicDialog.toast.noArticleImages"),
+            description: t("infographicDialog.toast.noArticleImagesDesc"),
+          })
+          return
+        }
+
+        taskToast.showPolling({
+          title: pollingToastTitle,
+          description: t("infographicDialog.toast.batchPolling", {
+            count: result.count,
+          }),
+        })
+
+        await startBatchPolling(result.log_ids, result.batch_id)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error"
+        console.error("[InfographicDialog] Unexpected article infographic batch creation error:", {
+          articleId,
+          error: message,
+        })
+        resetBatch()
+        setRequestErrorMessage(message)
+        taskToast.showFailure({
+          title: t("infographicDialog.toast.createFailed"),
+        })
+      }
+      return
+    }
+
+    if (!hasSelectedText) {
       toast({
         variant: "destructive",
         title: t("infographicDialog.toast.selectTextFirst"),
@@ -205,6 +397,20 @@ export function InfographicDialog({
       return
     }
 
+    if (isSelectionTooLong) {
+      toast({
+        variant: "destructive",
+        title: t("infographicDialog.toast.selectionTooLong"),
+        description: t("infographicDialog.toast.selectionTooLongDesc", {
+          limit: SELECTION_TEXT_LIMIT,
+          count: selectedTextLength,
+        }),
+      })
+      return
+    }
+
+    setResultMode("selection")
+    lastAnnouncedPollingStateRef.current = "idle"
     const request: GenerateInfographicRequest = {
       text: selectedTextPreview,
       article_id: articleId ?? 0,
@@ -216,6 +422,7 @@ export function InfographicDialog({
     }
 
     setRequestErrorMessage(null)
+    resetBatch()
     markSubmitting()
     taskToast.showSubmitting({
       title: submittingToastTitle,
@@ -257,6 +464,73 @@ export function InfographicDialog({
   }
 
   const handleCopyToMaterials = async () => {
+    const successfulBatchLogIds = batchDetails
+      .filter((batchDetail) => batchDetail.status === "success" && parseInfographicImageUrls(batchDetail.image_urls).length > 0)
+      .map((batchDetail) => batchDetail.id)
+
+    if (resultMode === "article") {
+      if (successfulBatchLogIds.length === 0) {
+        return
+      }
+
+      try {
+        setCopyingToMaterials(true)
+        const results = await Promise.all(
+          successfulBatchLogIds.map(async (logId) => ({
+            logId,
+            result: await infographicsClient.copyToMaterials(logId, articleId ?? undefined),
+          }))
+        )
+        const failedLogIds: number[] = []
+        const successLogIds: number[] = []
+        let copiedCount = 0
+
+        results.forEach(({ logId, result }) => {
+          if ("error" in result) {
+            failedLogIds.push(logId)
+            return
+          }
+
+          successLogIds.push(logId)
+          copiedCount += result.count
+        })
+
+        if (failedLogIds.length > 0) {
+          console.warn("[InfographicDialog] Partially failed to copy article infographic batch to materials:", {
+            articleId,
+            failedLogIds,
+            successLogIds,
+          })
+          toast({
+            variant: copiedCount > 0 ? "default" : "destructive",
+            title:
+              copiedCount > 0
+                ? t("infographicDialog.toast.copyPartialSuccess", { count: copiedCount })
+                : t("infographicDialog.toast.copyFailed"),
+          })
+          return
+        }
+
+        toast({
+          title: t("infographicDialog.toast.copySuccess", { count: copiedCount }),
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown error"
+        console.error("[InfographicDialog] Unexpected batch copy-to-materials error:", {
+          articleId,
+          logIds: successfulBatchLogIds,
+          error: message,
+        })
+        toast({
+          variant: "destructive",
+          title: t("infographicDialog.toast.copyFailed"),
+        })
+      } finally {
+        setCopyingToMaterials(false)
+      }
+      return
+    }
+
     if (!currentLogId) {
       return
     }
@@ -376,28 +650,152 @@ export function InfographicDialog({
                     1
                   </span>
                   <Label className="flex items-center gap-2 text-sm font-semibold">
-                    <ImageIcon className="h-4 w-4 text-primary" />
-                    {t("infographicDialog.selectedTextLabel")}
+                    <FileTextIcon className="h-4 w-4 text-primary" />
+                    {t("infographicDialog.sourceLabel")}
                   </Label>
                 </div>
-                <span className="rounded-full bg-background px-2.5 py-1 text-xs text-muted-foreground">
-                  {t("infographicDialog.selectedTextCount", {
-                    count: selectedTextPreview.length,
-                  })}
-                </span>
+                {sourceMode === "selection" ? (
+                  <span
+                    className={cn(
+                      "rounded-full bg-background px-2.5 py-1 text-xs",
+                      isSelectionTooLong ? "text-destructive" : "text-muted-foreground"
+                    )}
+                  >
+                    {t("infographicDialog.selectedTextCount", {
+                      count: selectedTextLength,
+                      limit: SELECTION_TEXT_LIMIT,
+                    })}
+                  </span>
+                ) : null}
               </div>
-              <div className="p-3">
-                <Textarea
-                  value={selectedTextPreview}
-                  readOnly
-                  className={cn(
-                    "h-24 max-h-24 min-h-24 resize-none overflow-y-auto border-border/70 bg-muted/20 text-sm leading-relaxed shadow-none [field-sizing:fixed]",
-                    SOFT_NATIVE_SCROLLBAR_CLASS
-                  )}
-                />
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  {t("infographicDialog.selectedTextHint")}
-                </p>
+              <div className="space-y-3 p-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => hasSelectedText && setSourceMode("selection")}
+                    disabled={!hasSelectedText}
+                    className={cn(
+                      "flex min-h-20 items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
+                      sourceMode === "selection"
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border bg-muted/15 hover:bg-muted/35",
+                      !hasSelectedText && "cursor-not-allowed opacity-50"
+                    )}
+                  >
+                    <MousePointer2Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">
+                        {t("infographicDialog.selectionMode")}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                        {t("infographicDialog.selectionModeDesc", {
+                          limit: SELECTION_TEXT_LIMIT,
+                        })}
+                      </span>
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSourceMode("article")}
+                    className={cn(
+                      "flex min-h-20 items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
+                      sourceMode === "article"
+                        ? "border-primary/50 bg-primary/5"
+                        : "border-border bg-muted/15 hover:bg-muted/35"
+                    )}
+                  >
+                    <FileTextIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold">
+                        {t("infographicDialog.articleMode")}
+                      </span>
+                      <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                        {t("infographicDialog.articleModeDesc")}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+
+                {sourceMode === "selection" ? (
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs font-semibold text-muted-foreground">
+                        {t("infographicDialog.selectedTextLabel")}
+                      </Label>
+                      <span
+                        className={cn(
+                          "text-xs",
+                          isSelectionTooLong ? "font-medium text-destructive" : "text-muted-foreground"
+                        )}
+                      >
+                        {t("infographicDialog.selectedTextCount", {
+                          count: selectedTextLength,
+                          limit: SELECTION_TEXT_LIMIT,
+                        })}
+                      </span>
+                    </div>
+                    <Textarea
+                      value={selectedTextPreview}
+                      readOnly
+                      className={cn(
+                        "mt-2 h-24 max-h-24 min-h-24 resize-none overflow-y-auto border-border/70 bg-muted/20 text-sm leading-relaxed shadow-none [field-sizing:fixed]",
+                        isSelectionTooLong && "border-destructive/50 bg-destructive/5 text-destructive",
+                        SOFT_NATIVE_SCROLLBAR_CLASS
+                      )}
+                    />
+                    <p
+                      className={cn(
+                        "mt-2 text-xs leading-relaxed",
+                        isSelectionTooLong ? "text-destructive" : "text-muted-foreground"
+                      )}
+                    >
+                      {isSelectionTooLong
+                        ? t("infographicDialog.selectedTextTooLongHint", {
+                            limit: SELECTION_TEXT_LIMIT,
+                            count: selectedTextLength,
+                          })
+                        : t("infographicDialog.selectedTextHint", {
+                            limit: SELECTION_TEXT_LIMIT,
+                          })}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <Label className="text-sm font-semibold">
+                        {t("infographicDialog.maxImagesLabel")}
+                      </Label>
+                      <span className="text-xs text-muted-foreground">
+                        {t("infographicDialog.maxImagesValue", {
+                          count: formState.maxImages,
+                        })}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-5 rounded-lg border border-border/70 bg-background p-1">
+                      {MAX_IMAGE_OPTIONS.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            setFormState((prev) => ({ ...prev, maxImages: value }))
+                          }
+                          className={cn(
+                            "h-9 min-w-0 rounded-md px-1 text-xs font-medium transition-colors sm:text-[13px]",
+                            formState.maxImages === value
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          {value}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {t("infographicDialog.maxImagesHint")}
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -604,24 +1002,26 @@ export function InfographicDialog({
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-xl border bg-background shadow-sm">
-              <div className="flex items-center gap-2 border-b bg-muted/25 px-4 py-3">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                  4
-                </span>
-                <Label className="text-sm font-semibold">{t("infographicDialog.customLabel")}</Label>
-              </div>
-              <div className="p-3">
-                <Textarea
-                  value={formState.userCustom}
-                  onChange={(event) =>
-                    setFormState((prev) => ({ ...prev, userCustom: event.target.value }))
-                  }
-                  placeholder={t("infographicDialog.customPlaceholder")}
-                  className="h-20 max-h-32 min-h-20 resize-y border-border/70 bg-muted/20 shadow-none"
-                />
-              </div>
-            </section>
+            {sourceMode === "selection" ? (
+              <section className="overflow-hidden rounded-xl border bg-background shadow-sm">
+                <div className="flex items-center gap-2 border-b bg-muted/25 px-4 py-3">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                    4
+                  </span>
+                  <Label className="text-sm font-semibold">{t("infographicDialog.customLabel")}</Label>
+                </div>
+                <div className="p-3">
+                  <Textarea
+                    value={formState.userCustom}
+                    onChange={(event) =>
+                      setFormState((prev) => ({ ...prev, userCustom: event.target.value }))
+                    }
+                    placeholder={t("infographicDialog.customPlaceholder")}
+                    className="h-20 max-h-32 min-h-20 resize-y border-border/70 bg-muted/20 shadow-none"
+                  />
+                </div>
+              </section>
+            ) : null}
           </div>
         </ScrollArea>
 
@@ -651,7 +1051,7 @@ export function InfographicDialog({
                 <Button
                   type="button"
                   onClick={handleGenerate}
-                  disabled={isGenerating || !selectedTextPreview}
+                  disabled={sourceMode === "selection" ? !canGenerateSelection : !canSubmitArticleAnalysis}
                 >
                   {isGenerating ? (
                     <>
@@ -661,14 +1061,24 @@ export function InfographicDialog({
                   ) : (
                     <>
                       <WandSparklesIcon className="h-4 w-4" />
-                      {t("infographicDialog.generate")}
+                      {sourceMode === "article"
+                        ? t("infographicDialog.generateFromArticle")
+                        : t("infographicDialog.generate")}
                     </>
                   )}
                 </Button>
               </div>
             </div>
 
-            <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-5">
+              <div className="rounded-lg border bg-background px-3 py-2">
+                <span className="block text-muted-foreground">{t("infographicDialog.sourceSummaryLabel")}</span>
+                <span className="mt-1 block truncate font-medium">
+                  {sourceMode === "article"
+                    ? t("infographicDialog.articleMode")
+                    : t("infographicDialog.selectionMode")}
+                </span>
+              </div>
               <div className="rounded-lg border bg-background px-3 py-2">
                 <span className="block text-muted-foreground">{t("infographicDialog.styleLabel")}</span>
                 <span className="mt-1 block truncate font-medium">
@@ -695,10 +1105,15 @@ export function InfographicDialog({
               </div>
             </div>
 
-            {(pollingState === "pending" || pollingState === "processing") ? (
+            {(resultPollingState === "pending" || resultPollingState === "processing") ? (
               <div className="mt-3 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs text-primary">
                 <Loader2Icon className="h-4 w-4 animate-spin" />
-                {t("infographicDialog.generatingHint")}
+                {resultMode === "article"
+                  ? t("infographicDialog.generatingBatchHint", {
+                      completed: batchProgress.completed,
+                      total: batchProgress.total,
+                    })
+                  : t("infographicDialog.generatingHint")}
               </div>
             ) : null}
           </div>
@@ -711,21 +1126,42 @@ export function InfographicDialog({
               </Alert>
             ) : null}
 
-            {activeImageUrl ? (
+            {activeImageItem ? (
               <div className="flex h-full min-h-0 flex-col gap-4">
                 <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-background shadow-sm">
                   <img
-                    src={activeImageUrl}
+                    src={activeImageItem.url}
                     alt={t("infographicDialog.resultImageAlt")}
                     className="max-h-full w-full object-contain"
                   />
                 </div>
 
-                {imageUrls.length > 1 ? (
+                {activeImageItem.detail?.article_excerpt || activeImageItem.detail?.selection_reason ? (
+                  <div className="shrink-0 rounded-lg border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">
+                    {activeImageItem.detail.article_excerpt ? (
+                      <p className="line-clamp-2">
+                        <span className="font-medium text-foreground">
+                          {t("infographicDialog.articleExcerptLabel")}
+                        </span>
+                        {activeImageItem.detail.article_excerpt}
+                      </p>
+                    ) : null}
+                    {activeImageItem.detail.selection_reason ? (
+                      <p className="mt-1 line-clamp-2">
+                        <span className="font-medium text-foreground">
+                          {t("infographicDialog.selectionReasonLabel")}
+                        </span>
+                        {activeImageItem.detail.selection_reason}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {resultImageItems.length > 1 ? (
                   <div className="grid shrink-0 grid-cols-3 gap-2">
-                    {imageUrls.map((imageUrl, index) => (
+                    {resultImageItems.map((imageItem, index) => (
                       <button
-                        key={`${imageUrl}-${index}`}
+                        key={imageItem.key}
                         type="button"
                         onClick={() => setActiveImageIndex(index)}
                         className={cn(
@@ -736,7 +1172,7 @@ export function InfographicDialog({
                         )}
                       >
                         <img
-                          src={imageUrl}
+                          src={imageItem.url}
                           alt={`${t("infographicDialog.resultImageAlt")} ${index + 1}`}
                           className="aspect-video h-full w-full object-cover"
                         />
@@ -759,14 +1195,29 @@ export function InfographicDialog({
                     <p className="text-sm font-semibold">
                       {isGenerating
                         ? t("infographicDialog.generating")
-                        : t("infographicDialog.resultEmptyTitle")}
+                        : sourceMode === "article"
+                          ? t("infographicDialog.articleResultEmptyTitle")
+                          : t("infographicDialog.resultEmptyTitle")}
                     </p>
                     <p className="text-sm leading-relaxed text-muted-foreground">
                       {isGenerating
                         ? t("infographicDialog.generatingHint")
-                        : t("infographicDialog.resultEmptyDesc")}
+                        : sourceMode === "article"
+                          ? t("infographicDialog.articleResultEmptyDesc")
+                          : t("infographicDialog.resultEmptyDesc")}
                     </p>
                   </div>
+                  {sourceMode === "article" && !isGenerating ? (
+                    <div className="grid grid-cols-3 gap-2 pt-2">
+                      {[0, 1, 2].map((index) => (
+                        <div
+                          key={index}
+                          className="aspect-[4/3] rounded-md border border-dashed bg-muted/30"
+                          aria-hidden="true"
+                        />
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             )}

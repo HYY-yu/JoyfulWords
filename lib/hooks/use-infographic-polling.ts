@@ -28,6 +28,59 @@ interface UseInfographicPollingReturn {
   reset: () => void
 }
 
+interface UseInfographicBatchPollingProgress {
+  total: number
+  completed: number
+  success: number
+  failed: number
+}
+
+interface UseInfographicBatchPollingReturn {
+  batchId: string | null
+  logIds: number[]
+  details: InfographicLogDetailResponse[]
+  errorMessage: string | null
+  progress: UseInfographicBatchPollingProgress
+  state: InfographicPollingState
+  markSubmitting: () => void
+  startPolling: (logIds: number[], batchId?: string) => Promise<void>
+  stopPolling: () => void
+  reset: () => void
+}
+
+function isInfographicTerminalStatus(status: InfographicStatus): boolean {
+  return status === "success" || status === "failed"
+}
+
+function getBatchProgress(
+  logIds: number[],
+  details: InfographicLogDetailResponse[]
+): UseInfographicBatchPollingProgress {
+  const completed = details.filter((detail) => isInfographicTerminalStatus(detail.status)).length
+  const success = details.filter((detail) => detail.status === "success").length
+  const failed = details.filter((detail) => detail.status === "failed").length
+
+  return {
+    total: logIds.length,
+    completed,
+    success,
+    failed,
+  }
+}
+
+function getBatchPollingState(
+  logIds: number[],
+  details: InfographicLogDetailResponse[]
+): InfographicPollingState {
+  if (logIds.length === 0) return "idle"
+  if (details.length < logIds.length) return "processing"
+
+  const allTerminal = details.every((detail) => isInfographicTerminalStatus(detail.status))
+  if (!allTerminal) return "processing"
+
+  return details.some((detail) => detail.status === "success") ? "success" : "failed"
+}
+
 export function useInfographicPolling(
   getLogDetail: GetInfographicLogDetail = infographicsClient.getLogDetail
 ): UseInfographicPollingReturn {
@@ -172,6 +225,199 @@ export function useInfographicPolling(
     currentLogId,
     detail,
     errorMessage,
+    state,
+    markSubmitting,
+    startPolling,
+    stopPolling,
+    reset,
+  }
+}
+
+export function useInfographicBatchPolling(
+  getLogDetail: GetInfographicLogDetail = infographicsClient.getLogDetail
+): UseInfographicBatchPollingReturn {
+  const [batchId, setBatchId] = useState<string | null>(null)
+  const [logIds, setLogIds] = useState<number[]>([])
+  const [details, setDetails] = useState<InfographicLogDetailResponse[]>([])
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [state, setState] = useState<InfographicPollingState>("idle")
+
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const startedAtRef = useRef<number | null>(null)
+  const logIdsRef = useRef<number[]>([])
+  const batchIdRef = useRef<string | null>(null)
+  const isActiveRef = useRef(false)
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
+  const stopPolling = useCallback(() => {
+    isActiveRef.current = false
+    clearTimer()
+  }, [clearTimer])
+
+  const scheduleNextPoll = useCallback((callback: () => void) => {
+    clearTimer()
+    timerRef.current = setTimeout(callback, POLL_INTERVAL_MS)
+  }, [clearTimer])
+
+  const poll = useCallback(async () => {
+    const currentLogIds = logIdsRef.current
+    if (!isActiveRef.current || currentLogIds.length === 0) {
+      return
+    }
+
+    const startedAt = startedAtRef.current ?? Date.now()
+    if (Date.now() - startedAt > POLLING_TIMEOUT_MS) {
+      console.warn("[Infographics] Batch polling timed out:", {
+        batchId: batchIdRef.current,
+        logIds: currentLogIds,
+      })
+      stopPolling()
+      setState("failed")
+      setErrorMessage("polling_timeout")
+      return
+    }
+
+    try {
+      const results = await Promise.all(
+        currentLogIds.map(async (logId) => {
+          const result = await getLogDetail(logId)
+          return { logId, result }
+        })
+      )
+
+      const errorResult = results.find(({ result }) => "error" in result)
+      if (errorResult && "error" in errorResult.result) {
+        console.error("[Infographics] Failed to fetch infographic batch detail:", {
+          batchId: batchIdRef.current,
+          logId: errorResult.logId,
+          error: errorResult.result.error,
+        })
+        stopPolling()
+        setState("failed")
+        setErrorMessage(String(errorResult.result.error))
+        return
+      }
+
+      const nextDetails = results
+        .map(({ result }) => result)
+        .filter((result): result is InfographicLogDetailResponse => !("error" in result))
+        .sort((first, second) => {
+          const firstIndex = first.batch_index ?? currentLogIds.indexOf(first.id) + 1
+          const secondIndex = second.batch_index ?? currentLogIds.indexOf(second.id) + 1
+          return firstIndex - secondIndex
+        })
+      const nextState = getBatchPollingState(currentLogIds, nextDetails)
+
+      console.debug("[Infographics] Batch polling detail status:", {
+        batchId: batchIdRef.current,
+        total: currentLogIds.length,
+        progress: getBatchProgress(currentLogIds, nextDetails),
+        state: nextState,
+      })
+
+      setDetails(nextDetails)
+      setErrorMessage(
+        nextState === "failed"
+          ? nextDetails.find((detail) => detail.error_message)?.error_message || null
+          : null
+      )
+      setState(nextState)
+
+      if (nextState === "success") {
+        console.info("[Infographics] Article infographic batch completed:", {
+          batchId: batchIdRef.current,
+          progress: getBatchProgress(currentLogIds, nextDetails),
+        })
+        stopPolling()
+        return
+      }
+
+      if (nextState === "failed") {
+        console.warn("[Infographics] Article infographic batch failed:", {
+          batchId: batchIdRef.current,
+          progress: getBatchProgress(currentLogIds, nextDetails),
+        })
+        stopPolling()
+        return
+      }
+
+      scheduleNextPoll(() => {
+        void poll()
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error"
+      console.error("[Infographics] Unexpected batch polling error:", {
+        batchId: batchIdRef.current,
+        error: message,
+      })
+      stopPolling()
+      setState("failed")
+      setErrorMessage(message)
+    }
+  }, [getLogDetail, scheduleNextPoll, stopPolling])
+
+  const startPolling = useCallback(async (nextLogIds: number[], nextBatchId?: string) => {
+    stopPolling()
+
+    const normalizedLogIds = Array.from(new Set(nextLogIds.filter((logId) => logId > 0)))
+    logIdsRef.current = normalizedLogIds
+    batchIdRef.current = nextBatchId ?? null
+    startedAtRef.current = Date.now()
+    isActiveRef.current = normalizedLogIds.length > 0
+
+    setBatchId(nextBatchId ?? null)
+    setLogIds(normalizedLogIds)
+    setDetails([])
+    setErrorMessage(null)
+    setState(normalizedLogIds.length > 0 ? "pending" : "success")
+
+    // TODO(observability): add active batch polling gauge for article infographic generation.
+    console.info("[Infographics] Starting batch polling:", {
+      batchId: nextBatchId ?? null,
+      logIds: normalizedLogIds,
+    })
+
+    if (normalizedLogIds.length > 0) {
+      await poll()
+    }
+  }, [poll, stopPolling])
+
+  const markSubmitting = useCallback(() => {
+    setState("submitting")
+    setErrorMessage(null)
+    setDetails([])
+  }, [])
+
+  const reset = useCallback(() => {
+    stopPolling()
+    logIdsRef.current = []
+    batchIdRef.current = null
+    startedAtRef.current = null
+    setBatchId(null)
+    setLogIds([])
+    setDetails([])
+    setErrorMessage(null)
+    setState("idle")
+  }, [stopPolling])
+
+  useEffect(() => {
+    return () => {
+      stopPolling()
+    }
+  }, [stopPolling])
+
+  return {
+    batchId,
+    logIds,
+    details,
+    errorMessage,
+    progress: getBatchProgress(logIds, details),
     state,
     markSubmitting,
     startPolling,

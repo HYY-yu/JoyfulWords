@@ -56,6 +56,8 @@ interface EChartsDialogProps {
 
 type ChartMode = "selection" | "article"
 
+const SELECTION_TEXT_LIMIT = 300
+
 function isErrorResponse<T extends object>(value: T | ErrorResponse): value is ErrorResponse {
   return "error" in value && typeof value.error === "string"
 }
@@ -116,6 +118,9 @@ export function EChartsDialog({
   const { locale, t } = useTranslation()
   const { toast } = useToast()
   const selectedTextPreview = selectedText.trim()
+  const selectedTextLength = selectedTextPreview.length
+  const hasSelectedText = selectedTextLength > 0
+  const isSelectionTooLong = selectedTextLength > SELECTION_TEXT_LIMIT
   const inferredMode: ChartMode = selectedTextPreview ? "selection" : "article"
   const [mode, setMode] = useState<ChartMode>(inferredMode)
   const [prompt, setPrompt] = useState(getDefaultPrompt(inferredMode, locale))
@@ -153,7 +158,9 @@ export function EChartsDialog({
     !submitting &&
     !isArticleAnalysisSubmitting &&
     (mode === "article" || prompt.trim().length >= 3) &&
-    (mode === "selection" ? Boolean(selectedTextPreview) : typeof articleId === "number")
+    (mode === "selection"
+      ? hasSelectedText && !isSelectionTooLong
+      : typeof articleId === "number")
 
   const handleDialogOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && isArticleAnalysisSubmitting) {
@@ -263,6 +270,18 @@ export function EChartsDialog({
   }
 
   const handleSubmit = async () => {
+    if (mode === "selection" && isSelectionTooLong) {
+      toast({
+        variant: "destructive",
+        title: t("echarts.dialog.selectionTooLongTitle"),
+        description: t("echarts.dialog.selectionTooLongDescription", {
+          limit: SELECTION_TEXT_LIMIT,
+          count: selectedTextLength,
+        }),
+      })
+      return
+    }
+
     if (!canSubmit) return
 
     setSubmitting(true)
@@ -383,15 +402,17 @@ export function EChartsDialog({
             className={cn(
               "flex items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors",
               mode === "selection" ? "border-primary/50 bg-primary/5" : "border-border hover:bg-muted/40",
-              (!selectedTextPreview || isArticleAnalysisSubmitting) && "cursor-not-allowed opacity-50"
+              (!hasSelectedText || isArticleAnalysisSubmitting) && "cursor-not-allowed opacity-50"
             )}
-            disabled={!selectedTextPreview || isArticleAnalysisSubmitting}
+            disabled={!hasSelectedText || isArticleAnalysisSubmitting}
             onClick={() => setMode("selection")}
           >
             <MousePointer2Icon className="h-5 w-5 text-primary" />
             <div>
               <p className="text-sm font-semibold">{t("echarts.dialog.selectionMode")}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{t("echarts.dialog.selectionModeDesc")}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t("echarts.dialog.selectionModeDesc", { limit: SELECTION_TEXT_LIMIT })}
+              </p>
             </div>
           </button>
           <button
@@ -421,10 +442,43 @@ export function EChartsDialog({
               />
             </div>
             <div className="mt-5 space-y-2">
-              <Label>{t("echarts.dialog.selectedText")}</Label>
-              <div className="max-h-52 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground">
+              <div className="flex items-center justify-between gap-3">
+                <Label>{t("echarts.dialog.selectedText")}</Label>
+                <span
+                  className={cn(
+                    "text-xs",
+                    isSelectionTooLong ? "font-medium text-destructive" : "text-muted-foreground"
+                  )}
+                >
+                  {t("echarts.dialog.selectedTextCount", {
+                    count: selectedTextLength,
+                    limit: SELECTION_TEXT_LIMIT,
+                  })}
+                </span>
+              </div>
+              <div
+                className={cn(
+                  "max-h-52 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-sm leading-6 text-muted-foreground",
+                  isSelectionTooLong && "border-destructive/50 bg-destructive/5 text-destructive"
+                )}
+              >
                 {selectedTextPreview || t("echarts.dialog.noSelection")}
               </div>
+              <p
+                className={cn(
+                  "text-xs leading-5",
+                  isSelectionTooLong ? "text-destructive" : "text-muted-foreground"
+                )}
+              >
+                {isSelectionTooLong
+                  ? t("echarts.dialog.selectedTextTooLongHint", {
+                      limit: SELECTION_TEXT_LIMIT,
+                      count: selectedTextLength,
+                    })
+                  : t("echarts.dialog.selectedTextHint", {
+                      limit: SELECTION_TEXT_LIMIT,
+                    })}
+              </p>
             </div>
           </>
         ) : (

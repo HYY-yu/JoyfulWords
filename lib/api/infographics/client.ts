@@ -3,6 +3,8 @@ import type { ErrorResponse } from "@/lib/api/types"
 import type {
   CopyInfographicToMaterialsRequest,
   CopyInfographicToMaterialsResponse,
+  GenerateInfographicFromArticleRequest,
+  GenerateInfographicFromArticleResponse,
   GenerateInfographicRequest,
   GenerateInfographicResponse,
   InfographicLogDetailResponse,
@@ -27,6 +29,29 @@ export const infographicsClient = {
       method: "POST",
       body: JSON.stringify(request),
     })
+  },
+
+  async generateFromArticle(
+    request: GenerateInfographicFromArticleRequest
+  ): Promise<GenerateInfographicFromArticleResponse | ErrorResponse> {
+    console.info("[Infographics] Creating article infographic batch:", {
+      articleId: request.article_id,
+      maxCount: request.max_count ?? null,
+      cardStyle: request.card_style,
+      screenOrientation: request.screen_orientation,
+      language: request.language,
+      decorationLevel: request.decoration_level,
+      modelName: request.model_name ?? null,
+    })
+
+    // TODO(observability): add article infographic batch creation metrics and trace attributes.
+    return authenticatedApiRequest<GenerateInfographicFromArticleResponse>(
+      "/infographics/generate-from-article",
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    )
   },
 
   async getLogDetail(

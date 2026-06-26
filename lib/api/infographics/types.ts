@@ -49,12 +49,31 @@ export interface GenerateInfographicRequest {
   language: InfographicLanguage
   decoration_level: InfographicDecorationLevel
   user_custom?: string
+  model_name?: string
 }
 
 export interface GenerateInfographicResponse {
   log_id: number
   status: "pending"
   poll_url: string
+  estimated_eta?: number
+}
+
+export interface GenerateInfographicFromArticleRequest {
+  article_id: number
+  max_count?: number
+  card_style: InfographicCardStyle
+  screen_orientation: InfographicScreenOrientation
+  language: InfographicLanguage
+  decoration_level: InfographicDecorationLevel
+  model_name?: string
+}
+
+export interface GenerateInfographicFromArticleResponse {
+  batch_id: string
+  count: number
+  log_ids: number[]
+  poll_urls: string[]
   estimated_eta?: number
 }
 
@@ -78,6 +97,13 @@ export interface InfographicLogDetailResponse {
   image_urls: string
   status: InfographicStatus
   error_message: string
+  batch_id?: string
+  batch_index?: number
+  batch_total?: number
+  generation_mode?: "single" | "article_batch" | string
+  article_anchor?: string
+  article_excerpt?: string
+  selection_reason?: string
   created_at: string
   updated_at: string
   completed_at?: string

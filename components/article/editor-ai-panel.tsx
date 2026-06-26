@@ -170,7 +170,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     icon: ChartNoAxesCombinedIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
-    groupKey: "structure",
+    groupKey: "writing",
   },
   {
     id: "echarts",
@@ -178,7 +178,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     icon: BarChart3Icon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
-    groupKey: "structure",
+    groupKey: "writing",
   },
   {
     id: "presentation",
@@ -690,15 +690,6 @@ export function EditorAIPanel({
       setIsImageStyleOpen(true)
     } else if (id === "infographic") {
       const selectedText = getSelectedEditorText().trim()
-
-      if (!selectedText) {
-        toast({
-          variant: "destructive",
-          title: t("infographicDialog.toast.selectTextFirst"),
-          description: t("infographicDialog.toast.selectTextFirstDesc"),
-        })
-        return
-      }
 
       setSelectedInfographicText(selectedText)
       setIsInfographicOpen(true)
