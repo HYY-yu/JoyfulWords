@@ -155,17 +155,48 @@ export interface MaterialSearchDetailResponse {
 }
 
 /**
- * 从搜索结果创建素材请求
+ * 从 AI/SERP 搜索结果创建素材请求
  */
-export interface AddMaterialsFromLogRequest {
-  material_log_id: number
-  article_id: number
-  urls: string[]
-  items?: Array<{
+export interface AddMaterialsFromAISearchItem {
+  url: string
+  title?: string
+  content?: string
+  published_date?: string
+}
+
+export type AddMaterialsFromAISearchRequest =
+  | {
+      article_id: number
+      material_log_id: number
+      urls: string[]
+      material_type?: MaterialType
+      query?: string
+      items?: AddMaterialsFromAISearchItem[]
+    }
+  | {
+      article_id: number
+      material_type: MaterialType
+      query: string
+      items: AddMaterialsFromAISearchItem[]
+      material_log_id?: number
+      urls?: string[]
+    }
+
+/**
+ * 从 AI/SERP 搜索结果创建素材响应
+ */
+export interface AddMaterialsFromAISearchResponse {
+  ids: number[]
+  materials?: Material[]
+  failed_results?: Array<{
     url: string
-    title: string
-    content: string
+    error: string
   }>
+  message: string
+  tavily_request_id?: string
+  usage?: {
+    credits?: number
+  }
 }
 
 /**
@@ -173,15 +204,6 @@ export interface AddMaterialsFromLogRequest {
  */
 export interface CreateMaterialFavoriteRequest {
   material_id: number
-}
-
-/**
- * 从搜索结果创建素材响应
- */
-export interface AddMaterialsFromLogResponse {
-  ids: number[]
-  materials?: Material[]
-  message: string
 }
 
 export interface ParseMaterialPreviewRequest {

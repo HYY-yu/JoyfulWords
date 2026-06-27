@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, Network, ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
@@ -20,9 +22,9 @@ import type { Material, MaterialType, MaterialFavorite, MaterialParseStatus, Mat
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/base/label"
-import { markdownToHTML } from "@/lib/tiptap-utils"
 import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
 import { MaterialClueBoardDialog } from "@/components/article/material-clue-board"
+import { normalizeMarkdownLinksWithSpaceDestinations } from "@/components/article/material-clue-board/markdown-utils"
 
 // ==================== MaterialCard ====================
 
@@ -31,6 +33,27 @@ type MaterialCardItem = Pick<Material, "id" | "title" | "material_type" | "conte
 interface MaterialCardProps {
   material: MaterialCardItem
   leftActions?: ReactNode
+}
+
+function MaterialMarkdownPreview({ markdown }: { markdown: string }) {
+  return (
+    <div className="prose prose-sm max-w-none break-words pr-4 dark:prose-invert [overflow-wrap:anywhere]">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a({ href, children }) {
+            return (
+              <a href={href} target="_blank" rel="noreferrer">
+                {children}
+              </a>
+            )
+          },
+        }}
+      >
+        {normalizeMarkdownLinksWithSpaceDestinations(markdown)}
+      </ReactMarkdown>
+    </div>
+  )
 }
 
 function MaterialIconButton({
@@ -72,12 +95,13 @@ function MaterialIconButton({
 
 function MaterialCard({ material, leftActions }: MaterialCardProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
-  const [markdownHTML, setMarkdownHTML] = useState("")
+  const [remoteMarkdown, setRemoteMarkdown] = useState("")
   const [markdownLoading, setMarkdownLoading] = useState(false)
   const [markdownError, setMarkdownError] = useState("")
   const isImage = material.material_type === "image"
   const imageUrl = isImage ? material.content : null
   const isInfoFile = material.material_type === "info" && Boolean(material.markdown_url || material.parse_status)
+  const markdownSource = material.content || remoteMarkdown
   const parseStatusLabel =
     material.parse_status === "parsing"
       ? "解析中"
@@ -88,7 +112,15 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
           : ""
 
   useEffect(() => {
-    if (!previewOpen || !isInfoFile || material.parse_status !== "success" || markdownHTML || markdownLoading) {
+    if (
+      !previewOpen ||
+      !isInfoFile ||
+      material.parse_status !== "success" ||
+      material.content ||
+      !material.markdown_url ||
+      remoteMarkdown ||
+      markdownLoading
+    ) {
       return
     }
 
@@ -97,23 +129,14 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
     setMarkdownError("")
 
     const loadMarkdown = async () => {
-      if (material.content) {
-        return material.content
-      }
-
-      if (!material.markdown_url) {
-        throw new Error("Markdown result is empty")
-      }
-
       const response = await fetch(material.markdown_url)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return response.text()
     }
 
     loadMarkdown()
-      .then(async (markdown) => {
-        const html = await markdownToHTML(markdown)
-        if (!cancelled) setMarkdownHTML(html)
+      .then((markdown) => {
+        if (!cancelled) setRemoteMarkdown(markdown)
       })
       .catch((error) => {
         if (!cancelled) setMarkdownError(error instanceof Error ? error.message : "Failed to load markdown")
@@ -125,7 +148,7 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
     return () => {
       cancelled = true
     }
-  }, [isInfoFile, markdownHTML, markdownLoading, material.content, material.markdown_url, material.parse_status, previewOpen])
+  }, [isInfoFile, markdownLoading, material.content, material.markdown_url, material.parse_status, previewOpen, remoteMarkdown])
 
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -232,21 +255,18 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
             <p className="mt-1 text-center text-sm text-white/80">{material.title}</p>
           </DialogContent>
         ) : (
-          <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
-            <DialogTitle className="text-base font-semibold">{material.title}</DialogTitle>
-            <ScrollArea className="flex-1 mt-2">
+          <DialogContent className="flex max-h-[80vh] max-w-lg flex-col overflow-hidden">
+            <DialogTitle className="shrink-0 text-base font-semibold">{material.title}</DialogTitle>
+            <ScrollArea type="always" className="mt-2 min-h-0 flex-1 overflow-hidden pr-1">
               {isInfoFile ? (
-                <div className="pr-4 text-sm leading-relaxed">
+                <div className="break-words text-sm leading-relaxed [overflow-wrap:anywhere]">
                   {parseStatusLabel ? (
                     <Badge variant="outline" className="mb-3 rounded px-1.5 text-[11px]">
                       {parseStatusLabel}
                     </Badge>
                   ) : null}
-                  {material.parse_status === "success" && markdownHTML ? (
-                    <div
-                      className="prose prose-sm max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: markdownHTML }}
-                    />
+                  {material.parse_status === "success" && markdownSource ? (
+                    <MaterialMarkdownPreview markdown={markdownSource} />
                   ) : material.parse_status === "success" && markdownLoading ? (
                     <p className="text-muted-foreground">Markdown 加载中...</p>
                   ) : material.parse_status === "success" && markdownError ? (
@@ -254,13 +274,11 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
                   ) : material.parse_status === "failed" ? (
                     <p className="text-destructive">解析失败{material.parse_failed_code ? `（${material.parse_failed_code}）` : ""}</p>
                   ) : (
-                    <p className="whitespace-pre-wrap text-muted-foreground">{material.content}</p>
+                    <MaterialMarkdownPreview markdown={material.content || ""} />
                   )}
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed pr-4">
-                  {material.content}
-                </p>
+                <MaterialMarkdownPreview markdown={material.content || ""} />
               )}
             </ScrollArea>
           </DialogContent>
@@ -1205,24 +1223,30 @@ function SearchTab({
     })
     setIsImporting(true)
     const itemByUrl = new Map((detail?.ai_result?.ai_result ?? []).map((item) => [item.url, item]))
-    const selectedItems = Array.from(selectedUrls)
-      .map((url) => {
+    const selectedItems: MaterialSearchResultItem[] = Array.from(selectedUrls)
+      .flatMap((url) => {
         const item = itemByUrl.get(url)
-        if (!item) return null
-        return {
+        if (!item) return []
+        return [{
           url,
           title: item.title,
           content: item.content,
-        }
+          ...(item.published_date ? { published_date: item.published_date } : {}),
+        }]
       })
-      .filter((item): item is { url: string; title: string; content: string } => Boolean(item))
 
-    const result = await materialsClient.addFromLog({
-      material_log_id: activeTask.logId,
-      article_id: activeTask.articleId,
-      urls: Array.from(selectedUrls),
-      items: selectedItems.length > 0 ? selectedItems : undefined,
-    })
+    const result = activeTask.materialType === "image" || selectedItems.length === 0
+      ? await materialsClient.addFromAISearch({
+          material_log_id: activeTask.logId,
+          article_id: activeTask.articleId,
+          urls: Array.from(selectedUrls),
+        })
+      : await materialsClient.addFromAISearch({
+          article_id: activeTask.articleId,
+          material_type: activeTask.materialType,
+          query: activeTask.query,
+          items: selectedItems,
+        })
 
     if ("error" in result) {
       console.warn("[MaterialSearch] import failed", {
@@ -1236,6 +1260,17 @@ function SearchTab({
       })
       setIsImporting(false)
       return
+    }
+
+    const failedResults = "failed_results" in result && Array.isArray(result.failed_results)
+      ? result.failed_results
+      : []
+
+    if (failedResults.length) {
+      console.warn("[MaterialSearch] partial import failures", {
+        logId: activeTask.logId,
+        failedCount: failedResults.length,
+      })
     }
 
     toast({

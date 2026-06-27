@@ -7,7 +7,7 @@ import type {
   UpdateMaterialRequest,
   GetPresignedUrlRequest,
   GetMaterialFavoritesRequest,
-  AddMaterialsFromLogRequest,
+  AddMaterialsFromAISearchRequest,
   ParseMaterialPreviewRequest,
   CreateMaterialFavoriteRequest,
   MaterialListResponse,
@@ -20,7 +20,7 @@ import type {
   ErrorResponse,
   TriggerMaterialSearchV2Response,
   MaterialSearchDetailResponse,
-  AddMaterialsFromLogResponse,
+  AddMaterialsFromAISearchResponse,
   ParseMaterialPreviewResponse,
 } from './types'
 
@@ -256,13 +256,13 @@ export const materialsClient = {
   },
 
   /**
-   * 8. 从搜索结果创建素材
-   * POST /materials/add-from-log
+   * 8. 从 AI/SERP 搜索结果创建素材
+   * POST /materials/add-from-ai-search
    */
-  async addFromLog(
-    data: AddMaterialsFromLogRequest
-  ): Promise<AddMaterialsFromLogResponse | ErrorResponse> {
-    return authenticatedApiRequest<AddMaterialsFromLogResponse>('/materials/add-from-log', {
+  async addFromAISearch(
+    data: AddMaterialsFromAISearchRequest
+  ): Promise<AddMaterialsFromAISearchResponse | ErrorResponse> {
+    return authenticatedApiRequest<AddMaterialsFromAISearchResponse>('/materials/add-from-ai-search', {
       method: 'POST',
       body: JSON.stringify(data),
     })
