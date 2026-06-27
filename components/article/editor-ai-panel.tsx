@@ -181,20 +181,22 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     groupKey: "writing",
   },
   {
-    id: "presentation",
-    labelKey: "tiptapEditor.aiPanel.generatePpt",
-    icon: PresentationIcon,
-    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
-    iconColor: "text-[var(--jw-accent)]",
-    groupKey: "structure",
-  },
-  {
     id: "word-converter",
     labelKey: "tiptapEditor.aiPanel.wordConverter",
     icon: FileType2Icon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
+  },
+  {
+    id: "presentation",
+    labelKey: "tiptapEditor.aiPanel.generatePpt",
+    icon: PresentationIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "structure",
+    disabled: true,
+    tooltipKey: "tiptapEditor.aiPanel.featureUnavailable",
   },
 ]
 

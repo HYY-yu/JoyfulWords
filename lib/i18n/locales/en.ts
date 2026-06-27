@@ -1638,6 +1638,7 @@ export const en = {
             wordConverterDesc: "Convert Markdown, PPT, or PDF into Word and apply Word template styles.",
             generateVideo: "Generate Video",
             generateVideoComingSoon: "Feature in development. Coming soon.",
+            featureUnavailable: "Feature unavailable",
             taskProgress: "Task Progress",
             taskProgressSubtitle: "Track task progress here. Click a task to view details.",
         },

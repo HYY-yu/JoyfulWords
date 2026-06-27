@@ -1638,6 +1638,7 @@ export const zh = {
             wordConverterDesc: "将 Markdown、PPT 或 PDF 转换为 Word，并可套用 Word 模板样式。",
             generateVideo: "生成视频",
             generateVideoComingSoon: "功能开发中，敬请期待",
+            featureUnavailable: "功能暂不可用",
             taskProgress: "任务进度",
             taskProgressSubtitle: "在这里跟踪任务进度，点击任务可查看详情。",
         },
