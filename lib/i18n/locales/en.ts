@@ -764,7 +764,7 @@ export const en = {
             noFontTaskImages: "No font image tasks available",
             refreshFontTaskImages: "Refresh Font Tasks",
             fontTaskImageLoadFailed: "Failed to load font task images",
-            fontSizeLabel: "Title / Font Image Size",
+            fontResizeHandle: "Resize title",
             fontWeightLabel: "Title Weight",
             textColorLabel: "Text Color",
             positionLabel: "Position",

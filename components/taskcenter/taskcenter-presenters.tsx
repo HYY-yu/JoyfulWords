@@ -161,6 +161,20 @@ function shouldShowImageNoCharge(detail: {
   return detail.status === "failed" || getImageTaskBillingCharged(detail) === false
 }
 
+function isFontImageTask(
+  taskRef: TaskCenterTaskReference,
+  detail: TaskCenterTaskDetailResponse
+): boolean {
+  return taskRef.type === "image" && "gen_mode" in detail && detail.gen_mode === "font"
+}
+
+function shouldShowReferenceImages(
+  taskRef: TaskCenterTaskReference,
+  detail: TaskCenterTaskDetailResponse
+): boolean {
+  return !isFontImageTask(taskRef, detail)
+}
+
 export function getTaskCenterTaskSummary(
   task: TaskCenterTaskListItem,
   t?: TaskCenterTranslate
@@ -412,7 +426,7 @@ export function TaskCenterTaskDetailView({
             value={detail.card_type || "-"}
           />
           ) : null}
-          {"prompt" in detail ? (
+          {"prompt" in detail && !isFontImageTask(taskRef, detail) ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.prompt")}
             value={detail.prompt || "-"}
@@ -527,7 +541,7 @@ export function TaskCenterTaskDetailView({
         </div>
       ) : null}
 
-      {referenceImageUrls.length > 0 ? (
+      {shouldShowReferenceImages(taskRef, detail) && referenceImageUrls.length > 0 ? (
         <div className="space-y-3">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             {t("contentWriting.taskCenter.fields.referenceImages")}

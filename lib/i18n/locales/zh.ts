@@ -764,7 +764,7 @@ export const zh = {
             noFontTaskImages: "暂无可用的字体图片任务",
             refreshFontTaskImages: "刷新字体任务",
             fontTaskImageLoadFailed: "字体任务图片加载失败",
-            fontSizeLabel: "标题/字体图片大小",
+            fontResizeHandle: "缩放标题",
             fontWeightLabel: "标题粗细",
             textColorLabel: "文字颜色",
             positionLabel: "位置",

@@ -53,6 +53,15 @@ type FontMode = "preset" | "custom" | "task"
 type FontImageSource = Exclude<FontMode, "preset">
 type ExportFormat = "png" | "jpeg" | "webp"
 type GradientDirection = "135" | "90" | "180" | "45"
+type TitleResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "center"
+type TitleTransformMode = "move" | "resize"
+
+interface TitleBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 interface FontTaskImage {
   id: string
@@ -74,6 +83,22 @@ const COVER_PRESETS: CoverPreset[] = [
   { id: "square", width: 1080, height: 1080 },
 ]
 
+const FONT_SIZE_MIN = 32
+
+const TITLE_RESIZE_HANDLES: Array<{
+  id: Exclude<TitleResizeHandle, "center">
+  className: string
+}> = [
+  { id: "nw", className: "-left-1 -top-1 cursor-nwse-resize" },
+  { id: "n", className: "left-1/2 -top-1 -translate-x-1/2 cursor-ns-resize" },
+  { id: "ne", className: "-right-1 -top-1 cursor-nesw-resize" },
+  { id: "e", className: "-right-1 top-1/2 -translate-y-1/2 cursor-ew-resize" },
+  { id: "se", className: "-bottom-1 -right-1 cursor-nwse-resize" },
+  { id: "s", className: "left-1/2 -bottom-1 -translate-x-1/2 cursor-ns-resize" },
+  { id: "sw", className: "-bottom-1 -left-1 cursor-nesw-resize" },
+  { id: "w", className: "-left-1 top-1/2 -translate-y-1/2 cursor-ew-resize" },
+]
+
 const FONT_OPTIONS = [
   { id: "system", family: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif" },
   { id: "headline", family: "Arial Black, Impact, system-ui, sans-serif" },
@@ -84,9 +109,14 @@ const FONT_OPTIONS = [
 ]
 
 const DEFAULT_TITLE_POSITION = { x: 110, y: 250 }
+const EMPTY_TITLE_BOUNDS: TitleBounds = { x: 0, y: 0, width: 0, height: 0 }
 const NANO_BANANA_FAST_MODEL_KEYWORDS = ["nano", "banana", "fast"]
 const COVER_TITLE_CHARACTER_LIMIT = 20
 const COVER_TITLE_WORD_LIMIT = 10
+
+function clampFontSize(value: number): number {
+  return Math.max(FONT_SIZE_MIN, Math.round(value))
+}
 
 function toCanvasSafeImageUrl(url: string, cacheKey?: string): string {
   if (typeof window === "undefined") return url
@@ -240,8 +270,16 @@ export function ArticleCoverDialog({
   const { t } = useTranslation()
   const { toast } = useToast()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const titleBoundsRef = useRef({ x: 0, y: 0, width: 0, height: 0 })
-  const dragRef = useRef({ active: false, offsetX: 0, offsetY: 0 })
+  const titleBoundsRef = useRef<TitleBounds>(EMPTY_TITLE_BOUNDS)
+  const titleTransformRef = useRef({
+    active: false,
+    mode: "move" as TitleTransformMode,
+    handle: "center" as TitleResizeHandle,
+    offsetX: 0,
+    offsetY: 0,
+    startFontSize: 86,
+    startBounds: EMPTY_TITLE_BOUNDS,
+  })
   const pendingFontTaskIdsRef = useRef<Set<string>>(new Set())
   const resolvingFontTaskIdsRef = useRef<Set<string>>(new Set())
   const autoStandardizedTitleArticleRef = useRef<string | null>(null)
@@ -296,11 +334,64 @@ export function ArticleCoverDialog({
   const [hasFetchedEmptyMaterials, setHasFetchedEmptyMaterials] = useState(false)
   const [isImageCreatorOpen, setIsImageCreatorOpen] = useState(false)
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
+  const [isTitleSelected, setIsTitleSelected] = useState(false)
+  const [titleBounds, setTitleBounds] = useState<TitleBounds>(EMPTY_TITLE_BOUNDS)
+  const [canvasDisplaySize, setCanvasDisplaySize] = useState({ width: 0, height: 0 })
+  const [isCanvasReady, setIsCanvasReady] = useState(false)
 
   const selectedFontFamily = useMemo(
     () => FONT_OPTIONS.find((font) => font.id === fontFamilyId)?.family ?? FONT_OPTIONS[0].family,
     [fontFamilyId]
   )
+  const setCanvasNode = useCallback((node: HTMLCanvasElement | null) => {
+    canvasRef.current = node
+    setIsCanvasReady(Boolean(node))
+  }, [])
+
+  const updateTitleBounds = useCallback((bounds: TitleBounds) => {
+    titleBoundsRef.current = bounds
+    setTitleBounds((current) => {
+      if (
+        current.x === bounds.x &&
+        current.y === bounds.y &&
+        current.width === bounds.width &&
+        current.height === bounds.height
+      ) {
+        return current
+      }
+      return bounds
+    })
+  }, [])
+
+  const updateCanvasDisplaySize = useCallback(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const rect = canvas.getBoundingClientRect()
+    const next = {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    }
+    setCanvasDisplaySize((current) => (
+      current.width === next.width && current.height === next.height ? current : next
+    ))
+  }, [])
+
+  const titleSelectionStyle = useMemo(() => {
+    if (!isTitleSelected || canvasDisplaySize.width <= 0 || canvasDisplaySize.height <= 0 || titleBounds.width <= 0 || titleBounds.height <= 0) {
+      return null
+    }
+
+    const scaleX = canvasDisplaySize.width / width
+    const scaleY = canvasDisplaySize.height / height
+    return {
+      left: `${titleBounds.x * scaleX}px`,
+      top: `${titleBounds.y * scaleY}px`,
+      width: `${titleBounds.width * scaleX}px`,
+      height: `${titleBounds.height * scaleY}px`,
+    }
+  }, [canvasDisplaySize.height, canvasDisplaySize.width, height, isTitleSelected, titleBounds.height, titleBounds.width, titleBounds.x, titleBounds.y, width])
+
   const applyFontImageUrl = useCallback((url: string, source: FontImageSource) => {
     setCustomFontImage(null)
     setCustomFontImageUrl("")
@@ -321,14 +412,35 @@ export function ArticleCoverDialog({
     setBackgroundImageUrl("")
     setBackgroundImage(null)
     setTitlePosition(DEFAULT_TITLE_POSITION)
+    setIsTitleSelected(false)
     autoStandardizedTitleArticleRef.current = null
   }, [articleId, articleTitle, open])
 
   useEffect(() => {
     if (!open) {
       setHasFetchedEmptyMaterials(false)
+      setIsTitleSelected(false)
     }
   }, [open])
+
+  useEffect(() => {
+    if (!open || !isCanvasReady) return
+
+    updateCanvasDisplaySize()
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const observer = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateCanvasDisplaySize)
+    observer?.observe(canvas)
+    window.addEventListener("resize", updateCanvasDisplaySize)
+
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener("resize", updateCanvasDisplaySize)
+    }
+  }, [isCanvasReady, open, updateCanvasDisplaySize, width, height])
 
   useEffect(() => {
     if (!open) return
@@ -451,12 +563,12 @@ export function ArticleCoverDialog({
       const imageWidth = Math.min(maxTitleWidth, imageHeight * ratio)
       const adjustedHeight = imageWidth / ratio
       ctx.drawImage(customFontImage, titlePosition.x, titlePosition.y, imageWidth, adjustedHeight)
-      titleBoundsRef.current = {
+      updateTitleBounds({
         x: titlePosition.x,
         y: titlePosition.y,
         width: imageWidth,
         height: adjustedHeight,
-      }
+      })
       return
     }
 
@@ -482,12 +594,12 @@ export function ArticleCoverDialog({
     })
     ctx.shadowColor = "transparent"
 
-    titleBoundsRef.current = {
+    updateTitleBounds({
       x: titlePosition.x,
       y: titlePosition.y,
       width: textWidth,
       height: textHeight,
-    }
+    })
   }, [
     backgroundImage,
     backgroundMode,
@@ -509,12 +621,21 @@ export function ArticleCoverDialog({
     titleColor,
     titlePosition.x,
     titlePosition.y,
+    updateTitleBounds,
     width,
   ])
 
   useEffect(() => {
+    if (!open || !isCanvasReady) return
+
     drawCover()
-  }, [drawCover])
+    const frameId = window.requestAnimationFrame(() => {
+      drawCover()
+      updateCanvasDisplaySize()
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [drawCover, isCanvasReady, open, updateCanvasDisplaySize])
 
   const fetchMaterials = useCallback(async (queryOverride?: string) => {
     setIsLoadingMaterials(true)
@@ -877,14 +998,84 @@ export function ArticleCoverDialog({
     return <ImagePlusIcon className="h-4 w-4" />
   }
 
-  const getCanvasPoint = (event: PointerEvent<HTMLCanvasElement>) => {
+  const getCanvasPointFromClient = (clientX: number, clientY: number) => {
     const canvas = canvasRef.current
     if (!canvas) return { x: 0, y: 0 }
     const rect = canvas.getBoundingClientRect()
     return {
-      x: ((event.clientX - rect.left) / rect.width) * width,
-      y: ((event.clientY - rect.top) / rect.height) * height,
+      x: ((clientX - rect.left) / rect.width) * width,
+      y: ((clientY - rect.top) / rect.height) * height,
     }
+  }
+
+  const getCanvasPoint = (event: PointerEvent<HTMLElement>) => (
+    getCanvasPointFromClient(event.clientX, event.clientY)
+  )
+
+  const getResizeScale = (handle: TitleResizeHandle, point: { x: number; y: number }) => {
+    const { startBounds } = titleTransformRef.current
+    const nextWidthByHandle = () => {
+      if (handle.includes("e")) return point.x - startBounds.x
+      if (handle.includes("w")) return startBounds.x + startBounds.width - point.x
+      return startBounds.width
+    }
+    const nextHeightByHandle = () => {
+      if (handle.includes("s")) return point.y - startBounds.y
+      if (handle.includes("n")) return startBounds.y + startBounds.height - point.y
+      return startBounds.height
+    }
+
+    const scaleX = Math.max(0.12, nextWidthByHandle() / Math.max(1, startBounds.width))
+    const scaleY = Math.max(0.12, nextHeightByHandle() / Math.max(1, startBounds.height))
+    if (handle === "n" || handle === "s") return scaleY
+    if (handle === "e" || handle === "w") return scaleX
+    return Math.max(scaleX, scaleY)
+  }
+
+  const getResizedPosition = (handle: TitleResizeHandle, nextFontSize: number) => {
+    const { startBounds, startFontSize } = titleTransformRef.current
+    const scale = nextFontSize / Math.max(1, startFontSize)
+    const nextWidth = startBounds.width * scale
+    const nextHeight = startBounds.height * scale
+    let x = startBounds.x
+    let y = startBounds.y
+
+    if (handle.includes("w")) {
+      x = startBounds.x + startBounds.width - nextWidth
+    } else if (!handle.includes("e")) {
+      x = startBounds.x + (startBounds.width - nextWidth) / 2
+    }
+
+    if (handle.includes("n")) {
+      y = startBounds.y + startBounds.height - nextHeight
+    } else if (!handle.includes("s")) {
+      y = startBounds.y + (startBounds.height - nextHeight) / 2
+    }
+
+    return {
+      x: Math.round(x),
+      y: Math.round(y),
+    }
+  }
+
+  const beginTitleTransform = (
+    event: PointerEvent<HTMLElement>,
+    mode: TitleTransformMode,
+    handle: TitleResizeHandle = "center"
+  ) => {
+    const point = getCanvasPoint(event)
+    const bounds = titleBoundsRef.current
+    setIsTitleSelected(true)
+    titleTransformRef.current = {
+      active: true,
+      mode,
+      handle,
+      offsetX: point.x - titlePosition.x,
+      offsetY: point.y - titlePosition.y,
+      startFontSize: fontSize,
+      startBounds: bounds,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   const handleCanvasPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
@@ -896,27 +1087,51 @@ export function ArticleCoverDialog({
       point.y >= bounds.y &&
       point.y <= bounds.y + bounds.height
 
-    if (!inTitle) return
-    dragRef.current = {
-      active: true,
-      offsetX: point.x - titlePosition.x,
-      offsetY: point.y - titlePosition.y,
+    if (!inTitle) {
+      setIsTitleSelected(false)
+      return
     }
-    event.currentTarget.setPointerCapture(event.pointerId)
+    beginTitleTransform(event, "move")
   }
 
   const handleCanvasPointerMove = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (!dragRef.current.active) return
+    const transform = titleTransformRef.current
+    if (!transform.active || transform.mode !== "move") return
     const point = getCanvasPoint(event)
-    const bounds = titleBoundsRef.current
     setTitlePosition({
-      x: Math.max(0, Math.min(width - bounds.width, point.x - dragRef.current.offsetX)),
-      y: Math.max(0, Math.min(height - bounds.height, point.y - dragRef.current.offsetY)),
+      x: point.x - transform.offsetX,
+      y: point.y - transform.offsetY,
     })
   }
 
-  const handleCanvasPointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
-    dragRef.current.active = false
+  const handleTitleResizePointerDown = (
+    event: PointerEvent<HTMLButtonElement>,
+    handle: Exclude<TitleResizeHandle, "center">
+  ) => {
+    event.stopPropagation()
+    beginTitleTransform(event, "resize", handle)
+  }
+
+  const handleTitleTransformPointerMove = (event: PointerEvent<HTMLButtonElement>) => {
+    const transform = titleTransformRef.current
+    if (!transform.active) return
+
+    const point = getCanvasPoint(event)
+    if (transform.mode === "move") {
+      setTitlePosition({
+        x: point.x - transform.offsetX,
+        y: point.y - transform.offsetY,
+      })
+      return
+    }
+
+    const nextFontSize = clampFontSize(transform.startFontSize * getResizeScale(transform.handle, point))
+    setFontSize(nextFontSize)
+    setTitlePosition(getResizedPosition(transform.handle, nextFontSize))
+  }
+
+  const handleTitleTransformPointerUp = (event: PointerEvent<HTMLElement>) => {
+    titleTransformRef.current.active = false
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
@@ -1202,15 +1417,41 @@ export function ArticleCoverDialog({
               <span className="font-mono text-[var(--jw-heading)]">{width} x {height}</span>
             </div>
             <div className="jw-cover-preview-stage flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-2xl border border-[var(--jw-border)] p-5 shadow-inner">
-              <canvas
-                ref={canvasRef}
-                className="max-h-full max-w-full cursor-move rounded-xl bg-[var(--jw-surface-strong)] shadow-2xl shadow-slate-950/10 ring-1 ring-[var(--jw-border)]"
-                style={{ aspectRatio: `${width} / ${height}` }}
-                onPointerDown={handleCanvasPointerDown}
-                onPointerMove={handleCanvasPointerMove}
-                onPointerUp={handleCanvasPointerUp}
-                onPointerCancel={handleCanvasPointerUp}
-              />
+              <div className="relative inline-block max-h-full max-w-full">
+                <canvas
+                  ref={setCanvasNode}
+                  width={width}
+                  height={height}
+                  className="block max-h-full max-w-full cursor-move rounded-xl bg-[var(--jw-surface-strong)] shadow-2xl shadow-slate-950/10 ring-1 ring-[var(--jw-border)]"
+                  style={{ aspectRatio: `${width} / ${height}` }}
+                  onPointerDown={handleCanvasPointerDown}
+                  onPointerMove={handleCanvasPointerMove}
+                  onPointerUp={handleTitleTransformPointerUp}
+                  onPointerCancel={handleTitleTransformPointerUp}
+                />
+                {titleSelectionStyle ? (
+                  <div
+                    className="pointer-events-none absolute rounded-[6px] border border-[var(--jw-accent)] shadow-[0_0_0_1px_rgba(255,255,255,0.88),0_0_0_4px_color-mix(in_srgb,var(--jw-accent)_18%,transparent)]"
+                    style={titleSelectionStyle}
+                  >
+                    {TITLE_RESIZE_HANDLES.map((handle) => (
+                      <button
+                        key={handle.id}
+                        type="button"
+                        aria-label={t("imageGeneration.cover.fontResizeHandle")}
+                        className={cn(
+                          "pointer-events-auto absolute h-2 w-2 rounded-full border border-[var(--jw-accent)] bg-[var(--jw-surface-strong)] shadow-[0_8px_18px_-10px_rgba(0,0,0,0.45)] transition hover:scale-125 hover:bg-[var(--jw-accent-soft)]",
+                          handle.className
+                        )}
+                        onPointerDown={(event) => handleTitleResizePointerDown(event, handle.id)}
+                        onPointerMove={handleTitleTransformPointerMove}
+                        onPointerUp={handleTitleTransformPointerUp}
+                        onPointerCancel={handleTitleTransformPointerUp}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -1294,20 +1535,33 @@ export function ArticleCoverDialog({
                 </div>
 
                 {fontMode === "preset" ? (
-                  <div className="space-y-2.5">
-                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontFamilyLabel")}</Label>
-                    <Select value={fontFamilyId} onValueChange={setFontFamilyId}>
-                      <SelectTrigger className={controlInputClass}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FONT_OPTIONS.map((font) => (
-                          <SelectItem key={font.id} value={font.id}>
-                            {t(`imageGeneration.cover.fonts.${font.id}`)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-4">
+                    <div className="space-y-2.5">
+                      <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontFamilyLabel")}</Label>
+                      <Select value={fontFamilyId} onValueChange={setFontFamilyId}>
+                        <SelectTrigger className={controlInputClass}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {FONT_OPTIONS.map((font) => (
+                            <SelectItem key={font.id} value={font.id}>
+                              {t(`imageGeneration.cover.fonts.${font.id}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontWeightLabel")}</Label>
+                        <span className="text-xs text-[var(--jw-muted)]">{fontWeight}</span>
+                      </div>
+                      <Slider className="py-1" value={[fontWeight]} min={300} max={900} step={100} onValueChange={([value]) => setFontWeight(value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className={fieldLabelClass}>{t("imageGeneration.cover.textColorLabel")}</Label>
+                      <Input type="color" value={titleColor} onChange={(event) => setTitleColor(event.target.value)} className={colorInputClass} />
+                    </div>
                   </div>
                 ) : fontMode === "custom" ? (
                   <div className="space-y-3">
@@ -1419,33 +1673,10 @@ export function ArticleCoverDialog({
                 {t("imageGeneration.cover.positionLabel")}
               </div>
               <div className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontSizeLabel")}</Label>
-                    <span className="text-xs text-[var(--jw-muted)]">{fontSize}px</span>
-                  </div>
-                  <Slider className="py-1" value={[fontSize]} min={32} max={180} step={1} onValueChange={([value]) => setFontSize(value)} />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.fontWeightLabel")}</Label>
-                    <span className="text-xs text-[var(--jw-muted)]">{fontWeight}</span>
-                  </div>
-                  <Slider className="py-1" value={[fontWeight]} min={300} max={900} step={100} onValueChange={([value]) => setFontWeight(value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.textColorLabel")}</Label>
-                    <Input type="color" value={titleColor} onChange={(event) => setTitleColor(event.target.value)} className={colorInputClass} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className={fieldLabelClass}>{t("imageGeneration.cover.positionLabel")}</Label>
-                    <Button type="button" variant="outline" onClick={() => setTitlePosition(DEFAULT_TITLE_POSITION)} className={cn(subtleButtonClass, "w-full")}>
-                      <RefreshCwIcon className="h-4 w-4" />
-                      {t("imageGeneration.cover.resetPosition")}
-                    </Button>
-                  </div>
-                </div>
+                <Button type="button" variant="outline" onClick={() => setTitlePosition(DEFAULT_TITLE_POSITION)} className={cn(subtleButtonClass, "w-full")}>
+                  <RefreshCwIcon className="h-4 w-4" />
+                  {t("imageGeneration.cover.resetPosition")}
+                </Button>
                 <div className="grid grid-cols-2 gap-2">
                   <Button type="button" variant="outline" onClick={() => handleTitlePositionShortcut("centerX")} className={subtleButtonClass}>
                     <AlignCenterHorizontalIcon className="h-4 w-4" />
