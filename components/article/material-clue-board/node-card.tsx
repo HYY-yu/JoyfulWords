@@ -2,12 +2,13 @@
 
 import { useCallback, useRef, useState } from "react"
 import { motion } from "motion/react"
-import { AlertTriangle, Loader2, Search, Send, X } from "lucide-react"
+import { AlertTriangle, Check, Inbox, Loader2, Search, Send, X } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/base/tooltip"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { cn } from "@/lib/utils"
 import type { MaterialClueNode } from "./types"
 import { MarkdownView } from "./markdown-view"
 
@@ -18,6 +19,8 @@ interface NodeCardProps {
   onDragNode: (nodeId: string, dx: number, dy: number) => void
   onClueClick: (node: MaterialClueNode, targetQuery: string, label: string, anchorEl: HTMLElement) => void
   onFollowUp: (node: MaterialClueNode, targetQuery: string, anchorEl: HTMLElement) => Promise<void> | void
+  onAddToMaterial: (node: MaterialClueNode) => Promise<void> | void
+  canAddToMaterial?: boolean
 }
 
 export function NodeCard({
@@ -27,6 +30,8 @@ export function NodeCard({
   onDragNode,
   onClueClick,
   onFollowUp,
+  onAddToMaterial,
+  canAddToMaterial = true,
 }: NodeCardProps) {
   const { t } = useTranslation()
   const dragState = useRef({
@@ -40,6 +45,8 @@ export function NodeCard({
   const [followUpOpen, setFollowUpOpen] = useState(false)
   const [followUpText, setFollowUpText] = useState("")
   const [followUpSubmitting, setFollowUpSubmitting] = useState(false)
+  const [addSubmitting, setAddSubmitting] = useState(false)
+  const [addedToMaterial, setAddedToMaterial] = useState(false)
   const followUpAnchorRef = useRef<HTMLDivElement>(null)
 
   const onMouseDown = useCallback((event: React.MouseEvent) => {
@@ -84,6 +91,7 @@ export function NodeCard({
 
   const images = node.images ?? []
   const canFollowUp = node.status === "ready"
+  const canAddNodeToMaterial = node.status === "ready" && canAddToMaterial
 
   const handleFollowUpSubmit = useCallback(async () => {
     const trimmed = followUpText.trim()
@@ -99,6 +107,20 @@ export function NodeCard({
       setFollowUpSubmitting(false)
     }
   }, [canFollowUp, followUpSubmitting, followUpText, node, onFollowUp])
+
+  const handleAddToMaterial = useCallback(async () => {
+    if (!canAddNodeToMaterial || addSubmitting || addedToMaterial) return
+
+    setAddSubmitting(true)
+    try {
+      await onAddToMaterial(node)
+      setAddedToMaterial(true)
+    } catch {
+      setAddedToMaterial(false)
+    } finally {
+      setAddSubmitting(false)
+    }
+  }, [addSubmitting, addedToMaterial, canAddNodeToMaterial, node, onAddToMaterial])
 
   return (
     <>
@@ -192,10 +214,45 @@ export function NodeCard({
         {canFollowUp ? (
           <div
             ref={followUpAnchorRef}
-            className="absolute -right-12 bottom-5 z-20"
+            className="absolute -right-12 bottom-5 z-20 flex flex-col items-center gap-2"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
           >
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-9 w-9 rounded-full border-border bg-background/95 text-primary shadow-[0_16px_42px_-22px_rgba(0,0,0,0.7)] backdrop-blur hover:bg-primary hover:text-primary-foreground disabled:opacity-100",
+                    addedToMaterial && "border-emerald-500/70 bg-emerald-500 text-white hover:bg-emerald-500 hover:text-white"
+                  )}
+                  onClick={() => void handleAddToMaterial()}
+                  disabled={!canAddNodeToMaterial || addSubmitting || addedToMaterial}
+                  aria-label={t("contentWriting.materialPanel.clueBoardAddToMaterial")}
+                >
+                  {addSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : addedToMaterial ? (
+                    <motion.span
+                      initial={{ scale: 0.2, rotate: -28, opacity: 0 }}
+                      animate={{ scale: [0.2, 1.24, 1], rotate: [-28, 8, 0], opacity: 1 }}
+                      transition={{ duration: 0.42, ease: [0.18, 0.9, 0.2, 1] }}
+                    >
+                      <Check className="h-4 w-4" />
+                    </motion.span>
+                  ) : (
+                    <Inbox className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {addedToMaterial
+                  ? t("contentWriting.materialPanel.clueBoardAddedToMaterial")
+                  : t("contentWriting.materialPanel.clueBoardAddToMaterial")}
+              </TooltipContent>
+            </Tooltip>
             {followUpOpen ? (
               <div className="flex w-[260px] items-center gap-1.5 rounded-full border border-border bg-background/95 p-1.5 shadow-[0_18px_48px_-24px_rgba(0,0,0,0.65)] backdrop-blur">
                 <Input

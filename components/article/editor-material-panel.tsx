@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
-import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, Network, ChevronLeft, ChevronRight } from "lucide-react"
+import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, Network, ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { useInfiniteMaterialFavorites } from "@/lib/hooks/use-infinite-material-favorites"
@@ -319,11 +319,7 @@ interface SearchTabProps {
   onSearchTypeChange: (type: MaterialType) => void
   onSearchLockedChange?: (locked: boolean) => void
   onImportSuccess?: (materialType: MaterialType) => void
-}
-
-interface EditableSearchResultDraft {
-  title: string
-  content: string
+  onClueBoardMaterialAdded?: () => void
 }
 
 function buildMaterialSearchStorageKey(userId: number, articleId: number) {
@@ -374,6 +370,14 @@ function buildSelectableUrl(item: MaterialSearchResultItem) {
 
 function buildImageSelectableUrl(url: string) {
   return url
+}
+
+function getSearchResultHost(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return url
+  }
 }
 
 function SearchStatusBanner({
@@ -542,48 +546,96 @@ function SearchStateCard({
 
 function SearchResultListItem({
   item,
-  draft,
   checked,
   onCheckedChange,
-  onDraftChange,
 }: {
   item: MaterialSearchResultItem
-  draft: EditableSearchResultDraft
   checked: boolean
   onCheckedChange: (checked: CheckedState) => void
-  onDraftChange: (draft: EditableSearchResultDraft) => void
 }) {
   const { t } = useTranslation()
+  const sourceHost = item.url ? getSearchResultHost(item.url) : ""
 
   return (
-    <div className="flex gap-3 rounded-lg border border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)] p-3 transition-colors hover:border-[var(--jw-action-hover-border)] hover:bg-[var(--jw-task-card-hover-bg)]">
-      <Checkbox checked={checked} onCheckedChange={onCheckedChange} className="mt-1" />
-      <div className="min-w-0 flex-1 space-y-2">
-        <Input
-          value={draft.title}
-          onChange={(event) => onDraftChange({ ...draft, title: event.target.value })}
-          className="h-8 text-sm font-semibold"
-        />
-        {item.published_date ? (
-          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
-            {t("contentWriting.materialPanel.publishedAt")}: {formatDate(item.published_date)}
-          </p>
-        ) : null}
-        <Textarea
-          value={draft.content}
-          onChange={(event) => onDraftChange({ ...draft, content: event.target.value })}
-          className="min-h-[112px] resize-y text-xs leading-5"
-        />
+    <div
+      className={cn(
+        "group flex gap-3 rounded-lg border bg-[var(--jw-task-card-bg)] p-3 transition-colors",
+        checked
+          ? "border-primary/40 bg-primary/[0.04] shadow-[inset_3px_0_0_var(--primary)]"
+          : "border-[var(--jw-task-card-border)] hover:border-[var(--jw-action-hover-border)] hover:bg-[var(--jw-task-card-hover-bg)]"
+      )}
+    >
+      <Checkbox checked={checked} onCheckedChange={onCheckedChange} className="mt-1 shrink-0" />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          {sourceHost ? (
+            <span className="min-w-0 truncate rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {sourceHost}
+            </span>
+          ) : null}
+          {item.published_date ? (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
+              <CalendarDays className="h-3 w-3" />
+              {formatDate(item.published_date)}
+            </span>
+          ) : null}
+        </div>
+
+        <p className="mt-2 line-clamp-2 break-words text-sm font-semibold leading-5 text-foreground">
+          {item.title}
+        </p>
+        <p className="mt-2 line-clamp-4 break-words text-xs leading-5 text-muted-foreground">
+          {item.content}
+        </p>
+
         {item.url ? (
           <a
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline"
+            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-4 hover:underline"
           >
             {t("contentWriting.materialPanel.viewSource")}
+            <ExternalLink className="h-3 w-3" />
           </a>
         ) : null}
+      </div>
+    </div>
+  )
+}
+
+function SearchClueBoardExploreCard({
+  query,
+  onOpen,
+}: {
+  query: string
+  onOpen: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="rounded-lg border border-primary/15 bg-primary/[0.04] px-3 py-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <Network className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            {t("contentWriting.materialPanel.clueBoardExploreTitle")}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {t("contentWriting.materialPanel.clueBoardExploreDescription", { query })}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="mt-3 h-8 gap-1.5 px-2.5 text-xs"
+            onClick={onOpen}
+          >
+            <Network className="h-3.5 w-3.5" />
+            {t("contentWriting.materialPanel.clueBoardOpen")}
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -632,11 +684,10 @@ function SearchResultCard({
   result,
   page,
   selectedUrls,
-  resultDrafts,
   importLoading,
   pageLoading,
   onToggleUrl,
-  onDraftChange,
+  onOpenClueBoard,
   onPageChange,
   onDelete,
   onImport,
@@ -644,11 +695,10 @@ function SearchResultCard({
   result: MaterialSearchDetailResponse
   page: number
   selectedUrls: Set<string>
-  resultDrafts: Record<string, EditableSearchResultDraft>
   importLoading: boolean
   pageLoading: boolean
   onToggleUrl: (url: string, checked: boolean) => void
-  onDraftChange: (url: string, draft: EditableSearchResultDraft) => void
+  onOpenClueBoard: (query: string) => void
   onPageChange: (page: number) => void
   onDelete: () => void
   onImport: () => void
@@ -657,11 +707,9 @@ function SearchResultCard({
   const aiResultItems = result.ai_result?.ai_result ?? []
   const imageItems = result.ai_result?.images ?? []
   const currentItemCount = result.material_type === "image" ? imageItems.length : aiResultItems.length
-  const total = result.ai_result?.total ?? currentItemCount
-  const totalPages = Math.max(page, Math.max(1, Math.ceil(total / SEARCH_RESULT_DEFAULT_PAGE_SIZE)))
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const selectedCount = selectedUrls.size
-  const canGoNext = page < totalPages
+  const canGoNext = currentItemCount >= SEARCH_RESULT_DEFAULT_PAGE_SIZE
   const importDisabled = selectedCount === 0 || importLoading || pageLoading
 
   return (
@@ -700,15 +748,11 @@ function SearchResultCard({
         </div>
 
         <div className="flex flex-col gap-4 px-4 py-4">
-          {result.material_type === "info" && result.ai_result?.ai_answer ? (
-            <div className="rounded-lg border border-[var(--jw-task-card-border)] bg-[var(--jw-control-bg)] p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
-                {t("contentWriting.materialPanel.aiSummary")}
-              </p>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-muted-foreground">
-                {result.ai_result.ai_answer}
-              </p>
-            </div>
+          {result.material_type !== "image" ? (
+            <SearchClueBoardExploreCard
+              query={result.query}
+              onOpen={() => onOpenClueBoard(result.query)}
+            />
           ) : null}
 
           {result.material_type === "image" ? (
@@ -729,10 +773,8 @@ function SearchResultCard({
                 <SearchResultListItem
                   key={item.url}
                   item={item}
-                  draft={resultDrafts[item.url] ?? { title: item.title, content: item.content }}
                   checked={selectedUrls.has(buildSelectableUrl(item))}
                   onCheckedChange={(checked) => onToggleUrl(buildSelectableUrl(item), checked === true)}
-                  onDraftChange={(draft) => onDraftChange(item.url, draft)}
                 />
               ))}
             </div>
@@ -741,7 +783,7 @@ function SearchResultCard({
 
         <div className="sticky bottom-0 z-20 flex items-center justify-between gap-3 border-t border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)] px-4 py-3 shadow-[0_-12px_24px_-24px_rgba(0,0,0,0.55)]">
           <div className="text-xs text-muted-foreground">
-            {page} {t("contentWriting.materials.pagination.pageOf")} {totalPages}
+            {t("contentWriting.materialPanel.searchCurrentPage", { page })}
           </div>
           <div className="flex items-center gap-1">
             <Button
@@ -796,6 +838,7 @@ function SearchTab({
   onSearchTypeChange,
   onSearchLockedChange,
   onImportSuccess,
+  onClueBoardMaterialAdded,
 }: SearchTabProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -805,10 +848,10 @@ function SearchTab({
   const [detail, setDetail] = useState<MaterialSearchDetailResponse | null>(null)
   const [bannerStatus, setBannerStatus] = useState<"submitting" | "triggered" | "polling" | null>(null)
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
-  const [resultDrafts, setResultDrafts] = useState<Record<string, EditableSearchResultDraft>>({})
   const [isImporting, setIsImporting] = useState(false)
   const [isTriggeringSearch, setIsTriggeringSearch] = useState(false)
   const [clueBoardOpen, setClueBoardOpen] = useState(false)
+  const [clueBoardInitialQuery, setClueBoardInitialQuery] = useState("")
   const [isPagingSearch, setIsPagingSearch] = useState(false)
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
@@ -851,7 +894,6 @@ function SearchTab({
     setDetail(null)
     setBannerStatus(null)
     setSelectedUrls(new Set())
-    setResultDrafts({})
     setIsTriggeringSearch(false)
     setIsPagingSearch(false)
     if (userId && articleId) {
@@ -902,16 +944,6 @@ function SearchTab({
 
       networkFailCountRef.current = 0
       setDetail(response)
-      if (response.status === "success") {
-        const nextDrafts: Record<string, EditableSearchResultDraft> = {}
-        for (const item of response.ai_result?.ai_result ?? []) {
-          nextDrafts[item.url] = {
-            title: item.title,
-            content: item.content,
-          }
-        }
-        setResultDrafts(nextDrafts)
-      }
 
       if (response.status === "doing") {
         setBannerStatus("polling")
@@ -962,7 +994,7 @@ function SearchTab({
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
-    if (trimmed.length < 2 || !userId || !articleId || activeTask || searchTriggerLockedRef.current) return
+    if (!trimmed || !userId || !articleId || activeTask || searchTriggerLockedRef.current) return
 
     const requestSeq = searchRequestSeqRef.current + 1
     searchRequestSeqRef.current = requestSeq
@@ -975,7 +1007,6 @@ function SearchTab({
     stopPolling()
     setDetail(null)
     setSelectedUrls(new Set())
-    setResultDrafts({})
 
     const nextTaskBase = {
       articleId,
@@ -1062,7 +1093,6 @@ function SearchTab({
       setBannerStatus("submitting")
       stopPolling()
       setSelectedUrls(new Set())
-      setResultDrafts({})
 
       console.info("[MaterialSearch] triggering paged v2 search", {
         articleId: activeTask.articleId,
@@ -1156,12 +1186,15 @@ function SearchTab({
     })
   }, [])
 
-  const handleDraftChange = useCallback((url: string, draft: EditableSearchResultDraft) => {
-    setResultDrafts((prev) => ({
-      ...prev,
-      [url]: draft,
-    }))
-  }, [])
+  const handleOpenClueBoard = useCallback((query: string) => {
+    const nextQuery = query.trim() || searchText.trim()
+    setClueBoardInitialQuery(nextQuery)
+    setClueBoardOpen(true)
+    console.info("[MaterialClueBoard] opened from material search", {
+      hasQuery: Boolean(nextQuery),
+      source: "search_result",
+    })
+  }, [searchText])
 
   const handleImport = useCallback(async () => {
     if (!activeTask || selectedUrls.size === 0) return
@@ -1171,22 +1204,24 @@ function SearchTab({
       count: selectedUrls.size,
     })
     setIsImporting(true)
+    const itemByUrl = new Map((detail?.ai_result?.ai_result ?? []).map((item) => [item.url, item]))
+    const selectedItems = Array.from(selectedUrls)
+      .map((url) => {
+        const item = itemByUrl.get(url)
+        if (!item) return null
+        return {
+          url,
+          title: item.title,
+          content: item.content,
+        }
+      })
+      .filter((item): item is { url: string; title: string; content: string } => Boolean(item))
 
     const result = await materialsClient.addFromLog({
       material_log_id: activeTask.logId,
       article_id: activeTask.articleId,
       urls: Array.from(selectedUrls),
-      items: Array.from(selectedUrls)
-        .map((url) => {
-          const draft = resultDrafts[url]
-          if (!draft) return null
-          return {
-            url,
-            title: draft.title,
-            content: draft.content,
-          }
-        })
-        .filter((item): item is { url: string; title: string; content: string } => Boolean(item)),
+      items: selectedItems.length > 0 ? selectedItems : undefined,
     })
 
     if ("error" in result) {
@@ -1210,12 +1245,11 @@ function SearchTab({
     onImportSuccess?.(activeTask.materialType)
     clearSearchTask()
     setIsImporting(false)
-  }, [activeTask, clearSearchTask, onImportSuccess, resultDrafts, selectedUrls, t, toast])
+  }, [activeTask, clearSearchTask, detail?.ai_result?.ai_result, onImportSuccess, selectedUrls, t, toast])
 
   const trimmedSearchText = searchText.trim()
   const isSearchLocked = Boolean(activeTask) || isTriggeringSearch || isPagingSearch
-  const searchTextTooShort = trimmedSearchText.length > 0 && trimmedSearchText.length < 2
-  const canSubmitSearch = !isSearchLocked && trimmedSearchText.length >= 2
+  const canSubmitSearch = !isSearchLocked && trimmedSearchText.length > 0
   const canCancelSearch =
     isTriggeringSearch ||
     isPagingSearch ||
@@ -1236,9 +1270,6 @@ function SearchTab({
               className="h-9"
               disabled={isSearchLocked}
             />
-            <p className={cn("mt-1 text-xs", searchTextTooShort ? "text-destructive" : "text-muted-foreground")}>
-              {t("contentWriting.materialPanel.searchMinLengthHint")}
-            </p>
           </div>
           <Button
             size="icon"
@@ -1271,7 +1302,7 @@ function SearchTab({
                   console.info("[MaterialClueBoard] entry clicked from material search", {
                     hasQuery: Boolean(searchText.trim()),
                   })
-                  setClueBoardOpen(true)
+                  handleOpenClueBoard(searchText)
                 }}
               />
             </>
@@ -1282,11 +1313,10 @@ function SearchTab({
               result={detail}
               page={activeTask.page}
               selectedUrls={selectedUrls}
-              resultDrafts={resultDrafts}
               importLoading={isImporting}
               pageLoading={isPagingSearch}
               onToggleUrl={handleToggleUrl}
-              onDraftChange={handleDraftChange}
+              onOpenClueBoard={handleOpenClueBoard}
               onPageChange={(page) => void handleSearchPageChange(page)}
               onDelete={clearSearchTask}
               onImport={() => void handleImport()}
@@ -1319,7 +1349,9 @@ function SearchTab({
     <MaterialClueBoardDialog
       open={clueBoardOpen}
       onOpenChange={setClueBoardOpen}
-      initialQuery={searchText}
+      initialQuery={clueBoardInitialQuery}
+      articleId={articleId}
+      onMaterialAdded={onClueBoardMaterialAdded}
     />
     </>
   )
@@ -2146,6 +2178,15 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
     setLibraryKey((key) => key + 1)
   }, [articleId])
 
+  const handleClueBoardMaterialAdded = useCallback(() => {
+    console.info("[MaterialLibrary] refreshing after clue-board material add", {
+      articleId,
+      materialType: "info",
+    })
+    setLibraryActiveCategory("info")
+    setLibraryKey((key) => key + 1)
+  }, [articleId])
+
   const handleMaterialTypeChange = useCallback((materialType: MaterialType) => {
     if (activeView === "search") {
       setSearchType(materialType)
@@ -2303,6 +2344,7 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
               onSearchTypeChange={setSearchType}
               onSearchLockedChange={setIsSearchTypeLocked}
               onImportSuccess={handleImportSuccess}
+              onClueBoardMaterialAdded={handleClueBoardMaterialAdded}
             />
           </div>
         </TabsContent>

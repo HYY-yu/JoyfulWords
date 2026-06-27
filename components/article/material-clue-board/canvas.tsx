@@ -12,12 +12,31 @@ import { expandMaterialClue } from "./mock-adapter"
 import { EdgeLayer } from "./edge-layer"
 import { NodeCard } from "./node-card"
 import { buildClueLinkId } from "./markdown-view"
+import { materialsClient } from "@/lib/api/materials/client"
+import { useToast } from "@/hooks/use-toast"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 
 const uid = () => Math.random().toString(36).slice(2, 10)
 
 interface MaterialClueCanvasProps {
   rootQuery: string
   resetToken: number
+  articleId?: number | null
+  onMaterialAdded?: () => void
+}
+
+function buildNodeMaterialContent(node: MaterialClueNode) {
+  const markdown = node.markdown.trim()
+  const imageMarkdown = (node.images ?? [])
+    .map((imageUrl, index) => `![${node.query} image ${index + 1}](${imageUrl})`)
+    .join("\n\n")
+
+  return [markdown, imageMarkdown].filter(Boolean).join("\n\n")
+}
+
+function buildNodeMaterialTitle(query: string) {
+  const title = query.trim()
+  return title.length > 200 ? title.slice(0, 200) : title
 }
 
 function buildOccupiedRects(nodes: MaterialClueNode[], edges: MaterialClueEdge[], scale: number): OccupiedRect[] {
@@ -76,7 +95,14 @@ function resolveNodeExitPoint(
   }
 }
 
-export function MaterialClueCanvas({ rootQuery, resetToken }: MaterialClueCanvasProps) {
+export function MaterialClueCanvas({
+  rootQuery,
+  resetToken,
+  articleId,
+  onMaterialAdded,
+}: MaterialClueCanvasProps) {
+  const { t } = useTranslation()
+  const { toast } = useToast()
   const [viewport, setViewport] = useState({ w: 960, h: 640 })
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 })
   const [scale, setScale] = useState(1)
@@ -333,6 +359,65 @@ export function MaterialClueCanvas({ rootQuery, resetToken }: MaterialClueCanvas
     [expandFromNode]
   )
 
+  const handleAddNodeToMaterial = useCallback(async (node: MaterialClueNode) => {
+    if (!articleId) {
+      console.warn("[MaterialClueBoard] add to material skipped without article id", { nodeId: node.id })
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.clueBoardAddMaterialFailed"),
+      })
+      throw new Error("article id is required")
+    }
+
+    const content = buildNodeMaterialContent(node)
+    if (node.status !== "ready" || !content.trim()) {
+      console.warn("[MaterialClueBoard] add to material skipped for non-ready node", {
+        nodeId: node.id,
+        status: node.status,
+      })
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.clueBoardAddMaterialFailed"),
+      })
+      throw new Error("node is not ready")
+    }
+
+    console.info("[MaterialClueBoard] adding node to materials", {
+      articleId,
+      nodeId: node.id,
+      query: node.query,
+    })
+
+    const result = await materialsClient.createMaterial({
+      title: buildNodeMaterialTitle(node.query),
+      material_type: "info",
+      content,
+      article_id: articleId,
+    })
+
+    if ("error" in result) {
+      console.warn("[MaterialClueBoard] add to material failed", {
+        articleId,
+        nodeId: node.id,
+        query: node.query,
+        error: result.error,
+      })
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.clueBoardAddMaterialFailed"),
+        description: result.error,
+      })
+      throw new Error(result.error)
+    }
+
+    console.info("[MaterialClueBoard] node added to materials", {
+      articleId,
+      nodeId: node.id,
+      materialId: result.id,
+    })
+    onMaterialAdded?.()
+  }, [articleId, onMaterialAdded, t, toast])
+
   return (
     <div
       ref={containerRef}
@@ -362,6 +447,8 @@ export function MaterialClueCanvas({ rootQuery, resetToken }: MaterialClueCanvas
             onDragNode={onDragNode}
             onClueClick={handleClueClick}
             onFollowUp={handleFollowUp}
+            onAddToMaterial={handleAddNodeToMaterial}
+            canAddToMaterial={Boolean(articleId)}
           />
         ))}
       </div>

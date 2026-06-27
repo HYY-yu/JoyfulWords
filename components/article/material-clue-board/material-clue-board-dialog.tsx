@@ -12,12 +12,16 @@ interface MaterialClueBoardDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialQuery: string
+  articleId?: number | null
+  onMaterialAdded?: () => void
 }
 
 export function MaterialClueBoardDialog({
   open,
   onOpenChange,
   initialQuery,
+  articleId,
+  onMaterialAdded,
 }: MaterialClueBoardDialogProps) {
   const { t } = useTranslation()
   const [inputValue, setInputValue] = useState(initialQuery)
@@ -97,7 +101,12 @@ export function MaterialClueBoardDialog({
 
         <div className="min-h-0 flex-1">
           {rootQuery.trim() ? (
-            <MaterialClueCanvas rootQuery={rootQuery} resetToken={resetToken} />
+            <MaterialClueCanvas
+              rootQuery={rootQuery}
+              resetToken={resetToken}
+              articleId={articleId}
+              onMaterialAdded={onMaterialAdded}
+            />
           ) : (
             <div className="flex h-full items-center justify-center bg-muted/20 px-6 text-center">
               <div className="max-w-sm">
