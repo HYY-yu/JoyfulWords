@@ -257,7 +257,7 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
         ) : (
           <DialogContent className="flex max-h-[80vh] max-w-lg flex-col overflow-hidden">
             <DialogTitle className="shrink-0 text-base font-semibold">{material.title}</DialogTitle>
-            <ScrollArea type="always" className="mt-2 min-h-0 flex-1 overflow-hidden pr-1">
+            <div className="mt-2 max-h-[calc(80vh-5.5rem)] overflow-y-auto pr-2">
               {isInfoFile ? (
                 <div className="break-words text-sm leading-relaxed [overflow-wrap:anywhere]">
                   {parseStatusLabel ? (
@@ -280,7 +280,7 @@ function MaterialCard({ material, leftActions }: MaterialCardProps) {
               ) : (
                 <MaterialMarkdownPreview markdown={material.content || ""} />
               )}
-            </ScrollArea>
+            </div>
           </DialogContent>
         )}
       </Dialog>
@@ -1284,6 +1284,10 @@ function SearchTab({
 
   const trimmedSearchText = searchText.trim()
   const isSearchLocked = Boolean(activeTask) || isTriggeringSearch || isPagingSearch
+  const hasTerminalSearchDetail =
+    detail?.status === "success" || detail?.status === "failed" || detail?.status === "nodata"
+  const isSearchButtonLoading =
+    isTriggeringSearch || (Boolean(activeTask) && !hasTerminalSearchDetail)
   const canSubmitSearch = !isSearchLocked && trimmedSearchText.length > 0
   const canCancelSearch =
     isTriggeringSearch ||
@@ -1314,7 +1318,7 @@ function SearchTab({
             aria-label={t("contentWriting.materialPanel.searchButton")}
             title={t("contentWriting.materialPanel.searchButton")}
           >
-            {isSearchLocked ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {isSearchButtonLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </Button>
         </div>
 
