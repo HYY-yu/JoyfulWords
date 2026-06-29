@@ -11,6 +11,7 @@ import {
   ArrowLeftIcon,
   Loader2Icon,
   PaletteIcon,
+  PaintbrushIcon,
   RefreshCwIcon,
   TrashIcon,
 } from "lucide-react";
@@ -23,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { imageGenerationClient } from "@/lib/api/image-generation/client";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { cn } from "@/lib/utils";
+import { ImageInpaintBoard } from "./image-inpaint-board";
 
 interface StyleItem {
   id: string;
@@ -387,6 +389,10 @@ export function ImageMenu({ editor, articleId, onImageTaskSubmitted }: ImageMenu
   const [width, setWidth] = useState<string>("");
   const [align, setAlign] = useState<"left" | "center" | "right">("center");
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [imagePos, setImagePos] = useState<number | null>(null);
+  const [inpaintOpen, setInpaintOpen] = useState(false);
+  const [inpaintImageSrc, setInpaintImageSrc] = useState<string | null>(null);
+  const [inpaintImagePos, setInpaintImagePos] = useState<number | null>(null);
   const { t } = useTranslation();
 
   // Check if an image is selected
@@ -404,13 +410,28 @@ export function ImageMenu({ editor, articleId, onImageTaskSubmitted }: ImageMenu
 
       if (isImage) {
         const imageNode = selectedNode || node;
+        let nextImagePos: number | null = null;
+        if (selectedNode?.type.name === "customImage") {
+          nextImagePos = selection.from;
+        } else if (node.type.name === "customImage") {
+          try {
+            nextImagePos = $from.before($from.depth);
+          } catch {
+            nextImagePos = selection.from;
+          }
+        }
+
         setShow(true);
         setWidth(imageNode.attrs.width || "");
         setAlign(imageNode.attrs.align || "center");
         setImageSrc(typeof imageNode.attrs.src === "string" ? imageNode.attrs.src : null);
+        setImagePos(nextImagePos);
       } else {
         setShow(false);
-        setImageSrc(null);
+        if (!inpaintOpen) {
+          setImageSrc(null);
+          setImagePos(null);
+        }
       }
     };
 
@@ -421,7 +442,7 @@ export function ImageMenu({ editor, articleId, onImageTaskSubmitted }: ImageMenu
       editor.off("selectionUpdate", updateMenu);
       editor.off("transaction", updateMenu);
     };
-  }, [editor]);
+  }, [editor, inpaintOpen]);
 
   const deleteImage = useCallback(() => {
     editor.chain().focus().deleteSelection().run();
@@ -448,9 +469,53 @@ export function ImageMenu({ editor, articleId, onImageTaskSubmitted }: ImageMenu
     }).run();
   }, [editor]);
 
-  if (!show) return null;
+  const openInpaintBoard = useCallback(() => {
+    if (!imageSrc) return;
+    setInpaintImageSrc(imageSrc);
+    setInpaintImagePos(imagePos);
+    setInpaintOpen(true);
+  }, [imagePos, imageSrc]);
+
+  const replaceCurrentImage = useCallback((imageUrl: string) => {
+    if (inpaintImagePos == null) return false;
+
+    return editor
+      .chain()
+      .focus()
+      .command(({ state, tr, dispatch }) => {
+        const node = state.doc.nodeAt(inpaintImagePos);
+        if (!node || node.type.name !== "customImage") return false;
+
+        tr.setNodeMarkup(inpaintImagePos, undefined, {
+          ...node.attrs,
+          src: imageUrl,
+        });
+        dispatch?.(tr);
+        return true;
+      })
+      .run();
+  }, [editor, inpaintImagePos]);
+
+  const insertGeneratedImage = useCallback((imageUrl: string) => {
+    return editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "customImage",
+        attrs: {
+          src: imageUrl,
+          alt: t("tiptapEditor.imageMenu.inpaintInsertedAlt"),
+          align: "center",
+        },
+      })
+      .run();
+  }, [editor, t]);
+
+  if (!show && !inpaintOpen) return null;
 
   return (
+    <>
+    {show ? (
     <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-background border rounded-lg shadow-lg p-2 flex items-center gap-2">
       {/* Width input */}
       <div className="flex items-center gap-1">
@@ -510,6 +575,21 @@ export function ImageMenu({ editor, articleId, onImageTaskSubmitted }: ImageMenu
 
       <div className="w-px h-6 bg-border" />
 
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={!imageSrc}
+        onClick={openInpaintBoard}
+        className="h-8 w-8 p-0"
+        title={t("tiptapEditor.imageMenu.inpaint")}
+        aria-label={t("tiptapEditor.imageMenu.inpaint")}
+      >
+        <PaintbrushIcon className="h-4 w-4" />
+      </Button>
+
+      <div className="w-px h-6 bg-border" />
+
       {/* Delete button */}
       <Button
         variant="ghost"
@@ -520,5 +600,17 @@ export function ImageMenu({ editor, articleId, onImageTaskSubmitted }: ImageMenu
         <TrashIcon className="h-4 w-4" />
       </Button>
     </div>
+    ) : null}
+      <ImageInpaintBoard
+        key={inpaintImageSrc ?? "inpaint-empty"}
+        open={inpaintOpen}
+        onOpenChange={setInpaintOpen}
+        imageSrc={inpaintImageSrc}
+        articleId={articleId}
+        onTaskSubmitted={onImageTaskSubmitted}
+        onReplaceCurrentImage={replaceCurrentImage}
+        onInsertImage={insertGeneratedImage}
+      />
+    </>
   );
 }
