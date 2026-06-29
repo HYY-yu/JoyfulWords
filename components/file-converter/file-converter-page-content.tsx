@@ -71,16 +71,22 @@ type HoverState = {
 
 interface FileConverterPageContentProps {
   variant?: "page" | "studio"
+  initialMarkdown?: string
+  initialMarkdownVersion?: number
 }
 
-export function FileConverterPageContent({ variant = "page" }: FileConverterPageContentProps = {}) {
+export function FileConverterPageContent({
+  variant = "page",
+  initialMarkdown,
+  initialMarkdownVersion = 0,
+}: FileConverterPageContentProps = {}) {
   const { toast } = useToast()
   const isStudio = variant === "studio"
   const pptInputRef = useRef<HTMLInputElement | null>(null)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const templateInputRef = useRef<HTMLInputElement | null>(null)
   const [mode, setMode] = useState<DocumentConversionMode>("markdown-to-word")
-  const [markdown, setMarkdown] = useState(DEFAULT_MARKDOWN)
+  const [markdown, setMarkdown] = useState(initialMarkdown ?? DEFAULT_MARKDOWN)
   const [pptFile, setPptFile] = useState<File | null>(null)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [templates, setTemplates] = useState<DocumentTemplateRecord[]>([])
@@ -97,6 +103,14 @@ export function FileConverterPageContent({ variant = "page" }: FileConverterPage
     () => templates.find((item) => item.template_id === selectedTemplateId) ?? null,
     [selectedTemplateId, templates]
   )
+
+  useEffect(() => {
+    if (initialMarkdown === undefined) return
+
+    setMode("markdown-to-word")
+    setMarkdown(initialMarkdown)
+    setResult(null)
+  }, [initialMarkdown, initialMarkdownVersion])
 
   const refreshTemplates = useCallback(async () => {
     setIsLoadingTemplates(true)
@@ -227,8 +241,10 @@ export function FileConverterPageContent({ variant = "page" }: FileConverterPage
   }
 
   const canConvert = mode === "markdown-to-word" ? markdown.trim().length > 0 : mode === "ppt-to-word" ? Boolean(pptFile) : Boolean(pdfFile)
-  const sourceLabel = mode === "markdown-to-word" ? "Markdown" : mode === "ppt-to-word" ? pptFile?.name ?? "PPT" : pdfFile?.name ?? "PDF"
+  const sourceLabel = mode === "markdown-to-word" ? (isStudio ? "文章 Markdown" : "Markdown") : mode === "ppt-to-word" ? pptFile?.name ?? "PPT" : pdfFile?.name ?? "PDF"
   const downloadHref = result ? absoluteDownloadURL(result.download_url) : ""
+  const primaryActionLabel = mode === "markdown-to-word" && isStudio ? "生成 Word" : "开始转换"
+  const primaryActionLoadingLabel = mode === "markdown-to-word" && isStudio ? "生成中" : "转换中"
 
   return (
     <div className={cn("jw-app-shell", isStudio ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-screen")}>
@@ -245,7 +261,7 @@ export function FileConverterPageContent({ variant = "page" }: FileConverterPage
           {isStudio ? (
             <div className="min-w-0">
               <p className="text-xs leading-5 text-[var(--jw-muted)]">
-                Markdown、PPT 与 PDF 转 Word，可套用 Word 模板样式。
+                文章 Markdown 转 Word，可套用 Word 模板样式。
               </p>
             </div>
           ) : (
@@ -269,7 +285,7 @@ export function FileConverterPageContent({ variant = "page" }: FileConverterPage
               onClick={handleConvert}
             >
               {isConverting ? <Loader2Icon className="size-4 animate-spin" /> : <Wand2Icon className="size-4" />}
-              {isConverting ? "转换中" : "开始转换"}
+              {isConverting ? primaryActionLoadingLabel : primaryActionLabel}
             </Button>
           </div>
         </div>
@@ -282,28 +298,35 @@ export function FileConverterPageContent({ variant = "page" }: FileConverterPage
         >
           <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)]">
             <div className="border-b border-[var(--jw-border-subtle)] p-4">
-              <Tabs value={mode} onValueChange={(value) => setMode(value as DocumentConversionMode)}>
-                <TabsList className="grid h-10 w-full min-w-0 grid-cols-3 rounded-md">
-                  <TabsTrigger value="markdown-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
-                    <FileTextIcon className="size-4" />
-                    <span className="truncate">Markdown 转 Word</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="ppt-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
-                    <LayersIcon className="size-4" />
-                    <span className="truncate">PPT 转 Word</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="pdf-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
-                    <FileIcon className="size-4" />
-                    <span className="truncate">PDF 转 Word</span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              {isStudio ? (
+                <div className="flex h-10 items-center gap-2 rounded-md border border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] px-3 text-sm font-medium">
+                  <FileTextIcon className="size-4 text-[var(--jw-accent)]" />
+                  <span className="truncate">文章 Markdown 转 Word</span>
+                </div>
+              ) : (
+                <Tabs value={mode} onValueChange={(value) => setMode(value as DocumentConversionMode)}>
+                  <TabsList className="grid h-10 w-full min-w-0 grid-cols-3 rounded-md">
+                    <TabsTrigger value="markdown-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
+                      <FileTextIcon className="size-4" />
+                      <span className="truncate">Markdown 转 Word</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="ppt-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
+                      <LayersIcon className="size-4" />
+                      <span className="truncate">PPT 转 Word</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="pdf-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
+                      <FileIcon className="size-4" />
+                      <span className="truncate">PDF 转 Word</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              )}
             </div>
 
             <div className="min-h-0 flex-1 p-4">
               {mode === "markdown-to-word" ? (
                 <div className="flex h-full min-h-[520px] flex-col gap-2">
-                  <label className="text-sm font-medium text-[var(--jw-muted)]">Markdown 输入区</label>
+                  <label className="text-sm font-medium text-[var(--jw-muted)]">{isStudio ? "文章 Markdown 预览" : "Markdown 输入区"}</label>
                   <Textarea
                     value={markdown}
                     onChange={(event) => setMarkdown(event.target.value)}

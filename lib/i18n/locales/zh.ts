@@ -1693,7 +1693,7 @@ export const zh = {
             aiCharts: "AI 图表",
             generatePpt: "生成 PPT",
             wordConverter: "Word 格式转换",
-            wordConverterDesc: "将 Markdown、PPT 或 PDF 转换为 Word，并可套用 Word 模板样式。",
+            wordConverterDesc: "将当前文章整理为 Markdown 后生成 Word，并可套用 Word 模板样式。",
             generateVideo: "生成视频",
             generateVideoComingSoon: "功能开发中，敬请期待",
             featureUnavailable: "功能暂不可用",

@@ -223,6 +223,32 @@ function getCaughtErrorMessage(error: unknown, fallback: string): string {
   }
 }
 
+type TiptapEditorMarkdownHandle = {
+  getMarkdown?: () => string
+  getText?: () => string
+}
+
+function buildArticleWordMarkdown(markdown: string, articleTitle: string): string {
+  const trimmedMarkdown = markdown.trim()
+  const title = articleTitle.trim().replace(/\s+/g, " ")
+
+  if (!title) return trimmedMarkdown
+
+  const firstContentLine = trimmedMarkdown
+    .split(/\r?\n/)
+    .find((line) => line.trim().length > 0)
+
+  if (firstContentLine && /^#\s+\S/.test(firstContentLine.trim())) {
+    return trimmedMarkdown
+  }
+
+  if (!trimmedMarkdown) {
+    return `# ${title}`
+  }
+
+  return `# ${title}\n\n${trimmedMarkdown}`
+}
+
 interface EditorAIPanelProps {
   articleId?: number | null
   articleTitle?: string
@@ -344,6 +370,8 @@ export function EditorAIPanel({
   const [isEChartsOpen, setIsEChartsOpen] = useState(false)
   const [isPresentationOpen, setIsPresentationOpen] = useState(false)
   const [isWordConverterOpen, setIsWordConverterOpen] = useState(false)
+  const [wordConverterMarkdown, setWordConverterMarkdown] = useState("")
+  const [wordConverterMarkdownVersion, setWordConverterMarkdownVersion] = useState(0)
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
   const [selectedEChartsText, setSelectedEChartsText] = useState("")
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
@@ -491,6 +519,30 @@ export function EditorAIPanel({
       console.warn("[EditorAIPanel] Failed to read editor selection:", error)
       return ""
     }
+  }
+
+  const getCurrentArticleMarkdown = () => {
+    if (typeof window === "undefined") return ""
+
+    const editor = (window as typeof window & {
+      tiptapEditor?: TiptapEditorMarkdownHandle
+    }).tiptapEditor
+
+    if (!editor) return ""
+
+    try {
+      if (typeof editor.getMarkdown === "function") {
+        return editor.getMarkdown()
+      }
+
+      if (typeof editor.getText === "function") {
+        return editor.getText()
+      }
+    } catch (error) {
+      console.warn("[EditorAIPanel] Failed to read editor markdown:", error)
+    }
+
+    return ""
   }
 
   const fetchTaskDetail = useCallback(async (task: TaskItem) => {
@@ -713,6 +765,8 @@ export function EditorAIPanel({
     } else if (id === "presentation") {
       setIsPresentationOpen(true)
     } else if (id === "word-converter") {
+      setWordConverterMarkdown(buildArticleWordMarkdown(getCurrentArticleMarkdown(), articleTitle))
+      setWordConverterMarkdownVersion((current) => current + 1)
       setIsWordConverterOpen(true)
     }
   }
@@ -1077,7 +1131,11 @@ export function EditorAIPanel({
         icon={<FileType2Icon className="h-5 w-5 text-primary" />}
         size="fullscreen"
       >
-        <FileConverterPageContent variant="studio" />
+        <FileConverterPageContent
+          variant="studio"
+          initialMarkdown={wordConverterMarkdown}
+          initialMarkdownVersion={wordConverterMarkdownVersion}
+        />
       </AIFeatureDialogShell>
     </div>
   )
