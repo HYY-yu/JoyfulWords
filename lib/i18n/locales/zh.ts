@@ -1605,13 +1605,6 @@ export const zh = {
             saveBeforeAIRewrite: "请先保存文章",
             saveBeforeAIRewriteDesc: "请先保存文章，才能进入智能改写",
         },
-        autoSave: {
-            idle: "未保存",
-            saved: "已保存",
-            saving: "保存中...",
-            unsaved: "未保存",
-            error: "保存失败",
-        },
         imageMenu: {
             widthLabel: "宽度:",
             styleImage: "风格化图片",

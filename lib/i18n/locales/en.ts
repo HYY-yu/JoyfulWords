@@ -1605,13 +1605,6 @@ export const en = {
             saveBeforeAIRewrite: "Please save article first",
             saveBeforeAIRewriteDesc: "Please save the article before using AI rewrite",
         },
-        autoSave: {
-            idle: "Unsaved",
-            saved: "Saved",
-            saving: "Saving...",
-            unsaved: "Unsaved",
-            error: "Save failed",
-        },
         imageMenu: {
             widthLabel: "Width:",
             styleImage: "Stylize Image",

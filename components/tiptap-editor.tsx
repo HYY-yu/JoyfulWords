@@ -25,7 +25,6 @@ import { AIMindMapDialog } from "./ui/ai/ai-mindmap-dialog";
 import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
-import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 import { clipboardTableTextToHTML, markdownToHTML } from "@/lib/tiptap-utils";
 import { TableWithControls } from "@/lib/tiptap-table-node-view";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
@@ -73,7 +72,6 @@ interface TiptapEditorProps {
   onChange?: (content: string, html: string) => void;
   placeholder?: string;
   editable?: boolean;
-  saveStatus?: AutoSaveState;
   articleId?: number;
   mode?: "create" | "edit";
   activeArticleEditTaskRef?: TaskCenterTaskReference | null;
@@ -87,7 +85,6 @@ export function TiptapEditor({
   onChange,
   placeholder = "开始撰写您的内容...",
   editable = true,
-  saveStatus,
   articleId,
   mode = "create",
   activeArticleEditTaskRef = null,
@@ -884,8 +881,6 @@ export function TiptapEditor({
         editor={editor}
         onInsertImage={insertImage}
         isUploadingImage={isUploadingImage}
-        saveStatus={saveStatus}
-        mode={mode}
       />
       <div
         className={mode === "edit" ? "jw-document-stage min-h-0 flex-1 overflow-y-auto px-4" : "min-h-0 flex-1 overflow-y-auto"}

@@ -433,7 +433,6 @@ export default function ArticleEditPage() {
       <TiptapEditor
         content={editorState.content.html}
         onChange={handleEditorChange}
-        saveStatus={autoSave.saveState}
         placeholder={t("contentWriting.writing.editorPlaceholder")}
         editable={true}
         articleId={article.id}

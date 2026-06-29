@@ -25,18 +25,14 @@ import { useTranslation } from "@/lib/i18n/i18n-context";
 import { ToolbarButton } from "./tiptap-toolbar-button";
 import { HighlightButtons } from "./highlight-buttons";
 import { TextAlignButtons } from "./text-align-buttons";
-import { SaveStatusIndicator } from "./save-status-indicator";
-import type { AutoSaveState } from "@/lib/hooks/use-auto-save";
 
 interface TiptapToolbarProps {
   editor: Editor | null;
   onInsertImage?: () => void;
   isUploadingImage?: boolean;
-  saveStatus?: AutoSaveState;
-  mode?: "create" | "edit";
 }
 
-export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false, saveStatus, mode = "create" }: TiptapToolbarProps) {
+export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false }: TiptapToolbarProps) {
   const { t } = useTranslation()
 
   const setImage = useCallback(() => {
@@ -275,12 +271,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false,
       </ToolbarButton>
       </div>
 
-      {/* 自动保存状态指示灯 - 固定在工具栏最右侧 */}
-      {saveStatus && (
-        <div className="jw-editor-status-pill hidden shrink-0 rounded-full border px-2.5 py-1 sm:block">
-          <SaveStatusIndicator saveStatus={saveStatus} />
-        </div>
-      )}
     </div>
   );
 }

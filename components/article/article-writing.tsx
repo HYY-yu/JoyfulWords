@@ -584,7 +584,6 @@ export function ArticleWriting({ articleId }: ArticleWritingProps) {
           <TiptapEditor
             content={editorState.content.html}
             onChange={handleEditorChange}
-            saveStatus={autoSave.saveState}
             placeholder={t("contentWriting.writing.editorPlaceholder")}
             editable={true}
             articleId={currentArticle?.id}
