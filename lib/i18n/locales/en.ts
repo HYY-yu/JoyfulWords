@@ -1693,7 +1693,7 @@ export const en = {
             aiCharts: "AI Charts",
             generatePpt: "Generate PPT",
             wordConverter: "Word Format Converter",
-            wordConverterDesc: "Convert Markdown, PPT, or PDF into Word and apply Word template styles.",
+            wordConverterDesc: "Prepare the current article as Markdown, then generate Word with template styles.",
             generateVideo: "Generate Video",
             generateVideoComingSoon: "Feature in development. Coming soon.",
             featureUnavailable: "Feature unavailable",
