@@ -417,6 +417,18 @@ export function EditorAIPanel({
   }, [refetch, submissionTick])
 
   useEffect(() => {
+    const handleOpenCreateImage = () => {
+      console.info("[EditorAIPanel] opening create image dialog from external entry")
+      setIsCreateImageOpen(true)
+    }
+
+    window.addEventListener("joyfulwords-open-create-image", handleOpenCreateImage)
+    return () => {
+      window.removeEventListener("joyfulwords-open-create-image", handleOpenCreateImage)
+    }
+  }, [])
+
+  useEffect(() => {
     if (typeof articleId !== "number") {
       setEchartsArticleAnalysisSession(null)
       return

@@ -79,6 +79,7 @@ interface TiptapEditorProps {
   activeArticleEditTaskRef?: TaskCenterTaskReference | null;
   onActiveArticleEditTaskRefChange?: (taskRef: TaskCenterTaskReference | null) => void;
   onArticleEditSubmitted?: (execId: string) => void;
+  onImageTaskSubmitted?: () => void;
 }
 
 export function TiptapEditor({
@@ -92,6 +93,7 @@ export function TiptapEditor({
   activeArticleEditTaskRef = null,
   onActiveArticleEditTaskRefChange,
   onArticleEditSubmitted,
+  onImageTaskSubmitted,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -900,7 +902,13 @@ export function TiptapEditor({
           <EditorContent editor={editor} className="h-full" />
         )}
       </div>
-      {editor && <ImageMenu editor={editor} />}
+      {editor && (
+        <ImageMenu
+          editor={editor}
+          articleId={articleId}
+          onImageTaskSubmitted={onImageTaskSubmitted}
+        />
+      )}
       {editor && <LinkMenu editor={editor} />}
       <AIRewriteDialog
         open={isAIDialogOpen}

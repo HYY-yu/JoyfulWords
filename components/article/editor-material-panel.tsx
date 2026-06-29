@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, type ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
-import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, Network, ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react"
+import { GripVertical, Search, BookOpen, Trash2, FileText, Newspaper, ImageIcon, ImagePlus, X, Check, Upload, Loader2, AlertTriangle, SearchX, Clock3, Inbox, Heart, Pin, PinOff, Network, ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { useInfiniteMaterialFavorites } from "@/lib/hooks/use-infinite-material-favorites"
@@ -90,6 +90,48 @@ function MaterialIconButton({
     >
       {icon}
     </button>
+  )
+}
+
+function ImageGenerationEntryBox({
+  onOpen,
+  className,
+}: {
+  onOpen: () => void
+  className?: string
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      className={cn(
+        "rounded-md border border-primary/15 bg-primary/[0.04] px-3 py-2.5",
+        className
+      )}
+    >
+      <div className="flex items-center gap-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <ImagePlus className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold leading-4 text-foreground">
+            {t("contentWriting.materialPanel.aiImageEntryTitle")}
+          </p>
+          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+            {t("contentWriting.materialPanel.aiImageEntryDescription")}
+          </p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          className="h-7 shrink-0 gap-1.5 px-2 text-[11px]"
+          onClick={onOpen}
+        >
+          <ImagePlus className="h-3.5 w-3.5" />
+          {t("contentWriting.materialPanel.aiImageEntryAction")}
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -338,6 +380,7 @@ interface SearchTabProps {
   onSearchLockedChange?: (locked: boolean) => void
   onImportSuccess?: (materialType: MaterialType) => void
   onClueBoardMaterialAdded?: () => void
+  onOpenCreateImage: () => void
 }
 
 function buildMaterialSearchStorageKey(userId: number, articleId: number) {
@@ -706,6 +749,7 @@ function SearchResultCard({
   pageLoading,
   onToggleUrl,
   onOpenClueBoard,
+  onOpenCreateImage,
   onPageChange,
   onDelete,
   onImport,
@@ -717,6 +761,7 @@ function SearchResultCard({
   pageLoading: boolean
   onToggleUrl: (url: string, checked: boolean) => void
   onOpenClueBoard: (query: string) => void
+  onOpenCreateImage: () => void
   onPageChange: (page: number) => void
   onDelete: () => void
   onImport: () => void
@@ -774,17 +819,20 @@ function SearchResultCard({
           ) : null}
 
           {result.material_type === "image" ? (
-            <div className="grid grid-cols-2 gap-3">
-              {imageItems.map((url) => (
-                <SearchImageItem
-                  key={url}
-                  url={url}
-                  checked={selectedUrls.has(buildImageSelectableUrl(url))}
-                  onCheckedChange={(checked) => onToggleUrl(buildImageSelectableUrl(url), checked === true)}
-                  onOpenPreview={setPreviewImageUrl}
-                />
-              ))}
-            </div>
+            <>
+              <ImageGenerationEntryBox onOpen={onOpenCreateImage} />
+              <div className="grid grid-cols-2 gap-3">
+                {imageItems.map((url) => (
+                  <SearchImageItem
+                    key={url}
+                    url={url}
+                    checked={selectedUrls.has(buildImageSelectableUrl(url))}
+                    onCheckedChange={(checked) => onToggleUrl(buildImageSelectableUrl(url), checked === true)}
+                    onOpenPreview={setPreviewImageUrl}
+                  />
+                ))}
+              </div>
+            </>
           ) : (
             <div className="flex flex-col gap-3">
               {aiResultItems.map((item) => (
@@ -857,6 +905,7 @@ function SearchTab({
   onSearchLockedChange,
   onImportSuccess,
   onClueBoardMaterialAdded,
+  onOpenCreateImage,
 }: SearchTabProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -1356,6 +1405,7 @@ function SearchTab({
               pageLoading={isPagingSearch}
               onToggleUrl={handleToggleUrl}
               onOpenClueBoard={handleOpenClueBoard}
+              onOpenCreateImage={onOpenCreateImage}
               onPageChange={(page) => void handleSearchPageChange(page)}
               onDelete={clearSearchTask}
               onImport={() => void handleImport()}
@@ -1437,11 +1487,13 @@ function LibraryTab({
   activeCategory,
   onFavorite,
   onDelete,
+  onOpenCreateImage,
 }: {
   articleId: number | null
   activeCategory: MaterialType
   onFavorite: (material: Material) => void
   onDelete: (material: Material) => void
+  onOpenCreateImage: () => void
 }) {
   const { t } = useTranslation()
   const { materials: allMaterials, isLoading, hasMore, observerTarget, reset } = useInfiniteMaterials({
@@ -1462,6 +1514,10 @@ function LibraryTab({
 
   return (
     <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
+      {activeCategory === "image" ? (
+        <ImageGenerationEntryBox onOpen={onOpenCreateImage} className="shrink-0" />
+      ) : null}
+
       {/* Materials list */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
         <div className="h-full min-w-0 overflow-y-auto pr-2">
@@ -2226,6 +2282,16 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
     setLibraryKey((key) => key + 1)
   }, [articleId])
 
+  const handleOpenCreateImage = useCallback(() => {
+    console.info("[MaterialLibrary] opening create image dialog from materials panel", {
+      articleId,
+      activeView,
+    })
+    window.dispatchEvent(new CustomEvent("joyfulwords-open-create-image", {
+      detail: { source: "materials-panel", activeView },
+    }))
+  }, [activeView, articleId])
+
   const handleMaterialTypeChange = useCallback((materialType: MaterialType) => {
     if (activeView === "search") {
       setSearchType(materialType)
@@ -2384,6 +2450,7 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
               onSearchLockedChange={setIsSearchTypeLocked}
               onImportSuccess={handleImportSuccess}
               onClueBoardMaterialAdded={handleClueBoardMaterialAdded}
+              onOpenCreateImage={handleOpenCreateImage}
             />
           </div>
         </TabsContent>
@@ -2396,6 +2463,7 @@ export function EditorMaterialPanel({ className, articleId, userId }: EditorMate
               activeCategory={libraryActiveCategory}
               onFavorite={(material) => void handleFavoriteMaterial(material)}
               onDelete={(material) => void handleDeleteMaterial(material)}
+              onOpenCreateImage={handleOpenCreateImage}
             />
           </div>
         </TabsContent>

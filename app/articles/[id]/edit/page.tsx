@@ -68,7 +68,7 @@ export default function ArticleEditPage() {
 
   const [activeArticleEditTaskRef, setActiveArticleEditTaskRef] =
     useState<TaskCenterTaskReference | null>(null)
-  const [articleEditSubmissionTick, setArticleEditSubmissionTick] = useState(0)
+  const [taskSubmissionTick, setTaskSubmissionTick] = useState(0)
 
   // ==================== Auth guard ====================
 
@@ -152,8 +152,8 @@ export default function ArticleEditPage() {
     setActiveArticleEditTaskRef(taskRef)
   }, [])
 
-  const handleArticleEditSubmitted = useCallback(() => {
-    setArticleEditSubmissionTick((current) => current + 1)
+  const handleTaskSubmitted = useCallback(() => {
+    setTaskSubmissionTick((current) => current + 1)
   }, [])
 
   useEffect(() => {
@@ -440,7 +440,8 @@ export default function ArticleEditPage() {
         mode="edit"
         activeArticleEditTaskRef={activeArticleEditTaskRef}
         onActiveArticleEditTaskRefChange={setActiveArticleEditTaskRef}
-        onArticleEditSubmitted={handleArticleEditSubmitted}
+        onArticleEditSubmitted={handleTaskSubmitted}
+        onImageTaskSubmitted={handleTaskSubmitted}
       />
     </div>
   )
@@ -449,7 +450,7 @@ export default function ArticleEditPage() {
     <EditorAIPanel
       articleId={article.id}
       articleTitle={article.title}
-      submissionTick={articleEditSubmissionTick}
+      submissionTick={taskSubmissionTick}
       onOpenArticleEditTask={handleOpenArticleEditTask}
       onArticleTitleUpdated={handleCoverTitleUpdated}
     />
