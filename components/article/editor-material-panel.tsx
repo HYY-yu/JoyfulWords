@@ -594,18 +594,26 @@ function SearchImageItem({
   checked,
   onCheckedChange,
   onOpenPreview,
+  onLoadError,
 }: {
   url: string
   checked: boolean
   onCheckedChange: (checked: CheckedState) => void
   onOpenPreview: (url: string) => void
+  onLoadError: (url: string) => void
 }) {
   const { t } = useTranslation()
 
   return (
     <label className="group relative cursor-pointer overflow-hidden rounded-lg border border-[var(--jw-task-card-border)] bg-[var(--jw-task-card-bg)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt={t("contentWriting.materialPanel.imageResultAlt")} className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" loading="lazy" />
+      <img
+        src={url}
+        alt={t("contentWriting.materialPanel.imageResultAlt")}
+        className="h-40 w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+        loading="lazy"
+        onError={() => onLoadError(url)}
+      />
       <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
         <Checkbox
           checked={checked}
@@ -656,6 +664,9 @@ function SearchResultCard({
   const { t } = useTranslation()
   const aiResultItems = result.ai_result?.ai_result ?? []
   const imageItems = result.ai_result?.images ?? []
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(() => new Set())
+  const imageItemsKey = imageItems.join("\n")
+  const visibleImageItems = imageItems.filter((url) => !failedImageUrls.has(url))
   const currentItemCount = result.material_type === "image" ? imageItems.length : aiResultItems.length
   const total = result.ai_result?.total ?? currentItemCount
   const totalPages = Math.max(page, Math.max(1, Math.ceil(total / SEARCH_RESULT_DEFAULT_PAGE_SIZE)))
@@ -663,6 +674,30 @@ function SearchResultCard({
   const selectedCount = selectedUrls.size
   const canGoNext = page < totalPages
   const importDisabled = selectedCount === 0 || importLoading || pageLoading
+
+  useEffect(() => {
+    setFailedImageUrls((current) => {
+      if (current.size === 0) return current
+
+      const currentImageUrls = new Set(imageItemsKey ? imageItemsKey.split("\n") : [])
+      const next = new Set([...current].filter((url) => currentImageUrls.has(url)))
+      return next.size === current.size ? current : next
+    })
+  }, [imageItemsKey])
+
+  const handleImageLoadError = (url: string) => {
+    setFailedImageUrls((current) => {
+      if (current.has(url)) return current
+      const next = new Set(current)
+      next.add(url)
+      return next
+    })
+
+    const selectableUrl = buildImageSelectableUrl(url)
+    if (selectedUrls.has(selectableUrl)) {
+      onToggleUrl(selectableUrl, false)
+    }
+  }
 
   return (
     <>
@@ -713,15 +748,21 @@ function SearchResultCard({
 
           {result.material_type === "image" ? (
             <div className="grid grid-cols-2 gap-3">
-              {imageItems.map((url) => (
+              {visibleImageItems.map((url) => (
                 <SearchImageItem
                   key={url}
                   url={url}
                   checked={selectedUrls.has(buildImageSelectableUrl(url))}
                   onCheckedChange={(checked) => onToggleUrl(buildImageSelectableUrl(url), checked === true)}
                   onOpenPreview={setPreviewImageUrl}
+                  onLoadError={handleImageLoadError}
                 />
               ))}
+              {visibleImageItems.length === 0 ? (
+                <div className="col-span-2 rounded-lg border border-dashed border-[var(--jw-task-card-border)] bg-[var(--jw-control-bg)] px-4 py-8 text-center text-sm text-muted-foreground">
+                  {t("contentWriting.materialPanel.searchNoResults")}
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="flex flex-col gap-3">
