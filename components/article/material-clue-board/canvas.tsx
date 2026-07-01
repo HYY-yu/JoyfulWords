@@ -12,6 +12,7 @@ import { expandMaterialClue } from "./mock-adapter"
 import { EdgeLayer } from "./edge-layer"
 import { NodeCard } from "./node-card"
 import { buildClueLinkId } from "./markdown-view"
+import { sanitizeClueBoardMaterialContent } from "./markdown-utils"
 import { materialsClient } from "@/lib/api/materials/client"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -26,7 +27,7 @@ interface MaterialClueCanvasProps {
 }
 
 function buildNodeMaterialContent(node: MaterialClueNode) {
-  const markdown = node.markdown.trim()
+  const markdown = sanitizeClueBoardMaterialContent(node.markdown.trim())
   const imageMarkdown = (node.images ?? [])
     .map((imageUrl, index) => `![${node.query} image ${index + 1}](${imageUrl})`)
     .join("\n\n")
