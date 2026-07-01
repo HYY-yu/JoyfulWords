@@ -142,6 +142,7 @@ export function InfographicDialog({
   )
   const [sourceMode, setSourceMode] = useState<InfographicSourceMode>("article")
   const [resultMode, setResultMode] = useState<InfographicSourceMode>("article")
+  const [selectionTextDraft, setSelectionTextDraft] = useState("")
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
@@ -158,6 +159,7 @@ export function InfographicDialog({
     if (!open) {
       reset()
       resetBatch()
+      setSelectionTextDraft("")
       setCopyingToMaterials(false)
       setActiveImageIndex(0)
       setRequestErrorMessage(null)
@@ -166,6 +168,7 @@ export function InfographicDialog({
     }
 
     const nextSelectedText = selectedText.trim()
+    setSelectionTextDraft(nextSelectedText)
     setFormState(DEFAULT_FORM_STATE_BY_LOCALE[locale])
     setSourceMode(nextSelectedText ? "selection" : "article")
     setResultMode(nextSelectedText ? "selection" : "article")
@@ -223,7 +226,7 @@ export function InfographicDialog({
       : pollingState === "success" && currentLogId !== null && singleImageUrls.length > 0 && !copyingToMaterials
 
   const activeImageItem = resultImageItems[activeImageIndex] ?? null
-  const selectedTextPreview = selectedText.trim()
+  const selectedTextPreview = selectionTextDraft.trim()
   const selectedTextLength = selectedTextPreview.length
   const hasSelectedText = selectedTextLength > 0
   const isSelectionTooLong = selectedTextLength > SELECTION_TEXT_LIMIT
@@ -736,10 +739,11 @@ export function InfographicDialog({
                       </span>
                     </div>
                     <Textarea
-                      value={selectedTextPreview}
-                      readOnly
+                      value={selectionTextDraft}
+                      onChange={(event) => setSelectionTextDraft(event.target.value)}
+                      placeholder={t("infographicDialog.selectedTextPlaceholder")}
                       className={cn(
-                        "mt-2 h-24 max-h-24 min-h-24 resize-none overflow-y-auto border-border/70 bg-muted/20 text-sm leading-relaxed shadow-none [field-sizing:fixed]",
+                        "mt-2 h-24 max-h-24 min-h-24 resize-none overflow-y-auto border-border/70 bg-background text-sm leading-relaxed shadow-none [field-sizing:fixed]",
                         isSelectionTooLong && "border-destructive/50 bg-destructive/5 text-destructive",
                         SOFT_NATIVE_SCROLLBAR_CLASS
                       )}
