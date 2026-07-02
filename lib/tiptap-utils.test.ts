@@ -1,9 +1,12 @@
 import test from "node:test"
 import assert from "node:assert/strict"
+import { Highlight } from "@tiptap/extension-highlight"
+import { MarkdownManager } from "@tiptap/markdown"
 
 import {
   clipboardTableTextToHTML,
   detectContentFormat,
+  markdownToHTML,
   parseMarkdownTableRows,
   parseTSVTableRows,
 } from "@/lib/tiptap-utils"
@@ -87,4 +90,12 @@ test("preserves empty edge cells in TSV clipboard text", () => {
     ["", "Score"],
     ["Alice", ""],
   ])
+})
+
+test("converts markdown with an isolated marked parser after Tiptap tokenizer registration", async () => {
+  new MarkdownManager({
+    extensions: [Highlight.configure({ multicolor: true })],
+  })
+
+  assert.equal(await markdownToHTML("==highlight=="), "<p>==highlight==</p>\n")
 })

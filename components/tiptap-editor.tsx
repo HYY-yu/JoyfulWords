@@ -27,9 +27,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { clipboardTableTextToHTML, markdownToHTML } from "@/lib/tiptap-utils";
 import {
+  getClipboardTextPasteMode,
   normalizeCodeBlockClipboardText,
   shouldInsertPlainTextIntoCodeBlock,
 } from "@/lib/tiptap-code-block-paste";
+import { normalizeParsedMarkdownContentForEditor } from "@/lib/tiptap-markdown-content";
 import { TableWithControls } from "@/lib/tiptap-table-node-view";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
 import {
@@ -115,6 +117,7 @@ export function TiptapEditor({
 
   // 添加toast提示
   const { toast } = useToast();
+  const editorRef = useRef<Editor | null>(null);
 
   const { tasks: liveArticleTasks } = useTaskCenterLiveTasks({
     article_id: articleId,
@@ -267,6 +270,43 @@ export function TiptapEditor({
     view.focus();
   }, []);
 
+  const insertMarkdownClipboardTextToView = useCallback((view: EditorView, text: string) => {
+    const activeEditor = editorRef.current;
+
+    if (!activeEditor?.markdown) {
+      console.warn("[TiptapEditor] Markdown parser missing for clipboard insertion", {
+        characters: text.length,
+      });
+      view.dispatch(view.state.tr.insertText(normalizeCodeBlockClipboardText(text)).scrollIntoView());
+      view.focus();
+      return;
+    }
+
+    try {
+      const content = activeEditor.markdown.parse(text);
+      const insertContent = normalizeParsedMarkdownContentForEditor(content);
+
+      if (insertContent.length === 0) {
+        console.warn("[TiptapEditor] Markdown clipboard conversion returned empty content", {
+          characters: text.length,
+        });
+        view.dispatch(view.state.tr.insertText(normalizeCodeBlockClipboardText(text)).scrollIntoView());
+        view.focus();
+        return;
+      }
+
+      activeEditor.chain().focus().insertContent(insertContent).run();
+      console.info("[TiptapEditor] Markdown clipboard text inserted into editor", {
+        characters: text.length,
+        lines: normalizeCodeBlockClipboardText(text).split("\n").length,
+      });
+    } catch (error) {
+      console.error("[TiptapEditor] Markdown clipboard insertion failed", { error });
+      view.dispatch(view.state.tr.insertText(normalizeCodeBlockClipboardText(text)).scrollIntoView());
+      view.focus();
+    }
+  }, []);
+
   const syncEditorEmptyState = useCallback((nextEditor: Editor) => {
     const text = nextEditor.getText().trim();
     const html = nextEditor.getHTML();
@@ -405,13 +445,13 @@ export function TiptapEditor({
         }
 
         const clipboardText = event.clipboardData.getData("text/plain");
-        if (
-          view.state.selection.$from.sameParent(view.state.selection.$to) &&
-          shouldInsertPlainTextIntoCodeBlock(
-            view.state.selection.$from.parent.type.name,
-            clipboardText
-          )
-        ) {
+        const isSameParentSelection = view.state.selection.$from.sameParent(view.state.selection.$to);
+        const parentNodeName = isSameParentSelection
+          ? view.state.selection.$from.parent.type.name
+          : undefined;
+        const textPasteMode = getClipboardTextPasteMode(parentNodeName, clipboardText);
+
+        if (textPasteMode === "plain-code-block") {
           event.preventDefault();
 
           const text = normalizeCodeBlockClipboardText(clipboardText);
@@ -432,7 +472,14 @@ export function TiptapEditor({
 
         const tableHTML = clipboardTableTextToHTML(clipboardText);
         if (!tableHTML) {
-          return false;
+          if (textPasteMode !== "markdown") {
+            return false;
+          }
+
+          event.preventDefault();
+          insertMarkdownClipboardTextToView(view, clipboardText);
+
+          return true;
         }
 
         event.preventDefault();
@@ -450,6 +497,16 @@ export function TiptapEditor({
       onChange?.(text, html);
     },
   });
+
+  useEffect(() => {
+    editorRef.current = editor;
+
+    return () => {
+      if (editorRef.current === editor) {
+        editorRef.current = null;
+      }
+    };
+  }, [editor]);
 
   // Track if we're updating from props to avoid infinite loops
   const isExternalUpdate = useRef(false);

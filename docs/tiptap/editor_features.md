@@ -202,13 +202,17 @@ import Markdown from '@tiptap/markdown'
 const editor = useEditor({
   extensions: [
     StarterKit,
-    Markdown.configure({
-      html: false,        // 不允许 HTML 在 Markdown 中
-      transformPastedText: true  // 自动转换粘贴的文本
-    })
+    Markdown
   ]
 })
 ```
+
+当前 Tiptap v3 Markdown 扩展不再提供旧版 `transformPastedText` 配置。文章编辑器在
+`components/tiptap-editor.tsx` 的 `handlePaste` 中显式接管粘贴行为：
+
+- 光标明确位于 `codeBlock` 内时，`text/plain` 直接作为纯文本插入，不做 Markdown 解析。
+- 其他位置粘贴 `text/plain` 时，使用 Tiptap Markdown parser 按当前编辑器 schema 解析为编辑器内容。
+- 图片粘贴和表格粘贴保留独立处理优先级。
 
 #### Markdown → HTML 转换
 

@@ -7,7 +7,10 @@ import { HIGHLIGHT_COLORS } from "@/lib/editor-color-palette"
 
 type GetPos = (() => number | undefined) | boolean
 type TableMenuType = "row" | "column"
+type TableMenuSide = "top" | "bottom" | "left" | "right"
 const TABLE_BACKGROUND_ALPHA = 0.8
+const TABLE_MENU_GAP = 8
+const TABLE_MENU_VIEWPORT_MARGIN = 8
 
 interface ActiveCellPosition {
   cell: HTMLTableCellElement
@@ -129,18 +132,20 @@ class TableControlsView implements NodeView {
     this.dom.append(
       this.topHandle,
       this.leftHandle,
-      this.menu,
       this.activeCellOverlay,
       this.table,
       addColumnButton,
       addRowButton
     )
+    document.body.appendChild(this.menu)
 
     this.editor.on("selectionUpdate", this.scheduleControlsUpdate)
     this.dom.addEventListener("focusin", this.scheduleControlsUpdate)
     this.dom.addEventListener("mouseup", this.scheduleControlsUpdate)
     this.dom.addEventListener("mousedown", this.handleWrapperMouseDown)
     document.addEventListener("mousedown", this.handleDocumentMouseDown)
+    window.addEventListener("resize", this.scheduleControlsUpdate)
+    window.addEventListener("scroll", this.scheduleControlsUpdate, true)
     this.scheduleControlsUpdate()
   }
 
@@ -160,11 +165,15 @@ class TableControlsView implements NodeView {
     this.dom.removeEventListener("mouseup", this.scheduleControlsUpdate)
     this.dom.removeEventListener("mousedown", this.handleWrapperMouseDown)
     document.removeEventListener("mousedown", this.handleDocumentMouseDown)
+    window.removeEventListener("resize", this.scheduleControlsUpdate)
+    window.removeEventListener("scroll", this.scheduleControlsUpdate, true)
 
     if (this.updateFrame !== null) {
       cancelAnimationFrame(this.updateFrame)
       this.updateFrame = null
     }
+
+    this.menu.remove()
   }
 
   stopEvent(event: Event) {
@@ -233,7 +242,7 @@ class TableControlsView implements NodeView {
     }
 
     const target = event.target
-    if (target instanceof Node && this.dom.contains(target)) {
+    if (target instanceof Node && (this.dom.contains(target) || this.menu.contains(target))) {
       return
     }
 
@@ -431,19 +440,119 @@ class TableControlsView implements NodeView {
       return
     }
 
-    const wrapperRect = this.dom.getBoundingClientRect()
-    const cellRect = cell.getBoundingClientRect()
+    const anchorRect = this.getMenuAnchorRect(cell)
+    const menuRect = this.menu.getBoundingClientRect()
+    const menuWidth = menuRect.width || this.menu.offsetWidth
+    const menuHeight = menuRect.height || this.menu.offsetHeight
 
-    if (this.activeMenuType === "column") {
-      this.menu.dataset.side = "top"
-      this.menu.style.left = `${cellRect.left - wrapperRect.left + cellRect.width / 2}px`
-      this.menu.style.top = `${cellRect.top - wrapperRect.top}px`
+    if (!menuWidth || !menuHeight) {
       return
     }
 
-    this.menu.dataset.side = "left"
-    this.menu.style.left = `${cellRect.left - wrapperRect.left}px`
-    this.menu.style.top = `${cellRect.top - wrapperRect.top + cellRect.height / 2}px`
+    const viewport = {
+      bottom: window.innerHeight - TABLE_MENU_VIEWPORT_MARGIN,
+      left: TABLE_MENU_VIEWPORT_MARGIN,
+      right: window.innerWidth - TABLE_MENU_VIEWPORT_MARGIN,
+      top: TABLE_MENU_VIEWPORT_MARGIN,
+    }
+
+    const position = this.getMenuPosition(anchorRect, menuWidth, menuHeight, viewport)
+
+    this.menu.dataset.side = position.side
+    this.menu.style.left = `${position.left}px`
+    this.menu.style.top = `${position.top}px`
+    this.menu.style.maxHeight = `${position.maxHeight}px`
+  }
+
+  private getMenuAnchorRect(cell: HTMLTableCellElement) {
+    if (this.activeMenuType === "column") {
+      return this.topHandle.getBoundingClientRect()
+    }
+
+    if (this.activeMenuType === "row") {
+      return this.leftHandle.getBoundingClientRect()
+    }
+
+    return cell.getBoundingClientRect()
+  }
+
+  private getMenuCandidatePosition(
+    side: TableMenuSide,
+    anchorRect: DOMRect,
+    menuWidth: number,
+    menuHeight: number
+  ) {
+    switch (side) {
+      case "bottom":
+        return {
+          left: anchorRect.left + anchorRect.width / 2 - menuWidth / 2,
+          top: anchorRect.bottom + TABLE_MENU_GAP,
+        }
+      case "left":
+        return {
+          left: anchorRect.left - TABLE_MENU_GAP - menuWidth,
+          top: anchorRect.top + anchorRect.height / 2 - menuHeight / 2,
+        }
+      case "right":
+        return {
+          left: anchorRect.right + TABLE_MENU_GAP,
+          top: anchorRect.top + anchorRect.height / 2 - menuHeight / 2,
+        }
+      case "top":
+      default:
+        return {
+          left: anchorRect.left + anchorRect.width / 2 - menuWidth / 2,
+          top: anchorRect.top - TABLE_MENU_GAP - menuHeight,
+        }
+    }
+  }
+
+  private getMenuPosition(
+    anchorRect: DOMRect,
+    menuWidth: number,
+    menuHeight: number,
+    viewport: { bottom: number; left: number; right: number; top: number }
+  ) {
+    if (this.activeMenuType === "column") {
+      const topSpace = Math.max(0, anchorRect.top - TABLE_MENU_GAP - viewport.top)
+      const bottomSpace = Math.max(0, viewport.bottom - anchorRect.bottom - TABLE_MENU_GAP)
+      const side: TableMenuSide = topSpace >= menuHeight || topSpace >= bottomSpace
+        ? "top"
+        : "bottom"
+      const maxHeight = Math.max(1, side === "top" ? topSpace : bottomSpace)
+      const visibleHeight = Math.min(menuHeight, maxHeight)
+      const rawPosition = this.getMenuCandidatePosition(side, anchorRect, menuWidth, visibleHeight)
+
+      return {
+        left: this.clamp(rawPosition.left, viewport.left, viewport.right - menuWidth),
+        maxHeight,
+        side,
+        top: side === "top" ? anchorRect.top - TABLE_MENU_GAP - visibleHeight : rawPosition.top,
+      }
+    }
+
+    const leftSpace = Math.max(0, anchorRect.left - TABLE_MENU_GAP - viewport.left)
+    const rightSpace = Math.max(0, viewport.right - anchorRect.right - TABLE_MENU_GAP)
+    const side: TableMenuSide = leftSpace >= menuWidth || leftSpace >= rightSpace
+      ? "left"
+      : "right"
+    const rawPosition = this.getMenuCandidatePosition(side, anchorRect, menuWidth, menuHeight)
+    const maxHeight = Math.max(1, viewport.bottom - viewport.top)
+
+    return {
+      left: this.clamp(rawPosition.left, viewport.left, viewport.right - menuWidth),
+      maxHeight,
+      side,
+      top: this.clamp(rawPosition.top, viewport.top, viewport.bottom - Math.min(menuHeight, maxHeight)),
+    }
+  }
+
+  private clamp(value: number, min: number, max: number) {
+    if (max < min) {
+      return min
+    }
+
+    return Math.min(Math.max(value, min), max)
   }
 
   private renderMenu(type: TableMenuType) {

@@ -28,6 +28,15 @@ export const UnderlineWithMarkdown = Underline.extend({
 // Custom Image extension with resize and alignment support
 export const CustomImage = Image.extend({
   name: 'customImage',
+  markdownTokenName: 'image',
+
+  parseMarkdown: (token, helpers) => {
+    return helpers.createNode('customImage', {
+      src: token.href,
+      title: token.title,
+      alt: token.text,
+    })
+  },
 
   addAttributes() {
     return {

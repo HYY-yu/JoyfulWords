@@ -1,7 +1,8 @@
-import { marked } from 'marked'
+import { Marked } from 'marked'
 
-// Configure marked for GFM (GitHub Flavored Markdown)
-marked.use({
+// Keep a dedicated parser instance so Tiptap Markdown tokenizers cannot mutate
+// the global marked singleton used by generic Markdown -> HTML conversion.
+const markdownHTMLParser = new Marked({
   gfm: true,
   breaks: false,  // Don't convert single line breaks to <br>
 })
@@ -235,7 +236,7 @@ export async function markdownToHTML(markdown: string): Promise<string> {
   if (!markdown) return ''
 
   try {
-    return await marked.parse(markdown)
+    return await markdownHTMLParser.parse(markdown)
   } catch (error) {
     console.error('[markdownToHTML] Conversion failed:', error)
     return ''
