@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 const ALLOWED_HOST_SUFFIXES = [
   ".joyword.link",
+  ".joyword.top",
   ".r2.dev",
   ".r2.cloudflarestorage.com",
 ]

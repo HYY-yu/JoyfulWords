@@ -74,7 +74,7 @@ AI 图片拆分模式：
 ### mode-tabs.tsx - Tab 切换
 - 三个模式 Tab：创作模式、风格模式、反向模式
 - 使用 localStorage 持久化选中状态
-- 采用与 content-writing 相同的 TabBar 设计
+- 采用项目统一的 TabBar 设计
 - 支持受控组件模式（activeTab + onTabChange）
 
 ### toolbar.tsx - 工具栏（创作模式）
@@ -173,7 +173,7 @@ export default function DemoPage() {
 
 - 使用项目统一的 CSS 变量
 - Shadcn/ui 组件库
-- TabBar 采用与 content-writing 相同的设计
+- TabBar 采用项目统一的设计
 - 圆角、阴影、间距保持项目一致性
 - 风格模式和反向模式采用现代化、专业的设计语言
 - 所有动画和过渡效果遵循 Tailwind CSS 规范

@@ -2,6 +2,8 @@ const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://loc
 
 const API_BASE_URL_BY_APP_HOST: Record<string, string> = {
   'hk.joyword.link': 'https://hk-api.joyword.link',
+  'joyword.top': 'https://api.joyword.top',
+  'www.joyword.top': 'https://api.joyword.top',
 }
 
 export function resolveApiBaseUrl(hostname?: string): string {
