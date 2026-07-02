@@ -5,12 +5,15 @@ import { useEffect, useState, useCallback } from "react";
 import { ExternalLinkIcon, Trash2Icon } from "lucide-react";
 import { Button } from "../base/button";
 import { Input } from "../base/input";
+import { openEditorLink } from "@/lib/editor-link-utils";
+import { useTranslation } from "@/lib/i18n/i18n-context";
 
 interface LinkMenuProps {
   editor: Editor;
 }
 
 export function LinkMenu({ editor }: LinkMenuProps) {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
   const [url, setUrl] = useState<string>("");
 
@@ -52,7 +55,7 @@ export function LinkMenu({ editor }: LinkMenuProps) {
   const openLink = useCallback(() => {
     const currentUrl = editor.getAttributes('link').href;
     if (currentUrl) {
-      window.open(currentUrl, '_blank');
+      openEditorLink(currentUrl);
     }
   }, [editor]);
 
@@ -87,7 +90,7 @@ export function LinkMenu({ editor }: LinkMenuProps) {
         size="sm"
         onClick={openLink}
         className="h-8 w-8 p-0"
-        title="跳转"
+        title={t("tiptapEditor.linkMenu.open")}
       >
         <ExternalLinkIcon className="h-4 w-4" />
       </Button>
@@ -98,7 +101,7 @@ export function LinkMenu({ editor }: LinkMenuProps) {
         size="sm"
         onClick={removeLink}
         className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-        title="删除"
+        title={t("tiptapEditor.linkMenu.delete")}
       >
         <Trash2Icon className="h-4 w-4" />
       </Button>

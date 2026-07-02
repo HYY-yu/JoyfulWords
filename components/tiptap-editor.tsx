@@ -397,8 +397,9 @@ export function TiptapEditor({
 
         const pastedImageFile = getImageFileFromClipboardData(event.clipboardData);
         if (pastedImageFile) {
+          const pastePos = view.state.selection.from;
           event.preventDefault();
-          void uploadAndInsertEditorImage(view, pastedImageFile, "paste");
+          void uploadAndInsertEditorImage(view, pastedImageFile, "paste", pastePos);
 
           return true;
         }
@@ -726,7 +727,7 @@ export function TiptapEditor({
       };
 
       const handleOpenAIEdit = () => {
-        console.log('[TiptapEditor] Received external AI edit trigger');
+        console.debug("[TiptapEditor] Received external AI edit trigger");
         handleAIRewrite();
       };
 
@@ -757,16 +758,21 @@ export function TiptapEditor({
 
   // Handle image upload using presigned URL
   const handleImageUpload = useCallback(async (file: File): Promise<string> => {
-    console.log("开始上传图片到 R2，文件：", file.name, file.size)
+    console.debug("[TiptapEditor] Uploading toolbar image to R2", {
+      fileName: file.name,
+      fileSize: file.size,
+    })
 
     try {
       // 使用新的安全上传方式
       const url = await uploadImageToR2(file)
 
-      console.log("图片上传成功，URL：", url)
+      console.info("[TiptapEditor] Toolbar image uploaded", {
+        fileName: file.name,
+      })
       return url
     } catch (error) {
-      console.error("图片上传失败：", error)
+      console.error("[TiptapEditor] Toolbar image upload failed", { error })
 
       // 重新抛出错误,让调用者处理
       throw error
@@ -774,10 +780,10 @@ export function TiptapEditor({
   }, [])
 
   const insertImage = useCallback(() => {
-    console.log("insertImage 函数被调用");
+    console.debug("[TiptapEditor] Toolbar image insert requested");
 
     if (!editor) {
-      console.error("编辑器未初始化");
+      console.error("[TiptapEditor] Editor is not initialized for toolbar image insert");
       toast({
         variant: "destructive",
         title: t("contentWriting.writing.uploadFailed"),
@@ -787,7 +793,7 @@ export function TiptapEditor({
     }
 
     if (isUploadingImage) {
-      console.log("正在上传图片，请稍候...");
+      console.debug("[TiptapEditor] Toolbar image insert skipped while upload is in progress");
       return;
     }
 
@@ -799,7 +805,10 @@ export function TiptapEditor({
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
 
-      console.log("选择的图片文件：", file.name, file.size);
+      console.debug("[TiptapEditor] Toolbar image file selected", {
+        fileName: file.name,
+        fileSize: file.size,
+      });
 
       try {
         // 验证文件
@@ -822,38 +831,21 @@ export function TiptapEditor({
           description: t("tiptapEditor.toast.uploadingImage"),
         });
 
-        console.log("开始上传图片...");
+        console.info("[TiptapEditor] Starting toolbar image upload", {
+          fileName: file.name,
+          fileSize: file.size,
+        });
 
         // 上传图片 - 等待完成
         const url = await handleImageUpload(file);
-        console.log("✅ 图片上传成功，URL：", url);
-
-        // 等待状态更新
-        await new Promise(resolve => setTimeout(resolve, 200));
-
-        // 尝试多种插入方法，确保至少一种成功
-        let success = false;
-
-        // 方法 1: 使用 setImage 命令（推荐）
-        console.log("尝试方法 1: setImage");
-        success = editor.chain().focus().setImage({ src: url, alt: file.name }).run();
-        console.log("方法 1 结果:", success);
-
-        if (!success) {
-          // 方法 2: 插入节点对象
-          console.log("尝试方法 2: insertContent with node");
-          success = editor.chain().focus().insertContent({
-            type: 'image',
-            attrs: {
-              src: url,
-              alt: file.name,
-            },
-          }).run();
-          console.log("方法 2 结果:", success);
+        const inserted = insertImageNodeToView(editor.view, url, file.name);
+        if (!inserted) {
+          throw new Error(t("tiptapEditor.toast.editorNotReady"));
         }
-
-        // 强制刷新编辑器视图
-        editor.commands.focus();
+        console.info("[TiptapEditor] Image uploaded and inserted from toolbar", {
+          fileName: file.name,
+          fileSize: file.size,
+        });
 
         // 显示成功提示
         toast({
@@ -861,34 +853,8 @@ export function TiptapEditor({
           description: t("tiptapEditor.toast.imageInserted"),
         });
 
-        // 验证图片是否成功插入（仅用于调试，不显示错误提示）
-        setTimeout(() => {
-          const html = editor.getHTML();
-          console.log("验证：当前编辑器 HTML：", html);
-
-          if (html.includes('<img') && html.includes(url)) {
-            console.log("✅ 验证成功：图片已在编辑器中");
-          } else {
-            console.warn("⚠️ 验证延迟：图片可能还在加载中");
-            console.log("编辑器 JSON：", JSON.stringify(editor.state.doc.toJSON(), null, 2));
-            // 再次验证，延长时间
-            setTimeout(() => {
-              const html2 = editor.getHTML();
-              if (html2.includes('<img') && html2.includes(url)) {
-                console.log("✅ 二次验证成功：图片已在编辑器中");
-              } else {
-                console.error("❌ 二次验证失败：图片未在编辑器中");
-                // 只在开发环境显示 alert
-                if (process.env.NODE_ENV === 'development') {
-                  console.error("图片插入验证失败，但图片可能已经显示。请检查编辑器。");
-                }
-              }
-            }, 1000);
-          }
-        }, 500);
-
       } catch (error) {
-        console.error("图片上传失败：", error);
+        console.error("[TiptapEditor] Toolbar image upload/insert failed", { error });
         const errorMessage = error instanceof Error ? error.message : '未知错误';
 
         // 翻译错误消息
@@ -908,7 +874,7 @@ export function TiptapEditor({
     };
 
     input.click();
-  }, [editor, handleImageUpload, isUploadingImage, toast, t]);
+  }, [editor, handleImageUpload, insertImageNodeToView, isUploadingImage, toast, t]);
 
   const editorShellClassName =
     mode === "edit"

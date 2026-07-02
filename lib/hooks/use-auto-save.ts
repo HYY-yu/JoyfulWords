@@ -32,6 +32,7 @@ export interface UseAutoSaveOptions {
 export interface UseAutoSaveReturn {
   saveState: AutoSaveState      // 当前保存状态
   triggerSave: (content: string, skipVersion?: boolean) => void  // 触发保存，skipVersion 为 true 时跳过版本创建
+  saveNow: (content: string, skipVersion?: boolean) => Promise<void> // 立即保存
   cancelPendingSave: () => void // 取消待处理保存
   resetSaveState: () => void    // 重置状态
 }
@@ -211,11 +212,15 @@ export function useAutoSave({
       })
 
       // METRIC: auto_save_attempt - 指标标签: status (saving), attempt (0-2)
-      await articlesClient.updateArticleContent(articleId, {
+      const result = await articlesClient.updateArticleContent(articleId, {
         content,
       }, {
         signal: abortControllerRef.current.signal,
       })
+
+      if ('error' in result) {
+        throw new Error(result.error)
+      }
 
       // 只处理最新请求的响应（竞态条件处理）
       if (currentVersion === requestVersionRef.current) {
@@ -305,6 +310,7 @@ export function useAutoSave({
           })
 
           // METRIC: auto_save_error - 指标标签: error_type, attempt
+          skipVersionRef.current = false
           setSaveState(prev => ({
             ...prev,
             status: 'error',
@@ -366,6 +372,34 @@ export function useAutoSave({
     }, delay)
   }, [isEditMode, articleId, delay, performSave])
 
+  const saveNow = useCallback(async (content: string, skipVersion = false) => {
+    if (!isEditMode || !articleId) {
+      return
+    }
+
+    if (debounceTimerRef.current) {
+      console.debug('[AutoSave] Cancelling debounced save before immediate save')
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+
+    if (!content || content.trim() === '') {
+      console.debug('[AutoSave] Immediate save skipped: empty content')
+      return
+    }
+
+    if (content.length > 10 * 1024 * 1024) {
+      console.warn('[AutoSave] Immediate save skipped: content too large', {
+        contentLength: content.length,
+        maxSize: 10 * 1024 * 1024,
+      })
+      throw new Error(t("contentWriting.editorHeader.contentTooLarge"))
+    }
+
+    skipVersionRef.current = skipVersion
+    await performSave(content)
+  }, [articleId, isEditMode, performSave, t])
+
   /**
    * 取消待处理的保存
    */
@@ -417,6 +451,7 @@ export function useAutoSave({
   return {
     saveState,
     triggerSave,
+    saveNow,
     cancelPendingSave,
     resetSaveState,
   }

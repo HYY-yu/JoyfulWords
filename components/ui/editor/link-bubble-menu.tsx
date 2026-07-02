@@ -9,12 +9,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/base/popover";
 import { Button } from "@/components/ui/base/button";
+import { openEditorLink } from "@/lib/editor-link-utils";
+import { useTranslation } from "@/lib/i18n/i18n-context";
 
 interface LinkPopoverProps {
   editor: Editor;
 }
 
 export function LinkPopover({ editor }: LinkPopoverProps) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -43,7 +46,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
   const openLink = useCallback(() => {
     const currentUrl = editor.getAttributes('link').href;
     if (currentUrl) {
-      window.open(currentUrl, '_blank');
+      openEditorLink(currentUrl);
     }
   }, [editor]);
 
@@ -86,7 +89,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
                 variant="ghost"
                 className="h-7 w-7 p-0"
                 onClick={() => setIsEditing(true)}
-                title="编辑"
+                title={t("tiptapEditor.linkMenu.edit")}
               >
                 <CheckIcon className="h-3 w-3" />
               </Button>
@@ -96,7 +99,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
                 variant="ghost"
                 className="h-7 w-7 p-0"
                 onClick={openLink}
-                title="跳转"
+                title={t("tiptapEditor.linkMenu.open")}
               >
                 <ExternalLinkIcon className="h-3 w-3" />
               </Button>
@@ -106,7 +109,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
                 variant="ghost"
                 className="h-7 w-7 p-0 hover:bg-destructive hover:text-destructive-foreground"
                 onClick={removeLink}
-                title="删除"
+                title={t("tiptapEditor.linkMenu.delete")}
               >
                 <Trash2Icon className="h-3 w-3" />
               </Button>
@@ -125,7 +128,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
                   }
                 }}
                 className="flex-1 h-8 px-2 text-sm border border-input rounded bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="输入 URL..."
+                placeholder={t("tiptapEditor.linkMenu.urlPlaceholder")}
                 autoFocus
               />
 
@@ -133,7 +136,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
                 size="sm"
                 onClick={updateUrl}
                 className="h-8 px-3"
-                title="确认"
+                title={t("tiptapEditor.linkMenu.confirm")}
               >
                 <CheckIcon className="h-3 w-3" />
               </Button>
@@ -143,7 +146,7 @@ export function LinkPopover({ editor }: LinkPopoverProps) {
                 variant="ghost"
                 onClick={() => setIsEditing(false)}
                 className="h-8 w-8 p-0"
-                title="取消"
+                title={t("tiptapEditor.linkMenu.cancel")}
               >
                 ✕
               </Button>

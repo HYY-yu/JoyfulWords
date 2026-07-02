@@ -225,25 +225,19 @@ export default function ArticleEditPage() {
     setArticle((current) => current ? { ...current, title } : current)
   }, [])
 
-  const handleManualSave = useCallback(async () => {
+  const handleManualSave = useCallback(async (content?: string, skipVersion = false) => {
     if (!article?.id || isManualSaving) return
 
     setIsManualSaving(true)
     autoSave.cancelPendingSave()
 
     try {
-      const result = await articlesClient.updateArticleContent(article.id, {
-        content: editorState.content.html,
-      })
-
-      if ("error" in result) {
-        throw new Error(result.error)
+      await autoSave.saveNow(content ?? editorState.content.html, skipVersion)
+      if (!skipVersion) {
+        toast({
+          title: t("contentWriting.editorHeader.saveMetadataSuccess"),
+        })
       }
-
-      editorState.markSaved()
-      toast({
-        title: t("contentWriting.editorHeader.saveMetadataSuccess"),
-      })
     } catch (error) {
       toast({
         variant: "destructive",
@@ -406,7 +400,7 @@ export default function ArticleEditPage() {
   const topBar = (
     <EditorTopBar
       article={article}
-      onSave={autoSave.triggerSave}
+      onSave={handleManualSave}
       onExport={handleExport}
       onPublish={handlePublish}
       onArticleUpdated={handleArticleUpdated}

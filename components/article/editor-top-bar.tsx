@@ -24,6 +24,7 @@ import {
   PencilLineIcon,
   LoaderIcon,
   CheckIcon,
+  AlertTriangleIcon,
   GitBranchIcon,
   SendIcon,
 } from "lucide-react"
@@ -32,12 +33,13 @@ import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
 import { VersionDialog } from "./version-dialog"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
+import { cn } from "@/lib/utils"
 
 export type SaveState = "idle" | "saving" | "saved" | "error"
 
 interface EditorTopBarProps {
   article?: Article | null
-  onSave?: (content: string, skipVersion?: boolean) => void
+  onSave?: (content: string, skipVersion?: boolean) => void | Promise<void>
   onExport?: (format: "markdown" | "html") => void
   onClean?: () => void
   onPublish?: () => void
@@ -178,6 +180,9 @@ export function EditorTopBar({
     if (saveState === "saved") {
       return <CheckIcon className="w-4 h-4" />
     }
+    if (saveState === "error") {
+      return <AlertTriangleIcon className="w-4 h-4" />
+    }
     return <BookLockIcon className="w-4 h-4" />
   }
 
@@ -187,6 +192,9 @@ export function EditorTopBar({
     }
     if (saveState === "saved") {
       return t("contentWriting.editorHeader.saved")
+    }
+    if (saveState === "error") {
+      return t("contentWriting.editorHeader.saveMetadataFailed")
     }
     return t("contentWriting.editorHeader.saveAsNewReversion")
   }
@@ -343,7 +351,12 @@ export function EditorTopBar({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="h-9 gap-2 rounded-lg bg-[var(--jw-accent)] px-3 text-[var(--jw-accent-foreground)] shadow-[var(--jw-accent-button-shadow)] hover:bg-[var(--jw-accent-hover)]"
+                className={cn(
+                  "h-9 gap-2 rounded-lg px-3",
+                  saveState === "error"
+                    ? "border border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15"
+                    : "bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)] shadow-[var(--jw-accent-button-shadow)] hover:bg-[var(--jw-accent-hover)]"
+                )}
                 onClick={() => onSave(currentContent)}
                 disabled={isSaving || isPublishing || saveState === "saving"}
               >

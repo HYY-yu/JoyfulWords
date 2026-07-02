@@ -18,7 +18,7 @@ interface VersionDialogProps {
   currentTitle: string
   currentUpdatedAt?: string
   onVersionRollback: (versionData: { content: string }) => void
-  onSave: (content: string, skipVersion?: boolean) => void
+  onSave: (content: string, skipVersion?: boolean) => void | Promise<void>
 }
 
 interface ParsedVersionData {

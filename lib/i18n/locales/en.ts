@@ -307,6 +307,7 @@ export const en = {
             saving: "Saving...",
             saved: "Saved",
             saveAsNewReversion: "Save as new version",
+            contentTooLarge: "Article content is too large to save",
             backToList: "Back to article list",
             themeTooltip: "Switch editor theme",
             themes: {
@@ -1565,6 +1566,14 @@ export const en = {
             selectTextFirstDesc: "Please select the text you want to rewrite in the editor",
             saveBeforeAIRewrite: "Please save article first",
             saveBeforeAIRewriteDesc: "Please save the article before using AI rewrite",
+        },
+        linkMenu: {
+            open: "Open link",
+            edit: "Edit link",
+            delete: "Delete link",
+            confirm: "Confirm",
+            cancel: "Cancel",
+            urlPlaceholder: "Enter URL...",
         },
         imageMenu: {
             widthLabel: "Width:",

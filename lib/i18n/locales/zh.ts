@@ -307,6 +307,7 @@ export const zh = {
             saving: "保存中...",
             saved: "已保存",
             saveAsNewReversion: "保存为新版本",
+            contentTooLarge: "文章内容过大，无法保存",
             backToList: "返回文章列表",
             themeTooltip: "切换编辑器主题",
             themes: {
@@ -1565,6 +1566,14 @@ export const zh = {
             selectTextFirstDesc: "请在编辑器中选中要改写的文本",
             saveBeforeAIRewrite: "请先保存文章",
             saveBeforeAIRewriteDesc: "请先保存文章，才能进入智能改写",
+        },
+        linkMenu: {
+            open: "打开链接",
+            edit: "编辑链接",
+            delete: "删除链接",
+            confirm: "确认",
+            cancel: "取消",
+            urlPlaceholder: "输入 URL...",
         },
         imageMenu: {
             widthLabel: "宽度:",
