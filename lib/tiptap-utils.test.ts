@@ -24,6 +24,22 @@ test("detects task list markdown as markdown", () => {
   assert.equal(detectContentFormat("- [ ] Review edits"), "markdown")
 })
 
+test("detects persisted HTML code blocks as html even when code text contains markdown markers", () => {
+  const html = [
+    "<p>Before</p>",
+    "<pre><code># 角色",
+    "",
+    "### 执行原则",
+    "",
+    "1. 备份优先原则（Backup First）",
+    "",
+    "- **任何**修改前先备份。",
+    "`cp /etc/nginx/nginx.conf /tmp/nginx.conf.bak`</code></pre>",
+  ].join("\n")
+
+  assert.equal(detectContentFormat(html), "html")
+})
+
 test("parses markdown table rows", () => {
   const markdown = [
     "| Name | Score |",

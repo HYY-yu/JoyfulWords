@@ -26,6 +26,10 @@ import { uploadImageToR2, validateImageFile } from "@/lib/tiptap-image-upload";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { clipboardTableTextToHTML, markdownToHTML } from "@/lib/tiptap-utils";
+import {
+  normalizeCodeBlockClipboardText,
+  shouldInsertPlainTextIntoCodeBlock,
+} from "@/lib/tiptap-code-block-paste";
 import { TableWithControls } from "@/lib/tiptap-table-node-view";
 import { taskCenterClient } from "@/lib/api/taskcenter/client";
 import {
@@ -344,6 +348,21 @@ export function TiptapEditor({
         class: `prose prose-lg dark:prose-invert max-w-none focus:outline-none prose-headings:font-bold prose-a:underline ${mode === "edit" ? "" : "min-h-[400px] p-6"}`,
         placeholder,
       },
+      handleTextInput(view, from, to, text) {
+        if (
+          view.state.selection.$from.sameParent(view.state.selection.$to) &&
+          shouldInsertPlainTextIntoCodeBlock(
+            view.state.selection.$from.parent.type.name,
+            text
+          )
+        ) {
+          view.dispatch(view.state.tr.insertText(text, from, to).scrollIntoView());
+
+          return true;
+        }
+
+        return false;
+      },
       handleDrop(view, event) {
         if (!event.dataTransfer) {
           return false;
@@ -384,12 +403,33 @@ export function TiptapEditor({
           return true;
         }
 
+        const clipboardText = event.clipboardData.getData("text/plain");
+        if (
+          view.state.selection.$from.sameParent(view.state.selection.$to) &&
+          shouldInsertPlainTextIntoCodeBlock(
+            view.state.selection.$from.parent.type.name,
+            clipboardText
+          )
+        ) {
+          event.preventDefault();
+
+          const text = normalizeCodeBlockClipboardText(clipboardText);
+          view.dispatch(view.state.tr.insertText(text).scrollIntoView());
+          view.focus();
+          console.debug("[TiptapEditor] Plain text pasted into code block", {
+            characters: text.length,
+            lines: text.split("\n").length,
+          });
+
+          return true;
+        }
+
         const clipboardHTML = event.clipboardData.getData("text/html");
         if (/<table[\s>]/i.test(clipboardHTML)) {
           return false;
         }
 
-        const tableHTML = clipboardTableTextToHTML(event.clipboardData.getData("text/plain"));
+        const tableHTML = clipboardTableTextToHTML(clipboardText);
         if (!tableHTML) {
           return false;
         }

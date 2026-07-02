@@ -29,6 +29,12 @@ marked.use({
 export function detectContentFormat(content: string): 'markdown' | 'html' | 'text' {
   if (!content) return 'text'
 
+  // Persisted editor content is HTML. Detect it before Markdown so code blocks
+  // containing lines like "# title" or "- item" are not reparsed on article load.
+  if (/<\/?[a-z][\s\S]*>/i.test(content)) {
+    return 'html'
+  }
+
   if (parseMarkdownTableRows(content)) {
     return 'markdown'
   }
@@ -51,11 +57,6 @@ export function detectContentFormat(content: string): 'markdown' | 'html' | 'tex
     if (pattern.test(content)) {
       return 'markdown'
     }
-  }
-
-  // 检测 HTML 标签
-  if (/<\/?[a-z][\s\S]*>/i.test(content)) {
-    return 'html'
   }
 
   return 'text'
