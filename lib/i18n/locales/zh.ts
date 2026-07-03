@@ -1700,6 +1700,28 @@ export const zh = {
             copyFailed: "复制失败",
             copyFailedDesc: "浏览器剪贴板不可用，请重试或检查权限。",
         },
+        hooks: {
+            title: "开篇钩子",
+            subtitle: "总结文章核心，并生成 7 类公众号开篇候选。",
+            generate: "生成摘要",
+            generating: "生成中...",
+            summary: "120 字内总结",
+            copy: "复制钩子",
+            copySuccess: "钩子已复制",
+            copyFailed: "复制钩子失败",
+            toastSuccess: "摘要与钩子已生成",
+            toastFailed: "生成失败",
+            toastFailedDesc: "请稍后重试，或检查账户额度。",
+            types: {
+                hook_1: "反共识断言",
+                hook_2: "真实数据冲击",
+                hook_3: "个人故事开场",
+                hook_4: "反问钩子",
+                hook_5: "场景代入",
+                hook_6: "痛点直击",
+                hook_7: "反差对比",
+            },
+        },
     },
     echarts: {
         types: {

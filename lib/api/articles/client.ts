@@ -13,6 +13,8 @@ import type {
   EditStatusResponse,
   GenerateCoverDescriptionResponse,
   GenerateCoverTitleResponse,
+  GenerateWeChatHookSummaryRequest,
+  GenerateWeChatHookSummaryResponse,
   MessageResponse,
   ErrorResponse,
 } from './types'
@@ -302,6 +304,24 @@ export const articlesClient = {
       {
         method: 'POST',
         body: JSON.stringify({}),
+        signal: options?.signal,
+      }
+    )
+  },
+
+  /**
+   * 12. 生成微信公众号摘要与开篇钩子
+   * POST /article/wechat-hook-summary
+   */
+  async generateWeChatHookSummary(
+    data: GenerateWeChatHookSummaryRequest,
+    options?: { signal?: AbortSignal }
+  ): Promise<GenerateWeChatHookSummaryResponse | ErrorResponse> {
+    return authenticatedApiRequest<GenerateWeChatHookSummaryResponse>(
+      '/article/wechat-hook-summary',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
         signal: options?.signal,
       }
     )

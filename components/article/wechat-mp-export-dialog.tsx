@@ -1,11 +1,13 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import { CheckIcon, ClipboardIcon, LoaderIcon, NewspaperIcon } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { CheckIcon, ClipboardIcon, CopyIcon, LoaderIcon, NewspaperIcon, WandSparklesIcon } from "lucide-react"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
+import { articlesClient } from "@/lib/api/articles/client"
+import type { GenerateWeChatHookSummaryResponse, WeChatHookOption } from "@/lib/api/articles/types"
 import {
   Select,
   SelectContent,
@@ -31,6 +33,8 @@ interface WeChatMPExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   markdown: string
+  articleId?: number | null
+  articleTitle?: string
 }
 
 const COLOR_PRESETS = ["#16a34a", "#0ea5e9", "#ef4444", "#8b5cf6", "#f97316"]
@@ -39,6 +43,8 @@ export function WeChatMPExportDialog({
   open,
   onOpenChange,
   markdown,
+  articleId,
+  articleTitle,
 }: WeChatMPExportDialogProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -47,6 +53,9 @@ export function WeChatMPExportDialog({
   )
   const [copying, setCopying] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [hookResult, setHookResult] = useState<GenerateWeChatHookSummaryResponse | null>(null)
+  const [hookLoading, setHookLoading] = useState(false)
+  const [hookError, setHookError] = useState<string | null>(null)
 
   const exportResult = useMemo(
     () => renderWeChatMarkdown(markdown, options),
@@ -54,9 +63,66 @@ export function WeChatMPExportDialog({
   )
   const hasContent = markdown.trim().length > 0
 
+  useEffect(() => {
+    setHookResult(null)
+    setHookError(null)
+  }, [markdown])
+
   const updateOptions = (nextOptions: Partial<WeChatMarkdownExportOptions>) => {
     setOptions((current) => ({ ...current, ...nextOptions }))
     setCopied(false)
+  }
+
+  const handleGenerateHooks = async () => {
+    if (!hasContent || hookLoading) return
+
+    setHookLoading(true)
+    setHookError(null)
+    console.info("[WeChatMPExportDialog] Generating WeChat hook summary", {
+      articleId,
+      markdownLength: markdown.length,
+    })
+
+    try {
+      const result = await articlesClient.generateWeChatHookSummary({
+        article_id: articleId ?? undefined,
+        title: articleTitle,
+        content: markdown,
+      })
+
+      if ("error" in result) {
+        throw new Error(result.error)
+      }
+
+      setHookResult(result)
+      toast({
+        title: t("wechatExport.hooks.toastSuccess"),
+      })
+    } catch (error) {
+      console.error("[WeChatMPExportDialog] Failed to generate WeChat hooks", { error })
+      const message = error instanceof Error ? error.message : t("wechatExport.hooks.toastFailed")
+      setHookError(message)
+      toast({
+        variant: "destructive",
+        title: t("wechatExport.hooks.toastFailed"),
+        description: t("wechatExport.hooks.toastFailedDesc"),
+      })
+    } finally {
+      setHookLoading(false)
+    }
+  }
+
+  const handleCopyHook = async (hook: WeChatHookOption) => {
+    try {
+      await navigator.clipboard.writeText(hook.hook)
+      toast({ title: t("wechatExport.hooks.copySuccess") })
+    } catch (error) {
+      console.warn("[WeChatMPExportDialog] Failed to copy hook text", { error })
+      toast({
+        variant: "destructive",
+        title: t("wechatExport.hooks.copyFailed"),
+      })
+    }
   }
 
   const handleCopy = async () => {
@@ -123,9 +189,78 @@ export function WeChatMPExportDialog({
         </div>
       }
     >
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden bg-muted/20 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="border-b bg-background p-5 lg:border-b-0 lg:border-r">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden bg-muted/20 lg:grid-cols-[400px_minmax(0,1fr)]">
+        <aside className="min-h-0 overflow-y-auto border-b bg-background p-5 lg:border-b-0 lg:border-r">
           <div className="space-y-5">
+            <section className="space-y-3 rounded-lg border bg-muted/20 p-3">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">
+                  {t("wechatExport.hooks.title")}
+                </h3>
+                <p className="text-xs leading-5 text-muted-foreground">
+                  {t("wechatExport.hooks.subtitle")}
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="w-full"
+                disabled={!hasContent || hookLoading}
+                onClick={handleGenerateHooks}
+              >
+                {hookLoading ? (
+                  <LoaderIcon className="h-4 w-4 animate-spin" />
+                ) : (
+                  <WandSparklesIcon className="h-4 w-4" />
+                )}
+                {hookLoading ? t("wechatExport.hooks.generating") : t("wechatExport.hooks.generate")}
+              </Button>
+
+              {hookError ? (
+                <p className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs leading-5 text-destructive">
+                  {hookError}
+                </p>
+              ) : null}
+
+              {hookResult ? (
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    {hookResult.hooks.map((hook) => (
+                      <article key={hook.type} className="rounded-md border bg-background p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground">
+                              {hook.name || t(`wechatExport.hooks.types.${hook.type}`)}
+                            </p>
+                            {hook.best_for ? (
+                              <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                                {hook.best_for}
+                              </p>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                            onClick={() => void handleCopyHook(hook)}
+                            aria-label={t("wechatExport.hooks.copy")}
+                          >
+                            <CopyIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-foreground">
+                          {hook.hook}
+                        </p>
+                        {hook.rationale ? (
+                          <p className="mt-2 border-t pt-2 text-xs leading-5 text-muted-foreground">
+                            {hook.rationale}
+                          </p>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </section>
+
             <section className="space-y-2">
               <Label htmlFor="wechat-export-theme">{t("wechatExport.controls.theme")}</Label>
               <Select

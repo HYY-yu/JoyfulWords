@@ -70,6 +70,34 @@ export interface GenerateCoverTitleResponse {
   title: string
 }
 
+export type WeChatHookType =
+  | 'hook_1'
+  | 'hook_2'
+  | 'hook_3'
+  | 'hook_4'
+  | 'hook_5'
+  | 'hook_6'
+  | 'hook_7'
+
+export interface GenerateWeChatHookSummaryRequest {
+  article_id?: number
+  title?: string
+  content: string
+}
+
+export interface WeChatHookOption {
+  type: WeChatHookType
+  name: string
+  hook: string
+  best_for?: string
+  rationale?: string
+}
+
+export interface GenerateWeChatHookSummaryResponse {
+  summary: string
+  hooks: WeChatHookOption[]
+}
+
 // ==================== Request Types ====================
 
 /**

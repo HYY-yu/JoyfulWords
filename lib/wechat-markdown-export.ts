@@ -76,6 +76,20 @@ function styled(tag: string, content: string, style: string, attrs = ""): string
   return `<${tag}${attrs} style="${style}">${content}</${tag}>`
 }
 
+function formatCodeBlockText(text: string): string {
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\t/g, "    ")
+  const lines = normalized.split("\n")
+
+  return lines
+    .map((line) => {
+      const escapedLine = escapeHtml(line)
+        .replace(/ /g, "&nbsp;")
+
+      return escapedLine || "&nbsp;"
+    })
+    .join("<br/>")
+}
+
 function hexToRgba(color: string, alpha: number): string {
   const match = color.trim().match(/^#?([0-9a-f]{6})$/i)
   if (!match) return `rgba(22,163,74,${alpha})`
@@ -110,14 +124,13 @@ function getThemeStyles(options: WeChatMarkdownExportOptions) {
     "overflow-x:auto",
     "max-width:100%",
     "margin:12px 8px",
-    "padding:14px",
-    "border-radius:8px",
+    "padding:0",
+    "border-radius:14px",
     "background:#f6f8fa",
     "color:#24292f",
     "font-size:14px",
     "line-height:1.65",
-    "white-space:pre-wrap",
-    "word-break:break-word",
+    "word-break:normal",
     "font-family:Menlo,Monaco,Consolas,'Courier New',monospace"
   )
 
@@ -199,6 +212,29 @@ function getThemeStyles(options: WeChatMarkdownExportOptions) {
       "border:1px solid #e5e7eb",
       "border-radius:14px",
       "background:#f8fafc"
+    ),
+    codeHeader: mergeStyle(
+      "box-sizing:border-box",
+      "display:block",
+      "padding:8px 12px",
+      "border-bottom:1px solid #e5e7eb",
+      "background:#f1f5f9",
+      `color:${MUTED}`,
+      "font-size:12px",
+      "line-height:1.4",
+      "font-family:Menlo,Monaco,Consolas,'Courier New',monospace"
+    ),
+    codeContent: mergeStyle(
+      "box-sizing:border-box",
+      "display:block",
+      "padding:12px 14px",
+      "min-width:max-content",
+      "color:#24292f",
+      "font-size:13px",
+      "line-height:1.75",
+      "white-space:normal",
+      "word-break:normal",
+      "font-family:Menlo,Monaco,Consolas,'Courier New',monospace"
     ),
     codeInline: mergeStyle(
       "box-sizing:border-box",
@@ -300,6 +336,20 @@ function getThemeStyles(options: WeChatMarkdownExportOptions) {
       `color:${FOREGROUND}`,
       "font-style:italic"
     )
+    styles.codeBlock = mergeStyle(
+      codeBlockBase,
+      `border:1px solid ${primaryLine}`,
+      "border-radius:18px",
+      "background:#0f172a",
+      `box-shadow:0 10px 24px ${hexToRgba(primary, 0.14)}`
+    )
+    styles.codeHeader = mergeStyle(
+      styles.codeHeader,
+      `border-bottom:1px solid ${hexToRgba(primary, 0.32)}`,
+      "background:#111827",
+      `color:${hexToRgba("#ffffff", 0.72)}`
+    )
+    styles.codeContent = mergeStyle(styles.codeContent, "color:#e5e7eb", "background:#0f172a")
     styles.figure = mergeStyle(
       "box-sizing:border-box",
       "margin:24px 8px",
@@ -362,6 +412,19 @@ function getThemeStyles(options: WeChatMarkdownExportOptions) {
       "background:#ffffff",
       `color:${FOREGROUND}`
     )
+    styles.codeBlock = mergeStyle(
+      codeBlockBase,
+      `border:1px solid ${primaryLine}`,
+      "border-radius:16px",
+      "background:#ffffff"
+    )
+    styles.codeHeader = mergeStyle(
+      styles.codeHeader,
+      `border-bottom:1px dashed ${primaryLine}`,
+      `background:${primaryWash}`,
+      `color:${FOREGROUND}`
+    )
+    styles.codeContent = mergeStyle(styles.codeContent, "background:#ffffff")
     styles.figure = mergeStyle(
       "box-sizing:border-box",
       "margin:20px 8px",
@@ -387,23 +450,26 @@ function getImageCaption(mode: WeChatImageCaptionMode, alt: string, title: strin
   return ""
 }
 
-function countWords(markdown: string): number {
-  const text = markdown
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
-    .replace(/\[[^\]]*]\([^)]*\)/g, " ")
-    .replace(/[#>*_`~\-\d.[\]()]/g, " ")
-    .trim()
+function countVisibleCharacters(text: string): number {
+  return Array.from(text.replace(/\s/g, "")).length
+}
 
-  const cjkCount = (text.match(/[\u4e00-\u9fff]/g) ?? []).length
-  const wordCount = (text.replace(/[\u4e00-\u9fff]/g, " ").match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*/g) ?? []).length
-
-  return cjkCount + wordCount
+function decodeBasicHtmlEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/&#96;/g, "`")
 }
 
 function createPlainText(html: string): string {
   if (typeof document === "undefined") {
-    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+    return decodeBasicHtmlEntities(html.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " "))
+      .replace(/\s+/g, " ")
+      .trim()
   }
 
   const container = document.createElement("div")
@@ -452,8 +518,11 @@ export function renderWeChatMarkdown(
       return styled("blockquote", this.parser.parse(tokens), styles.blockquote)
     },
     code({ text, lang }: Tokens.Code) {
-      const language = lang ? `<span style="display:block;margin-bottom:8px;color:${MUTED};font-size:12px;">${escapeHtml(lang)}</span>` : ""
-      return styled("pre", `${language}${escapeHtml(text)}`, styles.codeBlock)
+      const language = lang
+        ? styled("section", escapeHtml(lang.split(" ")[0]), styles.codeHeader)
+        : ""
+      const content = styled("code", formatCodeBlockText(text), styles.codeContent)
+      return styled("section", `${language}${content}`, styles.codeBlock)
     },
     codespan({ text }: Tokens.Codespan) {
       return styled("code", escapeHtml(text), styles.codeInline)
@@ -542,11 +611,6 @@ export function renderWeChatMarkdown(
   })
 
   const body = marked.parse(markdown) as string
-  const wordCount = countWords(markdown)
-  const readingMinutes = Math.max(1, Math.ceil(wordCount / 350))
-  const readingTime = options.showReadingTime
-    ? styled("blockquote", styled("p", `字数 ${wordCount}，阅读大约需 ${readingMinutes} 分钟`, styles.p), styles.blockquote)
-    : ""
   const footnoteHtml = footnotes.length
     ? styled(
         "section",
@@ -562,6 +626,12 @@ export function renderWeChatMarkdown(
             .join(""),
         "box-sizing:border-box;margin-top:28px;"
       )
+    : ""
+  const visibleContentText = createPlainText(`${body}${footnoteHtml}`)
+  const wordCount = countVisibleCharacters(visibleContentText)
+  const readingMinutes = Math.max(1, Math.ceil(wordCount / 350))
+  const readingTime = options.showReadingTime
+    ? styled("blockquote", styled("p", `字数 ${wordCount}，阅读大约需 ${readingMinutes} 分钟`, styles.p), styles.blockquote)
     : ""
   const html = styled("section", `${readingTime}${body}${footnoteHtml}`, styles.container)
 

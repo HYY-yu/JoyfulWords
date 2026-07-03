@@ -1159,6 +1159,8 @@ export function EditorAIPanel({
         open={isWechatExportOpen}
         onOpenChange={setIsWechatExportOpen}
         markdown={wechatExportMarkdown}
+        articleId={articleId}
+        articleTitle={articleTitle}
       />
     </div>
   )
