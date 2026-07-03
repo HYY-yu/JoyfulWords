@@ -59,6 +59,7 @@ import {
   ImagePlusIcon,
   ImageIcon,
   LoaderIcon,
+  NewspaperIcon,
   PaletteIcon,
   PresentationIcon,
   PenLineIcon,
@@ -70,6 +71,7 @@ import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
 import { PresentationDialog } from "./presentation-dialog"
 import { EChartsDialog } from "./echarts-dialog"
+import { WeChatMPExportDialog } from "./wechat-mp-export-dialog"
 
 type ActiveDialog =
   | "ai-edit"
@@ -83,6 +85,7 @@ type ActiveDialog =
   | "echarts"
   | "presentation"
   | "word-converter"
+  | "wechat-export"
   | null
 
 interface FeatureButton {
@@ -189,6 +192,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     groupKey: "structure",
   },
   {
+    id: "wechat-export",
+    labelKey: "tiptapEditor.aiPanel.wechatExport",
+    icon: NewspaperIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "structure",
+  },
+  {
     id: "presentation",
     labelKey: "tiptapEditor.aiPanel.generatePpt",
     icon: PresentationIcon,
@@ -226,6 +237,7 @@ function getCaughtErrorMessage(error: unknown, fallback: string): string {
 type TiptapEditorMarkdownHandle = {
   getMarkdown?: () => string
   getText?: () => string
+  getHTML?: () => string
 }
 
 function buildArticleWordMarkdown(markdown: string, articleTitle: string): string {
@@ -372,6 +384,8 @@ export function EditorAIPanel({
   const [isWordConverterOpen, setIsWordConverterOpen] = useState(false)
   const [wordConverterMarkdown, setWordConverterMarkdown] = useState("")
   const [wordConverterMarkdownVersion, setWordConverterMarkdownVersion] = useState(0)
+  const [isWechatExportOpen, setIsWechatExportOpen] = useState(false)
+  const [wechatExportMarkdown, setWechatExportMarkdown] = useState("")
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
   const [selectedEChartsText, setSelectedEChartsText] = useState("")
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
@@ -768,6 +782,9 @@ export function EditorAIPanel({
       setWordConverterMarkdown(buildArticleWordMarkdown(getCurrentArticleMarkdown(), articleTitle))
       setWordConverterMarkdownVersion((current) => current + 1)
       setIsWordConverterOpen(true)
+    } else if (id === "wechat-export") {
+      setWechatExportMarkdown(buildArticleWordMarkdown(getCurrentArticleMarkdown(), articleTitle))
+      setIsWechatExportOpen(true)
     }
   }
 
@@ -1137,6 +1154,12 @@ export function EditorAIPanel({
           initialMarkdownVersion={wordConverterMarkdownVersion}
         />
       </AIFeatureDialogShell>
+
+      <WeChatMPExportDialog
+        open={isWechatExportOpen}
+        onOpenChange={setIsWechatExportOpen}
+        markdown={wechatExportMarkdown}
+      />
     </div>
   )
 }
