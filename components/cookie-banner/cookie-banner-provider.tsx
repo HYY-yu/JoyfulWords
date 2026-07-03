@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { useAuth } from "@/lib/auth/auth-context"
 import type { SilktideConfig } from "./types"
 import { BANNER_SUFFIX } from "./types"
 import { notifyAnalyticsConsentChanged } from "@/lib/analytics/cookie-consent"
 
-const SILKTIDE_SCRIPT_SRC = "/components/cookie-banner/silktide-consent-manager.js?v=20260617-no-auto-init"
+const SILKTIDE_SCRIPT_SRC = "/components/cookie-banner/silktide-consent-manager.js?v=20260703-auth-menu-entry"
 
 /**
  * CookieBannerProvider - Silktide Cookie Banner 包装组件
@@ -21,6 +22,7 @@ const SILKTIDE_SCRIPT_SRC = "/components/cookie-banner/silktide-consent-manager.
  */
 export function CookieBannerProvider() {
   const { t, locale } = useTranslation()
+  const { user, loading: authLoading } = useAuth()
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
   const cleanupRef = useRef<(() => void) | null>(null)
 
@@ -57,7 +59,9 @@ export function CookieBannerProvider() {
       return
     }
 
-    const config = buildSilktideConfig(t)
+    const config = buildSilktideConfig(t, {
+      showCookieIcon: !authLoading && !user,
+    })
 
     try {
       migrateLegacySilktideStorage()
@@ -66,7 +70,7 @@ export function CookieBannerProvider() {
     } catch (error) {
       console.error("[Cookie Banner] Failed to update configuration:", error)
     }
-  }, [isScriptLoaded, locale, t])
+  }, [authLoading, isScriptLoaded, locale, t, user])
 
   return null
 }
@@ -161,13 +165,17 @@ function migrateLegacySilktideStorage() {
  * @param t - i18n 翻译函数
  * @returns Silktide 配置对象
  */
-function buildSilktideConfig(t: (key: string) => string): SilktideConfig {
+function buildSilktideConfig(
+  t: (key: string) => string,
+  options: { showCookieIcon: boolean },
+): SilktideConfig {
   return {
     background: {
       showBackground: true,
     },
     cookieIcon: {
       position: "bottomLeft",
+      visible: options.showCookieIcon,
     },
     bannerSuffix: BANNER_SUFFIX,
     cookieTypes: [

@@ -40,6 +40,7 @@ export interface SilktideConfig {
   }
   cookieIcon?: {
     position: "bottomLeft" | "bottomRight"
+    visible?: boolean
   }
   bannerSuffix?: string
   cookieTypes: CookieTypeConfig[]
@@ -58,6 +59,7 @@ declare global {
       updateCookieBannerConfig: (config: SilktideConfig) => void
       initCookieBanner: () => void
       injectScript: (url: string, loadOption: "async" | "defer") => void
+      openPreferences: () => void
     }
   }
 }

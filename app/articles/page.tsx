@@ -26,6 +26,7 @@ import {
 import {
   UserCircleIcon,
   LogOutIcon,
+  CookieIcon,
   Wallet,
   CheckSquareIcon,
   LoaderIcon,
@@ -199,6 +200,7 @@ export default function ArticlesPage() {
   const [taskCenterDeepLink, setTaskCenterDeepLink] =
     useState<TaskCenterTaskReference | null>(null)
   const [isCreatingArticle, setIsCreatingArticle] = useState(false)
+  const cookieBannerEnabled = process.env.NEXT_PUBLIC_ENABLE_COOKIE_BANNER === "true"
 
   const {
     articles,
@@ -227,6 +229,15 @@ export default function ArticlesPage() {
       router.push("/auth/login")
     }
   }, [user, authLoading, router])
+
+  const handleOpenCookiePreferences = useCallback(() => {
+    if (!window.silktideCookieBannerManager?.openPreferences) {
+      console.warn("[Cookie Banner] Preferences manager is not ready")
+      return
+    }
+
+    window.silktideCookieBannerManager.openPreferences()
+  }, [])
 
   const handleEditArticle = (article: Article) => {
     router.push(`/articles/${article.id}/edit`)
@@ -474,6 +485,15 @@ export default function ArticlesPage() {
                   <UserCircleIcon className="mr-2 h-4 w-4" />
                   {t("auth.profile")}
                 </DropdownMenuItem>
+                {cookieBannerEnabled ? (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={handleOpenCookiePreferences}
+                  >
+                    <CookieIcon className="mr-2 h-4 w-4" />
+                    {t("common.cookiePreferences")}
+                  </DropdownMenuItem>
+                ) : null}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer text-red-600 focus:text-red-600"

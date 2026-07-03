@@ -26,6 +26,7 @@ export const en = {
         feedbackButton: "Feedback",
         feedbackTitle: "Send Feedback",
         feedbackLoading: "Loading...",
+        cookiePreferences: "Cookie Preferences",
         themeSwitcher: {
             tooltip: "Switch theme",
             title: "Choose interface theme",

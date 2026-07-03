@@ -554,10 +554,22 @@ class SilktideCookieBanner {
     if (this.cookieIcon && this.config.cookieIcon?.colorScheme) {
       this.cookieIcon.classList.add(this.config.cookieIcon.colorScheme);
     }
+
+    if (!this.shouldShowCookieIcon()) {
+      this.hideCookieIcon();
+    }
+  }
+
+  shouldShowCookieIcon() {
+    return this.config.cookieIcon?.visible !== false;
   }
 
   showCookieIcon() {
     if (this.cookieIcon) {
+      if (!this.shouldShowCookieIcon()) {
+        this.hideCookieIcon();
+        return;
+      }
       this.cookieIcon.style.display = 'flex';
     }
   }
@@ -763,6 +775,14 @@ class SilktideCookieBanner {
     }
   }
 
+  openPreferences() {
+    if (!this.modal) {
+      this.createModal();
+    }
+
+    this.toggleModal(true);
+  }
+
   getBannerSuffix() {
     if (this.config.bannerSuffix) {
       return this.config.bannerSuffix.startsWith('_')
@@ -829,6 +849,14 @@ class SilktideCookieBanner {
     }
   }
 
+  function openPreferences() {
+    if (!cookieBanner) {
+      initCookieBanner();
+    }
+
+    cookieBanner?.openPreferences();
+  }
+
   function injectScript(url, loadOption) {
     // Check if script with this URL already exists
     const existingScript = document.querySelector(`script[src="${url}"]`);
@@ -852,4 +880,5 @@ class SilktideCookieBanner {
   window.silktideCookieBannerManager.initCookieBanner = initCookieBanner;
   window.silktideCookieBannerManager.updateCookieBannerConfig = updateCookieBannerConfig;
   window.silktideCookieBannerManager.injectScript = injectScript;
+  window.silktideCookieBannerManager.openPreferences = openPreferences;
 })();

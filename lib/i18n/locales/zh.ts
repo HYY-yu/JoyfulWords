@@ -26,6 +26,7 @@ export const zh = {
         feedbackButton: "反馈",
         feedbackTitle: "意见反馈",
         feedbackLoading: "加载中...",
+        cookiePreferences: "Cookie 偏好设置",
         themeSwitcher: {
             tooltip: "切换主题",
             title: "选择界面主题",

@@ -41,7 +41,7 @@ pnpm dev
 
 #### 4.1 点击"全部接受"
 - Banner 应消失
-- 右下角应显示 Cookie Icon
+- 未登录状态下,左下角应显示 Cookie Icon
 - localStorage 应包含以下键:
   - `silktideCookieChoice_necessary_global`
   - `silktideCookieChoice_analytics_global`
@@ -49,7 +49,7 @@ pnpm dev
 
 #### 4.2 刷新页面
 - Banner 不应再显示
-- Cookie Icon 仍应显示在右下角
+- 未登录状态下,Cookie Icon 仍应显示在左下角
 
 #### 4.3 点击 Cookie Icon
 - 应打开偏好设置 Modal
@@ -67,7 +67,7 @@ pnpm dev
 
 #### 5.1 切换到英文
 - 点击语言切换器中的 "EN" 按钮
-- Cookie Icon 应保持显示
+- 未登录状态下,Cookie Icon 应保持显示
 - 点击 Cookie Icon 打开 Modal
 - Modal 文本应立即更新为英文
 
@@ -75,7 +75,20 @@ pnpm dev
 - 点击 "ZH" 按钮
 - Modal 文本应立即更新回中文
 
-### 6. 重置选择记录
+### 6. 测试登录态入口
+
+#### 6.1 登录后隐藏浮动按钮
+- 登录并进入 `/articles`
+- 左下角不应显示 Cookie Icon
+- Cookie Banner 功能不应被关闭
+
+#### 6.2 账号菜单打开偏好设置
+- 点击右上角账号菜单
+- 点击 "Cookie 偏好设置" / "Cookie Preferences"
+- 应打开 Silktide 偏好设置 Modal
+- 修改 analytics 选择后,localStorage 中 `silktideCookieChoice_analytics_global` 应同步变化
+
+### 7. 重置选择记录
 
 打开浏览器控制台,执行:
 
@@ -87,7 +100,7 @@ localStorage.removeItem('silktideCookieBanner_InitialChoice_global')
 
 刷新页面,Banner 应重新显示。
 
-### 7. 测试全局可用性
+### 8. 测试全局可用性
 
 访问: http://localhost:3000/auth/signup 和其他公开页面。
 
