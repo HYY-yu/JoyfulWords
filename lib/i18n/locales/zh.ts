@@ -2640,12 +2640,12 @@ export const zh = {
                     description: "视长度、素材量和改写轮次浮动。",
                 },
                 ppt: {
-                    value: "1 积分",
+                    value: "1 积分/张",
                     label: "生成 PPT 仅",
-                    description: "基础生成只需 1 积分。",
+                    description: "按生成页数计费，每张 1 积分。",
                 },
                 image: {
-                    value: "3.5-10 积分",
+                    value: "1-8 积分",
                     label: "图片生成",
                     description: "主流模型单张生成区间。",
                 },
@@ -2663,6 +2663,7 @@ export const zh = {
             perKInput: "积分/k token input",
             perKOutput: "积分/k token output",
             perImage: "积分/张",
+            perSlide: "积分/张",
             perSearch: "积分/次",
             perGeneration: "积分/次",
         },
@@ -2696,7 +2697,7 @@ export const zh = {
             materials: {
                 eyebrow: "素材能力",
                 title: "素材搜索与演示输出",
-                description: "搜索按次数扣费，PPT 生成单次扣费，适合边找资料边完成内容交付。",
+                description: "搜索按次数扣费，PPT 生成按页扣费，适合边找资料边完成内容交付。",
             },
             search: {
                 info: "Info 搜索",
@@ -2706,7 +2707,7 @@ export const zh = {
             ppt: {
                 title: "PPT 生成",
                 item: "PPT 生成",
-                description: "基于内容生成演示结构，按每次生成扣费。",
+                description: "基于内容生成演示结构，按生成页数扣费。",
             },
         },
         finalCta: {

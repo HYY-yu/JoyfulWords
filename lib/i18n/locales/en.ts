@@ -2640,12 +2640,12 @@ export const en = {
                     description: "Varies by length, materials, and rewrite rounds.",
                 },
                 ppt: {
-                    value: "1 credit",
+                    value: "1 credit / slide",
                     label: "PPT generation",
-                    description: "A basic generation costs only 1 credit.",
+                    description: "Billed by generated slide, 1 credit each.",
                 },
                 image: {
-                    value: "3.5-10 credits",
+                    value: "1-8 credits",
                     label: "Image generation",
                     description: "Typical per-image range for main models.",
                 },
@@ -2663,6 +2663,7 @@ export const en = {
             perKInput: "credits / 1K input tokens",
             perKOutput: "credits / 1K output tokens",
             perImage: "credits / image",
+            perSlide: "credits / slide",
             perSearch: "credits / search",
             perGeneration: "credits / run",
         },
@@ -2696,7 +2697,7 @@ export const en = {
             materials: {
                 eyebrow: "Material Tools",
                 title: "Search and Presentation Output",
-                description: "Search is billed per request, and PPT generation is billed per run for research-to-delivery workflows.",
+                description: "Search is billed per request, and PPT generation is billed per slide for research-to-delivery workflows.",
             },
             search: {
                 info: "Info search",
@@ -2706,7 +2707,7 @@ export const en = {
             ppt: {
                 title: "PPT generation",
                 item: "PPT generation",
-                description: "Generate a presentation structure from your content, billed per run.",
+                description: "Generate a presentation structure from your content, billed by generated slide.",
             },
         },
         finalCta: {

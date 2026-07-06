@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: LocalePageProps): Promise<Met
   return buildMetadata({
     title: isZh ? "价格 - Pay as you go" : "Pricing - Pay as you go",
     description: isZh
-      ? "JoyfulWords 使用随用随充的积分价格体系，无需订阅。查看 AI 写作、生图、图层拆分、素材搜索和 PPT 生成价格。"
-      : "JoyfulWords uses pay-as-you-go credits with no subscription. See pricing for AI writing, image generation, layer splitting, material search, and PPT generation.",
+      ? "JoyfulWords 使用随用随充的积分价格体系，无需订阅。查看 AI 写作、生图、素材搜索和 PPT 生成价格。"
+      : "JoyfulWords uses pay-as-you-go credits with no subscription. See pricing for AI writing, image generation, material search, and PPT generation.",
     path: buildLocalizedPath(locale, "/pricing"),
     locale,
     alternatePaths: {
@@ -77,7 +77,12 @@ export default async function PricingPage({ params }: LocalePageProps) {
       {
         "@type": "Offer",
         name: locale === "zh" ? "AI 生图" : "AI image generation",
-        description: locale === "zh" ? "3.5 到 10 积分/张" : "3.5 to 10 credits per image",
+        description: locale === "zh" ? "1 到 8 积分/张" : "1 to 8 credits per image",
+      },
+      {
+        "@type": "Offer",
+        name: locale === "zh" ? "PPT 生成" : "PPT generation",
+        description: locale === "zh" ? "1 积分/张" : "1 credit per slide",
       },
     ],
   }

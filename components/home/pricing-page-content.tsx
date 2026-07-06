@@ -20,11 +20,11 @@ import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 const imageRows = [
   ["nano-banana-2", "8"],
   ["flux-2-max", "7"],
-  ["gpt-image-2", "10"],
-  ["qwen-image-2.0-pro", "7.5"],
-  ["nano-banana-2-fast", "4.5"],
+  ["gpt-image-2", "8"],
+  ["nano-banana-2-lite", "4"],
   ["seedream-v4.5", "4"],
-  ["seeddream-v5.0-lite", "3.5"],
+  ["seeddream-v5.0-lite", "4"],
+  ["z-image-turbo", "1"],
 ] as const
 
 function PricingLogo({ href }: { href: string }) {
@@ -108,11 +108,6 @@ export function PricingPageContent() {
         price: `${price} ${t("pricing.units.perImage")}`,
       })),
       {
-        module: t("pricing.sections.layer.title"),
-        item: "layer",
-        price: `10 ${t("pricing.units.perImage")}`,
-      },
-      {
         module: t("pricing.sections.materials.title"),
         item: t("pricing.sections.search.info"),
         price: `1 ${t("pricing.units.perSearch")}`,
@@ -130,7 +125,7 @@ export function PricingPageContent() {
       {
         module: t("pricing.sections.ppt.title"),
         item: t("pricing.sections.ppt.item"),
-        price: `1 ${t("pricing.units.perGeneration")}`,
+        price: `1 ${t("pricing.units.perSlide")}`,
       },
     ],
     [t],
