@@ -200,18 +200,14 @@ export function HomePageContent() {
               {t("landing.badge")}
             </div>
 
-            <h1 className="jw-heading-text animate-fade-up animate-delay-1 mb-6 font-serif text-5xl leading-[1.08] tracking-tight md:text-7xl lg:text-[88px]">
+            <h1 className="jw-heading-text animate-fade-up animate-delay-1 mb-6 font-serif text-4xl leading-[1.08] tracking-tight md:text-6xl lg:text-[72px]">
               {t("landing.heading")}
               <br />
               <em className="not-italic text-[var(--jw-accent)]">{t("landing.headingAccent")}</em>
               {t("landing.headingSuffix")}
             </h1>
 
-            <p className="jw-muted-text animate-fade-up animate-delay-2 mx-auto mb-9 max-w-xl text-lg leading-relaxed lg:mx-0">
-              {t("landing.description")}
-            </p>
-
-            <div className="animate-fade-up animate-delay-3 flex flex-wrap justify-center gap-3 lg:justify-start">
+            <div className="animate-fade-up animate-delay-2 flex flex-wrap justify-center gap-3 lg:justify-start">
               <Button size="lg" className="jw-primary-button rounded-full px-6" asChild>
                 <Link href="/articles" prefetch={false}>
                   <SparklesIcon className="h-4 w-4" />

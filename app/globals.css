@@ -1173,6 +1173,20 @@
   color: #1d4ed8;
 }
 
+.tools-document-converter-page {
+  min-height: calc(100vh - 8rem);
+}
+
+.tools-document-converter-shell {
+  height: calc(100vh - 9rem);
+  min-height: 760px;
+  overflow: hidden;
+  border: 1px solid var(--jw-border);
+  border-radius: 10px;
+  background: var(--jw-surface);
+  box-shadow: var(--jw-card-shadow);
+}
+
 .tools-row-state,
 .tools-activity-title-row span,
 .tools-detail-status strong {

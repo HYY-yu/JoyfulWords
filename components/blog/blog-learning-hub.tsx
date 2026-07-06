@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Clock3,
   Compass,
-  FileCode2,
   Globe,
   Layers3,
   MenuIcon,
@@ -161,7 +160,6 @@ export function BlogLearningHub({
   const pricingHref = buildLocalizedPath(locale, "/pricing")
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const toolsHref = buildLocalizedPath(locale, "/tools")
-  const fileConverterHref = buildLocalizedPath(locale, "/file-converter")
   const activeLabel = selectedTopic?.label ?? copy.showAll
 
   const switchLocale = () => {
@@ -202,9 +200,6 @@ export function BlogLearningHub({
           </Link>
           <Link href={toolsHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
             {t("landing.nav.tools")}
-          </Link>
-          <Link href={fileConverterHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
-            {t("landing.nav.fileConverter")}
           </Link>
           <Link
             href={blogHref}
@@ -284,14 +279,6 @@ export function BlogLearningHub({
                 className="rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
               >
                 {t("landing.nav.tools")}
-              </Link>
-              <Link
-                href={fileConverterHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                <FileCode2 className="size-4" />
-                {t("landing.nav.fileConverter")}
               </Link>
               <Link
                 href={blogHref}

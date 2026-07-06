@@ -63,6 +63,10 @@ export async function generateMetadata({ params }: ToolDetailPageProps): Promise
           ? isZh
             ? "使用 JoyfulWords AI 图表工具，把数据、观点或分析结果转换成可读图表。"
             : "Use JoyfulWords AI Charts to turn data, claims, or analysis into readable charts."
+        : slug === "markdown-to-word"
+          ? isZh
+            ? "使用 JoyfulWords Markdown 转 Word 工具，把 Markdown 内容转换成可下载的 Word 文档，并支持套用 Word 模板样式。"
+            : "Use JoyfulWords Markdown to Word to convert Markdown into a downloadable Word document with optional Word template styling."
         : isZh
           ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，当前功能预留中，后续支持分享、SEO 和任务中心联动。`
           : `${toolTitle} is an independent JoyfulWords free tool page prepared for sharing, SEO, and Task Center integration.`,

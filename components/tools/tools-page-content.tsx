@@ -8,7 +8,6 @@ import {
   BookOpenTextIcon,
   CalendarCheckIcon,
   Clock3Icon,
-  FileCode2Icon,
   FileInputIcon,
   FileOutputIcon,
   FileType2Icon,
@@ -27,6 +26,7 @@ import {
 } from "lucide-react"
 
 import { BrandLogo } from "@/components/brand/brand-logo"
+import { FileConverterPageContent } from "@/components/file-converter/file-converter-page-content"
 import { Button } from "@/components/ui/base/button"
 import {
   Sheet,
@@ -122,7 +122,6 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
   const mcpHref = buildLocalizedPath(locale, "/mcp")
   const pricingHref = buildLocalizedPath(locale, "/pricing")
   const toolsHref = buildLocalizedPath(locale, "/tools")
-  const fileConverterHref = buildLocalizedPath(locale, "/file-converter")
   const tools = TOOL_SLUGS.map((slug) => {
     const Icon = toolIconMap[slug]
     return {
@@ -196,9 +195,6 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
             )}
           >
             {t("landing.nav.tools")}
-          </Link>
-          <Link href={fileConverterHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
-            {t("landing.nav.fileConverter")}
           </Link>
           <Link href={blogHref} className="jw-themed-link rounded-full px-3.5 py-1.5 text-sm">
             {t("landing.nav.blog")}
@@ -283,15 +279,6 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
                 )}
               >
                 {t("landing.nav.tools")}
-              </Link>
-
-              <Link
-                href={fileConverterHref}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground/85 hover:bg-accent hover:text-foreground"
-              >
-                <FileCode2Icon className="size-4" />
-                {t("landing.nav.fileConverter")}
               </Link>
 
               <Link
@@ -410,7 +397,8 @@ function ToolsIndex({
                     const isAvailableTool =
                       tool.slug === "image-generator" ||
                       tool.slug === "infographic" ||
-                      tool.slug === "ai-charts"
+                      tool.slug === "ai-charts" ||
+                      tool.slug === "markdown-to-word"
                     return (
                       <Link
                         key={tool.slug}
@@ -585,6 +573,22 @@ function ToolDetail({
           ← {t("toolsPage.detail.back")}
         </Link>
         <ToolboxAICharts />
+      </section>
+    )
+  }
+
+  if (tool.slug === "markdown-to-word") {
+    return (
+      <section className="tools-detail-page tools-document-converter-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <div className="tools-document-converter-shell">
+          <FileConverterPageContent variant="studio" />
+        </div>
       </section>
     )
   }

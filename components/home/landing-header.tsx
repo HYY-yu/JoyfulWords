@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { FileCode2Icon, Globe, MenuIcon, type LucideIcon } from "lucide-react"
+import { Globe, MenuIcon, type LucideIcon } from "lucide-react"
 
 import { BrandLogo } from "@/components/brand/brand-logo"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
@@ -20,7 +20,7 @@ import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import { cn } from "@/lib/utils"
 
-type LandingNavItem = "features" | "pricing" | "mcp" | "tools" | "fileConverter" | "blog"
+type LandingNavItem = "features" | "pricing" | "mcp" | "tools" | "blog"
 
 interface LandingHeaderProps {
   activeItem?: LandingNavItem
@@ -61,12 +61,6 @@ export function LandingHeader({
       key: "tools",
       label: t("landing.nav.tools"),
       href: buildLocalizedPath(locale, "/tools"),
-    },
-    {
-      key: "fileConverter",
-      label: t("landing.nav.fileConverter"),
-      href: buildLocalizedPath(locale, "/file-converter"),
-      Icon: FileCode2Icon,
     },
     {
       key: "blog",

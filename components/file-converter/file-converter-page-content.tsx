@@ -248,7 +248,7 @@ export function FileConverterPageContent({
 
   return (
     <div className={cn("jw-app-shell", isStudio ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-screen")}>
-      {isStudio ? null : <LandingHeader activeItem="fileConverter" />}
+      {isStudio ? null : <LandingHeader activeItem="tools" />}
 
       <main
         className={cn(
