@@ -32,6 +32,7 @@ import {
   ImageIcon,
   LayersIcon,
   LayoutTemplateIcon,
+  Mic2Icon,
   Presentation,
   BarChart3Icon,
 } from "lucide-react"
@@ -68,6 +69,9 @@ export function getTaskCenterTypeIcon(type: TaskCenterTaskType) {
       return Presentation
     case "echarts":
       return BarChart3Icon
+    case "podcast":
+    case "podcast_audio":
+      return Mic2Icon
     default:
       return FileTextIcon
   }
@@ -107,6 +111,8 @@ export function getTaskCenterTaskTitle(
 
   if (task.type === "infographic") return "infographic"
   if (task.type === "echarts") return "echarts"
+  if (task.type === "podcast") return "podcast"
+  if (task.type === "podcast_audio") return "podcastAudio"
   if (task.type === "presentation") {
     const taskKind = task.details.task_kind
     if (taskKind === "storycard_generate") return "presentationStorycard"
@@ -175,6 +181,24 @@ function shouldShowReferenceImages(
   return !isFontImageTask(taskRef, detail)
 }
 
+function isPodcastTaskType(type: TaskCenterTaskType): boolean {
+  return type === "podcast" || type === "podcast_audio"
+}
+
+function formatPodcastTypeValue(t: TaskCenterTranslate, podcastType?: string): string {
+  if (!podcastType) return "-"
+
+  if (podcastType === "news_broadcast" || podcastType === "two_person_interview") {
+    return t(`podcastAudioDialog.podcastTypes.${podcastType}`)
+  }
+
+  return podcastType
+}
+
+function formatNumberValue(value: unknown): string {
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : "-"
+}
+
 export function getTaskCenterTaskSummary(
   task: TaskCenterTaskListItem,
   t?: TaskCenterTranslate
@@ -226,6 +250,22 @@ export function getTaskCenterTaskSummary(
 
   if (task.type === "echarts") {
     return task.details.title || task.details.prompt || task.details.chart_type || "-"
+  }
+
+  if (task.type === "podcast_audio") {
+    const segmentSummary =
+      typeof task.details.total_segments === "number" && t
+        ? t("contentWriting.taskCenter.taskSummaries.podcastAudioSegments", {
+            completed: task.details.completed_segments ?? 0,
+            total: task.details.total_segments,
+          })
+        : null
+
+    return task.details.title || segmentSummary || task.details.model_name || task.details.exec_id || "-"
+  }
+
+  if (task.type === "podcast") {
+    return task.details.title || task.details.summary || task.details.model_name || task.details.exec_id || "-"
   }
 
   return task.details.card_name || task.details.card_type || "-"
@@ -380,7 +420,51 @@ export function TaskCenterTaskDetailView({
       {showGenericFields ? (
         <div className="grid gap-4 sm:grid-cols-2">
           {"exec_id" in detail ? (
-          <DetailField label={t("contentWriting.taskCenter.fields.execId")} value={detail.exec_id} />
+          <DetailField label={t("contentWriting.taskCenter.fields.execId")} value={detail.exec_id || "-"} />
+          ) : null}
+          {taskRef.type === "podcast" ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.scriptId")}
+            value={formatNumberValue("script_id" in detail ? detail.script_id : detail.id)}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "script_id" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.scriptId")}
+            value={formatNumberValue(detail.script_id)}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.audioTaskId")}
+            value={formatNumberValue("audio_task_id" in detail ? detail.audio_task_id : detail.id)}
+          />
+          ) : null}
+          {isPodcastTaskType(taskRef.type) && "podcast_type" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.podcastType")}
+            value={formatPodcastTypeValue(t, detail.podcast_type)}
+          />
+          ) : null}
+          {isPodcastTaskType(taskRef.type) && "language" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.language")}
+            value={detail.language || "-"}
+          />
+          ) : null}
+          {isPodcastTaskType(taskRef.type) && "title" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.title")}
+            value={detail.title || "-"}
+            className="sm:col-span-2"
+          />
+          ) : null}
+          {isPodcastTaskType(taskRef.type) && "summary" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.summary")}
+            value={detail.summary || "-"}
+            className="sm:col-span-2"
+          />
           ) : null}
           {"task_kind" in detail ? (
           <DetailField
@@ -412,6 +496,54 @@ export function TaskCenterTaskDetailView({
           <DetailField
             label={t("contentWriting.taskCenter.fields.model")}
             value={detail.model_name || "-"}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "provider" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.provider")}
+            value={detail.provider || "-"}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "output_format" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.outputFormat")}
+            value={detail.output_format || "-"}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "sample_rate" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.sampleRate")}
+            value={formatNumberValue(detail.sample_rate)}
+          />
+          ) : null}
+          {isPodcastTaskType(taskRef.type) && "revision" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.revision")}
+            value={formatNumberValue(detail.revision)}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "total_segments" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.totalSegments")}
+            value={formatNumberValue(detail.total_segments)}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "completed_segments" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.completedSegments")}
+            value={formatNumberValue(detail.completed_segments)}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "failed_segments" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.failedSegments")}
+            value={formatNumberValue(detail.failed_segments)}
+          />
+          ) : null}
+          {taskRef.type === "podcast_audio" && "provider_cost_usd" in detail ? (
+          <DetailField
+            label={t("contentWriting.taskCenter.fields.providerCost")}
+            value={formatNumberValue(detail.provider_cost_usd)}
           />
           ) : null}
           {"card_name" in detail ? (

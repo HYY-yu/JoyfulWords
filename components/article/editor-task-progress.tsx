@@ -13,6 +13,7 @@ import {
   LayersIcon,
   Presentation,
   BarChart3Icon,
+  Mic2Icon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -105,6 +106,9 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
         return <Presentation className="h-4 w-4 shrink-0" />
       case "echarts":
         return <BarChart3Icon className="h-4 w-4 shrink-0" />
+      case "podcast":
+      case "podcast_audio":
+        return <Mic2Icon className="h-4 w-4 shrink-0" />
       case "article":
         return <PencilIcon className="h-4 w-4 shrink-0" />
       default:

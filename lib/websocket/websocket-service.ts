@@ -724,6 +724,8 @@ class WebSocketService {
         infographic: "信息图任务",
         presentation: "演示任务",
         echarts: "图表任务",
+        podcast: "播客脚本任务",
+        podcast_audio: "播客音频任务",
       },
       en: {
         article: "article job",
@@ -731,6 +733,8 @@ class WebSocketService {
         infographic: "infographic job",
         presentation: "presentation job",
         echarts: "chart job",
+        podcast: "podcast script job",
+        podcast_audio: "podcast audio job",
       },
     } as const
 

@@ -2,7 +2,15 @@
 
 import type { PresentationPreviewManifest } from "@/lib/api/presentations/types"
 
-export const TASK_CENTER_TASK_TYPES = ["article", "image", "infographic", "presentation", "echarts"] as const
+export const TASK_CENTER_TASK_TYPES = [
+  "article",
+  "image",
+  "infographic",
+  "presentation",
+  "echarts",
+  "podcast",
+  "podcast_audio",
+] as const
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
 
@@ -13,6 +21,7 @@ export type TaskCenterImageStatus = "pending" | "processing" | "success" | "fail
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
 export type TaskCenterPresentationStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterEChartsStatus = "pending" | "processing" | "success" | "failed" | "succeeded"
+export type TaskCenterPodcastStatus = "pending" | "processing" | "success" | "failed"
 
 export type TaskCenterTaskStatus =
   | TaskCenterArticleStatus
@@ -20,6 +29,7 @@ export type TaskCenterTaskStatus =
   | TaskCenterInfographicStatus
   | TaskCenterPresentationStatus
   | TaskCenterEChartsStatus
+  | TaskCenterPodcastStatus
 
 export interface TaskCenterArticleListDetails {
   article_id: number
@@ -99,12 +109,54 @@ export interface TaskCenterEChartsListDetails {
   completed_at?: string | null
 }
 
+export interface TaskCenterPodcastListDetails {
+  article_id?: number
+  exec_id?: string
+  script_id?: number
+  podcast_type?: string
+  language?: string
+  title?: string
+  summary?: string
+  revision?: number
+  updated_at?: string
+  model_name?: string
+  completed_at?: string | null
+  error?: string
+  error_message?: string
+}
+
+export interface TaskCenterPodcastAudioListDetails {
+  article_id?: number
+  exec_id?: string
+  audio_task_id?: number
+  script_id?: number
+  podcast_type?: string
+  language?: string
+  title?: string
+  summary?: string
+  output_format?: string
+  sample_rate?: number
+  provider?: string
+  model_name?: string
+  total_segments?: number
+  completed_segments?: number
+  failed_segments?: number
+  provider_billable_units?: number
+  provider_cost_usd?: number
+  updated_at?: string
+  completed_at?: string | null
+  error?: string
+  error_message?: string
+}
+
 export type TaskCenterTaskListDetails =
   | TaskCenterArticleListDetails
   | TaskCenterImageListDetails
   | TaskCenterInfographicListDetails
   | TaskCenterPresentationListDetails
   | TaskCenterEChartsListDetails
+  | TaskCenterPodcastListDetails
+  | TaskCenterPodcastAudioListDetails
 
 interface TaskCenterTaskListItemBase<TType extends TaskCenterTaskType, TDetails> {
   id: number
@@ -139,12 +191,24 @@ export type TaskCenterEChartsTaskListItem = TaskCenterTaskListItemBase<
   TaskCenterEChartsListDetails
 >
 
+export type TaskCenterPodcastTaskListItem = TaskCenterTaskListItemBase<
+  "podcast",
+  TaskCenterPodcastListDetails
+>
+
+export type TaskCenterPodcastAudioTaskListItem = TaskCenterTaskListItemBase<
+  "podcast_audio",
+  TaskCenterPodcastAudioListDetails
+>
+
 export type TaskCenterTaskListItem =
   | TaskCenterArticleTaskListItem
   | TaskCenterImageTaskListItem
   | TaskCenterInfographicTaskListItem
   | TaskCenterPresentationTaskListItem
   | TaskCenterEChartsTaskListItem
+  | TaskCenterPodcastTaskListItem
+  | TaskCenterPodcastAudioTaskListItem
 
 export interface TaskCenterTasksQuery {
   type?: TaskCenterTaskType
@@ -277,12 +341,62 @@ export interface TaskCenterEChartsTaskDetail {
   completed_at?: string | null
 }
 
+export interface TaskCenterPodcastTaskDetail {
+  id: number
+  user_id?: number
+  article_id?: number
+  exec_id?: string
+  script_id?: number
+  podcast_type?: string
+  language?: string
+  title?: string
+  summary?: string
+  revision?: number
+  model_name?: string
+  status: TaskCenterPodcastStatus
+  error?: string
+  error_message?: string
+  created_at: string
+  updated_at: string
+  completed_at?: string | null
+}
+
+export interface TaskCenterPodcastAudioTaskDetail {
+  id: number
+  user_id?: number
+  article_id?: number
+  exec_id?: string
+  audio_task_id?: number
+  script_id?: number
+  podcast_type?: string
+  language?: string
+  title?: string
+  summary?: string
+  output_format?: string
+  sample_rate?: number
+  provider?: string
+  model_name?: string
+  status: TaskCenterPodcastStatus
+  total_segments?: number
+  completed_segments?: number
+  failed_segments?: number
+  provider_billable_units?: number
+  provider_cost_usd?: number
+  error?: string
+  error_message?: string
+  created_at: string
+  updated_at: string
+  completed_at?: string | null
+}
+
 export type TaskCenterTaskDetailResponse =
   | TaskCenterArticleTaskDetail
   | TaskCenterImageTaskDetail
   | TaskCenterInfographicTaskDetail
   | TaskCenterPresentationTaskDetail
   | TaskCenterEChartsTaskDetail
+  | TaskCenterPodcastTaskDetail
+  | TaskCenterPodcastAudioTaskDetail
 
 export interface TaskCenterTaskReference {
   id: number

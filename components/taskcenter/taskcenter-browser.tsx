@@ -37,7 +37,15 @@ import {
   getTaskCenterTaskTitle,
 } from "./taskcenter-presenters"
 
-const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = ["article", "image", "infographic", "presentation", "echarts"]
+const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = [
+  "article",
+  "image",
+  "infographic",
+  "presentation",
+  "echarts",
+  "podcast",
+  "podcast_audio",
+]
 
 interface TaskCenterBrowserProps {
   articleId?: number

@@ -59,6 +59,7 @@ import {
   ImagePlusIcon,
   ImageIcon,
   LoaderIcon,
+  Mic2Icon,
   NewspaperIcon,
   PaletteIcon,
   PresentationIcon,
@@ -72,6 +73,7 @@ import { InfographicDialog } from "./infographic-dialog"
 import { PresentationDialog } from "./presentation-dialog"
 import { EChartsDialog } from "./echarts-dialog"
 import { WeChatMPExportDialog } from "./wechat-mp-export-dialog"
+import { PodcastAudioDialog } from "./podcast-audio-dialog"
 
 type ActiveDialog =
   | "ai-edit"
@@ -86,6 +88,7 @@ type ActiveDialog =
   | "presentation"
   | "word-converter"
   | "wechat-export"
+  | "podcast-audio"
   | null
 
 interface FeatureButton {
@@ -195,6 +198,14 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     id: "wechat-export",
     labelKey: "tiptapEditor.aiPanel.wechatExport",
     icon: NewspaperIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "structure",
+  },
+  {
+    id: "podcast-audio",
+    labelKey: "tiptapEditor.aiPanel.podcastAudio",
+    icon: Mic2Icon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
@@ -385,6 +396,7 @@ export function EditorAIPanel({
   const [wordConverterMarkdown, setWordConverterMarkdown] = useState("")
   const [wordConverterMarkdownVersion, setWordConverterMarkdownVersion] = useState(0)
   const [isWechatExportOpen, setIsWechatExportOpen] = useState(false)
+  const [isPodcastAudioOpen, setIsPodcastAudioOpen] = useState(false)
   const [wechatExportMarkdown, setWechatExportMarkdown] = useState("")
   const [selectedInfographicText, setSelectedInfographicText] = useState("")
   const [selectedEChartsText, setSelectedEChartsText] = useState("")
@@ -785,6 +797,8 @@ export function EditorAIPanel({
     } else if (id === "wechat-export") {
       setWechatExportMarkdown(buildArticleWordMarkdown(getCurrentArticleMarkdown(), articleTitle))
       setIsWechatExportOpen(true)
+    } else if (id === "podcast-audio") {
+      setIsPodcastAudioOpen(true)
     }
   }
 
@@ -1161,6 +1175,12 @@ export function EditorAIPanel({
         markdown={wechatExportMarkdown}
         articleId={articleId}
         articleTitle={articleTitle}
+      />
+
+      <PodcastAudioDialog
+        open={isPodcastAudioOpen}
+        onOpenChange={setIsPodcastAudioOpen}
+        articleId={articleId}
       />
     </div>
   )
