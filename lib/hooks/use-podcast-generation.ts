@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ErrorResponse } from "@/lib/api/types"
 import { podcastClient } from "@/lib/api/podcast/client"
 import {
-  getPodcastAudioProgress,
   getSortedPodcastAudioSegments,
   isPodcastTerminalStatus,
   type ArticlePodcastAudioManifest,
@@ -26,6 +25,18 @@ export type PodcastGenerationPhaseState =
 
 const POLL_INTERVAL_MS = 5000
 const POLLING_TIMEOUT_MS = 10 * 60 * 1000
+const AUDIO_MANIFEST_CACHE_PREFIX = "joyfulwords-podcast-audio-manifest-v1"
+const AUDIO_MANIFEST_CACHE_TTL_MS = 60 * 60 * 1000
+
+type AudioPollingMode = "full" | "segment"
+
+interface CachedAudioManifestSnapshot {
+  savedAt: number
+  taskId: number
+  scriptId: number
+  manifest: ArticlePodcastAudioManifest
+  pendingSegmentIds: string[]
+}
 
 function isErrorResponse(result: unknown): result is ErrorResponse {
   return Boolean(result && typeof result === "object" && "error" in result)
@@ -39,12 +50,147 @@ function getTaskManifest(task: ArticlePodcastAudioTask | null): ArticlePodcastAu
   return task?.audio_manifest_json ?? null
 }
 
+function hasPlayableAudioSegment(task: ArticlePodcastAudioTask | null): boolean {
+  return Boolean(
+    task?.audio_manifest_json?.segments.some(
+      (segment) => segment.provider_status === "success" && Boolean(segment.audio_url)
+    )
+  )
+}
+
+function getAudioManifestCacheKey(taskId: number): string {
+  return `${AUDIO_MANIFEST_CACHE_PREFIX}:${taskId}`
+}
+
+function hasManifestSegments(
+  manifest: ArticlePodcastAudioManifest | null | undefined
+): manifest is ArticlePodcastAudioManifest {
+  return Array.isArray(manifest?.segments) && manifest.segments.length > 0
+}
+
+function readCachedAudioManifest(task: ArticlePodcastAudioTask): CachedAudioManifestSnapshot | null {
+  if (typeof window === "undefined") return null
+
+  try {
+    const rawValue = window.localStorage.getItem(getAudioManifestCacheKey(task.id))
+    if (!rawValue) return null
+
+    const parsed = JSON.parse(rawValue) as Partial<CachedAudioManifestSnapshot>
+    if (
+      parsed.taskId !== task.id ||
+      parsed.scriptId !== task.script_id ||
+      typeof parsed.savedAt !== "number" ||
+      Date.now() - parsed.savedAt > AUDIO_MANIFEST_CACHE_TTL_MS ||
+      !hasManifestSegments(parsed.manifest)
+    ) {
+      window.localStorage.removeItem(getAudioManifestCacheKey(task.id))
+      return null
+    }
+
+    return {
+      savedAt: parsed.savedAt,
+      taskId: parsed.taskId,
+      scriptId: parsed.scriptId,
+      manifest: parsed.manifest,
+      pendingSegmentIds: Array.isArray(parsed.pendingSegmentIds) ? parsed.pendingSegmentIds : [],
+    }
+  } catch (error) {
+    console.warn("[Podcast] Failed to read cached podcast audio manifest", {
+      taskId: task.id,
+      error,
+    })
+    return null
+  }
+}
+
+function writeCachedAudioManifest(
+  task: ArticlePodcastAudioTask,
+  manifest: ArticlePodcastAudioManifest,
+  pendingSegmentIds: Set<string>
+) {
+  if (typeof window === "undefined" || !hasManifestSegments(manifest)) return
+
+  try {
+    window.localStorage.setItem(
+      getAudioManifestCacheKey(task.id),
+      JSON.stringify({
+        savedAt: Date.now(),
+        taskId: task.id,
+        scriptId: task.script_id,
+        manifest,
+        pendingSegmentIds: Array.from(pendingSegmentIds),
+      } satisfies CachedAudioManifestSnapshot)
+    )
+  } catch (error) {
+    console.warn("[Podcast] Failed to cache podcast audio manifest", {
+      taskId: task.id,
+      error,
+    })
+  }
+}
+
+function mergeAudioManifest(
+  previousManifest: ArticlePodcastAudioManifest | null,
+  nextManifest: ArticlePodcastAudioManifest | null | undefined,
+  pendingSegmentIds: Set<string>,
+  taskStatus: PodcastGenerationStatus
+): ArticlePodcastAudioManifest | null {
+  const baseManifest = hasManifestSegments(nextManifest)
+    ? nextManifest
+    : hasManifestSegments(previousManifest)
+    ? previousManifest
+    : null
+  if (!baseManifest) return null
+
+  const nextSegments = hasManifestSegments(nextManifest) ? nextManifest.segments : []
+  const nextById = new Map(nextSegments.map((segment) => [segment.id, segment]))
+  const previousSegments = hasManifestSegments(previousManifest) ? previousManifest.segments : []
+  const previousById = new Map(previousSegments.map((segment) => [segment.id, segment]))
+  const orderedIds = [
+    ...previousSegments.map((segment) => segment.id),
+    ...nextSegments.map((segment) => segment.id),
+  ].filter((segmentId, index, segmentIds) => segmentIds.indexOf(segmentId) === index)
+
+  const segments = orderedIds
+    .map((segmentId) => {
+      const nextSegment = nextById.get(segmentId)
+      const previousSegment = previousById.get(segmentId)
+      const pending = pendingSegmentIds.has(segmentId) && !isPodcastTerminalStatus(taskStatus)
+
+      if (pending && (nextSegment || previousSegment)) {
+        return {
+          ...(nextSegment ?? previousSegment!),
+          audio_url: "",
+          provider_status: taskStatus,
+        }
+      }
+
+      if (
+        nextSegment &&
+        previousSegment?.audio_url &&
+        !nextSegment.audio_url &&
+        !pendingSegmentIds.has(segmentId)
+      ) {
+        return previousSegment
+      }
+
+      return nextSegment ?? previousSegment ?? null
+    })
+    .filter((segment): segment is ArticlePodcastAudioManifest["segments"][number] => Boolean(segment))
+    .sort((left, right) => left.index - right.index)
+
+  return {
+    ...baseManifest,
+    ...nextManifest,
+    segments,
+  }
+}
+
 export interface UsePodcastGenerationReturn {
   script: ArticlePodcastScriptRecord | null
   audioTask: ArticlePodcastAudioTask | null
   audioManifest: ArticlePodcastAudioManifest | null
   audioSegments: ReturnType<typeof getSortedPodcastAudioSegments>
-  audioProgress: ReturnType<typeof getPodcastAudioProgress>
   scriptState: PodcastGenerationPhaseState
   audioState: PodcastGenerationPhaseState
   updatingScript: boolean
@@ -78,15 +224,14 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   const audioStartedAtRef = useRef<number | null>(null)
   const activeScriptIdRef = useRef<number | null>(null)
   const activeAudioTaskIdRef = useRef<number | null>(null)
+  const lastKnownAudioManifestRef = useRef<ArticlePodcastAudioManifest | null>(null)
+  const pendingAudioSegmentIdsRef = useRef<Set<string>>(new Set())
+  const audioPollingModeRef = useRef<AudioPollingMode>("full")
   const scriptPollingActiveRef = useRef(false)
   const audioPollingActiveRef = useRef(false)
 
   const audioManifest = useMemo(() => getTaskManifest(audioTask), [audioTask])
   const audioSegments = useMemo(() => getSortedPodcastAudioSegments(audioManifest), [audioManifest])
-  const audioProgress = useMemo(
-    () => getPodcastAudioProgress(audioTask, audioManifest),
-    [audioManifest, audioTask]
-  )
 
   const clearScriptTimer = useCallback(() => {
     if (!scriptTimerRef.current) return
@@ -115,6 +260,49 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     stopAudioPolling()
   }, [stopAudioPolling, stopScriptPolling])
 
+  const applyAudioTask = useCallback(
+    (task: ArticlePodcastAudioTask, mode: AudioPollingMode = "full"): ArticlePodcastAudioTask => {
+      if (isPodcastTerminalStatus(task.status)) {
+        pendingAudioSegmentIdsRef.current.clear()
+      }
+
+      const cachedSnapshot = readCachedAudioManifest(task)
+      if (!lastKnownAudioManifestRef.current && cachedSnapshot?.manifest) {
+        lastKnownAudioManifestRef.current = cachedSnapshot.manifest
+      }
+      if (cachedSnapshot?.pendingSegmentIds.length && !isPodcastTerminalStatus(task.status)) {
+        pendingAudioSegmentIdsRef.current = new Set([
+          ...Array.from(pendingAudioSegmentIdsRef.current),
+          ...cachedSnapshot.pendingSegmentIds,
+        ])
+      }
+
+      const mergedManifest =
+        mode === "segment" || pendingAudioSegmentIdsRef.current.size > 0
+          ? mergeAudioManifest(
+              lastKnownAudioManifestRef.current ?? cachedSnapshot?.manifest ?? null,
+              task.audio_manifest_json,
+              pendingAudioSegmentIdsRef.current,
+              task.status
+            )
+          : hasManifestSegments(task.audio_manifest_json)
+          ? task.audio_manifest_json
+          : null
+
+      if (mergedManifest) {
+        lastKnownAudioManifestRef.current = mergedManifest
+        writeCachedAudioManifest(task, mergedManifest, pendingAudioSegmentIdsRef.current)
+        return {
+          ...task,
+          audio_manifest_json: mergedManifest,
+        }
+      }
+
+      return task
+    },
+    []
+  )
+
   const loadCurrentAudio = useCallback(async (scriptId: number) => {
     try {
       const result = await podcastClient.getArticleScriptAudio(scriptId)
@@ -138,14 +326,17 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         return
       }
 
-      setAudioTask(result)
-      setAudioState(result.status)
-      setAudioErrorMessage(result.status === "failed" ? result.error_message ?? null : null)
+      const nextMode = hasPlayableAudioSegment(result) || readCachedAudioManifest(result) ? "segment" : "full"
+      const nextTask = applyAudioTask(result, nextMode)
+      setAudioTask(nextTask)
+      setAudioState(nextTask.status)
+      setAudioErrorMessage(nextTask.status === "failed" ? nextTask.error_message ?? null : null)
 
-      if (!isPodcastTerminalStatus(result.status)) {
+      if (!isPodcastTerminalStatus(nextTask.status)) {
         console.info("[Podcast] Loaded active existing podcast audio task", {
-          taskId: result.id,
-          status: result.status,
+          taskId: nextTask.id,
+          status: nextTask.status,
+          mode: nextMode,
         })
       }
     } catch (error) {
@@ -156,7 +347,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
       setAudioErrorMessage(error instanceof Error ? error.message : "Failed to load podcast audio")
       setAudioState("failed")
     }
-  }, [])
+  }, [applyAudioTask])
 
   const pollAudioTask = useCallback(async function pollAudioTask(taskId: number) {
     if (!audioPollingActiveRef.current || activeAudioTaskIdRef.current !== taskId) return
@@ -192,23 +383,29 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         totalSegments: result.total_segments,
       })
 
-      setAudioTask(result)
-      setAudioState(result.status)
-      setAudioErrorMessage(result.status === "failed" ? result.error_message ?? null : null)
+      const pollingMode = audioPollingModeRef.current
+      const nextTask = applyAudioTask(result, pollingMode)
+      setAudioTask(nextTask)
+      if (pollingMode === "full" || isPodcastTerminalStatus(nextTask.status)) {
+        setAudioState(nextTask.status)
+      }
+      setAudioErrorMessage(nextTask.status === "failed" ? nextTask.error_message ?? null : null)
 
-      if (result.status === "success") {
+      if (nextTask.status === "success") {
         console.info("[Podcast] Podcast audio generation succeeded", {
           taskId,
-          totalSegments: result.total_segments,
+          mode: pollingMode,
+          totalSegments: nextTask.total_segments,
         })
         stopAudioPolling()
         return
       }
 
-      if (result.status === "failed") {
+      if (nextTask.status === "failed") {
         console.warn("[Podcast] Podcast audio generation failed", {
           taskId,
-          errorMessage: result.error_message,
+          mode: pollingMode,
+          errorMessage: nextTask.error_message,
         })
         stopAudioPolling()
         return
@@ -227,15 +424,16 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
       setAudioState("failed")
       setAudioErrorMessage(error instanceof Error ? error.message : "Failed to poll podcast audio")
     }
-  }, [clearAudioTimer, stopAudioPolling])
+  }, [applyAudioTask, clearAudioTimer, stopAudioPolling])
 
   const startAudioPolling = useCallback(
-    (taskId: number) => {
+    (taskId: number, mode: AudioPollingMode = "full") => {
       stopAudioPolling()
       activeAudioTaskIdRef.current = taskId
+      audioPollingModeRef.current = mode
       audioStartedAtRef.current = Date.now()
       audioPollingActiveRef.current = true
-      console.info("[Podcast] Starting podcast audio polling", { taskId })
+      console.info("[Podcast] Starting podcast audio polling", { taskId, mode })
       // TODO(observability): add active podcast audio polling gauge.
       void pollAudioTask(taskId)
     },
@@ -325,6 +523,8 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   const loadLatestScript = useCallback(
     async (articleId: number, podcastType: PodcastType) => {
       stopPolling()
+      lastKnownAudioManifestRef.current = null
+      pendingAudioSegmentIdsRef.current.clear()
       setScriptState("loading")
       setScriptErrorMessage(null)
       setAudioTask(null)
@@ -380,6 +580,8 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   const createScript = useCallback(
     async (request: CreateArticlePodcastScriptRequest) => {
       stopPolling()
+      lastKnownAudioManifestRef.current = null
+      pendingAudioSegmentIdsRef.current.clear()
       setScriptState("submitting")
       setScriptErrorMessage(null)
       setAudioTask(null)
@@ -445,16 +647,19 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
           return
         }
 
-        setAudioTask(result)
-        setAudioState(result.status)
+        lastKnownAudioManifestRef.current = null
+        pendingAudioSegmentIdsRef.current.clear()
+        const nextTask = applyAudioTask(result, "full")
+        setAudioTask(nextTask)
+        setAudioState(nextTask.status)
 
-        if (!isPodcastTerminalStatus(result.status)) {
-          startAudioPolling(result.id)
+        if (!isPodcastTerminalStatus(nextTask.status)) {
+          startAudioPolling(nextTask.id, "full")
           return
         }
 
-        if (result.status === "failed") {
-          setAudioErrorMessage(result.error_message ?? null)
+        if (nextTask.status === "failed") {
+          setAudioErrorMessage(nextTask.error_message ?? null)
         }
       } catch (error) {
         console.error("[Podcast] Unexpected podcast audio creation error", {
@@ -465,7 +670,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         setAudioErrorMessage(error instanceof Error ? error.message : "Failed to create podcast audio")
       }
     },
-    [startAudioPolling, stopAudioPolling]
+    [applyAudioTask, startAudioPolling, stopAudioPolling]
   )
 
   const regenerateAudioSegment = useCallback(
@@ -475,7 +680,6 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
       request: RegenerateArticlePodcastAudioSegmentRequest = {}
     ) => {
       stopAudioPolling()
-      setAudioState("submitting")
       setAudioErrorMessage(null)
 
       try {
@@ -503,16 +707,17 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
           taskId: result.id,
           status: result.status,
         })
-        setAudioTask(result)
-        setAudioState(result.status)
+        pendingAudioSegmentIdsRef.current.add(segmentId)
+        const nextTask = applyAudioTask(result, "segment")
+        setAudioTask(nextTask)
 
-        if (!isPodcastTerminalStatus(result.status)) {
-          startAudioPolling(result.id)
+        if (!isPodcastTerminalStatus(nextTask.status)) {
+          startAudioPolling(nextTask.id, "segment")
           return true
         }
 
-        if (result.status === "failed") {
-          setAudioErrorMessage(result.error_message ?? null)
+        if (nextTask.status === "failed") {
+          setAudioErrorMessage(nextTask.error_message ?? null)
           return false
         }
 
@@ -530,7 +735,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         return false
       }
     },
-    [startAudioPolling, stopAudioPolling]
+    [applyAudioTask, startAudioPolling, stopAudioPolling]
   )
 
   const updateScript = useCallback(async (scriptId: number, request: UpdateArticlePodcastScriptRequest) => {
@@ -576,6 +781,9 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     stopPolling()
     activeScriptIdRef.current = null
     activeAudioTaskIdRef.current = null
+    lastKnownAudioManifestRef.current = null
+    pendingAudioSegmentIdsRef.current.clear()
+    audioPollingModeRef.current = "full"
     scriptStartedAtRef.current = null
     audioStartedAtRef.current = null
     setScript(null)
@@ -592,7 +800,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     if (audioState === "loading" || audioState === "submitting") return
     if (audioPollingActiveRef.current && activeAudioTaskIdRef.current === audioTask.id) return
 
-    startAudioPolling(audioTask.id)
+    startAudioPolling(audioTask.id, hasPlayableAudioSegment(audioTask) ? "segment" : "full")
   }, [audioState, audioTask, startAudioPolling])
 
   useEffect(() => {
@@ -606,7 +814,6 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     audioTask,
     audioManifest,
     audioSegments,
-    audioProgress,
     scriptState,
     audioState,
     updatingScript,

@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
 import { Label } from "@/components/ui/base/label"
 import { Progress } from "@/components/ui/base/progress"
+import { Skeleton } from "@/components/ui/base/skeleton"
 import { Textarea } from "@/components/ui/base/textarea"
 import {
   Select,
@@ -41,6 +42,8 @@ import {
   type PodcastType,
 } from "@/lib/api/podcast/types"
 import { podcastClient } from "@/lib/api/podcast/client"
+import { getPodcastAudioMergeAvailability } from "@/lib/audio/podcast-audio-merge"
+import { usePodcastAudioMerge } from "@/lib/hooks/use-podcast-audio-merge"
 import { usePodcastGeneration, type PodcastGenerationPhaseState } from "@/lib/hooks/use-podcast-generation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
@@ -129,6 +132,25 @@ function isValidTTSVoiceResponse(value: unknown): value is PodcastTTSVoicesRespo
   )
 }
 
+function getStoredLocalePreviewLanguage(): string {
+  if (typeof window === "undefined") return "en"
+
+  const storedLocale = window.localStorage.getItem("locale")
+  return storedLocale?.toLowerCase().startsWith("zh") ? "zh" : "en"
+}
+
+function resolveVoicePreviewLanguage(language: PodcastLanguage): string {
+  if (language === "auto") {
+    return getStoredLocalePreviewLanguage()
+  }
+
+  return language
+}
+
+function getVoicePreviewCacheKey(voiceId: string, language: string): string {
+  return `${voiceId}:${language}`
+}
+
 function readCachedTTSVoices(): PodcastTTSVoicesResponse | null {
   if (typeof window === "undefined") return null
 
@@ -173,7 +195,9 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   const { t } = useTranslation()
   const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null)
   const pendingSavedSegmentIdsRef = useRef<Set<string> | null>(null)
+  const submittingSegmentRegenerationIdsRef = useRef<Set<string>>(new Set())
   const [podcastType, setPodcastType] = useState<PodcastType>("news_broadcast")
   const [language, setLanguage] = useState<PodcastLanguage>("auto")
   const [preferredVoice, setPreferredVoice] = useState<string | null>(null)
@@ -182,8 +206,12 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   const [voiceLoadError, setVoiceLoadError] = useState<string | null>(null)
   const [voiceMap, setVoiceMap] = useState<Record<string, string>>({})
   const [manuallySelectedSpeakerIds, setManuallySelectedSpeakerIds] = useState<Set<string>>(new Set())
+  const [voicePreviewUrls, setVoicePreviewUrls] = useState<Record<string, string>>({})
+  const [loadingPreviewKey, setLoadingPreviewKey] = useState<string | null>(null)
+  const [playingPreviewKey, setPlayingPreviewKey] = useState<string | null>(null)
   const [selectedSegmentIndex, setSelectedSegmentIndex] = useState(0)
   const [segmentTextDrafts, setSegmentTextDrafts] = useState<Record<string, string>>({})
+  const [regeneratingSegmentIds, setRegeneratingSegmentIds] = useState<Set<string>>(new Set())
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -192,7 +220,6 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
     script,
     audioTask,
     audioSegments,
-    audioProgress,
     scriptState,
     audioState,
     updatingScript,
@@ -206,6 +233,13 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
     reset,
     stopPolling,
   } = usePodcastGeneration()
+  const {
+    mergeState,
+    mergeProgress,
+    mergeErrorMessage,
+    mergeAndDownload,
+    resetMerge,
+  } = usePodcastAudioMerge()
 
   const hasArticleId = typeof articleId === "number"
   const scriptJson = script?.script_json ?? null
@@ -224,6 +258,27 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
     [scriptSegments, segmentTextDrafts]
   )
   const hasScriptTextChanges = changedScriptSegments.length > 0
+  const audioSegmentById = useMemo(
+    () => new Map(audioSegments.map((segment) => [segment.id, segment])),
+    [audioSegments]
+  )
+  const audioSegmentRows = useMemo(() => {
+    if (scriptSegments.length > 0) {
+      return scriptSegments.map((segment, index) => ({
+        id: segment.id,
+        index,
+        speakerId: segment.speaker_id,
+        text: segment.text,
+      }))
+    }
+
+    return audioSegments.map((segment, index) => ({
+      id: segment.id,
+      index,
+      speakerId: segment.speaker_id,
+      text: segment.text,
+    }))
+  }, [audioSegments, scriptSegments])
   const activeAudioSegment = audioSegments[selectedSegmentIndex] ?? null
   const activeScriptSegment =
     activeAudioSegment
@@ -239,6 +294,18 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   }, [participants])
   const scriptStepStatus = getStepStatus(scriptState, Boolean(scriptJson))
   const audioStepStatus = getStepStatus(audioState, audioSegments.length > 0)
+  const audioMergeAvailability = useMemo(
+    () => getPodcastAudioMergeAvailability(audioSegments),
+    [audioSegments]
+  )
+  const isMergingAudio =
+    mergeState === "fetching" || mergeState === "decoding" || mergeState === "merging"
+  const hasPlayableAudioSegments = audioSegments.some(
+    (segment) => segment.provider_status === "success" && Boolean(segment.audio_url)
+  )
+  const isAudioTaskBusy =
+    audioState === "submitting" || audioState === "pending" || audioState === "processing"
+  const isWholeAudioGenerating = isAudioTaskBusy && !hasPlayableAudioSegments
   const playbackProgress =
     audioSegments.length > 0
       ? Math.min(
@@ -260,16 +327,32 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
       !isBusyState(audioState) &&
       !updatingScript &&
       !hasScriptTextChanges &&
+      !isMergingAudio &&
+      regeneratingSegmentIds.size === 0 &&
       hasVoiceOptions &&
       hasValidVoiceMap
   )
+  const canDownloadFullAudio = Boolean(
+    audioTask?.status === "success" &&
+      audioMergeAvailability.available &&
+      !isMergingAudio &&
+      !isBusyState(audioState) &&
+      !hasScriptTextChanges
+  )
   const hasParticipants = participants.length > 0
+  const hasAudioSegmentQueue =
+    audioSegmentRows.length > 0 && (audioSegments.length > 0 || isWholeAudioGenerating || Boolean(audioTask))
 
   useEffect(() => {
     if (!open) {
       stopPolling()
+      resetMerge()
+      submittingSegmentRegenerationIdsRef.current.clear()
+      setRegeneratingSegmentIds(new Set())
       audioRef.current?.pause()
+      previewAudioRef.current?.pause()
       setIsPlaying(false)
+      setPlayingPreviewKey(null)
       return
     }
 
@@ -279,7 +362,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
     }
 
     void loadLatestScript(articleId, podcastType)
-  }, [articleId, hasArticleId, loadLatestScript, open, podcastType, reset, stopPolling])
+  }, [articleId, hasArticleId, loadLatestScript, open, podcastType, reset, resetMerge, stopPolling])
 
   useEffect(() => {
     if (!open || !hasArticleId) return
@@ -431,6 +514,31 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   }, [audioSegments.length, selectedSegmentIndex])
 
   useEffect(() => {
+    if (regeneratingSegmentIds.size === 0) return
+
+    setRegeneratingSegmentIds((current) => {
+      const next = new Set(current)
+      let changed = false
+
+      current.forEach((segmentId) => {
+        if (submittingSegmentRegenerationIdsRef.current.has(segmentId)) return
+        if (audioTask?.status !== "success" && audioTask?.status !== "failed") return
+
+        const audioSegment = audioSegmentById.get(segmentId)
+        if (
+          audioSegment?.provider_status === "success" ||
+          audioSegment?.provider_status === "failed"
+        ) {
+          next.delete(segmentId)
+          changed = true
+        }
+      })
+
+      return changed ? next : current
+    })
+  }, [audioSegmentById, audioTask?.status, regeneratingSegmentIds.size])
+
+  useEffect(() => {
     setCurrentTime(0)
     setDuration(0)
 
@@ -448,7 +556,11 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       audioRef.current?.pause()
+      previewAudioRef.current?.pause()
+      submittingSegmentRegenerationIdsRef.current.clear()
+      setRegeneratingSegmentIds(new Set())
       setIsPlaying(false)
+      setPlayingPreviewKey(null)
       stopPolling()
     }
 
@@ -486,6 +598,88 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
       output_format: "mp3",
       sample_rate: 24000,
     })
+  }
+
+  const handleDownloadFullAudio = async () => {
+    if (!canDownloadFullAudio) return
+
+    audioRef.current?.pause()
+    setIsPlaying(false)
+    await mergeAndDownload({
+      segments: audioSegments,
+      title: scriptJson?.title || script?.title,
+    })
+  }
+
+  const handlePreviewVoice = async (voiceId: string) => {
+    if (!voiceId || loadingPreviewKey) return
+
+    const previewLanguage = resolveVoicePreviewLanguage(language)
+    const previewKey = getVoicePreviewCacheKey(voiceId, previewLanguage)
+
+    if (playingPreviewKey === previewKey) {
+      previewAudioRef.current?.pause()
+      setPlayingPreviewKey(null)
+      return
+    }
+
+    audioRef.current?.pause()
+    setIsPlaying(false)
+    setLoadingPreviewKey(previewKey)
+
+    try {
+      let previewUrl = voicePreviewUrls[previewKey]
+      if (!previewUrl) {
+        const result = await podcastClient.previewTTSVoice(voiceId, {
+          language: previewLanguage,
+        })
+
+        if (isErrorResponse(result)) {
+          console.warn("[PodcastAudioDialog] Failed to load TTS voice preview", {
+            voiceId,
+            language: previewLanguage,
+            error: result.error,
+            status: result.status,
+          })
+          toast({
+            title: t("podcastAudioDialog.toast.voicePreviewFailed"),
+            description: result.error || t("podcastAudioDialog.toast.voicePreviewFailedDesc"),
+          })
+          return
+        }
+
+        previewUrl = result.preview_url
+        setVoicePreviewUrls((current) => ({
+          ...current,
+          [previewKey]: previewUrl,
+        }))
+        console.info("[PodcastAudioDialog] Loaded TTS voice preview", {
+          voiceId,
+          requestedLanguage: previewLanguage,
+          cached: result.cached,
+          language: result.language,
+        })
+      }
+
+      if (!previewAudioRef.current) return
+
+      previewAudioRef.current.src = previewUrl
+      await previewAudioRef.current.play()
+      setPlayingPreviewKey(previewKey)
+    } catch (error) {
+      console.error("[PodcastAudioDialog] Failed to play TTS voice preview", {
+        voiceId,
+        language: previewLanguage,
+        error,
+      })
+      toast({
+        title: t("podcastAudioDialog.toast.voicePreviewFailed"),
+        description: error instanceof Error ? error.message : t("podcastAudioDialog.toast.voicePreviewFailedDesc"),
+      })
+      setPlayingPreviewKey(null)
+    } finally {
+      setLoadingPreviewKey(null)
+    }
   }
 
   const handleSaveScriptText = async (segmentId: string) => {
@@ -532,9 +726,23 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
       speakerId: scriptSegment?.speaker_id,
     })
     // TODO(observability): add UI action metric for script line save followed by segment audio regeneration.
+    submittingSegmentRegenerationIdsRef.current.add(changedSegment.id)
+    setRegeneratingSegmentIds((current) => {
+      const next = new Set(current)
+      next.add(changedSegment.id)
+      return next
+    })
     const regenerated = await regenerateAudioSegment(script.id, changedSegment.id, {
       voice: scriptSegment ? voiceMap[scriptSegment.speaker_id] : undefined,
     })
+    submittingSegmentRegenerationIdsRef.current.delete(changedSegment.id)
+    if (!regenerated) {
+      setRegeneratingSegmentIds((current) => {
+        const next = new Set(current)
+        next.delete(changedSegment.id)
+        return next
+      })
+    }
 
     if (saved) {
       toast({
@@ -547,7 +755,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   }
 
   const handlePlayPause = async () => {
-    if (!activeAudioSegment || !audioRef.current) return
+    if (!activeAudioSegment?.audio_url || !audioRef.current) return
 
     if (isPlaying) {
       audioRef.current.pause()
@@ -717,34 +925,69 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                           {participant.display_name || participant.role || participant.id}
                         </Label>
                         {loadingVoices ? (
-                          <div className="h-9 w-full animate-pulse rounded-md border bg-muted" />
+                          <div className="flex gap-2">
+                            <div className="h-9 min-w-0 flex-1 animate-pulse rounded-md border bg-muted" />
+                            <div className="h-9 w-9 shrink-0 animate-pulse rounded-md border bg-muted" />
+                          </div>
                         ) : (
-                          <Select
-                            value={voiceMap[participant.id] || ""}
-                            disabled={!hasVoiceOptions}
-                            onValueChange={(value) => {
-                              setManuallySelectedSpeakerIds((current) => {
-                                const next = new Set(current)
-                                next.add(participant.id)
-                                return next
-                              })
-                              setVoiceMap((current) => ({
-                                ...current,
-                                [participant.id]: value,
-                              }))
-                            }}
-                          >
-                            <SelectTrigger id={`podcast-audio-voice-${participant.id}`} className="w-full">
-                              <SelectValue placeholder={t("podcastAudioDialog.voiceSelectPlaceholder")} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ttsVoices.map((voice) => (
-                                <SelectItem key={voice.id} value={voice.id}>
-                                  {getVoiceDisplayName(voice)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex gap-2">
+                            <Select
+                              value={voiceMap[participant.id] || ""}
+                              disabled={!hasVoiceOptions}
+                              onValueChange={(value) => {
+                                setManuallySelectedSpeakerIds((current) => {
+                                  const next = new Set(current)
+                                  next.add(participant.id)
+                                  return next
+                                })
+                                setVoiceMap((current) => ({
+                                  ...current,
+                                  [participant.id]: value,
+                                }))
+                              }}
+                            >
+                              <SelectTrigger id={`podcast-audio-voice-${participant.id}`} className="min-w-0 flex-1">
+                                <SelectValue placeholder={t("podcastAudioDialog.voiceSelectPlaceholder")} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ttsVoices.map((voice) => (
+                                  <SelectItem key={voice.id} value={voice.id}>
+                                    {getVoiceDisplayName(voice)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {(() => {
+                              const selectedVoiceId = voiceMap[participant.id] || ""
+                              const previewKey = selectedVoiceId
+                                ? getVoicePreviewCacheKey(
+                                    selectedVoiceId,
+                                    resolveVoicePreviewLanguage(language)
+                                  )
+                                : ""
+
+                              return (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-9 w-9 shrink-0"
+                                  disabled={!hasVoiceOptions || !selectedVoiceId || Boolean(loadingPreviewKey)}
+                                  title={t("podcastAudioDialog.previewVoice")}
+                                  aria-label={t("podcastAudioDialog.previewVoice")}
+                                  onClick={() => void handlePreviewVoice(selectedVoiceId)}
+                                >
+                                  {loadingPreviewKey === previewKey ? (
+                                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                                  ) : playingPreviewKey === previewKey ? (
+                                    <PauseIcon className="h-4 w-4" />
+                                  ) : (
+                                    <Volume2Icon className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )
+                            })()}
+                          </div>
                         )}
                       </div>
                     ))}
@@ -918,7 +1161,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                   disabled={!canGenerateAudio}
                   onClick={() => void handleGenerateAudio()}
                 >
-                  {isBusyState(audioState) ? (
+                  {isWholeAudioGenerating ? (
                     <Loader2Icon className="h-4 w-4 animate-spin" />
                   ) : (
                     <Volume2Icon className="h-4 w-4" />
@@ -982,7 +1225,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                       type="button"
                       size="icon"
                       className="h-11 w-11 rounded-full"
-                      disabled={!activeAudioSegment}
+                      disabled={!activeAudioSegment?.audio_url}
                       onClick={() => void handlePlayPause()}
                     >
                       {isPlaying ? <PauseIcon className="h-5 w-5" /> : <PlayIcon className="h-5 w-5" />}
@@ -1008,59 +1251,93 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                     onPause={() => setIsPlaying(false)}
                     onEnded={handleAudioEnded}
                   />
+                  <audio
+                    ref={previewAudioRef}
+                    preload="metadata"
+                    onEnded={() => setPlayingPreviewKey(null)}
+                    onPause={() => setPlayingPreviewKey(null)}
+                  />
                 </div>
 
-                <div className="rounded-lg border p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold">{t("podcastAudioDialog.audioProgressTitle")}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {audioProgress.completed}/{audioProgress.total}
-                    </span>
-                  </div>
-                  <Progress value={audioProgress.percent} className="mt-3 h-2" />
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                    {t("podcastAudioDialog.audioProgressHint", {
-                      failed: audioProgress.failed,
-                    })}
-                  </p>
-                </div>
               </section>
 
               <section className="space-y-3">
                 <h3 className="text-sm font-semibold">{t("podcastAudioDialog.audioSegmentsTitle")}</h3>
-                {audioSegments.length > 0 ? (
+                {hasAudioSegmentQueue ? (
                   <div className="space-y-2">
-                    {audioSegments.map((segment, index) => {
-                      const selected = index === selectedSegmentIndex
+                    {audioSegmentRows.map((row) => {
+                      const segment = audioSegmentById.get(row.id)
+                      const audioIndex = segment
+                        ? audioSegments.findIndex((audioSegment) => audioSegment.id === segment.id)
+                        : -1
+                      const selected = audioIndex >= 0 && audioIndex === selectedSegmentIndex
+                      const isSegmentGenerating =
+                        regeneratingSegmentIds.has(row.id) ||
+                        segment?.provider_status === "pending" ||
+                        segment?.provider_status === "processing" ||
+                        (isWholeAudioGenerating && !segment)
+                      const isPlayable = Boolean(segment?.audio_url && segment.provider_status === "success")
                       return (
                         <button
-                          key={segment.id || index}
+                          key={row.id || row.index}
                           type="button"
                           className={cn(
-                            "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50",
+                            "flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+                            isSegmentGenerating
+                              ? "cursor-default border-dashed bg-muted/30"
+                              : "hover:bg-muted/50",
                             selected && "border-primary/50 bg-primary/5"
                           )}
-                          onClick={() => setSelectedSegmentIndex(index)}
+                          disabled={!isPlayable}
+                          onClick={() => {
+                            if (audioIndex >= 0) {
+                              setSelectedSegmentIndex(audioIndex)
+                            }
+                          }}
                         >
-                          <span className="mt-0.5 shrink-0 text-primary">
-                            {selected ? (
-                              <Volume2Icon className="h-4 w-4" />
-                            ) : segment.provider_status === "success" ? (
-                              <CheckCircle2Icon className="h-4 w-4" />
-                            ) : (
-                              <CircleIcon className="h-4 w-4" />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>#{index + 1}</span>
-                              <span>{speakerNames.get(segment.speaker_id) || segment.speaker_id}</span>
-                              <span>{segment.voice}</span>
-                            </span>
-                            <span className="mt-1 line-clamp-2 block text-sm leading-5 text-foreground">
-                              {segment.text}
-                            </span>
-                          </span>
+                          {isSegmentGenerating ? (
+                            <>
+                              <span className="mt-0.5 shrink-0">
+                                <Loader2Icon className="h-4 w-4 animate-spin text-muted-foreground" />
+                              </span>
+                              <span className="min-w-0 flex-1 space-y-2">
+                                <span className="flex items-center gap-2">
+                                  <Skeleton className="h-3 w-8" />
+                                  <Skeleton className="h-3 w-24" />
+                                  <Skeleton className="h-3 w-20" />
+                                </span>
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-2/3" />
+                                <span className="text-xs text-muted-foreground">
+                                  {regeneratingSegmentIds.has(row.id)
+                                    ? t("podcastAudioDialog.segmentRegenerating")
+                                    : t("podcastAudioDialog.segmentGenerating")}
+                                </span>
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="mt-0.5 shrink-0 text-primary">
+                                {selected ? (
+                                  <Volume2Icon className="h-4 w-4" />
+                                ) : segment?.provider_status === "success" ? (
+                                  <CheckCircle2Icon className="h-4 w-4" />
+                                ) : (
+                                  <CircleIcon className="h-4 w-4" />
+                                )}
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <span>#{row.index + 1}</span>
+                                  <span>{speakerNames.get(row.speakerId) || row.speakerId}</span>
+                                  {segment?.voice ? <span>{segment.voice}</span> : null}
+                                </span>
+                                <span className="mt-1 line-clamp-2 block text-sm leading-5 text-foreground">
+                                  {segment?.text || row.text}
+                                </span>
+                              </span>
+                            </>
+                          )}
                         </button>
                       )
                     })}
@@ -1072,10 +1349,47 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                       : t("podcastAudioDialog.audioEmptyDescription")}
                   </div>
                 )}
-                <Button type="button" variant="outline" className="w-full" disabled>
-                  <DownloadIcon className="h-4 w-4" />
-                  {t("podcastAudioDialog.downloadFullAudio")}
+                {isMergingAudio ? (
+                  <div className="rounded-lg border bg-muted/20 p-3">
+                    <Progress value={mergeProgress.percent} className="h-2" />
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {t("podcastAudioDialog.mergeProgress", {
+                        completed: mergeProgress.completedSegments,
+                        total: mergeProgress.totalSegments,
+                      })}
+                    </p>
+                  </div>
+                ) : null}
+
+                {mergeState === "failed" && mergeErrorMessage ? (
+                  <Alert variant="destructive">
+                    <AlertDescription>{t("podcastAudioDialog.mergeFailed")}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={!canDownloadFullAudio}
+                  onClick={() => void handleDownloadFullAudio()}
+                >
+                  {isMergingAudio ? (
+                    <Loader2Icon className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <DownloadIcon className="h-4 w-4" />
+                  )}
+                  {mergeState === "success"
+                    ? t("podcastAudioDialog.downloadMergedAudio")
+                    : isMergingAudio
+                    ? t("podcastAudioDialog.mergeAudio")
+                    : t("podcastAudioDialog.downloadFullAudio")}
                 </Button>
+                {!audioMergeAvailability.available && audioSegments.length > 0 && (
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t("podcastAudioDialog.mergeUnavailable")}
+                  </p>
+                )}
               </section>
             </div>
           </aside>

@@ -87,6 +87,10 @@ export interface RegenerateArticlePodcastAudioSegmentRequest {
   voice?: string
 }
 
+export interface PodcastTTSVoicePreviewRequest {
+  language?: string
+}
+
 export type PodcastTTSVoiceSource = "wavespeed_api" | "fallback" | string
 
 export interface PodcastTTSVoice {
@@ -100,6 +104,13 @@ export interface PodcastTTSVoicesResponse {
   default_voice: string
   source: PodcastTTSVoiceSource
   voices: PodcastTTSVoice[]
+}
+
+export interface PodcastTTSVoicePreviewResponse {
+  voice: string
+  language: string
+  preview_url: string
+  cached: boolean
 }
 
 export interface ArticlePodcastAudioTask {

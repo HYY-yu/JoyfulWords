@@ -5,6 +5,8 @@ import type {
   ArticlePodcastScriptRecord,
   CreateArticlePodcastAudioRequest,
   CreateArticlePodcastScriptRequest,
+  PodcastTTSVoicePreviewRequest,
+  PodcastTTSVoicePreviewResponse,
   PodcastTTSVoicesResponse,
   PodcastType,
   RegenerateArticlePodcastAudioSegmentRequest,
@@ -102,6 +104,25 @@ export const podcastClient = {
     return authenticatedApiRequest<PodcastTTSVoicesResponse>("/podcast/tts/voices", {
       method: "GET",
     })
+  },
+
+  async previewTTSVoice(
+    voiceId: string,
+    request: PodcastTTSVoicePreviewRequest = {}
+  ): Promise<PodcastTTSVoicePreviewResponse | ErrorResponse> {
+    console.info("[Podcast] Loading TTS voice preview", {
+      voiceId,
+      language: request.language,
+    })
+
+    // TODO(observability): add podcast voice preview latency and cache-hit metrics.
+    return authenticatedApiRequest<PodcastTTSVoicePreviewResponse>(
+      `/podcast/tts/voices/${encodeURIComponent(voiceId)}/preview`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    )
   },
 
   async createArticleScriptAudio(
