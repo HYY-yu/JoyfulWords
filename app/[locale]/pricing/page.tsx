@@ -32,8 +32,8 @@ export async function generateMetadata({ params }: LocalePageProps): Promise<Met
   return buildMetadata({
     title: isZh ? "价格 - Pay as you go" : "Pricing - Pay as you go",
     description: isZh
-      ? "JoyfulWords 使用随用随充的积分价格体系，无需订阅。查看 AI 写作、生图、素材搜索和 PPT 生成价格。"
-      : "JoyfulWords uses pay-as-you-go credits with no subscription. See pricing for AI writing, image generation, material search, and PPT generation.",
+      ? "JoyfulWords 使用随用随充的积分价格体系，无需订阅。查看 AI 写作、生图、素材搜索、PPT 生成和免费功能的计费说明。"
+      : "JoyfulWords uses pay-as-you-go credits with no subscription. See billing rules for AI writing, image generation, material search, PPT generation, and free features.",
     path: buildLocalizedPath(locale, "/pricing"),
     locale,
     alternatePaths: {

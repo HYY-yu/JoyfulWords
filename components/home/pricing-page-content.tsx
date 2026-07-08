@@ -27,6 +27,8 @@ const imageRows = [
   ["z-image-turbo", "1"],
 ] as const
 
+const billingGuideKeys = ["llm", "image", "audio", "search", "free"] as const
+
 function PricingLogo({ href }: { href: string }) {
   return (
     <Link href={href} className="flex items-center gap-2.5">
@@ -128,6 +130,17 @@ export function PricingPageContent() {
         price: `1 ${t("pricing.units.perSlide")}`,
       },
     ],
+    [t],
+  )
+
+  const billingGuideRows = useMemo(
+    () =>
+      billingGuideKeys.map((key) => ({
+        key,
+        title: t(`pricing.billingGuide.categories.${key}.title`),
+        billing: t(`pricing.billingGuide.categories.${key}.billing`),
+        items: t(`pricing.billingGuide.categories.${key}.items`) as string[],
+      })),
     [t],
   )
 
@@ -257,6 +270,59 @@ export function PricingPageContent() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-12 border-t border-[var(--jw-border)] pt-10">
+            <div className="mb-8 max-w-3xl">
+              <p className="text-xs font-medium uppercase tracking-[0.32em] text-[var(--jw-muted)]">
+                {t("pricing.billingGuide.label")}
+              </p>
+              <h3 className="mt-4 font-serif text-3xl leading-tight tracking-tight text-[var(--jw-heading)] sm:text-4xl">
+                {t("pricing.billingGuide.title")}
+              </h3>
+              <p className="mt-4 text-sm leading-7 text-[var(--jw-muted)] sm:text-base">
+                {t("pricing.billingGuide.description")}
+              </p>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-[var(--jw-border)] bg-[var(--jw-surface)] shadow-[var(--jw-soft-shadow)]">
+              <table className="w-full min-w-[54rem] border-collapse text-left">
+                <thead className="bg-[var(--jw-surface-muted)]">
+                  <tr className="border-b border-[var(--jw-border)] text-xs font-semibold uppercase tracking-[0.16em] text-[var(--jw-muted)]">
+                    <th className="w-[24%] px-5 py-4">{t("pricing.billingGuide.table.category")}</th>
+                    <th className="w-[34%] px-5 py-4">{t("pricing.billingGuide.table.billing")}</th>
+                    <th className="w-[42%] px-5 py-4">{t("pricing.billingGuide.table.features")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {billingGuideRows.map((row) => (
+                    <tr
+                      key={row.key}
+                      className="border-b border-[var(--jw-border-subtle)] transition-colors last:border-b-0 hover:bg-[var(--jw-surface-muted)]"
+                    >
+                      <td className="px-5 py-4 align-top text-sm font-semibold text-[var(--jw-heading)]">
+                        {row.title}
+                      </td>
+                      <td className="px-5 py-4 align-top text-sm leading-6 text-[var(--jw-heading)]">
+                        {row.billing}
+                      </td>
+                      <td className="px-5 py-4 align-top">
+                        <div className="flex flex-wrap gap-2">
+                          {row.items.map((item) => (
+                            <span
+                              key={item}
+                              className="rounded-full border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] px-3 py-1 text-xs font-medium text-[var(--jw-heading)]"
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>

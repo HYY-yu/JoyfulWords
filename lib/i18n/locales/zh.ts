@@ -2750,6 +2750,43 @@ export const zh = {
             item: "子计费项",
             price: "价格",
         },
+        billingGuide: {
+            label: "功能计费说明",
+            title: "按功能类型理解积分消耗",
+            description: "不同功能会消耗不同底层资源。实际扣费以使用记录为准，免费功能不会扣除积分。",
+            table: {
+                category: "分类",
+                billing: "计费说明",
+                features: "适用功能",
+            },
+            categories: {
+                llm: {
+                    title: "重度使用 LLM",
+                    billing: "按 LLM 使用量收费",
+                    items: ["AI 编辑", "AI 写作", "搜索白板", "AI 图表"],
+                },
+                image: {
+                    title: "轻度使用 LLM",
+                    billing: "只对图片收费",
+                    items: ["AI 封面-字体设计", "AI 信息图"],
+                },
+                audio: {
+                    title: "轻度使用 LLM",
+                    billing: "只对音频收费",
+                    items: ["转播客音频"],
+                },
+                search: {
+                    title: "轻度使用 LLM",
+                    billing: "只对搜索收费",
+                    items: ["资料搜索", "新闻搜索", "图片搜索"],
+                },
+                free: {
+                    title: "永久免费",
+                    billing: "不消耗积分",
+                    items: ["编辑器", "素材库", "思维导图", "转换 Word 格式", "转换微信公众号格式"],
+                },
+            },
+        },
         units: {
             credits: "积分",
             perKInput: "积分/k token input",
@@ -2762,7 +2799,7 @@ export const zh = {
         sections: {
             ai: {
                 eyebrow: "文字模型",
-                title: "AI 写作与编辑",
+                title: "使用 LLM 模型",
                 description: "输入和输出分开计费，适合长文、改写、大纲、摘要等不同长度任务。",
                 standard: {
                     name: "普通模型",
@@ -2788,7 +2825,7 @@ export const zh = {
             },
             materials: {
                 eyebrow: "素材能力",
-                title: "素材搜索与演示输出",
+                title: "素材搜索",
                 description: "搜索按次数扣费，PPT 生成按页扣费，适合边找资料边完成内容交付。",
             },
             search: {

@@ -2750,6 +2750,43 @@ export const en = {
             item: "Billable item",
             price: "Price",
         },
+        billingGuide: {
+            label: "Feature billing guide",
+            title: "Understand credit usage by feature type",
+            description: "Different features consume different underlying resources. Actual charges follow your usage records, and free features do not deduct credits.",
+            table: {
+                category: "Category",
+                billing: "Billing rule",
+                features: "Features",
+            },
+            categories: {
+                llm: {
+                    title: "Heavy LLM usage",
+                    billing: "Charged by LLM usage",
+                    items: ["AI editing", "AI writing", "Search whiteboard", "AI charts"],
+                },
+                image: {
+                    title: "Light LLM usage",
+                    billing: "Charged only for images",
+                    items: ["AI cover font design", "AI infographic"],
+                },
+                audio: {
+                    title: "Light LLM usage",
+                    billing: "Charged only for audio",
+                    items: ["Podcast audio conversion"],
+                },
+                search: {
+                    title: "Light LLM usage",
+                    billing: "Charged only for searches",
+                    items: ["Material search", "News search", "Image search"],
+                },
+                free: {
+                    title: "Free forever",
+                    billing: "No credits deducted",
+                    items: ["Editor", "Material library", "Mind map", "Convert to Word", "Convert to WeChat format"],
+                },
+            },
+        },
         units: {
             credits: "credits",
             perKInput: "credits / 1K input tokens",
@@ -2762,7 +2799,7 @@ export const en = {
         sections: {
             ai: {
                 eyebrow: "Text Models",
-                title: "AI Writing and Editing",
+                title: "Use LLM Models",
                 description: "Input and output are billed separately, so long-form writing, rewriting, outlines, and summaries stay predictable.",
                 standard: {
                     name: "Standard models",
@@ -2788,7 +2825,7 @@ export const en = {
             },
             materials: {
                 eyebrow: "Material Tools",
-                title: "Search and Presentation Output",
+                title: "Material Search",
                 description: "Search is billed per request, and PPT generation is billed per slide for research-to-delivery workflows.",
             },
             search: {
