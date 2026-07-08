@@ -20,6 +20,7 @@ function buildTaskListRequestKey(params: TaskCenterTasksQuery): string {
     type: params.type ?? null,
     article_id: params.article_id ?? null,
     status: params.status ?? null,
+    sort: params.sort ?? "recent",
     page_size: params.page_size ?? null,
     cursor: params.cursor ?? null,
   })
@@ -45,6 +46,7 @@ export const taskCenterClient = {
       searchParams.set("article_id", String(params.article_id))
     }
     if (params.status) searchParams.set("status", params.status)
+    searchParams.set("sort", params.sort ?? "recent")
     if (typeof params.page_size === "number") {
       searchParams.set("page_size", String(params.page_size))
     }

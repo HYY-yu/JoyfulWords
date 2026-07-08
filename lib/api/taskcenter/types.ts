@@ -214,6 +214,7 @@ export interface TaskCenterTasksQuery {
   type?: TaskCenterTaskType
   article_id?: number
   status?: string
+  sort?: "recent" | "rank"
   page_size?: number
   cursor?: string
   signal?: AbortSignal

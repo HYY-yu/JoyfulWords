@@ -73,6 +73,7 @@ export function useTaskCenterLiveTasks({
   const queryType = query.type
   const queryArticleId = query.article_id
   const queryStatus = query.status
+  const querySort = query.sort ?? "recent"
   const [tasks, setTasks] = useState<TaskCenterTaskListItem[]>([])
   const [loading, setLoading] = useState(enabled)
   const [refreshing, setRefreshing] = useState(false)
@@ -104,6 +105,7 @@ export function useTaskCenterLiveTasks({
           type: queryType,
           article_id: queryArticleId,
           status: queryStatus,
+          sort: querySort,
           page_size: silent ? Math.max(pageSize, tasksRef.current.length || pageSize) : pageSize,
         })
 
@@ -132,6 +134,7 @@ export function useTaskCenterLiveTasks({
             type: queryType,
             article_id: queryArticleId,
             status: queryStatus,
+            sort: querySort,
           },
           error,
         })
@@ -143,7 +146,7 @@ export function useTaskCenterLiveTasks({
         }
       }
     },
-    [enabled, pageSize, queryArticleId, queryStatus, queryType]
+    [enabled, pageSize, queryArticleId, querySort, queryStatus, queryType]
   )
 
   const loadMore = useCallback(async () => {
@@ -160,6 +163,7 @@ export function useTaskCenterLiveTasks({
         type: queryType,
         article_id: queryArticleId,
         status: queryStatus,
+        sort: querySort,
         page_size: pageSize,
         cursor: nextCursor,
       })
@@ -183,6 +187,7 @@ export function useTaskCenterLiveTasks({
           type: queryType,
           article_id: queryArticleId,
           status: queryStatus,
+          sort: querySort,
           cursor: nextCursor,
         },
         error,
@@ -199,6 +204,7 @@ export function useTaskCenterLiveTasks({
     nextCursor,
     pageSize,
     queryArticleId,
+    querySort,
     queryStatus,
     queryType,
     refreshing,
