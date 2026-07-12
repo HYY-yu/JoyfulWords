@@ -1,0 +1,597 @@
+<!-- @dsCard group="首页改版" name="桌面端首页原型 1440" -->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>JoyfulWords 首页改版原型 · 桌面端</title>
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --accent-fg: #ffffff;
+    --accent-soft: rgba(219, 234, 254, 0.78);
+    --heading: #111827;
+    --text: #172033;
+    --muted: rgba(48, 63, 93, 0.72);
+    --border: rgba(169, 194, 231, 0.52);
+    --border-subtle: rgba(169, 194, 231, 0.28);
+    --surface: rgba(255, 255, 255, 0.88);
+    --surface-strong: rgba(255, 255, 255, 0.96);
+    --surface-muted: rgba(239, 246, 255, 0.78);
+    --card-shadow: 0 24px 64px -48px rgba(37, 99, 235, 0.36);
+    --soft-shadow: 0 12px 26px -20px rgba(37, 99, 235, 0.42);
+    --gold: #ffd66b;
+    --serif: Georgia, "Songti SC", "Noto Serif SC", serif;
+    --sans: "Geist", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--sans);
+    color: var(--text);
+    background:
+      radial-gradient(1200px 500px at 15% -5%, rgba(219,234,254,0.9), transparent 60%),
+      radial-gradient(900px 480px at 90% 8%, rgba(255,214,107,0.22), transparent 55%),
+      linear-gradient(180deg, #f9fcff 0%, #f4f8ff 100%);
+    width: 1440px;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+
+  /* ============ S0 Header ============ */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(249, 252, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(183, 205, 238, 0.56);
+  }
+  .nav { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 17px; color: var(--heading); }
+  .logo-mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), #60a5fa); display: grid; place-items: center; color: #fff; font-family: var(--serif); font-size: 16px; }
+  .nav-links { display: flex; gap: 26px; font-size: 14px; color: var(--muted); }
+  .nav-links span { cursor: pointer; }
+  .nav-links span:hover { color: var(--heading); }
+  .nav-cta { display: flex; align-items: center; gap: 14px; }
+  .link-quiet { font-size: 14px; color: var(--muted); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-primary { background: var(--accent); color: var(--accent-fg); box-shadow: var(--soft-shadow); }
+  .btn-outline { background: var(--surface-strong); color: var(--heading); border: 1px solid var(--border); }
+  .btn-sm { height: 38px; padding: 0 18px; font-size: 14px; }
+  .btn-lg { height: 50px; padding: 0 26px; font-size: 16px; }
+
+  /* ============ 视频占位卡（通用） ============ */
+  .video-card {
+    position: relative; border-radius: 20px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface-strong);
+    box-shadow: var(--card-shadow);
+  }
+  .video-chrome { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-muted); }
+  .video-chrome i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .video-chrome i:nth-child(1) { background: #fca5a5; } .video-chrome i:nth-child(2) { background: var(--gold); } .video-chrome i:nth-child(3) { background: #86efac; }
+  .video-chrome em { font-style: normal; font-size: 11px; color: var(--muted); margin-left: 8px; font-family: monospace; }
+  .video-stage { position: relative; aspect-ratio: 16 / 10; background: linear-gradient(160deg, #eef4ff 0%, #f8fbff 55%, #eaf1ff 100%); }
+  .play-btn {
+    position: absolute; inset: 0; margin: auto; width: 64px; height: 64px; border-radius: 50%;
+    background: rgba(37, 99, 235, 0.92); color: #fff; display: grid; place-items: center;
+    box-shadow: 0 12px 32px -8px rgba(37,99,235,0.5); z-index: 3;
+  }
+  .play-btn::before { content: ""; border-style: solid; border-width: 11px 0 11px 18px; border-color: transparent transparent transparent #fff; margin-left: 4px; }
+  .video-tag {
+    position: absolute; right: 12px; bottom: 12px; z-index: 3;
+    background: rgba(17, 24, 39, 0.72); color: #fff; font-size: 11px; font-family: monospace;
+    padding: 4px 10px; border-radius: 999px;
+  }
+  /* 占位卡里的假 UI */
+  .fx { position: absolute; }
+  .fx-line { height: 8px; border-radius: 99px; background: rgba(37,99,235,0.16); }
+  .fx-line.strong { background: rgba(37,99,235,0.32); }
+  .fx-box { border-radius: 10px; background: #fff; border: 1px solid var(--border-subtle); box-shadow: 0 8px 20px -14px rgba(37,99,235,0.35); }
+
+  /* ============ S1 Hero ============ */
+  .hero { padding: 88px 0 64px; }
+  .hero-grid { display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 56px; align-items: center; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); background: var(--accent-soft); color: var(--accent);
+    border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 600; margin-bottom: 26px;
+  }
+  .hero h1 { font-family: var(--serif); font-size: 62px; line-height: 1.12; letter-spacing: -0.02em; color: var(--heading); font-weight: 600; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero-desc { margin: 26px 0 34px; font-size: 18px; line-height: 1.8; color: var(--muted); max-width: 520px; }
+  .hero-actions { display: flex; gap: 14px; margin-bottom: 44px; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); max-width: 560px; }
+  .stats > div { padding: 18px 12px; text-align: center; border-right: 1px solid var(--border); }
+  .stats > div:last-child { border-right: none; }
+  .stats strong { display: block; font-family: var(--serif); font-size: 26px; color: var(--heading); letter-spacing: -0.01em; }
+  .stats span { display: block; margin-top: 5px; font-size: 12px; color: var(--muted); }
+  /* hero 视频假 UI：四产物拼图 */
+  .hero-quad { position: absolute; inset: 16px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 10px; }
+  .hero-quad .fx-box { position: relative; padding: 12px; }
+  .hero-quad .cap { position: absolute; left: 12px; bottom: 8px; font-size: 10px; color: var(--muted); }
+
+  /* ============ 区块通用标题 ============ */
+  .section { padding: 84px 0; }
+  .sec-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 0.18em; font-weight: 700; color: var(--accent); text-transform: uppercase; margin-bottom: 14px; }
+  .sec-eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--accent); border-radius: 2px; }
+  .sec-title { font-family: var(--serif); font-size: 40px; letter-spacing: -0.01em; color: var(--heading); font-weight: 600; }
+  .sec-title em { font-style: normal; color: var(--accent); }
+  .sec-sub { margin-top: 14px; font-size: 16px; line-height: 1.8; color: var(--muted); max-width: 620px; }
+
+  /* ============ S2 How it works ============ */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 44px; position: relative; }
+  .step { position: relative; padding: 26px 22px 26px 26px; }
+  .step + .step::before { content: "→"; position: absolute; left: -12px; top: 46px; color: var(--accent); font-size: 20px; opacity: 0.55; }
+  .step-card { background: var(--surface-strong); border: 1px solid var(--border); border-radius: 16px; padding: 22px; height: 100%; box-shadow: var(--soft-shadow); }
+  .step-num { font-family: monospace; font-size: 12px; color: var(--accent); font-weight: 700; }
+  .step-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); display: grid; place-items: center; color: var(--accent); font-size: 18px; margin: 12px 0 14px; }
+  .step h3 { font-size: 17px; color: var(--heading); margin-bottom: 6px; }
+  .step p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+  /* ============ S3 Features ============ */
+  .feature-row { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; align-items: center; padding: 56px 0; }
+  .feature-row.flip .feature-copy { order: 2; }
+  .feature-row.flip .feature-media { order: 1; }
+  .feature-num { font-family: var(--serif); font-size: 68px; color: rgba(37,99,235,0.10); line-height: 1; font-weight: 700; margin-bottom: 6px; }
+  .feature-eyebrow { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-muted); border-radius: 999px; padding: 6px 14px; font-size: 11px; letter-spacing: 0.16em; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
+  .feature-eyebrow b { color: var(--accent); font-size: 13px; }
+  .feature-copy h3 { font-family: var(--serif); font-size: 42px; letter-spacing: -0.01em; color: var(--heading); font-weight: 600; margin-bottom: 16px; }
+  .feature-copy p { font-size: 16px; line-height: 1.85; color: var(--muted); max-width: 460px; margin-bottom: 20px; }
+  .feature-points { list-style: none; margin-bottom: 24px; }
+  .feature-points li { display: flex; align-items: center; gap: 10px; font-size: 14.5px; color: var(--text); padding: 6px 0; }
+  .feature-points li::before { content: "✓"; width: 20px; height: 20px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 12px; display: grid; place-items: center; flex-shrink: 0; }
+  .feature-link { font-size: 15px; font-weight: 600; color: var(--accent); }
+
+  /* ============ S4 Outcomes ============ */
+  .outcomes { background: var(--surface-muted); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); }
+  .metric-band { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 44px; }
+  .metric { background: var(--surface-strong); border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px; box-shadow: var(--soft-shadow); }
+  .metric strong { display: block; font-family: var(--serif); font-size: 32px; color: var(--accent); letter-spacing: -0.01em; line-height: 1.15; }
+  .metric span { display: block; margin-top: 10px; font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+  .compare { margin-top: 56px; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 44px; align-items: center; }
+  .compare h3 { font-family: var(--serif); font-size: 30px; color: var(--heading); font-weight: 600; margin-bottom: 14px; }
+  .compare-list { list-style: none; }
+  .compare-list li { display: flex; gap: 12px; padding: 10px 0; font-size: 15px; line-height: 1.7; }
+  .compare-list .no::before { content: "✕"; color: #dc2626; font-weight: 700; }
+  .compare-list .yes::before { content: "✓"; color: #16a34a; font-weight: 700; }
+  .scenes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 56px; }
+  .scene { background: var(--surface-strong); border: 1px solid var(--border); border-radius: 18px; padding: 26px; }
+  .scene-icon { width: 44px; height: 44px; border-radius: 14px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: 20px; margin-bottom: 16px; }
+  .scene h4 { font-size: 17px; color: var(--heading); margin-bottom: 8px; }
+  .scene p { font-size: 13.5px; line-height: 1.7; color: var(--muted); }
+
+  /* ============ S5 FAQ ============ */
+  .faq-list { margin-top: 44px; max-width: 780px; }
+  .faq-item { border: 1px solid var(--border); border-radius: 14px; background: var(--surface-strong); padding: 20px 24px; margin-bottom: 12px; }
+  .faq-item h4 { font-size: 16px; color: var(--heading); display: flex; justify-content: space-between; align-items: center; }
+  .faq-item h4::after { content: "+"; color: var(--accent); font-size: 20px; font-weight: 400; }
+  .faq-item.open h4::after { content: "−"; }
+  .faq-item p { margin-top: 12px; font-size: 14.5px; line-height: 1.8; color: var(--muted); }
+
+  /* ============ S6 Final CTA ============ */
+  .cta-band {
+    margin: 84px 40px; border-radius: 28px; padding: 72px 80px;
+    background:
+      radial-gradient(600px 300px at 85% 10%, rgba(255,214,107,0.25), transparent 60%),
+      linear-gradient(130deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
+    color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 40px;
+    box-shadow: var(--card-shadow);
+  }
+  .cta-band h2 { font-family: var(--serif); font-size: 44px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 12px; }
+  .cta-band p { font-size: 16px; opacity: 0.8; }
+  .btn-inverse { background: #fff; color: var(--heading); height: 54px; padding: 0 30px; font-size: 16px; border-radius: 999px; box-shadow: 0 16px 40px -18px rgba(0,0,0,0.4); white-space: nowrap; }
+
+  /* ============ S7 Footer ============ */
+  footer { border-top: 1px solid var(--border); background: var(--surface); padding: 56px 0 32px; }
+  .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 40px; }
+  .footer-brand p { margin-top: 14px; font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 260px; }
+  footer h5 { font-size: 13px; letter-spacing: 0.1em; color: var(--heading); text-transform: uppercase; margin-bottom: 16px; }
+  footer ul { list-style: none; }
+  footer li { font-size: 14px; color: var(--muted); padding: 5px 0; cursor: pointer; }
+  footer li:hover { color: var(--accent); }
+  .footer-bottom { margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+  /* 原型标注 */
+  .anno { position: absolute; top: -12px; left: 18px; z-index: 5; background: #111827; color: var(--gold); font-size: 11px; font-family: monospace; padding: 4px 12px; border-radius: 999px; letter-spacing: 0.06em; }
+  .rel { position: relative; }
+</style>
+</head>
+<body>
+
+<!-- ============ S0 Header ============ -->
+<header>
+  <div class="wrap nav">
+    <div class="logo"><span class="logo-mark">悦</span>JoyfulWords</div>
+    <nav class="nav-links">
+      <span>功能</span><span>价格</span><span>MCP</span><span>Free Tools</span><span>文件转换</span><span>博客</span>
+    </nav>
+    <div class="nav-cta">
+      <span class="link-quiet">我的文章</span>
+      <button class="btn btn-primary btn-sm">开始创作 →</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ S1 Hero「是什么」 ============ -->
+<section class="hero rel">
+  <span class="anno">S1 · 是什么 · HERO</span>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="badge">✦ AI 内容创作工作台</div>
+      <h1>一个想法，生成<br><em>文章、信息图、<br>PPT 和思维导图</em></h1>
+      <p class="hero-desc">JoyfulWords 是 AI 内容创作工作台：快速找寻素材、生成成稿，再一键把文章转换成信息图、演示 PPT 和思维导图——一个工作流，四种产出。</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg">✦ 免费开始创作 · 注册送 200 积分</button>
+        <button class="btn btn-outline btn-lg">看 60 秒演示 ▶</button>
+      </div>
+      <div class="stats">
+        <div><strong>0</strong><span>订阅费 · 按量付费</span></div>
+        <div><strong>4 + 1</strong><span>4 大生成能力 · 1 个工作流</span></div>
+        <div><strong>按量计费</strong><span>积分随内容难度动态消耗</span></div>
+      </div>
+    </div>
+    <div class="video-card">
+      <div class="video-chrome"><i></i><i></i><i></i><em>joyword.link / workspace</em></div>
+      <div class="video-stage">
+        <div class="hero-quad">
+          <div class="fx-box">
+            <div class="fx-line strong" style="position:static;width:70%;margin-bottom:8px"></div>
+            <div class="fx-line" style="position:static;width:95%;margin-bottom:6px"></div>
+            <div class="fx-line" style="position:static;width:88%;margin-bottom:6px"></div>
+            <div class="fx-line" style="position:static;width:60%"></div>
+            <span class="cap">① 文章</span>
+          </div>
+          <div class="fx-box">
+            <div style="display:flex;gap:6px;align-items:flex-end;height:56%">
+              <span style="flex:1;background:rgba(37,99,235,.25);border-radius:4px;height:40%"></span>
+              <span style="flex:1;background:rgba(37,99,235,.45);border-radius:4px;height:75%"></span>
+              <span style="flex:1;background:var(--gold);border-radius:4px;height:100%"></span>
+              <span style="flex:1;background:rgba(37,99,235,.30);border-radius:4px;height:55%"></span>
+            </div>
+            <div class="fx-line" style="position:static;width:64%;margin-top:10px"></div>
+            <span class="cap">② 信息图</span>
+          </div>
+          <div class="fx-box">
+            <div style="display:grid;grid-template-columns:2.2fr 1fr;gap:6px;height:62%">
+              <span style="background:rgba(37,99,235,.18);border-radius:6px;display:block"></span>
+              <span style="display:grid;gap:5px">
+                <i style="background:rgba(37,99,235,.30);border-radius:4px;display:block"></i>
+                <i style="background:rgba(37,99,235,.14);border-radius:4px;display:block"></i>
+                <i style="background:rgba(37,99,235,.14);border-radius:4px;display:block"></i>
+              </span>
+            </div>
+            <div class="fx-line strong" style="position:static;width:46%;margin-top:10px"></div>
+            <span class="cap">③ PPT</span>
+          </div>
+          <div class="fx-box" style="overflow:hidden">
+            <div style="position:relative;height:100%">
+              <span style="position:absolute;left:6%;top:40%;width:34%;height:16px;background:rgba(37,99,235,.9);border-radius:99px"></span>
+              <span style="position:absolute;left:48%;top:16%;width:26%;height:11px;background:rgba(37,99,235,.30);border-radius:99px"></span>
+              <span style="position:absolute;left:48%;top:44%;width:32%;height:11px;background:rgba(37,99,235,.30);border-radius:99px"></span>
+              <span style="position:absolute;left:48%;top:70%;width:22%;height:11px;background:rgba(37,99,235,.30);border-radius:99px"></span>
+              <i style="position:absolute;left:40%;top:24%;width:9%;height:2px;background:var(--border);transform:rotate(-24deg);display:block"></i>
+              <i style="position:absolute;left:40%;top:48%;width:8%;height:2px;background:var(--border);display:block"></i>
+              <i style="position:absolute;left:40%;top:68%;width:9%;height:2px;background:var(--border);transform:rotate(22deg);display:block"></i>
+            </div>
+            <span class="cap">④ 思维导图</span>
+          </div>
+        </div>
+        <div class="play-btn"></div>
+        <span class="video-tag">hero-overview-zh.mp4 · 15–20s · 自动播放</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S2 How it works ============ -->
+<section class="section rel">
+  <span class="anno">S2 · 是什么 · 四步工作流</span>
+  <div class="wrap">
+    <div class="sec-eyebrow">How it works</div>
+    <h2 class="sec-title">从想法到发布，只需四步</h2>
+    <p class="sec-sub">素材、大纲、成稿与多形态导出在同一个页面里完成，不用在工具之间来回粘贴。</p>
+    <div class="steps">
+      <div class="step"><div class="step-card"><span class="step-num">STEP 01</span><div class="step-icon">⛁</div><h3>快速找寻素材</h3><p>全网实时搜索，链接与灵感统一入库，几秒找到可用素材。</p></div></div>
+      <div class="step"><div class="step-card"><span class="step-num">STEP 02</span><div class="step-icon">☰</div><h3>梳理大纲</h3><p>AI 提炼观点与结构，先把文章骨架立起来。</p></div></div>
+      <div class="step"><div class="step-card"><span class="step-num">STEP 03</span><div class="step-icon">✎</div><h3>生成成稿</h3><p>正文流式生成，支持续写、改写与风格切换。</p></div></div>
+      <div class="step"><div class="step-card"><span class="step-num">STEP 04</span><div class="step-icon">⇪</div><h3>一键多态导出</h3><p>文章、信息图、PPT、思维导图同步就绪。</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S3 Features「有什么」 ============ -->
+<section class="section rel" id="features" style="padding-top:40px">
+  <span class="anno">S3 · 有什么 · 四大生成能力（每个配 Hyperframes 视频）</span>
+  <div class="wrap">
+    <div class="sec-eyebrow">Features</div>
+    <h2 class="sec-title">四大生成能力，<em>全部内置</em></h2>
+    <p class="sec-sub">一份内容，四种形态。每个能力都能独立使用，也能在一个工作流里接力完成。</p>
+
+    <!-- 01 文章 -->
+    <div class="feature-row">
+      <div class="feature-copy">
+        <div class="feature-num">01</div>
+        <div class="feature-eyebrow"><b>✦</b> 核心引擎 · AI WRITING</div>
+        <h3>快速生成文章</h3>
+        <p>从一个选题出发，大纲、正文、配图一次生成结构完整的初稿，支持续写、改写、风格切换。</p>
+        <ul class="feature-points">
+          <li>大纲一键展开，先立结构再填内容</li>
+          <li>正文流式生成，边生成边编辑</li>
+          <li>选段改写 · 多种风格随时切换</li>
+        </ul>
+        <span class="feature-link">试试 AI 写作 →</span>
+      </div>
+      <div class="feature-media video-card">
+        <div class="video-chrome"><i></i><i></i><i></i><em>articles / editor</em></div>
+        <div class="video-stage">
+          <div class="fx fx-box" style="inset:18px 18px 18px 18px;padding:18px">
+            <div class="fx-line strong" style="position:static;width:52%;height:12px;margin-bottom:14px"></div>
+            <div class="fx-line" style="position:static;width:96%;margin-bottom:8px"></div>
+            <div class="fx-line" style="position:static;width:92%;margin-bottom:8px"></div>
+            <div class="fx-line" style="position:static;width:88%;margin-bottom:8px"></div>
+            <div class="fx-line" style="position:static;width:45%;margin-bottom:14px"></div>
+            <div style="display:inline-flex;gap:8px">
+              <span style="background:var(--accent-soft);color:var(--accent);font-size:11px;padding:4px 10px;border-radius:99px">✦ 续写</span>
+              <span style="background:var(--surface-muted);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:99px">改写</span>
+              <span style="background:var(--surface-muted);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:99px">换风格</span>
+            </div>
+          </div>
+          <div class="play-btn"></div>
+          <span class="video-tag">feature-article-zh.mp4 · 6–8s 循环</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 信息图 -->
+    <div class="feature-row flip">
+      <div class="feature-copy">
+        <div class="feature-num">02</div>
+        <div class="feature-eyebrow"><b>✦</b> 视觉表达 · INFOGRAPHIC</div>
+        <h3>生成信息图</h3>
+        <p>把文字要点一键转成可分享的信息图，长文拆解、数据表达、社媒分发都适用。</p>
+        <ul class="feature-points">
+          <li>要点自动排版成图</li>
+          <li>多风格模板一键切换</li>
+          <li>导出即分享，适配社媒尺寸</li>
+        </ul>
+        <span class="feature-link">生成一张信息图 →</span>
+      </div>
+      <div class="feature-media video-card">
+        <div class="video-chrome"><i></i><i></i><i></i><em>tools / infographic</em></div>
+        <div class="video-stage">
+          <div class="fx fx-box" style="inset:18px 30% 18px 18px;padding:16px">
+            <div class="fx-line strong" style="position:static;width:60%;height:10px;margin-bottom:12px"></div>
+            <div style="display:flex;gap:8px;align-items:flex-end;height:52%">
+              <span style="flex:1;background:rgba(37,99,235,.22);border-radius:6px;height:38%"></span>
+              <span style="flex:1;background:rgba(37,99,235,.42);border-radius:6px;height:66%"></span>
+              <span style="flex:1;background:var(--gold);border-radius:6px;height:100%"></span>
+              <span style="flex:1;background:rgba(37,99,235,.30);border-radius:6px;height:52%"></span>
+            </div>
+            <div class="fx-line" style="position:static;width:80%;margin-top:12px"></div>
+          </div>
+          <div class="fx" style="right:18px;top:18px;bottom:18px;width:24%;display:grid;gap:8px">
+            <span class="fx-box" style="display:block;background:var(--accent-soft)"></span>
+            <span class="fx-box" style="display:block"></span>
+            <span class="fx-box" style="display:block"></span>
+          </div>
+          <div class="play-btn"></div>
+          <span class="video-tag">feature-infographic-zh.mp4 · 6–8s 循环</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 PPT -->
+    <div class="feature-row">
+      <div class="feature-copy">
+        <div class="feature-num">03</div>
+        <div class="feature-eyebrow"><b>✦</b> 演示输出 · PRESENTATION</div>
+        <h3>生成 PPT</h3>
+        <p>文章或大纲一键转为可演示的 PPT，汇报、展示、交付一步到位。</p>
+        <ul class="feature-points">
+          <li>文章一键转 PPT，结构自动分页</li>
+          <li>多套主题样式即时切换</li>
+          <li>导出即可上台演示</li>
+        </ul>
+        <span class="feature-link">把文章变成 PPT →</span>
+      </div>
+      <div class="feature-media video-card">
+        <div class="video-chrome"><i></i><i></i><i></i><em>presentations / preview</em></div>
+        <div class="video-stage">
+          <div class="fx fx-box" style="inset:18px 18px 30% 18px;padding:20px;background:linear-gradient(135deg,#fff, #f2f7ff)">
+            <div class="fx-line strong" style="position:static;width:40%;height:14px;margin-bottom:12px"></div>
+            <div class="fx-line" style="position:static;width:66%;margin-bottom:8px"></div>
+            <div class="fx-line" style="position:static;width:58%"></div>
+            <span style="position:absolute;right:20px;bottom:16px;font-size:10px;color:var(--muted);font-family:monospace">SLIDE 3 / 12</span>
+          </div>
+          <div class="fx" style="left:18px;right:18px;bottom:18px;height:22%;display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+            <span class="fx-box" style="display:block;border-color:var(--accent);border-width:2px"></span>
+            <span class="fx-box" style="display:block"></span>
+            <span class="fx-box" style="display:block"></span>
+            <span class="fx-box" style="display:block"></span>
+            <span class="fx-box" style="display:block"></span>
+          </div>
+          <div class="play-btn"></div>
+          <span class="video-tag">feature-ppt-zh.mp4 · 6–8s 循环</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 思维导图 -->
+    <div class="feature-row flip">
+      <div class="feature-copy">
+        <div class="feature-num">04</div>
+        <div class="feature-eyebrow"><b>✦</b> 结构梳理 · MINDMAP</div>
+        <h3>生成思维导图</h3>
+        <p>复杂内容自动梳理成思维导图，结构一目了然，还能继续编辑、导出成图。</p>
+        <ul class="feature-points">
+          <li>长文自动提炼层级结构</li>
+          <li>分支节点可拖拽编辑</li>
+          <li>一键导出图片，用于分享与讲解</li>
+        </ul>
+        <span class="feature-link">生成思维导图 →</span>
+      </div>
+      <div class="feature-media video-card">
+        <div class="video-chrome"><i></i><i></i><i></i><em>mindmap / canvas</em></div>
+        <div class="video-stage">
+          <span class="fx" style="left:10%;top:44%;width:22%;height:34px;background:var(--accent);border-radius:99px;box-shadow:var(--soft-shadow)"></span>
+          <span class="fx" style="left:48%;top:16%;width:19%;height:24px;background:#fff;border:1px solid var(--border);border-radius:99px"></span>
+          <span class="fx" style="left:52%;top:35%;width:24%;height:24px;background:#fff;border:1px solid var(--border);border-radius:99px"></span>
+          <span class="fx" style="left:50%;top:54%;width:17%;height:24px;background:#fff;border:1px solid var(--border);border-radius:99px"></span>
+          <span class="fx" style="left:48%;top:73%;width:21%;height:24px;background:#fff;border:1px solid var(--border);border-radius:99px"></span>
+          <span class="fx" style="left:74%;top:24%;width:13%;height:20px;background:var(--accent-soft);border-radius:99px"></span>
+          <span class="fx" style="left:80%;top:52%;width:12%;height:20px;background:var(--accent-soft);border-radius:99px"></span>
+          <i class="fx" style="left:33%;top:30%;width:14%;height:2px;background:var(--border);transform:rotate(-18deg)"></i>
+          <i class="fx" style="left:33%;top:46%;width:17%;height:2px;background:var(--border)"></i>
+          <i class="fx" style="left:33%;top:60%;width:15%;height:2px;background:var(--border);transform:rotate(12deg)"></i>
+          <i class="fx" style="left:33%;top:70%;width:14%;height:2px;background:var(--border);transform:rotate(26deg)"></i>
+          <div class="play-btn"></div>
+          <span class="video-tag">feature-mindmap-zh.mp4 · 6–8s 循环</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S4 Outcomes「带来什么效果」 ============ -->
+<section class="section outcomes rel">
+  <span class="anno">S4 · 带来什么效果 · 效率层面</span>
+  <div class="wrap">
+    <div class="sec-eyebrow">Outcomes</div>
+    <h2 class="sec-title">把创作时间，<em>还给创作本身</em></h2>
+    <p class="sec-sub">两个效率承诺：找素材、创作不用切换平台；一篇文章直接转换成多种产物。</p>
+
+    <div class="metric-band">
+      <div class="metric"><strong>1 个平台</strong><span>找素材、写作、配图、导出，全程不切换页面</span></div>
+      <div class="metric"><strong>0 复制粘贴</strong><span>素材搜到即插入文章，不再跨工具搬运</span></div>
+      <div class="metric"><strong>1 → 4</strong><span>一篇文章直接转出信息图、PPT、思维导图</span></div>
+      <div class="metric"><strong>秒级</strong><span>全网素材实时搜索，选题当场找到依据</span></div>
+    </div>
+
+    <!-- 效率支柱一：不用切换平台 -->
+    <div class="compare">
+      <div>
+        <div class="feature-eyebrow" style="margin-bottom:14px"><b>✦</b> 效率一 · NO SWITCHING</div>
+        <h3>找素材、创作，不用切换平台</h3>
+        <ul class="compare-list">
+          <li class="no">以前：找素材开 3 个标签页，写作、做图各用一个工具，来回复制粘贴</li>
+          <li class="no">以前：素材存在收藏夹里，写的时候又找不到</li>
+          <li class="yes">现在：全网搜索、素材入库、引用成稿，都在同一个编辑页面里完成</li>
+          <li class="yes">现在：素材点一下就进文章，注意力不再被打断</li>
+        </ul>
+      </div>
+      <div class="video-card">
+        <div class="video-chrome"><i></i><i></i><i></i><em>before / after</em></div>
+        <div class="video-stage" style="aspect-ratio:16/8">
+          <div class="fx" style="inset:16px 51% 16px 16px;border-radius:12px;background:repeating-linear-gradient(-45deg,#eef2f7 0 14px,#f7f9fc 14px 28px);border:1px dashed #cbd5e1;display:grid;place-items:center">
+            <span style="font-size:12px;color:#64748b;background:#fff;padding:4px 12px;border-radius:99px;border:1px solid #e2e8f0">以前 · 多平台切换粘贴</span>
+          </div>
+          <div class="fx fx-box" style="inset:16px 16px 16px 51%;display:grid;place-items:center;background:linear-gradient(150deg,#fff,#eef4ff)">
+            <span style="font-size:12px;color:var(--accent);background:var(--accent-soft);padding:4px 12px;border-radius:99px">现在 · 一个页面搞定</span>
+          </div>
+          <div class="play-btn" style="width:52px;height:52px"></div>
+          <span class="video-tag">outcome-before-after-zh.mp4 · 8–10s</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 效率支柱二：一篇文章 → 多种产物 -->
+    <div class="compare" style="margin-top:48px">
+      <div class="video-card" style="order:1">
+        <div class="video-chrome"><i></i><i></i><i></i><em>one article → four outputs</em></div>
+        <div class="video-stage" style="aspect-ratio:16/8">
+          <div class="fx fx-box" style="left:5%;top:22%;bottom:22%;width:30%;padding:14px">
+            <div class="fx-line strong" style="position:static;width:64%;height:9px;margin-bottom:10px"></div>
+            <div class="fx-line" style="position:static;width:92%;margin-bottom:6px"></div>
+            <div class="fx-line" style="position:static;width:84%;margin-bottom:6px"></div>
+            <div class="fx-line" style="position:static;width:56%"></div>
+            <span style="position:absolute;left:14px;bottom:10px;font-size:10px;color:var(--muted)">你的文章</span>
+          </div>
+          <i class="fx" style="left:37%;top:31%;width:11%;height:2px;background:var(--accent);opacity:.5;transform:rotate(-16deg)"></i>
+          <i class="fx" style="left:37%;top:49%;width:12%;height:2px;background:var(--accent);opacity:.5"></i>
+          <i class="fx" style="left:37%;top:66%;width:11%;height:2px;background:var(--accent);opacity:.5;transform:rotate(16deg)"></i>
+          <div class="fx fx-box" style="left:51%;top:14%;width:38%;height:20%;display:flex;align-items:center;gap:10px;padding:0 14px">
+            <span style="width:22px;height:22px;border-radius:7px;background:var(--accent-soft);display:grid;place-items:center;font-size:11px">▤</span>
+            <span style="font-size:12px;color:var(--heading);font-weight:600">信息图</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--accent)">一键转换 →</span>
+          </div>
+          <div class="fx fx-box" style="left:51%;top:40%;width:38%;height:20%;display:flex;align-items:center;gap:10px;padding:0 14px">
+            <span style="width:22px;height:22px;border-radius:7px;background:var(--accent-soft);display:grid;place-items:center;font-size:11px">▦</span>
+            <span style="font-size:12px;color:var(--heading);font-weight:600">演示 PPT</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--accent)">一键转换 →</span>
+          </div>
+          <div class="fx fx-box" style="left:51%;top:66%;width:38%;height:20%;display:flex;align-items:center;gap:10px;padding:0 14px">
+            <span style="width:22px;height:22px;border-radius:7px;background:var(--accent-soft);display:grid;place-items:center;font-size:11px">⌘</span>
+            <span style="font-size:12px;color:var(--heading);font-weight:600">思维导图</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--accent)">一键转换 →</span>
+          </div>
+        </div>
+      </div>
+      <div style="order:2">
+        <div class="feature-eyebrow" style="margin-bottom:14px"><b>✦</b> 效率二 · ONE TO MANY</div>
+        <h3>一篇文章，转换成多种产物</h3>
+        <ul class="compare-list">
+          <li class="no">以前：同一个内容，做图、做 PPT、画导图要重做三遍</li>
+          <li class="yes">现在：写完文章，信息图、PPT、思维导图一键转换生成</li>
+          <li class="yes">现在：一次创作沉淀为素材，下一篇继续复用</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="scenes">
+      <div class="scene"><div class="scene-icon">✍</div><h4>自媒体作者</h4><p>一天产出 2 篇图文并茂的公众号 / 博客文章，配图和信息图同步完成。</p></div>
+      <div class="scene"><div class="scene-icon">🌏</div><h4>出海内容团队</h4><p>中英双语内容一次完成，SEO 关键词与结构化排版内置在工作流里。</p></div>
+      <div class="scene"><div class="scene-icon">📊</div><h4>职场汇报</h4><p>把周报、方案文档一键转成 PPT 和思维导图，几分钟搞定一次演示。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S5 FAQ ============ -->
+<section class="section rel">
+  <span class="anno">S5 · FAQ（FAQPage 结构化数据）</span>
+  <div class="wrap">
+    <div class="sec-eyebrow">FAQ</div>
+    <h2 class="sec-title">常见问题</h2>
+    <div class="faq-list">
+      <div class="faq-item open">
+        <h4>JoyfulWords 是免费的吗？</h4>
+        <p>注册即送 200 积分，可以免费体验写作、信息图、PPT 和思维导图。之后按量付费，积分随内容难度动态计算，没有订阅费。</p>
+      </div>
+      <div class="faq-item"><h4>和直接用 ChatGPT 写有什么区别？</h4></div>
+      <div class="faq-item"><h4>支持哪些导出格式？</h4></div>
+      <div class="faq-item"><h4>生成的内容版权归谁？</h4></div>
+      <div class="faq-item"><h4>支持团队协作吗？</h4></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ S6 Final CTA ============ -->
+<div class="rel">
+  <span class="anno" style="left:58px">S6 · FINAL CTA</span>
+  <div class="cta-band">
+    <div>
+      <h2>你的下一篇内容，从这里开始</h2>
+      <p>免费注册，200 积分立刻到账。</p>
+    </div>
+    <button class="btn btn-inverse">免费开始创作 →</button>
+  </div>
+</div>
+
+<!-- ============ S7 Footer ============ -->
+<footer class="rel">
+  <span class="anno">S7 · FOOTER（扩充内链）</span>
+  <div class="wrap">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="logo"><span class="logo-mark">悦</span>JoyfulWords</div>
+        <p>AI 内容创作工作台。一个想法，生成文章、信息图、PPT 和思维导图。</p>
+      </div>
+      <div><h5>产品</h5><ul><li>开始创作</li><li>价格</li><li>MCP</li></ul></div>
+      <div><h5>资源</h5><ul><li>博客</li><li>免费工具</li><li>文件转换</li></ul></div>
+      <div><h5>法律</h5><ul><li>隐私政策</li><li>服务条款</li><li>Cookie 政策</li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 JoyfulWords · 内容创作与管理工具</span>
+      <span>v1.0.0</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

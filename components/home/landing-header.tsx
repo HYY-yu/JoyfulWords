@@ -79,9 +79,9 @@ export function LandingHeader({
   const closeMobileMenu = () => setMobileMenuOpen(false)
 
   return (
-    <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-2xl sm:px-6 md:px-10">
-      <Link href={homeHref} aria-label="JoyfulWords">
-        <BrandLogo />
+    <header className="jw-app-header fixed top-0 right-0 left-0 z-50 flex h-14 items-center gap-3 border-b px-3 backdrop-blur-2xl sm:h-16 sm:px-6 md:px-10">
+      <Link href={homeHref} aria-label="JoyfulWords" className="rounded-xl">
+        <BrandLogo wordmarkClassName="inline" />
       </Link>
       <div className="flex-1" />
 
@@ -145,7 +145,7 @@ export function LandingHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="xl:hidden"
+            className="h-10 w-10 rounded-full xl:hidden"
             aria-label={t("landing.nav.menu")}
           >
             <MenuIcon className="size-5" />

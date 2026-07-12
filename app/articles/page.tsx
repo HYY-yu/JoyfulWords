@@ -240,6 +240,16 @@ export default function ArticlesPage() {
   }, [])
 
   const handleEditArticle = (article: Article) => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 767px)").matches
+    ) {
+      toast({
+        description: t("contentWriting.manager.desktopEditOnly"),
+      })
+      return
+    }
+
     router.push(`/articles/${article.id}/edit`)
   }
 
@@ -401,7 +411,7 @@ export default function ArticlesPage() {
   const latestArticle = articles[0]
 
   return (
-    <div className="jw-app-shell flex h-screen flex-col">
+    <div className="jw-app-shell flex min-h-screen flex-col md:h-screen">
       <Suspense fallback={null}>
         <BillingDialogQuerySync onOpenBillingDialog={handleOpenBillingDialog} />
       </Suspense>
@@ -410,22 +420,22 @@ export default function ArticlesPage() {
       </Suspense>
 
       {/* Top Navigation Bar */}
-      <header className="jw-app-header shrink-0 border-b backdrop-blur-xl">
-        <div className="flex h-16 items-center justify-between px-6">
+      <header className="jw-app-header shrink-0 border-b backdrop-blur-2xl">
+        <div className="flex h-14 items-center justify-between gap-3 px-3 sm:h-16 sm:px-6 md:px-10">
           <button
             onClick={() => router.push("/articles")}
             className="rounded-xl transition-transform hover:-translate-y-0.5"
             aria-label="JoyfulWords"
           >
-            <BrandLogo />
+            <BrandLogo wordmarkClassName="hidden sm:inline" />
           </button>
 
           {/* Right - Actions */}
-          <div className="flex items-center gap-3 h-full">
+          <div className="flex h-full items-center gap-1.5 md:gap-3">
             <Button
               variant="ghost"
               size="sm"
-              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
+              className="jw-themed-link hidden h-8 gap-2 rounded-full text-sm md:inline-flex"
               onClick={() => setTaskCenterOpen(true)}
             >
               <CheckSquareIcon className="w-4 h-4 text-[var(--jw-accent)]" />
@@ -433,15 +443,17 @@ export default function ArticlesPage() {
             </Button>
 
             {/* Feedback */}
-            <FeedbackErrorBoundary>
-              <TallyFeedbackButton className="jw-themed-link h-8 w-auto rounded-full py-0 text-sm" />
-            </FeedbackErrorBoundary>
+            <div className="hidden md:block">
+              <FeedbackErrorBoundary>
+                <TallyFeedbackButton className="jw-themed-link h-8 w-auto rounded-full py-0 text-sm" />
+              </FeedbackErrorBoundary>
+            </div>
 
             {/* Language */}
             <Button
               variant="ghost"
               size="sm"
-              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
+              className="jw-themed-link hidden h-8 gap-2 rounded-full text-sm md:inline-flex"
               onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
             >
               <Globe className="w-4 h-4 text-[var(--jw-accent)]" />
@@ -452,14 +464,15 @@ export default function ArticlesPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="jw-themed-link h-8 gap-2 rounded-full text-sm"
+              className="jw-themed-link hidden h-8 gap-2 rounded-full text-sm md:inline-flex"
               onClick={() => setBillingDialogOpen(true)}
             >
               <Wallet className="w-4 h-4 text-[var(--jw-accent)]" />
               {t("sidebar.billing")}
             </Button>
 
-            <JoyfulThemeSwitcher variant="compact" />
+            <JoyfulThemeSwitcher variant="icon" className="h-9 w-9 md:hidden" />
+            <JoyfulThemeSwitcher variant="compact" className="hidden md:inline-flex" />
 
             {/* User Avatar */}
             <DropdownMenu>
@@ -509,22 +522,22 @@ export default function ArticlesPage() {
       </header>
 
       {/* Main Content */}
-      <main className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto flex min-h-full max-w-[1500px] flex-col px-6 py-7">
+      <main className="flex-1 overflow-visible md:min-h-0 md:overflow-y-auto">
+        <div className="mx-auto flex min-h-full max-w-[1500px] flex-col px-4 py-5 sm:px-6 md:px-10 md:py-7">
           {/* Page Title + Actions */}
-          <div className="mb-6 border-b border-[var(--jw-border-subtle)] pb-6">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="mb-4 pb-1 md:mb-6 md:border-b md:border-[var(--jw-border-subtle)] md:pb-6">
+            <div className="flex flex-col gap-4 md:gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div className="min-w-0 space-y-2">
                 <div className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--jw-accent)]">
                   <SparklesIcon className="h-3.5 w-3.5" />
                   My Workspace
                 </div>
-                <h1 className="jw-heading-text text-3xl font-bold tracking-tight">
+                <h1 className="jw-heading-text text-2xl font-bold tracking-tight md:text-3xl">
                   {t("contentWriting.tabs.articleManager")}
                 </h1>
               </div>
 
-              <div className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-3 md:grid-cols-4 xl:min-w-[560px]">
+              <div className="grid min-w-0 grid-cols-2 gap-2 md:grid-cols-4 md:gap-x-5 md:gap-y-3 xl:min-w-[560px]">
                 {[
                   { label: t("contentWriting.manager.totalArticles"), value: displayedTotal, icon: BookOpenTextIcon, color: "bg-teal-50 text-teal-700" },
                   { label: t("contentWriting.manager.status.draft"), value: draftCount, icon: FilePenLineIcon, color: "bg-amber-50 text-amber-700" },
@@ -533,12 +546,12 @@ export default function ArticlesPage() {
                 ].map((item) => {
                   const Icon = item.icon
                   return (
-                    <div key={item.label} className="min-w-0 border-l border-[var(--jw-border-subtle)] pl-4">
+                    <div key={item.label} className="min-w-0 rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-strong)] p-3 md:rounded-none md:border-0 md:border-l md:bg-transparent md:p-0 md:pl-4">
                       <div className="mb-1 flex items-center gap-2">
-                        <span className={cn("flex h-6 w-6 items-center justify-center rounded-md", item.color)}>
+                        <span className={cn("flex h-7 w-7 items-center justify-center rounded-md md:h-6 md:w-6", item.color)}>
                           <Icon className="h-3.5 w-3.5" />
                         </span>
-                        <div className="jw-heading-text truncate text-lg font-bold leading-none">{item.value}</div>
+                        <div className="jw-heading-text truncate text-base font-bold leading-none md:text-lg">{item.value}</div>
                       </div>
                       <div className="jw-muted-text truncate text-[11px]">{item.label}</div>
                     </div>
@@ -548,15 +561,15 @@ export default function ArticlesPage() {
             </div>
           </div>
 
-          <div className="mb-3 flex flex-col gap-3 border-b border-[var(--jw-border-subtle)] pb-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="mb-4 flex flex-col gap-3 pb-2 md:mb-3 md:border-b md:border-[var(--jw-border-subtle)] md:pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
               <div className="relative min-w-0 flex-1 lg:max-w-md">
                 <SearchIcon className="jw-muted-text absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
                 <Input
                   value={titleFilter}
                   onChange={(event) => setTitleFilter(event.target.value)}
                   placeholder={t("contentWriting.manager.searchTitlePlaceholder")}
-                  className="jw-themed-input h-10 rounded-lg pl-9"
+                  className="jw-themed-input h-11 rounded-lg pl-9 md:h-10"
                 />
               </div>
               <Select
@@ -565,7 +578,7 @@ export default function ArticlesPage() {
                   setStatusFilter(value as any)
                 }}
               >
-                <SelectTrigger className="jw-themed-input h-10 w-full rounded-lg sm:w-[150px]">
+                <SelectTrigger className="jw-themed-input h-11 w-full rounded-lg md:h-10 md:w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -578,19 +591,19 @@ export default function ArticlesPage() {
               </Select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-[44px_1fr] items-center gap-2 md:flex">
               <Button
                 onClick={handleRefresh}
                 variant="outline"
                 size="icon"
-                className="jw-secondary-button h-10 w-10 rounded-lg"
+                className="jw-secondary-button h-11 w-11 rounded-lg md:h-10 md:w-10"
                 disabled={loading}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
               <Button
                 onClick={() => setCreateModeDialogOpen(true)}
-                className="jw-primary-button h-10 gap-2 rounded-lg"
+                className="jw-primary-button h-11 gap-2 rounded-lg md:h-10"
               >
                 <PlusIcon className="w-4 h-4" />
                 {t("contentWriting.editorHeader.newArticle")}
@@ -629,13 +642,13 @@ export default function ArticlesPage() {
                     <div
                       key={article.id}
                       className={cn(
-                        "group jw-surface-strong grid cursor-pointer gap-4 rounded-xl border p-4 transition-all hover:border-[var(--jw-accent)] hover:bg-[var(--jw-surface-muted)]/35 hover:shadow-[var(--jw-soft-shadow)] sm:grid-cols-[152px_1fr] lg:grid-cols-[168px_1fr_auto]",
+                        "group jw-surface-strong grid cursor-pointer gap-3 rounded-lg border p-3 transition-all hover:border-[var(--jw-accent)] hover:bg-[var(--jw-surface-muted)]/35 hover:shadow-[var(--jw-soft-shadow)] md:grid-cols-[152px_1fr] md:gap-4 md:rounded-xl md:p-4 lg:grid-cols-[168px_1fr_auto]",
                         isDeleting && "pointer-events-none opacity-55"
                       )}
                       onClick={() => handleEditArticle(article)}
                     >
                       <div
-                        className="relative min-h-32 overflow-hidden rounded-lg bg-cover bg-center sm:min-h-0"
+                        className="relative min-h-[7.5rem] overflow-hidden rounded-md bg-cover bg-center md:min-h-0 md:rounded-lg"
                         style={{ backgroundImage: toCssBackgroundImage(thumbnailUrl) }}
                         aria-hidden="true"
                       >
@@ -643,7 +656,7 @@ export default function ArticlesPage() {
                         {isDefaultThumbnail && (
                           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-[var(--jw-surface-strong)] px-2.5 py-1 text-[11px] font-semibold text-[var(--jw-accent)]">
                             <SparklesIcon className="h-3 w-3" />
-                            JoyfulWords
+                            <span className="hidden md:inline">JoyfulWords</span>
                           </div>
                         )}
                       </div>
@@ -659,13 +672,13 @@ export default function ArticlesPage() {
                         </div>
 
                         <div className="mb-2 flex min-w-0 items-center gap-2">
-                          <h3 className="jw-heading-text min-w-0 truncate text-lg font-bold transition-colors group-hover:text-[var(--jw-accent)]">
+                          <h3 className="jw-heading-text min-w-0 truncate text-base font-bold transition-colors group-hover:text-[var(--jw-accent)] md:text-lg">
                             {article.title}
                           </h3>
                           <Button
                             variant="outline"
                             size="icon-sm"
-                            className="jw-secondary-button h-8 w-8 shrink-0 rounded-md"
+                            className="jw-secondary-button h-7 w-7 shrink-0 rounded-md md:h-8 md:w-8"
                             title={t("contentWriting.manager.editTitleAction")}
                             onClick={(e) => {
                               e.stopPropagation()
@@ -677,12 +690,12 @@ export default function ArticlesPage() {
                           </Button>
                         </div>
 
-                        <p className="jw-muted-text line-clamp-2 max-w-4xl text-sm leading-6">
+                        <p className="jw-muted-text line-clamp-2 max-w-4xl text-[13px] leading-5 md:text-sm md:leading-6">
                           {getArticlePlainText(article.content) ||
                             t("contentWriting.writing.editorPlaceholder")}
                         </p>
 
-                        <div className="mt-3 flex flex-wrap gap-1.5">
+                        <div className="mt-2 flex flex-wrap gap-1.5 md:mt-3">
                           {article.tags
                             ?.split(",")
                             .map((tag) => tag.trim())
@@ -699,9 +712,9 @@ export default function ArticlesPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-3 border-t border-[var(--jw-border-subtle)] pt-3 sm:col-span-2 lg:col-span-1 lg:min-w-[170px] lg:flex-col lg:items-end lg:justify-center lg:border-t-0 lg:pt-0">
+                      <div className="flex items-stretch gap-2 border-t border-[var(--jw-border-subtle)] pt-3 md:col-span-2 md:items-center md:justify-between md:gap-3 lg:col-span-1 lg:min-w-[170px] lg:flex-col lg:items-end lg:justify-center lg:border-t-0 lg:pt-0">
                         <Button
-                          className="jw-primary-button h-9 w-full gap-2 rounded-md lg:w-[142px]"
+                          className="jw-primary-button h-9 min-w-0 flex-1 gap-2 rounded-md md:w-full lg:w-[142px] lg:flex-none"
                           disabled={isStatusUpdating}
                           onClick={(e) => {
                             e.stopPropagation()
@@ -712,7 +725,7 @@ export default function ArticlesPage() {
                           {t("contentWriting.manager.openEditor")}
                         </Button>
                         <div
-                          className="grid w-full grid-cols-2 overflow-hidden rounded-md border border-[var(--jw-border-subtle)] bg-transparent lg:w-[142px]"
+                          className="grid w-[92px] shrink-0 grid-cols-2 overflow-hidden rounded-md border border-[var(--jw-border-subtle)] bg-transparent md:w-full lg:w-[142px]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {canPublish && (
@@ -769,17 +782,17 @@ export default function ArticlesPage() {
         </div>
       </main>
 
-      {/* Pagination - 固定在底部 */}
+      {/* Pagination */}
       {displayedTotal > 0 && (
-        <footer className="jw-app-header shrink-0 border-t">
-          <div className="mx-auto flex max-w-[1500px] items-center justify-between px-6 py-4">
-            <div className="jw-muted-text text-sm">
+        <footer className="shrink-0 border-t border-[var(--jw-border-subtle)] bg-transparent md:bg-[var(--jw-header-bg)]">
+          <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-2 px-4 py-3 sm:px-6 md:px-10 md:py-4">
+            <div className="jw-muted-text min-w-0 truncate text-xs sm:text-sm">
               {t("contentWriting.manager.totalCount", {
                 total: displayedTotal,
                 page: pagination.page,
               })}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
               <Select
                 value={String(pagination.pageSize)}
                 onValueChange={(value) => handlePageSizeChange(Number(value))}

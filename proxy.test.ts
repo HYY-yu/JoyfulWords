@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { buildProtectedRouteRedirect } from '@/proxy'
+import { buildProtectedRouteRedirect, config } from '@/proxy'
 
 test('protected route redirect strips Next internal RSC query params', () => {
   assert.equal(
@@ -19,4 +19,11 @@ test('protected route redirect strips Next internal RSC query params', () => {
     ),
     '/articles?tab=billing'
   )
+})
+
+test('proxy matcher excludes landing video assets', () => {
+  const matcher = config.matcher.join('\n')
+
+  assert.match(matcher, /mp4/)
+  assert.match(matcher, /webm/)
 })

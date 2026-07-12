@@ -123,8 +123,27 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
     task.status === "failed" && "border-red-200/80 hover:bg-red-50/45"
   )
 
+  const statusLabel = t(
+    task.status === "completed"
+      ? "contentWriting.taskProgress.statusCompleted"
+      : task.status === "failed"
+        ? "contentWriting.taskProgress.statusFailed"
+        : "contentWriting.taskProgress.statusPending"
+  )
+
   return (
-    <div className={borderClass} onClick={onClick}>
+    <div
+      className={borderClass}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onClick()
+        }
+      }}
+    >
       <div>
         <div className="flex items-center gap-2">
           <span
@@ -139,8 +158,13 @@ function TaskCard({ task, onRemove, onClick }: TaskCardProps) {
 
           <span className="flex-1 truncate text-xs font-semibold">{task.label}</span>
 
-          <span className={cn("shrink-0 transition-opacity", canDelete ? "group-hover:opacity-0" : undefined)}>
+          <span
+            className={cn("shrink-0 transition-opacity", canDelete ? "group-hover:opacity-0" : undefined)}
+            role="img"
+            aria-label={statusLabel}
+          >
             {statusIcon()}
+            <span className="sr-only">{statusLabel}</span>
           </span>
         </div>
 

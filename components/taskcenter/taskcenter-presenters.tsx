@@ -126,11 +126,11 @@ export function getTaskCenterTaskTitle(
   return "articleEdit"
 }
 
-function getPresentationSlideSummaryStage(summary: TaskCenterPresentationSlideSummary): string {
-  if (summary.processing > 0) return "slides_processing"
-  if (summary.pending > 0) return "slides_pending"
-  if (summary.success >= summary.total && summary.total > 0) return "slides_success"
-  return "slides_processing"
+function getPresentationSlideSummaryStageKey(summary: TaskCenterPresentationSlideSummary): string {
+  if (summary.processing > 0) return "presentationStageProcessing"
+  if (summary.pending > 0) return "presentationStagePending"
+  if (summary.success >= summary.total && summary.total > 0) return "presentationStageSuccess"
+  return "presentationStageProcessing"
 }
 
 type TaskCenterTranslate = (key: string, params?: Record<string, any>) => string
@@ -230,18 +230,35 @@ export function getTaskCenterTaskSummary(
 
     const slideSummary = task.details.slide_summary
     if (slideSummary && slideSummary.total > 0) {
-      if (slideSummary.failed > 0) {
-        return `${slideSummary.failed} failed / ${slideSummary.total} slides`
+      if (!t) {
+        return `${slideSummary.success}/${slideSummary.total}`
       }
 
-      return `${slideSummary.success}/${slideSummary.total} slides · ${getPresentationSlideSummaryStage(slideSummary)}`
+      if (slideSummary.failed > 0) {
+        return t("contentWriting.taskCenter.taskSummaries.presentationSlidesFailed", {
+          failed: slideSummary.failed,
+          total: slideSummary.total,
+        })
+      }
+
+      return t("contentWriting.taskCenter.taskSummaries.presentationSlidesProgress", {
+        success: slideSummary.success,
+        total: slideSummary.total,
+        stage: t(
+          `contentWriting.taskCenter.taskSummaries.${getPresentationSlideSummaryStageKey(slideSummary)}`
+        ),
+      })
     }
 
     const summaryParts = [
       task.details.task_kind,
       task.details.stage,
       typeof task.details.slide_count === "number"
-        ? `${task.details.slide_count} slides`
+        ? t
+          ? t("contentWriting.taskCenter.taskSummaries.presentationSlideCount", {
+              count: task.details.slide_count,
+            })
+          : String(task.details.slide_count)
         : null,
     ].filter(Boolean)
 

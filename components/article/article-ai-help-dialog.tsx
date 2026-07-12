@@ -160,13 +160,20 @@ export function ArticleAIHelpDialog({
     ? t("contentWriting.aiHelp.overwriteHint")
     : t("contentWriting.aiHelp.description")
 
-  // 对话框关闭时清理状态
+  // 对话框关闭时清理状态（全量重置，避免下次打开残留上次输入）
   useEffect(() => {
     if (!open) {
       resetMaterials()
       setMaterialScope("article")
       setMaterialSearch("")
       materialsScrollPositionRef.current = 0
+      setPrompt("")
+      setSelectedStyleId(null)
+      setUploadedFile(null)
+      setSelectedMaterials([])
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
     }
   }, [open, resetMaterials])
 
@@ -315,6 +322,11 @@ export function ArticleAIHelpDialog({
   }
 
   const handleGenerate = async () => {
+    // 覆盖保护：已有文章时生成会覆盖当前正文，必须经用户确认
+    if (articleIdFilter && !window.confirm(t("contentWriting.aiHelp.overwriteConfirm"))) {
+      return
+    }
+
     // Validation: style 和上传参考文章二选一
     if (!selectedStyleId && !uploadedFile) {
       toast({
@@ -647,7 +659,7 @@ export function ArticleAIHelpDialog({
             </div>
 
             <DialogFooter className="shrink-0 border-t bg-background px-4 py-4 sm:px-6">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 {t("contentWriting.aiHelp.cancelBtn")}
               </Button>
               <Button
@@ -895,7 +907,7 @@ export function ArticleAIHelpDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             {t("contentWriting.aiHelp.cancelBtn")}
           </Button>
           <Button
