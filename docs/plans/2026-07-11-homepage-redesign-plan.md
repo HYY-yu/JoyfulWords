@@ -294,7 +294,7 @@ ffmpeg -i feature-article-zh.mp4 -vframes 1 -q:v 3 feature-article-zh-poster.jpg
 
 ### 5.4 视频托管与加载
 
-- **存放**：`public/videos/landing/`（走站点同域 CDN）。总量约 12 × 1.2MB ≈ 15MB，在 Docker 镜像可接受范围；若后续膨胀，迁移至 R2（项目已有 `@aws-sdk/client-s3` 与 R2 上传链路）+ 自定义域。
+- **存放（2026-07-12 定稿）**：Cloudflare R2（bucket `joyful-words`），对外域名 `https://cdn.joyword.link/home/video/`，海报在 `.../posters/`。**不进 git 仓库**（曾导致 push 413）。代码中的基址常量：`components/home/sections/landing-media.ts`。上传时设置 `Cache-Control: public, max-age=604800, s-maxage=2592000`。走 CDN 也顺带规避了此前发现的"视频路径被登录鉴权 307 重定向"的问题（资源不再经过应用层）。
 - **✅ 缓存头已补齐（2026-07-11）**：`next.config.mjs` 静态资源缓存规则已加入 `mp4|webm`，视频将命中 `PUBLIC_ASSET_CACHE_CONTROL`（max-age 7 天 / s-maxage 30 天）。
 - **加载策略**：`preload="none"` + poster 首屏即显；Hero 视频可 `preload="metadata"`；全部懒加载（进入视口才 `video.play()`）。
 
