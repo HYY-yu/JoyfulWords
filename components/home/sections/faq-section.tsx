@@ -25,7 +25,7 @@ export function FaqSection() {
           type="single"
           collapsible
           defaultValue="free"
-          className="mt-7 max-w-3xl md:mt-10"
+          className="mt-7 w-full md:mt-10"
           onValueChange={(value) => {
             if (!value) return
             trackProductEvent(PRODUCT_ANALYTICS_EVENTS.LANDING_FAQ_EXPANDED, {
