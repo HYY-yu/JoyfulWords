@@ -282,7 +282,6 @@ export function ArticleCoverDialog({
   })
   const pendingFontTaskIdsRef = useRef<Set<string>>(new Set())
   const resolvingFontTaskIdsRef = useRef<Set<string>>(new Set())
-  const autoStandardizedTitleArticleRef = useRef<string | null>(null)
 
   const [title, setTitle] = useState("")
   const [fontMode, setFontMode] = useState<FontMode>("preset")
@@ -413,7 +412,6 @@ export function ArticleCoverDialog({
     setBackgroundImage(null)
     setTitlePosition(DEFAULT_TITLE_POSITION)
     setIsTitleSelected(false)
-    autoStandardizedTitleArticleRef.current = null
   }, [articleId, articleTitle, open])
 
   useEffect(() => {
@@ -731,20 +729,17 @@ export function ArticleCoverDialog({
     void generateStandardTitle()
   }
 
-  useEffect(() => {
-    if (!open || typeof articleId !== "number") return
-    if (isGeneratingTitle || !needsStandardCoverTitle(title)) return
-
-    const articleKey = String(articleId)
-    if (autoStandardizedTitleArticleRef.current === articleKey) return
-
-    const timeoutId = window.setTimeout(() => {
-      autoStandardizedTitleArticleRef.current = articleKey
-      void generateStandardTitle({ silent: true })
-    }, 500)
-
-    return () => window.clearTimeout(timeoutId)
-  }, [articleId, generateStandardTitle, isGeneratingTitle, open, title])
+  // 标题过长时不再自动静默替换用户输入，改为在导出/字体预览动作前征求用户确认
+  const resolveCoverTitleForAction = useCallback(
+    async (currentTitle: string): Promise<string> => {
+      if (!needsStandardCoverTitle(currentTitle)) return currentTitle
+      const shouldOptimize = window.confirm(t("imageGeneration.cover.titleOptimizeConfirm"))
+      if (!shouldOptimize) return currentTitle
+      const generatedTitle = await generateStandardTitle()
+      return generatedTitle || currentTitle
+    },
+    [generateStandardTitle, t]
+  )
 
   const handleSearchUnsplash = async () => {
     const query = unsplashQuery.trim() || title.trim()
@@ -790,11 +785,8 @@ export function ArticleCoverDialog({
       return
     }
 
-    if (needsStandardCoverTitle(fontTitle) && typeof articleId === "number") {
-      const generatedTitle = await generateStandardTitle({ silent: true })
-      if (generatedTitle) {
-        fontTitle = generatedTitle
-      }
+    if (typeof articleId === "number") {
+      fontTitle = await resolveCoverTitleForAction(fontTitle)
     }
 
     setIsGeneratingFont(true)
@@ -1160,12 +1152,7 @@ export function ArticleCoverDialog({
     const extension = exportFormat === "jpeg" ? "jpg" : exportFormat
 
     try {
-      if (needsStandardCoverTitle(coverTitle)) {
-        const generatedTitle = await generateStandardTitle({ silent: true })
-        if (generatedTitle) {
-          coverTitle = generatedTitle
-        }
-      }
+      coverTitle = await resolveCoverTitleForAction(coverTitle)
 
       drawCover(coverTitle)
       const blob = await new Promise<Blob>((resolve, reject) => {

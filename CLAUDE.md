@@ -1,35 +1,66 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-JoyfulWords (创作者工具箱) is a Next.js 16-based SaaS application providing content creation tools for creators.
+JoyfulWords (创作者工具箱) is a Next.js 16 (App Router) SaaS frontend providing content creation tools for creators. This repo is **frontend only** — the backend is Golang + PostgreSQL, reached via `API_BASE_URL` (`/lib/config.ts`). The only Next.js API route is `app/api/image-proxy`.
 
-**Package Manager:** `pnpm` only.
+**Package Manager:** `pnpm` only. `AGENTS.md` is a copy of this file — keep both in sync when editing.
 
-## Technology Stack
+## Commands
 
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript (strict mode)
-- **Styling**: Tailwind CSS 4.x
-- **UI**: Shadcn/ui (Radix UI)
-- **Rich Text Editor**: Tiptap 3.x
-- **Forms**: React Hook Form + Zod
-- **Backend**: Golang + PostgreSQL
+```bash
+pnpm dev              # dev server at http://localhost:3000
+pnpm dev:joyword      # HTTPS dev at local.joyword.link (needs ./certificates)
+pnpm build            # production build (webpack, standalone output)
+pnpm lint             # eslint . — run this; build does NOT catch TS errors (ignoreBuildErrors: true)
+```
 
-## Quick Reference
+### Tests
 
-### Key Files
-- Rich Text Editor: `/components/tiptap-editor.tsx`
-- Auth Context: `/lib/auth/auth-context.tsx`
-- i18n Hook: `/lib/i18n/` (use `useTranslation()`)
-- Tiptap Extensions: `/lib/tiptap-extensions.ts`
+No test framework — tests use `node:test` + `node:assert/strict`, run via `tsx` (which resolves the `@/*` path alias from tsconfig):
 
-### Component Patterns
-- All components use `"use client"`
-- Use Shadcn/ui from `/components/ui/`
-- Tab-based navigation structure
+```bash
+pnpm tsx --test lib/auth/session-policy.test.ts        # single file
+pnpm tsx --test proxy.test.ts lib/**/*.test.ts         # all tests
+```
+
+Test files live next to their source (`*.test.ts` in `lib/**` and root `proxy.test.ts`).
+
+## Architecture
+
+### Routing: two trees, gated by `proxy.ts`
+
+- **`app/[locale]/`** — public, SEO-facing pages (blog, pricing, mcp, tools, file-converter, legal pages), prefixed `/zh` or `/en`, cached in production (see `next.config.mjs` headers).
+- **Root routes** (`app/articles`, `app/auth`, `app/payment`, `app/tools`, oauth flows) — the authenticated app, un-prefixed, `private, no-store`.
+
+`proxy.ts` (Next.js proxy/middleware) redirects unauthenticated users (no `refresh_token` cookie) to `/auth/login?redirect=...` for non-public routes, and resolves locale (path → cookie → Accept-Language). Which routes are public is defined in `/lib/auth/session-policy.ts` — when adding a public page, update it and keep it aligned with the cache-header matchers in `next.config.mjs` (there's a test asserting alignment).
+
+### API layer
+
+All backend calls go through `/lib/api/client.ts`: attaches Bearer token from `/lib/tokens/token-store`, auto-refreshes on 401 (redirecting to login on refresh failure), sets `Accept-Language`, and intercepts insufficient-credits errors to trigger the recharge dialog. Domain-specific API modules live under `/lib/api/{articles,materials,billing,taskcenter,...}`. Shared response types in `/lib/api/types.ts`.
+
+### i18n
+
+Custom React Context implementation (no library). Chinese (zh) is primary, English (en) secondary.
+
+- Translation files: `/lib/i18n/locales/{zh,en}.ts` — **always add keys to both files**
+- Client: `const { t, locale, setLocale } = useTranslation()` from `/lib/i18n`
+- Server components: `/lib/i18n/server.ts`; route locale parsing: `/lib/i18n/route-locale.ts`
+- Locale persisted in localStorage + `locale` cookie
+
+### Components
+
+- All components use `"use client"`; state is local `useState` (no global state library)
+- Shadcn/ui (Radix) in `/components/ui/`; feature components grouped by domain (`/components/article`, `/components/materials`, ...)
+- Forms: React Hook Form + Zod via `zodResolver`
+- Rich text: Tiptap 3.x — editor at `/components/tiptap-editor.tsx`, extensions in `/lib/tiptap-extensions.ts`, Markdown↔HTML conversion in `/lib/tiptap-utils.ts`
+- Tab-based navigation: main tabs (image-generation, content-writing, knowledge-cards, seo-geo, video-editing) with nested tabs inside content-writing. **image-generation, knowledge-cards, and seo-geo are mock-data only, not production-ready.**
+
+### Observability
+
+OpenTelemetry (server via `instrumentation.ts`, browser via `/components/otel` + `/lib/otel`), Grafana Faro, PostHog analytics. `proxy.ts` emits `server-timing` traceparent headers.
 
 ## Critical Gotchas
 
@@ -51,12 +82,12 @@ ENV NEXT_PUBLIC_ENABLE_COOKIE_BANNER=${NEXT_PUBLIC_ENABLE_COOKIE_BANNER}
 
 **原因**: Next.js 的 `NEXT_PUBLIC_*` 变量在**构建时**被内联到客户端代码中。如果 Dockerfile 中没有声明，即使 `.env.local` 中有值，构建后的代码中该变量仍为 `undefined`。
 
-### When implementing components with Next.js i18n: 
-(1) Avoid nested buttons in forms to prevent HTML5 validation conflicts, 
-(2) Handle server/client date format hydration mismatches, 
+### When implementing components with Next.js i18n:
+(1) Avoid nested buttons in forms to prevent HTML5 validation conflicts,
+(2) Handle server/client date format hydration mismatches,
 (3) Never use dynamic strings in toast() calls - use pre-defined translation keys only.
 
-### TypeScript/React Best Practices section
+### Date handling
 
 Always verify time zone handling when working with Date objects. Never mutate Date objects directly - create new Date instances to avoid side effects. Use toISOString() with caution as it converts to UTC.
 

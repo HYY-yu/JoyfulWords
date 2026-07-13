@@ -14,6 +14,11 @@ export const PRODUCT_ANALYTICS_EVENTS = {
   PAYMENT_FAILED: "payment_failed",
   INSUFFICIENT_CREDITS_SHOWN: "insufficient_credits_shown",
   INSUFFICIENT_CREDITS_RECHARGE_CLICKED: "insufficient_credits_recharge_clicked",
+  LANDING_HERO_VIDEO_PLAYED: "landing_hero_video_play",
+  LANDING_FEATURE_VIDEO_VIEWED: "landing_feature_video_view",
+  LANDING_DEMO_CTA_CLICKED: "landing_demo_cta_click",
+  LANDING_PRIMARY_CTA_CLICKED: "landing_primary_cta_click",
+  LANDING_FAQ_EXPANDED: "landing_faq_expand",
 } as const
 
 export type ProductAnalyticsEvent =

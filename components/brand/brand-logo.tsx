@@ -6,19 +6,21 @@ interface BrandLogoProps {
   showWordmark?: boolean
   compact?: boolean
   className?: string
+  wordmarkClassName?: string
 }
 
 export function BrandLogo({
   showWordmark = true,
   compact = false,
   className,
+  wordmarkClassName,
 }: BrandLogoProps) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
       <div
         className={cn(
           "jw-brand-mark jw-brand-scholar-mark relative flex shrink-0 items-center justify-center rounded-xl border",
-          compact ? "h-8 w-8" : "h-9 w-9"
+          compact ? "h-8 w-8" : "h-8 w-8 sm:h-9 sm:w-9"
         )}
       >
         <span className={cn("jw-brand-scholar", compact ? "is-compact" : "")}>
@@ -58,7 +60,7 @@ export function BrandLogo({
         </span>
       </div>
       {showWordmark ? (
-        <span className="text-base font-bold tracking-tight text-[var(--jw-heading)]">
+        <span className={cn("text-[15px] font-bold tracking-tight text-[var(--jw-heading)] sm:text-base", wordmarkClassName)}>
           JoyfulWords
         </span>
       ) : null}
