@@ -19,7 +19,7 @@ reliable status source. WebSocket presentation events only trigger an immediate 
 - `lib/api/presentations/v2`: backend HTTP contract and client.
 - `lib/presentations/v2`: validation, stage ordering, errors, and local recovery session.
 - `components/presentation/v2`: the four-step article workflow.
-- `components/taskcenter/presentation-task-detail.tsx`: V1/V2 TaskCenter router.
+- `components/taskcenter/presentation-task-detail.tsx`: TaskCenter V2 detail entry.
 
 ## Recovery
 
@@ -31,11 +31,9 @@ current Storycard and generation; stale or cross-article job IDs are discarded.
 
 TaskCenter remains the target discovery and history surface for presentations. Until the backend
 returns V2 generations there, the article dialog does not depend on TaskCenter. When available,
-TaskCenter should return `contract_version: "v2"` and `generation_id`; the V2 detail then reads the
-generation directly from `/presentations/v2/generations/:id`.
-
-Historical V1 records continue through the legacy detail component until their retention window
-ends. New V2 code must not call the V1 storycard, layouts, or logs APIs.
+TaskCenter should return `generation_id` and may return `contract_version: "v2"`; the detail reads
+the generation directly from `/presentations/v2/generations/:id`. The frontend no longer contains
+the V1 presentation dialog, TaskCenter detail, API client, types, or compatibility adapter.
 
 ## Observability
 
@@ -50,9 +48,8 @@ retry counts when the frontend metrics contract is finalized.
 ## Verification
 
 ```bash
-pnpm tsx --test lib/presentations/v2/*.test.ts lib/api/taskcenter/presentation-adapter.test.ts
+pnpm tsx --test lib/presentations/v2/*.test.ts lib/api/taskcenter/presentation-v2.test.ts
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
 ```
-

@@ -1,7 +1,5 @@
 "use client"
 
-import type { PresentationPreviewManifest } from "@/lib/api/presentations/types"
-
 export const TASK_CENTER_TASK_TYPES = [
   "article",
   "image",
@@ -75,35 +73,18 @@ export interface TaskCenterInfographicListDetails {
   model_reference_id?: string
 }
 
-export interface TaskCenterPresentationSlideSummary {
-  total: number
-  pending: number
-  processing: number
-  success: number
-  failed: number
-}
-
 export interface TaskCenterPresentationListDetails {
   article_id: number
-  contract_version?: "v1" | "v2"
+  contract_version?: "v2"
   generation_id?: number
   storycard_id?: number
   template_id?: number
   template_key?: string
   template_version?: number
-  task_kind?: string
   stage?: string
   slide_count?: number
-  slide_summary?: TaskCenterPresentationSlideSummary
-  model_name?: string
   completed_at?: string | null
-  ppt_url?: string
-  pptUrl?: string
-  PPT_URL?: string
-  artifact_url?: string
-  artifactUrl?: string
-  preview?: PresentationPreviewManifest | null
-  cached?: boolean
+  pptx_url?: string
   error?: string
   error_code?: string
 }
@@ -290,51 +271,22 @@ export interface TaskCenterInfographicTaskDetail {
   updated_at: string
 }
 
-export interface TaskCenterPresentationSlideTask {
-  id: number
-  presentation_log_id: number
-  slide_index: number
-  storycard_node_id: string
-  layout_type?: string
-  status: TaskCenterPresentationStatus
-  error_message?: string
-  image_prompt?: string
-  image_url?: string
-  image_task_id?: number
-  retry_count?: number
-  created_at?: string
-  updated_at?: string
-  completed_at?: string | null
-}
-
 export interface TaskCenterPresentationTaskDetail {
   id: number
   article_id: number
-  contract_version?: "v1" | "v2"
+  contract_version?: "v2"
   generation_id?: number
   storycard_id?: number
   template_id?: number
   template_key?: string
   template_version?: number
-  task_kind?: string
   stage?: string
   slide_count?: number
-  slide_summary?: TaskCenterPresentationSlideSummary
-  slides?: TaskCenterPresentationSlideTask[]
-  model_name?: string
   status: TaskCenterPresentationStatus
   error?: string
   error_code?: string
   error_message?: string
-  cached?: boolean
-  layouts_json?: unknown
-  deck_model_json?: unknown
-  ppt_url?: string
-  pptUrl?: string
-  PPT_URL?: string
-  artifact_url?: string
-  artifactUrl?: string
-  preview?: PresentationPreviewManifest | null
+  pptx_url?: string
   created_at: string
   updated_at: string
   completed_at?: string | null
@@ -444,35 +396,14 @@ export function getTaskCenterTaskKey(task: TaskCenterTaskReference): string {
 
 type TaskCenterPresentationDownloadSource = Pick<
   TaskCenterPresentationListDetails,
-  "ppt_url" | "pptUrl" | "PPT_URL" | "artifact_url" | "artifactUrl"
+  "pptx_url"
 >
 
 export function getTaskCenterPresentationDownloadUrl(
   value: TaskCenterPresentationDownloadSource | null | undefined
 ): string | null {
-  const candidates = [
-    value?.ppt_url,
-    value?.pptUrl,
-    value?.PPT_URL,
-    value?.artifact_url,
-    value?.artifactUrl,
-  ]
-
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim().length > 0) {
-      return candidate.trim()
-    }
-  }
-
-  return null
-}
-
-export function shouldDisplayTaskCenterTask(task: TaskCenterTaskListItem): boolean {
-  if (task.type === "presentation" && task.details.task_kind === "ppt_export") {
-    return false
-  }
-
-  return true
+  const downloadUrl = value?.pptx_url?.trim()
+  return downloadUrl || null
 }
 
 export function parseTaskCenterImageUrls(value: unknown): string[] {

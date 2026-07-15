@@ -11,7 +11,6 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
   TaskCenterArticleListDetails,
   TaskCenterArticleTaskDetail,
-  TaskCenterPresentationSlideSummary,
   TaskCenterPresentationTaskDetail,
   TaskCenterEChartsTaskDetail,
   TaskCenterTaskDetailResponse,
@@ -113,24 +112,13 @@ export function getTaskCenterTaskTitle(
   if (task.type === "echarts") return "echarts"
   if (task.type === "podcast") return "podcast"
   if (task.type === "podcast_audio") return "podcastAudio"
-  if (task.type === "presentation") {
-    const taskKind = task.details.task_kind
-    if (taskKind === "storycard_generate") return "presentationStorycard"
-    return "presentationLayout"
-  }
+  if (task.type === "presentation") return "presentation"
 
   if (task.type === "article") {
     return getArticleTaskTitle(task.details)
   }
 
   return "articleEdit"
-}
-
-function getPresentationSlideSummaryStageKey(summary: TaskCenterPresentationSlideSummary): string {
-  if (summary.processing > 0) return "presentationStageProcessing"
-  if (summary.pending > 0) return "presentationStagePending"
-  if (summary.success >= summary.total && summary.total > 0) return "presentationStageSuccess"
-  return "presentationStageProcessing"
 }
 
 type TaskCenterTranslate = (key: string, params?: Record<string, any>) => string
@@ -216,43 +204,10 @@ export function getTaskCenterTaskSummary(
   }
 
   if (task.type === "presentation") {
-    if (task.details.task_kind === "storycard_generate" && t) {
-      if (task.status === "failed") {
-        return t("contentWriting.taskCenter.taskSummaries.presentationStorycardFailed")
-      }
-
-      if (task.status === "success" || task.status === "succeeded") {
-        return t("contentWriting.taskCenter.taskSummaries.presentationStorycardSuccess")
-      }
-
-      return t("contentWriting.taskCenter.taskSummaries.presentationStorycardProcessing")
-    }
-
-    const slideSummary = task.details.slide_summary
-    if (slideSummary && slideSummary.total > 0) {
-      if (!t) {
-        return `${slideSummary.success}/${slideSummary.total}`
-      }
-
-      if (slideSummary.failed > 0) {
-        return t("contentWriting.taskCenter.taskSummaries.presentationSlidesFailed", {
-          failed: slideSummary.failed,
-          total: slideSummary.total,
-        })
-      }
-
-      return t("contentWriting.taskCenter.taskSummaries.presentationSlidesProgress", {
-        success: slideSummary.success,
-        total: slideSummary.total,
-        stage: t(
-          `contentWriting.taskCenter.taskSummaries.${getPresentationSlideSummaryStageKey(slideSummary)}`
-        ),
-      })
-    }
-
     const summaryParts = [
-      task.details.task_kind,
-      task.details.stage,
+      task.details.stage && t
+        ? t(`presentationV2.generation.stage.${task.details.stage}`)
+        : task.details.stage,
       typeof task.details.slide_count === "number"
         ? t
           ? t("contentWriting.taskCenter.taskSummaries.presentationSlideCount", {
@@ -262,7 +217,7 @@ export function getTaskCenterTaskSummary(
         : null,
     ].filter(Boolean)
 
-    return summaryParts.join(" / ") || task.details.model_name || "-"
+    return summaryParts.join(" / ") || "-"
   }
 
   if (task.type === "echarts") {
@@ -483,12 +438,6 @@ export function TaskCenterTaskDetailView({
             className="sm:col-span-2"
           />
           ) : null}
-          {"task_kind" in detail ? (
-          <DetailField
-            label={t("contentWriting.taskCenter.fields.taskKind")}
-            value={detail.task_kind || "-"}
-          />
-          ) : null}
           {"stage" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.stage")}
@@ -632,11 +581,10 @@ export function TaskCenterTaskDetailView({
             value={t("contentWriting.taskCenter.billing.noCharge")}
           />
           ) : null}
-          {taskRef.type === "presentation" &&
-        ("task_kind" in detail ? detail.task_kind === "layout_generate" : false) ? (
+          {taskRef.type === "presentation" && presentationDownloadUrl ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.pptUrl")}
-            value={presentationDownloadUrl || "-"}
+            value={presentationDownloadUrl}
             className="sm:col-span-2"
           />
           ) : null}

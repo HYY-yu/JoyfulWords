@@ -172,7 +172,7 @@ export function PresentationTaskDetailV2({
         {onContinuePresentation ? (
           <Button variant="outline" onClick={() => onContinuePresentation(detail.article_id)}>
             <ExternalLinkIcon className="size-4" />
-            {t("presentation.detail.storycardGenerate.continueToDeck")}
+            {t("presentationV2.taskCenter.continueInArticle")}
           </Button>
         ) : null}
         {failed ? (
