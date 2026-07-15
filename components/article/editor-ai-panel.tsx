@@ -32,7 +32,6 @@ import { infographicsClient } from "@/lib/api/infographics/client"
 import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
 import type {
   TaskCenterEChartsTaskListItem,
-  TaskCenterPresentationTaskListItem,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
   TaskCenterTaskReference,
@@ -67,7 +66,7 @@ import {
 import { useCallback, useEffect, useMemo, useState, type ReactNode, type UIEvent } from "react"
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
-import { PresentationDialog } from "./presentation-dialog"
+import { PresentationFlowDialog } from "@/components/presentation/v2/presentation-flow-dialog"
 import { EChartsDialog } from "./echarts-dialog"
 import { WeChatMPExportDialog } from "./wechat-mp-export-dialog"
 import { PodcastAudioDialog } from "./podcast-audio-dialog"
@@ -190,8 +189,6 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "structure",
-    disabled: true,
-    tooltipKey: "tiptapEditor.aiPanel.featureUnavailable",
   },
 ]
 
@@ -400,21 +397,6 @@ export function EditorAIPanel({
         .sort((left, right) => right.startedAt - left.startedAt),
     [deletingTaskKeys, liveTasks, t]
   )
-  const latestPresentationLayoutTask = useMemo(() => {
-    return (
-      liveTasks
-        .filter(
-          (task): task is TaskCenterPresentationTaskListItem =>
-            task.type === "presentation" &&
-            task.details.article_id === articleId &&
-            task.details.task_kind !== "storycard_generate"
-        )
-        .sort(
-          (left, right) =>
-            new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-        )[0] ?? null
-    )
-  }, [articleId, liveTasks])
   const localAnalysisTasks = useMemo(() => {
     if (!echartsArticleAnalysisSession) return []
 
@@ -869,7 +851,8 @@ export function EditorAIPanel({
                       {groupButtons.map((btn) => {
                         const Icon = btn.icon
                         // 前置条件在按钮层可见：未保存的文章无法使用依赖 articleId 的功能
-                        const requiresSavedArticle = btn.id === "ai-edit" || btn.id === "ai-cover"
+                        const requiresSavedArticle =
+                          btn.id === "ai-edit" || btn.id === "ai-cover" || btn.id === "presentation"
                         const isMissingSavedArticle = requiresSavedArticle && typeof articleId !== "number"
                         const isDisabled = Boolean(btn.disabled) || isMissingSavedArticle
                         const tooltipKey = btn.disabled
@@ -1172,16 +1155,15 @@ export function EditorAIPanel({
         }}
       />
 
-      <PresentationDialog
+      <PresentationFlowDialog
         open={isPresentationOpen}
         onOpenChange={setIsPresentationOpen}
         articleId={articleId}
-        latestPresentationTask={latestPresentationLayoutTask}
-        onTaskSubmitted={(taskRef) => {
+        onPresentationTaskChanged={(event) => {
           void refetch({ silent: true })
-          console.info("[EditorAIPanel] Submitted presentation task", {
-            taskId: taskRef.id,
-            taskType: taskRef.type,
+          console.info("[EditorAIPanel] Presentation generation changed", {
+            generationId: event.generationId,
+            status: event.status,
             articleId,
           })
         }}

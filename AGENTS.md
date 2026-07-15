@@ -109,6 +109,7 @@ Always verify time zone handling when working with Date objects. Never mutate Da
 | **Features** | |
 | Tiptap Editor | `/docs/tiptap/editor_features.md` |
 | Tiptap Image Features | `/docs/tiptap/IMAGE_FEATURES.md` |
+| PPT V2 Frontend | `/docs/presentation/PRESENTATION_V2.md` |
 | Tally Feedback | `/docs/features/tally-feedback.md` |
 | **Components** | |
 | Cookie Banner | `/docs/cookie_banner/COOKIE_BANNER.md` |

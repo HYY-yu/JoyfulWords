@@ -19,7 +19,12 @@ export type TaskCenterArticleOperationType = "" | "edit" | "writer_create" | "wr
 export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
-export type TaskCenterPresentationStatus = "pending" | "processing" | "success" | "failed"
+export type TaskCenterPresentationStatus =
+  | "pending"
+  | "processing"
+  | "success"
+  | "succeeded"
+  | "failed"
 export type TaskCenterEChartsStatus = "pending" | "processing" | "success" | "failed" | "succeeded"
 export type TaskCenterPodcastStatus = "pending" | "processing" | "success" | "failed"
 
@@ -80,7 +85,12 @@ export interface TaskCenterPresentationSlideSummary {
 
 export interface TaskCenterPresentationListDetails {
   article_id: number
+  contract_version?: "v1" | "v2"
+  generation_id?: number
   storycard_id?: number
+  template_id?: number
+  template_key?: string
+  template_version?: number
   task_kind?: string
   stage?: string
   slide_count?: number
@@ -95,6 +105,7 @@ export interface TaskCenterPresentationListDetails {
   preview?: PresentationPreviewManifest | null
   cached?: boolean
   error?: string
+  error_code?: string
 }
 
 export interface TaskCenterEChartsListDetails {
@@ -299,7 +310,12 @@ export interface TaskCenterPresentationSlideTask {
 export interface TaskCenterPresentationTaskDetail {
   id: number
   article_id: number
+  contract_version?: "v1" | "v2"
+  generation_id?: number
   storycard_id?: number
+  template_id?: number
+  template_key?: string
+  template_version?: number
   task_kind?: string
   stage?: string
   slide_count?: number
@@ -308,6 +324,7 @@ export interface TaskCenterPresentationTaskDetail {
   model_name?: string
   status: TaskCenterPresentationStatus
   error?: string
+  error_code?: string
   error_message?: string
   cached?: boolean
   layouts_json?: unknown

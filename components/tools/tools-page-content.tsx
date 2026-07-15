@@ -648,12 +648,24 @@ function ToolDetail({
 
             <div className="tools-detail-placeholder">
               <h2>
-                {t("toolsPage.detail.placeholderTitle")}
+                {tool.slug === "ppt-generator"
+                  ? t("toolsPage.detail.pptTitle")
+                  : t("toolsPage.detail.placeholderTitle")}
               </h2>
-              <p>{t("toolsPage.detail.placeholderDescription")}</p>
-              <Button className="jw-primary-button rounded-full" disabled>
-                {t("toolsPage.detail.disabledAction")}
-              </Button>
+              <p>
+                {tool.slug === "ppt-generator"
+                  ? t("toolsPage.detail.pptDescription")
+                  : t("toolsPage.detail.placeholderDescription")}
+              </p>
+              {tool.slug === "ppt-generator" ? (
+                <Button asChild className="jw-primary-button rounded-full">
+                  <Link href="/articles">{t("toolsPage.detail.pptAction")}</Link>
+                </Button>
+              ) : (
+                <Button className="jw-primary-button rounded-full" disabled>
+                  {t("toolsPage.detail.disabledAction")}
+                </Button>
+              )}
             </div>
           </div>
 

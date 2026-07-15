@@ -133,25 +133,19 @@ export function FeaturesSection() {
                     ))}
                   </ul>
 
-                  {feature.key === "ppt" ? (
-                    <span className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-[var(--jw-border)] bg-[var(--jw-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--jw-accent)] md:mt-6">
-                      {t("landing.features.ppt.cta")}
-                    </span>
-                  ) : (
-                    <Link
-                      href={href}
-                      prefetch={false}
-                      className="mt-5 inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-[var(--jw-accent)] outline-none transition-colors hover:text-[var(--jw-accent-hover)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--jw-accent)] focus-visible:ring-offset-4 md:mt-6"
-                      onClick={() =>
-                        trackProductEvent(PRODUCT_ANALYTICS_EVENTS.LANDING_PRIMARY_CTA_CLICKED, {
-                          section: `feature_${feature.key}`,
-                        })
-                      }
-                    >
-                      {t(`landing.features.${feature.key}.cta`)}
-                      <ArrowRightIcon className="size-4" strokeWidth={1.7} aria-hidden="true" />
-                    </Link>
-                  )}
+                  <Link
+                    href={href}
+                    prefetch={false}
+                    className="mt-5 inline-flex items-center gap-1.5 rounded-md text-sm font-semibold text-[var(--jw-accent)] outline-none transition-colors hover:text-[var(--jw-accent-hover)] hover:underline focus-visible:ring-2 focus-visible:ring-[var(--jw-accent)] focus-visible:ring-offset-4 md:mt-6"
+                    onClick={() =>
+                      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.LANDING_PRIMARY_CTA_CLICKED, {
+                        section: `feature_${feature.key}`,
+                      })
+                    }
+                  >
+                    {t(`landing.features.${feature.key}.cta`)}
+                    <ArrowRightIcon className="size-4" strokeWidth={1.7} aria-hidden="true" />
+                  </Link>
                 </div>
                 <div className={index % 2 === 1 ? "md:order-1" : undefined}>{media}</div>
               </article>
