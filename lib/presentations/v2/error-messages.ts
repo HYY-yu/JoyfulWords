@@ -2,6 +2,7 @@ export const PRESENTATION_GENERATION_ERROR_CODES = [
   "dependency_unavailable",
   "invalid_storycard_snapshot",
   "invalid_template_snapshot",
+  "invalid_runtime_manifest",
   "article_not_found",
   "image_catalog_failed",
   "template_match_failed",
@@ -25,4 +26,3 @@ export function getPresentationGenerationErrorKey(errorCode: string): string {
     ? `presentationV2.errors.generation.${errorCode}`
     : "presentationV2.errors.generation.unknown"
 }
-

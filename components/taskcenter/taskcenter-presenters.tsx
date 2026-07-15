@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/base/button"
 import { PresentationTaskDetail } from "@/components/taskcenter/presentation-task-detail"
 import { EChartsTaskDetail } from "@/components/taskcenter/echarts-task-detail"
 import { getImageTaskErrorMessageKey } from "@/lib/api/taskcenter/image-error-messages"
+import { getPresentationGenerationErrorKey } from "@/lib/presentations/v2/error-messages"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import type {
   TaskCenterArticleListDetails,
@@ -40,6 +41,7 @@ const STATUS_VARIANTS: Record<
   TaskCenterTaskStatus,
   "default" | "secondary" | "destructive" | "outline"
 > = {
+  queued: "outline",
   pending: "outline",
   processing: "secondary",
   success: "default",
@@ -204,11 +206,15 @@ export function getTaskCenterTaskSummary(
   }
 
   if (task.type === "presentation") {
+    if (task.status === "failed" && t) {
+      return t(getPresentationGenerationErrorKey(task.details.error_code))
+    }
+
     const summaryParts = [
       task.details.stage && t
         ? t(`presentationV2.generation.stage.${task.details.stage}`)
         : task.details.stage,
-      typeof task.details.slide_count === "number"
+      task.details.slide_count > 0
         ? t
           ? t("contentWriting.taskCenter.taskSummaries.presentationSlideCount", {
               count: task.details.slide_count,
@@ -311,12 +317,14 @@ export function TaskCenterTaskDetailView({
   detail,
   onOpenArticle,
   onContinuePresentation,
+  onPresentationRetried,
   className,
 }: {
   taskRef: TaskCenterTaskReference
   detail: TaskCenterTaskDetailResponse
   onOpenArticle?: (articleId: number) => void
   onContinuePresentation?: (articleId: number) => void
+  onPresentationRetried?: () => void | Promise<void>
   className?: string
 }) {
   const { t } = useTranslation()
@@ -336,7 +344,7 @@ export function TaskCenterTaskDetailView({
         })
       : null
   const rawErrorMessage =
-    taskRef.type === "image" || taskRef.type === "echarts"
+    taskRef.type === "image" || taskRef.type === "echarts" || taskRef.type === "presentation"
       ? null
       : ("error" in detail && detail.error) ||
         ("error_message" in detail && detail.error_message) ||
@@ -361,7 +369,7 @@ export function TaskCenterTaskDetailView({
   const articleRespTextLabel = isWriterArticleTask
     ? t("contentWriting.taskCenter.fields.generatedContent")
     : t("contentWriting.taskCenter.fields.resultText")
-  const showGenericFields = taskRef.type !== "echarts"
+  const showGenericFields = taskRef.type !== "echarts" && taskRef.type !== "presentation"
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -611,6 +619,7 @@ export function TaskCenterTaskDetailView({
         <PresentationTaskDetail
           detail={detail as TaskCenterPresentationTaskDetail}
           onContinuePresentation={onContinuePresentation}
+          onRetried={onPresentationRetried}
         />
       ) : taskRef.type === "echarts" ? (
         <EChartsTaskDetail detail={detail as TaskCenterEChartsTaskDetail} />

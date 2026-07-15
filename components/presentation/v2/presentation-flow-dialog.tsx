@@ -88,9 +88,11 @@ export function PresentationFlowDialog({
   const { t, locale } = useTranslation()
   const { toast } = useToast()
   const { user } = useAuth()
+  const userId = user?.id ?? null
   const mountedSequenceRef = useRef(0)
   const storycardPollStartedAtRef = useRef<number | null>(null)
   const lastNotifiedGenerationRef = useRef<string | null>(null)
+  const onPresentationTaskChangedRef = useRef(onPresentationTaskChanged)
 
   const [step, setStep] = useState<FlowStep>(0)
   const [language, setLanguage] = useState<PPTLanguage>(locale === "zh" ? "zh" : "en")
@@ -114,6 +116,10 @@ export function PresentationFlowDialog({
   const storycardBusy = storycardAction !== null
   const generationBusy = generation?.status === "queued" || generation?.status === "processing"
   const generationId = generation?.id ?? null
+
+  useEffect(() => {
+    onPresentationTaskChangedRef.current = onPresentationTaskChanged
+  }, [onPresentationTaskChanged])
 
   const syncStorycard = useCallback((nextStorycard: StorycardResponse) => {
     setStorycard(nextStorycard)
@@ -158,31 +164,36 @@ export function PresentationFlowDialog({
 
   const persistSession = useCallback(
     (nextGeneration: GenerationResponse | null, template: PPTTemplate | null = null) => {
-      if (!user || typeof articleId !== "number") return
+      if (typeof userId !== "number" || typeof articleId !== "number") return
 
-      const existing = loadPresentationFlowSession(user.id, articleId)
+      const existing = loadPresentationFlowSession(userId, articleId)
 
       savePresentationFlowSession({
-        userId: user.id,
+        userId,
         articleId,
         generationId: nextGeneration?.id,
         templateKey: template?.template_key ?? existing?.templateKey,
         templateVersion: template?.version ?? existing?.templateVersion,
       })
     },
-    [articleId, user]
+    [articleId, userId]
   )
 
   const refreshGeneration = useCallback(
     async (generationId: number, options: { clearInvalid?: boolean; revealStep?: boolean } = {}) => {
       const result = await presentationsV2Client.getGeneration(generationId)
       if (hasApiError(result)) {
-        if (result.status === 404 && options.clearInvalid && user && typeof articleId === "number") {
+        if (
+          result.status === 404 &&
+          options.clearInvalid &&
+          typeof userId === "number" &&
+          typeof articleId === "number"
+        ) {
           console.warn("[PresentationV2] Clearing stale generation session", {
             generationId,
             articleId,
           })
-          clearPresentationFlowSession(user.id, articleId)
+          clearPresentationFlowSession(userId, articleId)
           setGeneration(null)
           return
         }
@@ -209,7 +220,7 @@ export function PresentationFlowDialog({
           expectedArticleId: articleId,
           actualArticleId: result.article_id,
         })
-        if (user) clearPresentationFlowSession(user.id, articleId)
+        if (typeof userId === "number") clearPresentationFlowSession(userId, articleId)
         return
       }
 
@@ -222,14 +233,14 @@ export function PresentationFlowDialog({
       const notificationKey = `${result.id}:${result.status}`
       if (lastNotifiedGenerationRef.current !== notificationKey) {
         lastNotifiedGenerationRef.current = notificationKey
-        onPresentationTaskChanged?.({
+        onPresentationTaskChangedRef.current?.({
           generationId: result.id,
           articleId: result.article_id,
           status: result.status,
         })
       }
     },
-    [articleId, onPresentationTaskChanged, persistSession, user]
+    [articleId, persistSession, userId]
   )
 
   useEffect(() => {
@@ -238,7 +249,7 @@ export function PresentationFlowDialog({
       return
     }
 
-    if (typeof articleId !== "number" || !user) return
+    if (typeof articleId !== "number" || typeof userId !== "number") return
 
     const sequence = ++mountedSequenceRef.current
     setLoading(true)
@@ -276,7 +287,7 @@ export function PresentationFlowDialog({
         setTemplates(templatesResult.templates)
       }
 
-      const session = loadPresentationFlowSession(user.id, articleId)
+      const session = loadPresentationFlowSession(userId, articleId)
       if (session?.templateKey && session.templateVersion) {
         const matchedTemplate = hasApiError(templatesResult)
           ? null
@@ -302,7 +313,7 @@ export function PresentationFlowDialog({
     return () => {
       mountedSequenceRef.current += 1
     }
-  }, [articleId, open, refreshGeneration, reset, syncStorycard, user])
+  }, [articleId, open, refreshGeneration, reset, syncStorycard, userId])
 
   useEffect(() => {
     if (
@@ -535,7 +546,7 @@ export function PresentationFlowDialog({
       setStep(result.status === "succeeded" ? 3 : 2)
       persistSession(result, selectedTemplate)
       lastNotifiedGenerationRef.current = `${result.id}:${result.status}`
-      onPresentationTaskChanged?.({
+      onPresentationTaskChangedRef.current?.({
         generationId: result.id,
         articleId: result.article_id,
         status: result.status,
@@ -544,7 +555,7 @@ export function PresentationFlowDialog({
     } finally {
       setGenerationSubmitting(false)
     }
-  }, [onPresentationTaskChanged, persistSession, selectedTemplate, storycard, t, toast])
+  }, [persistSession, selectedTemplate, storycard, t, toast])
 
   const handleRetry = useCallback(async () => {
     if (!generation) return
@@ -566,7 +577,7 @@ export function PresentationFlowDialog({
       setStep(2)
       persistSession(result)
       lastNotifiedGenerationRef.current = `${result.id}:${result.status}`
-      onPresentationTaskChanged?.({
+      onPresentationTaskChangedRef.current?.({
         generationId: result.id,
         articleId: result.article_id,
         status: result.status,
@@ -575,7 +586,24 @@ export function PresentationFlowDialog({
     } finally {
       setRetrying(false)
     }
-  }, [generation, onPresentationTaskChanged, persistSession, t, toast])
+  }, [generation, persistSession, t, toast])
+
+  const handleEditStorycard = useCallback(() => {
+    if (typeof userId === "number" && typeof articleId === "number") {
+      clearPresentationFlowSession(userId, articleId)
+    }
+
+    console.info("[PresentationV2] Starting a new Storycard revision", {
+      articleId,
+      previousGenerationId: generation?.id,
+    })
+    lastNotifiedGenerationRef.current = null
+    setGeneration(null)
+    setMaxStageIndex(-1)
+    setSelectedTemplate(null)
+    setErrorKey(null)
+    setStep(0)
+  }, [articleId, generation?.id, userId])
 
   const handleDownload = useCallback(async () => {
     if (!generation) return
@@ -676,6 +704,7 @@ export function PresentationFlowDialog({
         currentStep={step}
         labels={stepLabels}
         highestReachableStep={highestReachableStep}
+        navigationLocked={generation !== null}
         onStepChange={(nextStep) => {
           if (nextStep <= highestReachableStep) setStep(nextStep as FlowStep)
         }}
@@ -779,6 +808,7 @@ export function PresentationFlowDialog({
           downloading={downloading}
           onRetry={() => void handleRetry()}
           onDownload={() => void handleDownload()}
+          onEditStorycard={handleEditStorycard}
         />
       ) : (
         <div className="grid min-h-0 flex-1 place-items-center text-sm text-muted-foreground">

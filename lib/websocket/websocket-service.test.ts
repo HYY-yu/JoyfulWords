@@ -71,3 +71,30 @@ test("keeps first-connect socket errors visible", async () => {
     restore()
   }
 })
+
+test("treats every presentation task message as a TaskCenter refetch signal", async () => {
+  const { shouldRefetchPresentationTask, WebSocketMessageType } = await import(
+    "./websocket-service"
+  )
+
+  for (const messageType of [
+    WebSocketMessageType.TASK_UPDATE,
+    WebSocketMessageType.TASK_COMPLETE,
+    WebSocketMessageType.TASK_FAILED,
+  ] as const) {
+    assert.equal(
+      shouldRefetchPresentationTask({
+        connectionKey: "global",
+        messageType,
+        payload: {
+          task_id: 10,
+          task_type: "presentation",
+          article_id: 123,
+          status: "processing",
+          outputs: { stage: "generating_pptx" },
+        },
+      }),
+      true
+    )
+  }
+})

@@ -6,7 +6,11 @@ import type {
   TaskCenterTaskListItem,
   TaskCenterTasksQuery,
 } from "@/lib/api/taskcenter/types"
-import { webSocketService, type TaskSocketEvent } from "@/lib/websocket/websocket-service"
+import {
+  shouldRefetchPresentationTask,
+  webSocketService,
+  type TaskSocketEvent,
+} from "@/lib/websocket/websocket-service"
 import { tokenStore } from "@/lib/tokens/token-store"
 
 interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "signal" | "page_size" | "cursor"> {
@@ -241,6 +245,27 @@ export function useTaskCenterLiveTasks({
     }
 
     const handleTaskEvent = (event: TaskSocketEvent) => {
+      if (queryType && event.payload.task_type !== queryType) return
+      if (
+        typeof queryArticleId === "number" &&
+        typeof event.payload.article_id === "number" &&
+        event.payload.article_id !== queryArticleId
+      ) {
+        return
+      }
+
+      if (shouldRefetchPresentationTask(event)) {
+        console.debug("[TaskCenter] Refetching presentation task after websocket event", {
+          taskId: event.payload.task_id,
+          messageType: event.messageType,
+          status: event.payload.status,
+        })
+        // Presentation socket payloads are refresh signals. The TaskCenter API remains
+        // the source of truth for all three update/complete/failed message types.
+        void fetchTasks({ silent: true })
+        return
+      }
+
       setTasks((currentTasks) => {
         const taskIndex = currentTasks.findIndex(
           (task) => task.id === event.payload.task_id && task.type === event.payload.task_type
@@ -276,7 +301,7 @@ export function useTaskCenterLiveTasks({
         webSocketService.releaseArticleConnection(articleId)
       }
     }
-  }, [enabled, fetchTasks, queryArticleId, realtimeScope])
+  }, [enabled, fetchTasks, queryArticleId, queryType, realtimeScope])
 
   return {
     tasks,

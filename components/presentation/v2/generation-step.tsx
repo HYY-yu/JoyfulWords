@@ -5,6 +5,7 @@ import {
   CheckCircle2Icon,
   DownloadIcon,
   Loader2Icon,
+  PencilLineIcon,
   PresentationIcon,
   RefreshCwIcon,
 } from "lucide-react"
@@ -22,6 +23,7 @@ interface GenerationStepProps {
   downloading?: boolean
   onRetry: () => void
   onDownload: () => void
+  onEditStorycard: () => void
 }
 
 export function GenerationStep({
@@ -31,6 +33,7 @@ export function GenerationStep({
   downloading = false,
   onRetry,
   onDownload,
+  onEditStorycard,
 }: GenerationStepProps) {
   const { t } = useTranslation()
   const succeeded = generation.status === "succeeded"
@@ -94,20 +97,26 @@ export function GenerationStep({
           </div>
         ) : null}
 
-        <div className="mt-10 flex justify-center gap-3">
-          {failed ? (
-            <Button onClick={onRetry} disabled={retrying}>
-              {retrying ? <Loader2Icon className="size-4 animate-spin" /> : <RefreshCwIcon className="size-4" />}
-              {t("presentationV2.generation.retry")}
+        {succeeded || failed ? (
+          <div className="mt-10 flex flex-col items-center gap-3">
+            {failed ? (
+              <Button onClick={onRetry} disabled={retrying}>
+                {retrying ? <Loader2Icon className="size-4 animate-spin" /> : <RefreshCwIcon className="size-4" />}
+                {t("presentationV2.generation.retry")}
+              </Button>
+            ) : null}
+            {succeeded ? (
+              <Button onClick={onDownload} disabled={downloading || !generation.pptx_url}>
+                {downloading ? <Loader2Icon className="size-4 animate-spin" /> : <DownloadIcon className="size-4" />}
+                {t("presentationV2.complete.download")}
+              </Button>
+            ) : null}
+            <Button variant="outline" onClick={onEditStorycard}>
+              <PencilLineIcon className="size-4" />
+              {t("presentationV2.generation.editStorycard")}
             </Button>
-          ) : null}
-          {succeeded ? (
-            <Button onClick={onDownload} disabled={downloading || !generation.pptx_url}>
-              {downloading ? <Loader2Icon className="size-4 animate-spin" /> : <DownloadIcon className="size-4" />}
-              {t("presentationV2.complete.download")}
-            </Button>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <div className="mt-10 grid grid-cols-2 divide-x border-y py-4 text-center text-xs text-muted-foreground sm:grid-cols-3">
           <div>
@@ -129,4 +138,3 @@ export function GenerationStep({
     </div>
   )
 }
-

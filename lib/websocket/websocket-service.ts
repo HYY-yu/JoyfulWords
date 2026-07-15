@@ -6,6 +6,7 @@ import {
   type TaskCenterTaskType,
 } from "@/lib/api/taskcenter/types"
 import { getImageTaskErrorMessage } from "@/lib/api/taskcenter/image-error-messages"
+import { getPresentationGenerationErrorKey } from "@/lib/presentations/v2/error-messages"
 import { tokenStore } from "@/lib/tokens/token-store"
 
 export enum WebSocketMessageType {
@@ -39,6 +40,10 @@ export interface TaskSocketEvent {
     | WebSocketMessageType.TASK_COMPLETE
     | WebSocketMessageType.TASK_FAILED
   payload: TaskUpdatePayload
+}
+
+export function shouldRefetchPresentationTask(event: TaskSocketEvent): boolean {
+  return event.payload.task_type === "presentation"
 }
 
 type EventCallback = (data: any) => void
@@ -175,6 +180,7 @@ class WebSocketService {
   private channels = new Map<string, SocketChannel>()
   private eventListeners = new Map<string, Set<EventCallback>>()
   private toast: ((props: any) => any) | null = null
+  private translate: ((key: string, params?: Record<string, unknown>) => string) | null = null
   private recentTaskEvents = new Map<string, number>()
 
   constructor() {
@@ -211,8 +217,12 @@ class WebSocketService {
     })
   }
 
-  init(toastInstance?: ((props: any) => any) | null) {
+  init(
+    toastInstance?: ((props: any) => any) | null,
+    translate?: ((key: string, params?: Record<string, unknown>) => string) | null
+  ) {
     this.toast = toastInstance ?? null
+    this.translate = translate ?? null
   }
 
   connectWebSocket(token: string) {
@@ -677,21 +687,12 @@ class WebSocketService {
         : "Task failed"
     const description =
       kind === "success"
-        ? locale === "zh"
-          ? `#${payload.task_id} ${taskTypeLabel}`
-          : `#${payload.task_id} ${taskTypeLabel}`
-        : payload.task_type === "image"
-        ? getImageTaskErrorMessage(
-            payload.error_code ?? payload.outputs?.error_code,
-            locale
-          )
-        : payload.error ||
-          (locale === "zh"
-            ? `#${payload.task_id} ${taskTypeLabel}`
-            : `#${payload.task_id} ${taskTypeLabel}`)
+        ? `#${payload.task_id} ${taskTypeLabel}`
+        : this.getTaskFailureDescription(payload, locale, taskTypeLabel)
 
-    if (kind === "error" && payload.task_type === "image") {
-      logWebSocket("warn", "Image task failed", {
+    if (kind === "error" && (payload.task_type === "image" || payload.task_type === "presentation")) {
+      logWebSocket("warn", "Task failed", {
+        taskType: payload.task_type,
         taskId: payload.task_id,
         articleId: payload.article_id ?? null,
         errorCode: payload.error_code ?? payload.outputs?.error_code ?? null,
@@ -707,6 +708,33 @@ class WebSocketService {
         window.location.href = `/articles?taskCenter=1&taskId=${payload.task_id}&taskType=${payload.task_type}`
       },
     })
+  }
+
+  private getTaskFailureDescription(
+    payload: TaskUpdatePayload,
+    locale: "zh" | "en",
+    taskTypeLabel: string
+  ): string {
+    if (payload.task_type === "image") {
+      return getImageTaskErrorMessage(
+        payload.error_code ?? payload.outputs?.error_code,
+        locale
+      )
+    }
+
+    if (payload.task_type === "presentation") {
+      const outputErrorCode = payload.outputs?.error_code
+      const errorCode =
+        payload.error_code ?? (typeof outputErrorCode === "string" ? outputErrorCode : "")
+      const errorKey = getPresentationGenerationErrorKey(errorCode)
+
+      return (
+        this.translate?.(errorKey) ??
+        (locale === "zh" ? "PPT 生成失败，请稍后重试。" : "PPT generation failed. Try again later.")
+      )
+    }
+
+    return payload.error || `#${payload.task_id} ${taskTypeLabel}`
   }
 
   private getLocale(): "zh" | "en" {

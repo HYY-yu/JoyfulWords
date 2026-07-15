@@ -39,6 +39,8 @@ import type {
 import {
   getTaskCenterTaskKey,
   isTaskCenterArticleWriterDetails,
+  isTaskCenterSucceededTask,
+  isTaskCenterTerminalTask,
 } from "@/lib/api/taskcenter/types"
 import {
   clearEChartsArticleAnalysisSession,
@@ -256,7 +258,7 @@ function mapTaskCenterTaskToProgressItem(
   removable = true
 ): TaskItem {
   const status =
-    task.status === "success" || task.status === "succeeded"
+    isTaskCenterSucceededTask(task)
       ? "completed"
       : task.status === "failed"
       ? "failed"
@@ -269,7 +271,7 @@ function mapTaskCenterTaskToProgressItem(
     label: t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`),
     description: getTaskCenterTaskSummary(task, t),
     startedAt: new Date(task.created_at).getTime(),
-    removable: removable && (task.status === "success" || task.status === "succeeded" || task.status === "failed"),
+    removable: removable && isTaskCenterTerminalTask(task),
     taskCenterData: task,
     originalType: task.type,
   }
@@ -1003,7 +1005,7 @@ export function EditorAIPanel({
         <DialogContent
           className={
             selectedTaskRef?.type === "presentation"
-              ? "flex h-[82vh] max-h-[82vh] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(50vw,880px)] md:!max-w-[880px]"
+              ? "flex max-h-[min(82vh,760px)] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(50vw,880px)] md:!max-w-[880px]"
               : selectedTaskRef?.type === "echarts"
               ? "flex max-h-[min(82vh,760px)] w-[calc(100vw-2rem)] flex-col overflow-hidden md:min-w-[720px] md:w-[min(88vw,1080px)] md:!max-w-[1080px]"
               : "flex max-h-[80vh] flex-col sm:max-w-[720px]"
@@ -1049,6 +1051,7 @@ export function EditorAIPanel({
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
                   onContinuePresentation={handleContinuePresentationFromTask}
+                  onPresentationRetried={() => refetch({ silent: true })}
                 />
               </div>
 

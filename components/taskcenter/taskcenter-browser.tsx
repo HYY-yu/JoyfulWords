@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type UIEvent } from "react"
 import { useRouter } from "next/navigation"
-import { AlertCircleIcon, Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
+import { AlertCircleIcon, DownloadIcon, Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { Button } from "@/components/ui/base/button"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/base/skeleton"
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
 import { isTaskCenterErrorResponse, taskCenterClient } from "@/lib/api/taskcenter/client"
+import { presentationsV2Client } from "@/lib/api/presentations/v2/client"
 import type {
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListItem,
@@ -23,7 +24,12 @@ import type {
   TaskCenterTaskStatus,
   TaskCenterTaskType,
 } from "@/lib/api/taskcenter/types"
-import { getTaskCenterTaskKey } from "@/lib/api/taskcenter/types"
+import {
+  getTaskCenterPresentationDownloadUrl,
+  getTaskCenterTaskKey,
+  isTaskCenterSucceededTask,
+  isTaskCenterTerminalTask,
+} from "@/lib/api/taskcenter/types"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
@@ -47,6 +53,17 @@ const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = [
   "podcast_audio",
 ]
 
+const TASK_STATUS_OPTIONS: Record<TaskCenterTaskType, readonly TaskCenterTaskStatus[]> = {
+  article: ["pending", "processing", "success", "failed"],
+  image: ["pending", "processing", "success", "failed"],
+  infographic: ["processing", "success", "failed"],
+  presentation: ["queued", "processing", "succeeded", "failed"],
+  echarts: ["pending", "processing", "success", "succeeded", "failed"],
+  podcast: ["pending", "processing", "success", "failed"],
+  podcast_audio: ["pending", "processing", "success", "failed"],
+}
+const EMPTY_TASK_STATUS_OPTIONS: readonly TaskCenterTaskStatus[] = []
+
 interface TaskCenterBrowserProps {
   articleId?: number
   enabled?: boolean
@@ -63,23 +80,42 @@ interface TaskCardProps {
   removable: boolean
   onClick: () => void
   onRemove: () => void
+  retrying: boolean
+  onRetryPresentation: () => void
 }
 
-function TaskCard({ task, selected, removable, onClick, onRemove }: TaskCardProps) {
+function TaskCard({
+  task,
+  selected,
+  removable,
+  onClick,
+  onRemove,
+  retrying,
+  onRetryPresentation,
+}: TaskCardProps) {
   const { t } = useTranslation()
   const Icon = getTaskCenterTaskIcon(task)
+  const presentationDownloadUrl =
+    task.type === "presentation" && task.status === "succeeded"
+      ? getTaskCenterPresentationDownloadUrl(task.details)
+      : null
+  const showPresentationActions =
+    task.type === "presentation" &&
+    (Boolean(presentationDownloadUrl) || task.status === "failed")
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl">
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border transition-colors",
+        selected
+          ? "border-primary/40 bg-primary/5 shadow-sm"
+          : "border-border/70 bg-background hover:bg-muted/40"
+      )}
+    >
       <button
         type="button"
         onClick={onClick}
-        className={cn(
-          "relative w-full rounded-2xl border px-4 py-4 text-left transition-colors",
-          selected
-            ? "border-primary/40 bg-primary/5 shadow-sm"
-            : "border-border/70 bg-background hover:bg-muted/40"
-        )}
+        className="relative w-full px-4 py-4 text-left"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
@@ -104,6 +140,34 @@ function TaskCard({ task, selected, removable, onClick, onRemove }: TaskCardProp
           </p>
         </div>
       </button>
+      {showPresentationActions ? (
+        <div className="flex justify-end gap-2 border-t border-border/60 px-4 py-2.5">
+          {task.type === "presentation" && task.status === "failed" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onRetryPresentation}
+              disabled={retrying}
+            >
+              {retrying ? (
+                <Loader2Icon className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCwIcon className="h-4 w-4" />
+              )}
+              {t("presentationV2.generation.retry")}
+            </Button>
+          ) : null}
+          {presentationDownloadUrl ? (
+            <Button type="button" size="sm" asChild>
+              <a href={presentationDownloadUrl} download rel="noreferrer">
+                <DownloadIcon className="h-4 w-4" />
+                {t("presentationV2.complete.download")}
+              </a>
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {removable ? (
         <button
           type="button"
@@ -135,11 +199,13 @@ export function TaskCenterBrowser({
   const { toast } = useToast()
   const router = useRouter()
   const [taskType, setTaskType] = useState<TaskCenterTaskType | "all">("all")
+  const [taskStatus, setTaskStatus] = useState<TaskCenterTaskStatus | "all">("all")
   const [selectedTaskRef, setSelectedTaskRef] = useState<TaskCenterTaskReference | null>(null)
   const [taskDetail, setTaskDetail] = useState<TaskCenterTaskDetailResponse | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
   const [taskDetailError, setTaskDetailError] = useState<string | null>(null)
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
+  const [retryingTaskKeys, setRetryingTaskKeys] = useState<Set<string>>(new Set())
 
   const {
     tasks,
@@ -156,7 +222,16 @@ export function TaskCenterBrowser({
     realtimeScope,
     article_id: articleId,
     type: taskType === "all" ? undefined : taskType,
+    status: taskStatus === "all" ? undefined : taskStatus,
   })
+
+  const statusOptions =
+    taskType === "all" ? EMPTY_TASK_STATUS_OPTIONS : TASK_STATUS_OPTIONS[taskType]
+
+  useEffect(() => {
+    if (taskStatus === "all" || statusOptions.includes(taskStatus)) return
+    setTaskStatus("all")
+  }, [statusOptions, taskStatus])
 
   const handleTaskListScroll = useCallback(
     (event: UIEvent<HTMLDivElement>) => {
@@ -261,7 +336,7 @@ export function TaskCenterBrowser({
 
   const handleDeleteTask = useCallback(
     async (task: TaskCenterTaskListItem) => {
-      if (task.status === "success" || task.status === "succeeded") {
+      if (isTaskCenterSucceededTask(task)) {
         const confirmed = window.confirm(t("contentWriting.taskCenter.deleteSuccessConfirm"))
         if (!confirmed) {
           return
@@ -331,6 +406,59 @@ export function TaskCenterBrowser({
     [selectedTaskRef, setTasks, t, toast]
   )
 
+  const handleRetryPresentation = useCallback(
+    async (task: Extract<TaskCenterTaskListItem, { type: "presentation" }>) => {
+      const taskKey = getTaskCenterTaskKey(task)
+      if (retryingTaskKeys.has(taskKey)) return
+
+      setRetryingTaskKeys((current) => new Set(current).add(taskKey))
+      try {
+        const result = await presentationsV2Client.retryGeneration(task.id)
+        if ("error" in result) {
+          console.error("[TaskCenter] Failed to retry presentation", {
+            taskId: task.id,
+            status: result.status,
+            error: result.error,
+          })
+          // HTTP 402 is handled globally by authenticatedApiRequest.
+          if (result.status !== 402) {
+            toast({
+              variant: "destructive",
+              title: t("presentationV2.errors.retryGeneration"),
+              description: t("presentationV2.errors.retryGeneration"),
+            })
+          }
+          return
+        }
+
+        setTasks((currentTasks) =>
+          currentTasks.map((currentTask) =>
+            currentTask.type === "presentation" && currentTask.id === task.id
+              ? ({
+                  ...currentTask,
+                  status: "queued",
+                  details: {
+                    ...currentTask.details,
+                    stage: "queued",
+                    error_code: "",
+                    error_message: "",
+                  },
+                } as TaskCenterTaskListItem)
+              : currentTask
+          )
+        )
+        await refetch({ silent: true })
+      } finally {
+        setRetryingTaskKeys((current) => {
+          const next = new Set(current)
+          next.delete(taskKey)
+          return next
+        })
+      }
+    },
+    [refetch, retryingTaskKeys, setTasks, t, toast]
+  )
+
   return (
     <div className={cn("flex h-full min-h-0 flex-col gap-4", className)}>
       {showHeader ? (
@@ -344,8 +472,14 @@ export function TaskCenterBrowser({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-end gap-2">
-        <Select value={taskType} onValueChange={(value) => setTaskType(value as TaskCenterTaskType | "all")}>
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Select
+          value={taskType}
+          onValueChange={(value) => {
+            setTaskType(value as TaskCenterTaskType | "all")
+            setTaskStatus("all")
+          }}
+        >
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder={t("contentWriting.taskCenter.filters.type")} />
           </SelectTrigger>
@@ -354,6 +488,24 @@ export function TaskCenterBrowser({
             {TASK_TYPE_OPTIONS.map((type) => (
               <SelectItem key={type} value={type}>
                 {t(`contentWriting.taskCenter.types.${type}`)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={taskStatus}
+          onValueChange={(value) => setTaskStatus(value as TaskCenterTaskStatus | "all")}
+          disabled={taskType === "all"}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder={t("contentWriting.taskCenter.filters.status")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("contentWriting.taskCenter.filters.allStatuses")}</SelectItem>
+            {statusOptions.map((status) => (
+              <SelectItem key={status} value={status}>
+                {t(`contentWriting.taskCenter.statuses.${status}`)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -412,8 +564,7 @@ export function TaskCenterBrowser({
                   {tasks.map((task) => {
                     const taskKey = getTaskCenterTaskKey({ id: task.id, type: task.type })
                     const removable =
-                      (task.status === "success" || task.status === "succeeded" || task.status === "failed") &&
-                      !deletingTaskKeys.has(taskKey)
+                      isTaskCenterTerminalTask(task) && !deletingTaskKeys.has(taskKey)
 
                     return (
                       <TaskCard
@@ -422,6 +573,12 @@ export function TaskCenterBrowser({
                         selected={selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type}
                         removable={removable}
                         onRemove={() => void handleDeleteTask(task)}
+                        retrying={retryingTaskKeys.has(taskKey)}
+                        onRetryPresentation={() => {
+                          if (task.type === "presentation") {
+                            void handleRetryPresentation(task)
+                          }
+                        }}
                         onClick={() => {
                           setSelectedTaskRef({ id: task.id, type: task.type })
                         }}
@@ -458,6 +615,7 @@ export function TaskCenterBrowser({
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
                   onOpenArticle={handleOpenArticle}
+                  onPresentationRetried={() => refetch({ silent: true })}
                 />
               ) : loading ? (
                 <div className="flex min-h-[300px] items-center justify-center">

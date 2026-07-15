@@ -6,6 +6,7 @@ import { PresentationTaskDetailV2 } from "./presentation/presentation-task-detai
 interface PresentationTaskDetailProps {
   detail: TaskCenterPresentationTaskDetail
   onContinuePresentation?: (articleId: number) => void
+  onRetried?: () => void | Promise<void>
 }
 
 export function PresentationTaskDetail(props: PresentationTaskDetailProps) {

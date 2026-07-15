@@ -17,10 +17,19 @@ export type TaskCenterArticleOperationType = "" | "edit" | "writer_create" | "wr
 export type TaskCenterArticleStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterImageStatus = "pending" | "processing" | "success" | "failed"
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
-export type TaskCenterPresentationStatus =
-  | "pending"
-  | "processing"
-  | "success"
+export type PresentationTaskStatus = "queued" | "processing" | "succeeded" | "failed"
+export type TaskCenterPresentationStatus = PresentationTaskStatus
+export type PresentationTaskStage =
+  | "queued"
+  | "preparing"
+  | "matching_templates"
+  | "selecting_pages"
+  | "filling_deck_input"
+  | "validating_input"
+  | "resolving_assets"
+  | "generating_pptx"
+  | "verifying_pptx"
+  | "uploading"
   | "succeeded"
   | "failed"
 export type TaskCenterEChartsStatus = "pending" | "processing" | "success" | "failed" | "succeeded"
@@ -33,6 +42,37 @@ export type TaskCenterTaskStatus =
   | TaskCenterPresentationStatus
   | TaskCenterEChartsStatus
   | TaskCenterPodcastStatus
+
+export interface PptVerifyReport {
+  passed?: boolean
+  slides?: number
+  notesParts?: number
+  danglingRelationships?: string[]
+  orphanRelationships?: string[]
+  nativeSvgEmbeddings?: number
+  invalidSvgEmbeddings?: string[]
+  unreferencedSlideParts?: string[]
+  dslLeaks?: string[]
+  errors?: string[]
+}
+
+export interface PresentationTaskDetails {
+  article_id: number
+  storycard_id: number
+  storycard_version: number
+  template_id: number
+  stage: PresentationTaskStage
+  ppt_url: string
+  pptx_url: string
+  slide_count: number
+  verify_report: PptVerifyReport
+  attempt: number
+  completed_at: string
+  model_name: string
+  error_code: string
+  error_message: string
+  billing_status: "pending" | "reported" | "skipped" | "failed"
+}
 
 export interface TaskCenterArticleListDetails {
   article_id: number
@@ -73,21 +113,7 @@ export interface TaskCenterInfographicListDetails {
   model_reference_id?: string
 }
 
-export interface TaskCenterPresentationListDetails {
-  article_id: number
-  contract_version?: "v2"
-  generation_id?: number
-  storycard_id?: number
-  template_id?: number
-  template_key?: string
-  template_version?: number
-  stage?: string
-  slide_count?: number
-  completed_at?: string | null
-  pptx_url?: string
-  error?: string
-  error_code?: string
-}
+export type TaskCenterPresentationListDetails = PresentationTaskDetails
 
 export interface TaskCenterEChartsListDetails {
   article_id?: number
@@ -150,46 +176,58 @@ export type TaskCenterTaskListDetails =
   | TaskCenterPodcastListDetails
   | TaskCenterPodcastAudioListDetails
 
-interface TaskCenterTaskListItemBase<TType extends TaskCenterTaskType, TDetails> {
+interface TaskCenterTaskListItemBase<
+  TType extends TaskCenterTaskType,
+  TStatus extends TaskCenterTaskStatus,
+  TDetails,
+> {
   id: number
   type: TType
-  status: TaskCenterTaskStatus
+  status: TStatus
   created_at: string
   details: TDetails
 }
 
 export type TaskCenterArticleTaskListItem = TaskCenterTaskListItemBase<
   "article",
+  TaskCenterArticleStatus,
   TaskCenterArticleListDetails
 >
 
 export type TaskCenterImageTaskListItem = TaskCenterTaskListItemBase<
   "image",
+  TaskCenterImageStatus,
   TaskCenterImageListDetails
 >
 
 export type TaskCenterInfographicTaskListItem = TaskCenterTaskListItemBase<
   "infographic",
+  TaskCenterInfographicStatus,
   TaskCenterInfographicListDetails
 >
 
 export type TaskCenterPresentationTaskListItem = TaskCenterTaskListItemBase<
   "presentation",
+  TaskCenterPresentationStatus,
   TaskCenterPresentationListDetails
 >
+export type PresentationTaskItem = TaskCenterPresentationTaskListItem
 
 export type TaskCenterEChartsTaskListItem = TaskCenterTaskListItemBase<
   "echarts",
+  TaskCenterEChartsStatus,
   TaskCenterEChartsListDetails
 >
 
 export type TaskCenterPodcastTaskListItem = TaskCenterTaskListItemBase<
   "podcast",
+  TaskCenterPodcastStatus,
   TaskCenterPodcastListDetails
 >
 
 export type TaskCenterPodcastAudioTaskListItem = TaskCenterTaskListItemBase<
   "podcast_audio",
+  TaskCenterPodcastStatus,
   TaskCenterPodcastAudioListDetails
 >
 
@@ -273,23 +311,27 @@ export interface TaskCenterInfographicTaskDetail {
 
 export interface TaskCenterPresentationTaskDetail {
   id: number
+  user_id: number
   article_id: number
-  contract_version?: "v2"
-  generation_id?: number
-  storycard_id?: number
-  template_id?: number
-  template_key?: string
-  template_version?: number
-  stage?: string
-  slide_count?: number
+  storycard_id: number
+  storycard_version: number
+  template_id: number
+  stage: PresentationTaskStage
+  slide_count: number
   status: TaskCenterPresentationStatus
-  error?: string
-  error_code?: string
-  error_message?: string
-  pptx_url?: string
+  ppt_url: string
+  pptx_url: string
+  verify_report: PptVerifyReport
+  validation_report: Record<string, unknown>
+  attempt: number
+  model_name: string
+  error_code: string
+  error_message: string
+  billing_status: "pending" | "reported" | "skipped" | "failed"
+  billed_slide_count: number
   created_at: string
   updated_at: string
-  completed_at?: string | null
+  completed_at: string
 }
 
 export interface TaskCenterEChartsTaskDetail {
@@ -394,9 +436,8 @@ export function getTaskCenterTaskKey(task: TaskCenterTaskReference): string {
   return `${task.type}:${task.id}`
 }
 
-type TaskCenterPresentationDownloadSource = Pick<
-  TaskCenterPresentationListDetails,
-  "pptx_url"
+type TaskCenterPresentationDownloadSource = Partial<
+  Pick<TaskCenterPresentationListDetails, "pptx_url">
 >
 
 export function getTaskCenterPresentationDownloadUrl(
@@ -447,6 +488,18 @@ export function getTaskCenterTaskArticleId(task: TaskCenterTaskListItem): number
   return null
 }
 
-export function isTaskCenterTerminalStatus(status: TaskCenterTaskStatus): boolean {
-  return status === "success" || status === "succeeded" || status === "failed"
+export function isTaskCenterTerminalTask(task: TaskCenterTaskListItem): boolean {
+  if (task.type === "presentation") {
+    return task.status === "succeeded" || task.status === "failed"
+  }
+
+  return task.status === "success" || task.status === "succeeded" || task.status === "failed"
+}
+
+export function isTaskCenterSucceededTask(task: TaskCenterTaskListItem): boolean {
+  if (task.type === "presentation") {
+    return task.status === "succeeded"
+  }
+
+  return task.status === "success" || task.status === "succeeded"
 }

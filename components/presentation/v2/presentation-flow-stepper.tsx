@@ -5,6 +5,7 @@ interface PresentationFlowStepperProps {
   currentStep: number
   labels: string[]
   highestReachableStep: number
+  navigationLocked?: boolean
   onStepChange: (step: number) => void
 }
 
@@ -12,6 +13,7 @@ export function PresentationFlowStepper({
   currentStep,
   labels,
   highestReachableStep,
+  navigationLocked = false,
   onStepChange,
 }: PresentationFlowStepperProps) {
   return (
@@ -20,19 +22,20 @@ export function PresentationFlowStepper({
         const complete = index < currentStep
         const active = index === currentStep
         const reachable = index <= highestReachableStep
+        const interactive = reachable && !navigationLocked
 
         return (
           <li
             key={label}
             className={cn(
               "min-w-0 flex-1",
-              !reachable && "cursor-not-allowed"
+              !interactive && "cursor-not-allowed"
             )}
           >
             <button
               type="button"
               onClick={() => onStepChange(index)}
-              disabled={!reachable}
+              disabled={!interactive}
               aria-current={active ? "step" : undefined}
               className={cn(
                 "flex w-full min-w-0 items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors",
