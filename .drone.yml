@@ -57,7 +57,17 @@ steps:
   - name: deploy
     commands:
       - cp /home/admin/JoyfulWords/.env .env
-      - docker compose --env-file .env -f docker-compose.prod.yml up -d
+      - |
+        EXPECTED_PROJECT="joyful-words-frontend"
+        EXISTING_PROJECT="$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}' joyful-words-frontend 2>/dev/null || true)"
+
+        # 首次切换独立 Compose project 时，只迁移前端服务，不处理同一旧 project 下的 orphan 容器。
+        if [ -n "$EXISTING_PROJECT" ] && [ "$EXISTING_PROJECT" != "<no value>" ] && [ "$EXISTING_PROJECT" != "$EXPECTED_PROJECT" ]; then
+          echo "迁移前端 Compose project: $EXISTING_PROJECT -> $EXPECTED_PROJECT"
+          docker compose --project-name "$EXISTING_PROJECT" --env-file .env -f docker-compose.prod.yml down
+        fi
+
+        docker compose --env-file .env -f docker-compose.prod.yml up -d
 
   - name: cleanup
     commands:

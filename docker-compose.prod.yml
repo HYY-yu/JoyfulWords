@@ -1,3 +1,5 @@
+name: joyful-words-frontend
+
 services:
   frontend:
     image: joyful-words-frontend:latest
