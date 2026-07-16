@@ -426,7 +426,6 @@ export function PresentationFlowDialog({
         return
       }
       syncStorycard(result)
-      toast({ description: t("presentationV2.toast.generateSubmitted") })
     } finally {
       setStorycardAction(null)
     }
@@ -467,7 +466,6 @@ export function PresentationFlowDialog({
         return null
       }
       syncStorycard(result)
-      toast({ description: t("presentationV2.toast.saved") })
       return result
     } finally {
       setStorycardAction(null)
@@ -515,7 +513,6 @@ export function PresentationFlowDialog({
       }
       syncStorycard(result)
       setStep(1)
-      toast({ description: t("presentationV2.toast.confirmed") })
     } finally {
       setStorycardAction(null)
     }
@@ -551,11 +548,10 @@ export function PresentationFlowDialog({
         articleId: result.article_id,
         status: result.status,
       })
-      toast({ description: t("presentationV2.toast.generationSubmitted") })
     } finally {
       setGenerationSubmitting(false)
     }
-  }, [persistSession, selectedTemplate, storycard, t, toast])
+  }, [persistSession, selectedTemplate, storycard])
 
   const handleRetry = useCallback(async () => {
     if (!generation) return
@@ -582,11 +578,10 @@ export function PresentationFlowDialog({
         articleId: result.article_id,
         status: result.status,
       })
-      toast({ description: t("presentationV2.toast.retrySubmitted") })
     } finally {
       setRetrying(false)
     }
-  }, [generation, persistSession, t, toast])
+  }, [generation, persistSession])
 
   const handleEditStorycard = useCallback(() => {
     if (typeof userId === "number" && typeof articleId === "number") {

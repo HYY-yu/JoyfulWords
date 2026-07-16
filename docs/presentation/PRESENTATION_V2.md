@@ -16,6 +16,16 @@ article.
 The Storycard and generation are separate state machines. Polling their GET endpoints is the
 reliable status source. WebSocket presentation events only trigger an immediate refresh.
 
+## Storycard contract
+
+- Every slide has `id`, `page_type`, `title`, `key_message`, `content_points`, and `source_refs`.
+- Content slides additionally require `logic_relations`: one to three unique values ordered by
+  template-matching priority.
+- Supported relations are `并列`, `递进`, `对比`, `包含`, `四象限`, `时间轴`, `循环`, `总分`,
+  `金字塔`, `因果`, and `图文`.
+- Non-content slides omit `logic_relations`. The removed `relation_hint` and `visual_hint` fields
+  are not accepted.
+
 ## Source layout
 
 - `lib/api/presentations/v2`: backend HTTP contract and client.

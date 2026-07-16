@@ -2,16 +2,41 @@ export type PPTLanguage = "zh" | "en"
 
 export type PPTPageType = "封面页" | "目录页" | "章节过渡页" | "内容页" | "结尾页"
 
-export interface StorycardSlide {
+export const PPT_LOGIC_RELATIONS = [
+  "并列",
+  "递进",
+  "对比",
+  "包含",
+  "四象限",
+  "时间轴",
+  "循环",
+  "总分",
+  "金字塔",
+  "因果",
+  "图文",
+] as const
+
+export type PPTLogicRelation = (typeof PPT_LOGIC_RELATIONS)[number]
+
+export interface StorycardSlideBase {
   id: string
-  page_type: PPTPageType
   title: string
   key_message: string
   content_points: string[]
-  relation_hint: string
-  visual_hint: string
   source_refs: string[]
 }
+
+export interface StorycardContentSlide extends StorycardSlideBase {
+  page_type: "内容页"
+  logic_relations: PPTLogicRelation[]
+}
+
+export interface StorycardNonContentSlide extends StorycardSlideBase {
+  page_type: Exclude<PPTPageType, "内容页">
+  logic_relations?: never
+}
+
+export type StorycardSlide = StorycardContentSlide | StorycardNonContentSlide
 
 export interface StorycardDocument {
   schema_version: 1
@@ -107,4 +132,3 @@ export interface CreateGenerationRequest {
   template_key: string
   template_version: number
 }
-

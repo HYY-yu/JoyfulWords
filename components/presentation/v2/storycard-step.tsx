@@ -6,9 +6,12 @@ import { Badge } from "@/components/ui/base/badge"
 import { Input } from "@/components/ui/base/input"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { Textarea } from "@/components/ui/base/textarea"
-import type {
+import {
+  PPT_LOGIC_RELATIONS,
+  type PPTLogicRelation,
   StorycardDocument,
-  StorycardSlide,
+  type StorycardSlide,
+  type StorycardSlideBase,
 } from "@/lib/api/presentations/v2/types"
 import type { StorycardValidationIssue } from "@/lib/presentations/v2/storycard-validation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -55,9 +58,27 @@ export function StorycardStep({
     value: string
   ) => onChange({ ...document, [field]: value })
 
-  const updateSlide = (patch: Partial<StorycardSlide>) => {
-    const slides = document.slides.map((slide, index) =>
+  const updateSlide = (patch: Partial<StorycardSlideBase>) => {
+    const slides: StorycardSlide[] = document.slides.map((slide, index) =>
       index === selectedIndex ? { ...slide, ...patch } : slide
+    )
+    onChange({ ...document, slides })
+  }
+
+  const toggleLogicRelation = (relation: PPTLogicRelation) => {
+    if (selectedSlide.page_type !== "内容页") return
+    const current = selectedSlide.logic_relations
+    const next = current.includes(relation)
+      ? current.filter((item) => item !== relation)
+      : current.length < 3
+        ? [...current, relation]
+        : current
+    if (next === current) return
+
+    const slides: StorycardSlide[] = document.slides.map((slide, index) =>
+      index === selectedIndex && slide.page_type === "内容页"
+        ? { ...slide, logic_relations: next }
+        : slide
     )
     onChange({ ...document, slides })
   }
@@ -222,26 +243,47 @@ export function StorycardStep({
                   }
                 />
               </label>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2">
-                  <FieldLabel>{t("presentationV2.storycard.relationHint")}</FieldLabel>
-                  <Textarea
-                    className="min-h-20 resize-y"
-                    value={selectedSlide.relation_hint}
-                    disabled={disabled}
-                    onChange={(event) => updateSlide({ relation_hint: event.target.value })}
-                  />
-                </label>
-                <label className="space-y-2">
-                  <FieldLabel>{t("presentationV2.storycard.visualHint")}</FieldLabel>
-                  <Textarea
-                    className="min-h-20 resize-y"
-                    value={selectedSlide.visual_hint}
-                    disabled={disabled}
-                    onChange={(event) => updateSlide({ visual_hint: event.target.value })}
-                  />
-                </label>
-              </div>
+              {selectedSlide.page_type === "内容页" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <FieldLabel>{t("presentationV2.storycard.logicRelations")}</FieldLabel>
+                    <Badge variant="outline">{selectedSlide.logic_relations.length}/3</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("presentationV2.storycard.logicRelationsHint")}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {PPT_LOGIC_RELATIONS.map((relation) => {
+                      const priority = selectedSlide.logic_relations.indexOf(relation)
+                      const selected = priority >= 0
+                      const limitReached = !selected && selectedSlide.logic_relations.length >= 3
+                      return (
+                        <button
+                          key={relation}
+                          type="button"
+                          aria-pressed={selected}
+                          disabled={disabled || limitReached}
+                          onClick={() => toggleLogicRelation(relation)}
+                          className={cn(
+                            "inline-flex h-9 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors",
+                            selected
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border bg-background text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                            "disabled:cursor-not-allowed disabled:opacity-45"
+                          )}
+                        >
+                          {selected ? (
+                            <span className="grid size-5 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                              {priority + 1}
+                            </span>
+                          ) : null}
+                          {t(`presentationV2.logicRelationLabels.${relation}`)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <FieldLabel>{t("presentationV2.storycard.sourceRefs")}</FieldLabel>
                 <div className="flex min-h-10 flex-wrap gap-2 rounded-md border bg-muted/20 px-3 py-2">
