@@ -3,6 +3,9 @@ import type { GenerationStage } from "@/lib/api/presentations/v2/types"
 export const GENERATION_STAGE_ORDER: GenerationStage[] = [
   "queued",
   "preparing",
+  "cataloging_images",
+  "planning_images",
+  "generating_images",
   "matching_templates",
   "selecting_pages",
   "filling_deck_input",
@@ -29,4 +32,3 @@ export function getNonRegressingStageIndex(
 export function isGenerationTerminal(stage: GenerationStage): boolean {
   return stage === "succeeded" || stage === "failed"
 }
-

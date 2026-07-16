@@ -7,6 +7,10 @@ test("maps every documented generation error code to a safe i18n key", () => {
     getPresentationGenerationErrorKey("invalid_runtime_manifest"),
     "presentationV2.errors.generation.invalid_runtime_manifest"
   )
+  assert.equal(
+    getPresentationGenerationErrorKey("image_generation_failed"),
+    "presentationV2.errors.generation.image_generation_failed"
+  )
 })
 
 test("uses the safe fallback for unknown backend errors", () => {

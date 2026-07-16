@@ -5,6 +5,7 @@ import type {
   CreateGenerationRequest,
   GenerateStorycardRequest,
   GenerationResponse,
+  ImageStylesResponse,
   PPTTemplate,
   PPTTemplatesResponse,
   StorycardResponse,
@@ -75,12 +76,21 @@ export const presentationsV2Client = {
     )
   },
 
+  listImageStyles(signal?: AbortSignal) {
+    console.debug("[PresentationV2] Fetching image styles")
+    return request<ImageStylesResponse>("/presentations/v2/image-styles", {
+      method: "GET",
+      signal,
+    })
+  },
+
   createGeneration(body: CreateGenerationRequest) {
     console.info("[PresentationV2] Creating generation", {
       storycardId: body.storycard_id,
       storycardVersion: body.storycard_version,
       templateKey: body.template_key,
       templateVersion: body.template_version,
+      imageStyleId: body.image_style_id,
     })
     return request<GenerationResponse>("/presentations/v2/generations", {
       method: "POST",
@@ -110,4 +120,3 @@ export const presentationsV2Client = {
     })
   },
 }
-

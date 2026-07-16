@@ -1,5 +1,7 @@
 "use client"
 
+import type { GenerationStage } from "@/lib/api/presentations/v2/types"
+
 export const TASK_CENTER_TASK_TYPES = [
   "article",
   "image",
@@ -19,19 +21,7 @@ export type TaskCenterImageStatus = "pending" | "processing" | "success" | "fail
 export type TaskCenterInfographicStatus = "processing" | "success" | "failed"
 export type PresentationTaskStatus = "queued" | "processing" | "succeeded" | "failed"
 export type TaskCenterPresentationStatus = PresentationTaskStatus
-export type PresentationTaskStage =
-  | "queued"
-  | "preparing"
-  | "matching_templates"
-  | "selecting_pages"
-  | "filling_deck_input"
-  | "validating_input"
-  | "resolving_assets"
-  | "generating_pptx"
-  | "verifying_pptx"
-  | "uploading"
-  | "succeeded"
-  | "failed"
+export type PresentationTaskStage = GenerationStage
 export type TaskCenterEChartsStatus = "pending" | "processing" | "success" | "failed" | "succeeded"
 export type TaskCenterPodcastStatus = "pending" | "processing" | "success" | "failed"
 

@@ -79,11 +79,31 @@ export interface PPTTemplatesResponse {
   templates: PPTTemplate[]
 }
 
+export type PPTImageStyleID =
+  | "hand_drawn_illustration"
+  | "photo_illustration"
+  | "monochrome_line_art"
+  | "flat_vector"
+
+export interface PPTImageStyle {
+  id: PPTImageStyleID
+  label_i18n: Record<PPTLanguage, string>
+  prompt_suffix: string
+}
+
+export interface ImageStylesResponse {
+  default_style: PPTImageStyleID
+  styles: PPTImageStyle[]
+}
+
 export type GenerationStatus = "queued" | "processing" | "succeeded" | "failed"
 
 export type GenerationStage =
   | "queued"
   | "preparing"
+  | "cataloging_images"
+  | "planning_images"
+  | "generating_images"
   | "matching_templates"
   | "selecting_pages"
   | "filling_deck_input"
@@ -103,6 +123,8 @@ export interface GenerationResponse {
   status: GenerationStatus
   stage: GenerationStage
   slide_count: number
+  image_style_id: PPTImageStyleID
+  generated_image_count: number
   pptx_url: string
   error_code: string
   error_message: string
@@ -131,4 +153,5 @@ export interface CreateGenerationRequest {
   storycard_version: number
   template_key: string
   template_version: number
+  image_style_id: PPTImageStyleID
 }

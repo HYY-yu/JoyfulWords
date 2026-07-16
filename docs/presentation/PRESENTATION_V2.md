@@ -7,14 +7,27 @@ article.
 
 1. Generate and poll a Storycard.
 2. Edit, save, and confirm the current Storycard version.
-3. Explicitly select a template package.
-4. Create and poll a persistent generation job.
+3. Explicitly select a template package and choose one backend-provided image style for the whole
+   presentation.
+4. Create and poll a persistent generation job with the selected `image_style_id`.
 5. Download the PPTX or retry the same failed job.
 6. From a terminal generation, explicitly return to the Storycard to start a new revision and
    generation job.
 
 The Storycard and generation are separate state machines. Polling their GET endpoints is the
 reliable status source. WebSocket presentation events only trigger an immediate refresh.
+
+## Image style and generation contract
+
+- `GET /presentations/v2/image-styles` is the only source for selectable styles and the default
+  style. The UI displays localized `label_i18n` values and never exposes or edits `prompt_suffix`.
+- `POST /presentations/v2/generations` sends the selected `image_style_id` together with the
+  confirmed Storycard version and immutable template reference.
+- The backend reuses validated article images first and may generate zero to three additional
+  images. `generated_image_count` reports the successfully generated images bound to the job.
+- Generation progress includes `cataloging_images`, `planning_images`, and, when needed,
+  `generating_images` before template matching. Progress remains segmented and non-regressing;
+  the frontend does not synthesize a percentage from polling frequency.
 
 ## Storycard contract
 
@@ -35,9 +48,10 @@ reliable status source. WebSocket presentation events only trigger an immediate 
 
 ## Recovery
 
-The browser stores only the generation ID and selected template reference under a key scoped by
-user ID and article ID. Storycard content remains server-owned. On reopen, the frontend GETs the
-current Storycard and generation; stale or cross-article job IDs are discarded.
+The browser stores only the generation ID, selected template reference, and selected image style
+ID under a key scoped by user ID and article ID. Storycard content remains server-owned. On reopen,
+the frontend validates the stored style against the latest `/image-styles` response, GETs the
+current Storycard and generation, and discards stale or cross-article job IDs.
 
 Once generation starts, the stepper is progress-only. A succeeded or failed generation exposes an
 explicit `Edit Storycard` action that clears the active browser recovery pointer and template
@@ -58,6 +72,11 @@ response remains the source of truth. TaskCenter detail does not run a second pr
 loop. Retrying a failed job calls `/presentations/v2/generations/:id/retry`, keeps the same job ID,
 and immediately refreshes the shared query. HTTP 402 continues through the global insufficient
 credits dialog.
+
+TaskCenter uses the same generation-stage type as the article flow, so the image catalog, planning,
+and generation stages render with the same localized copy. The current TaskCenter response does not
+include `image_style_id` or `generated_image_count`; those fields are displayed only in the article
+generation result until the TaskCenter backend contract exposes them.
 
 The TaskCenter frontend does not read V1 presentation fields such as `slide_summary`, `slides`,
 `preview`, `layouts_json`, or `deck_model_json`.

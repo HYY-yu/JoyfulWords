@@ -118,16 +118,20 @@ export function GenerationStep({
           </div>
         ) : null}
 
-        <div className="mt-10 grid grid-cols-2 divide-x border-y py-4 text-center text-xs text-muted-foreground sm:grid-cols-3">
-          <div>
+        <div className="mt-10 grid grid-cols-2 divide-x divide-y border-y text-center text-xs text-muted-foreground sm:grid-cols-4 sm:divide-y-0">
+          <div className="py-4">
             <span className="block font-medium text-foreground">#{generation.id}</span>
             {t("presentationV2.generation.jobId")}
           </div>
-          <div>
+          <div className="py-4">
             <span className="block font-medium text-foreground">{generation.slide_count || "—"}</span>
             {t("presentationV2.generation.slideCount")}
           </div>
-          <div className="hidden sm:block">
+          <div className="py-4">
+            <span className="block font-medium text-foreground">{generation.generated_image_count}</span>
+            {t("presentationV2.generation.generatedImageCount")}
+          </div>
+          <div className="py-4">
             <span className="block font-medium text-foreground">
               {t(`presentationV2.generation.status.${generation.status}`)}
             </span>

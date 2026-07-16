@@ -1,3 +1,5 @@
+import type { PPTImageStyleID } from "@/lib/api/presentations/v2/types"
+
 const SESSION_VERSION = 1
 const STORAGE_PREFIX = "joyfulwords:presentation-v2"
 
@@ -8,6 +10,7 @@ export interface PresentationFlowSession {
   generationId?: number
   templateKey?: string
   templateVersion?: number
+  imageStyleId?: PPTImageStyleID
   updatedAt: number
 }
 
@@ -78,4 +81,3 @@ export function clearPresentationFlowSession(
 ): void {
   storage?.removeItem(getPresentationFlowSessionKey(userId, articleId))
 }
-
