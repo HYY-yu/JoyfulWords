@@ -94,7 +94,7 @@ export function StorycardStep({
             {t("presentationV2.storycard.slideCount", { count: document.slides.length })}
           </p>
         </div>
-        <ScrollArea className="h-40 flex-1 md:h-auto">
+        <ScrollArea className="h-40 min-h-0 flex-1 md:h-auto">
           <div className="space-y-1 p-2">
             {document.slides.map((slide, index) => {
               const hasIssue = issues.some((issue) => issue.slideIndex === index)
