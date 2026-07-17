@@ -48,27 +48,48 @@ export function TallyFeedbackButton({ className }: TallyFeedbackButtonProps) {
   }
 
   return (
-    <button
-      onClick={handleFeedbackClick}
-      disabled={isLoading}
-      className={cn(
-        "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium",
-        "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
-        "transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        className
-      )}
-    >
-      {isLoading ? (
-        <>
-          <span className="animate-spin">⏳</span>
-          <span>{t('common.feedbackLoading')}</span>
-        </>
-      ) : (
-        <>
-          <MessageSquareIcon className="w-5 h-5 shrink-0" />
-          <span>{t('common.feedback')}</span>
-        </>
-      )}
-    </button>
+    <div className="group relative inline-flex">
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute -top-2.5 left-1/2 z-10 flex -translate-x-1/2 -rotate-1 items-center whitespace-nowrap",
+          "rounded-full border border-[color-mix(in_srgb,var(--jw-accent)_70%,var(--jw-surface-strong))] bg-[var(--jw-accent)] px-1.5 py-0.5 text-[var(--jw-accent-foreground)]",
+          "shadow-[0_4px_10px_-7px_var(--jw-accent)]",
+          "animate-in fade-in zoom-in-90 slide-in-from-bottom-1 duration-500 motion-reduce:animate-none",
+          "transition-transform group-hover:-translate-y-px group-hover:rotate-0 motion-reduce:transition-none"
+        )}
+      >
+        <strong className="text-[8px] font-extrabold leading-none tracking-[0.05em]">
+          {t('common.feedbackRewardValue')}
+        </strong>
+      </div>
+
+      <button
+        type="button"
+        aria-label={t('common.feedbackRewardAriaLabel')}
+        onClick={handleFeedbackClick}
+        disabled={isLoading}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg border border-transparent px-4 py-2.5 text-sm font-semibold",
+          "text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
+          "transition-[background-color,border-color,color,box-shadow,transform] duration-200",
+          "hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0",
+          "motion-reduce:transition-none",
+          className
+        )}
+      >
+        {isLoading ? (
+          <>
+            <span className="animate-spin motion-reduce:animate-none">⏳</span>
+            <span>{t('common.feedbackLoading')}</span>
+          </>
+        ) : (
+          <>
+            <MessageSquareIcon className="h-5 w-5 shrink-0" />
+            <span>{t('common.feedback')}</span>
+          </>
+        )}
+      </button>
+    </div>
   )
 }

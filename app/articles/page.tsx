@@ -445,7 +445,7 @@ export default function ArticlesPage() {
             {/* Feedback */}
             <div className="hidden md:block">
               <FeedbackErrorBoundary>
-                <TallyFeedbackButton className="jw-themed-link h-8 w-auto rounded-full py-0 text-sm" />
+                <TallyFeedbackButton className="jw-themed-link h-8 w-auto rounded-full border-[color-mix(in_srgb,var(--jw-accent)_24%,transparent)] bg-[color-mix(in_srgb,var(--jw-accent-soft)_48%,transparent)] py-0 text-sm shadow-[0_8px_20px_-16px_var(--jw-accent)] hover:border-[color-mix(in_srgb,var(--jw-accent)_42%,transparent)]" />
               </FeedbackErrorBoundary>
             </div>
 

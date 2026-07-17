@@ -3,7 +3,13 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState } from "react"
-import { ImageIcon, LayoutTemplateIcon, Maximize2Icon, PaletteIcon } from "lucide-react"
+import {
+  ImageIcon,
+  LayoutTemplateIcon,
+  Maximize2Icon,
+  PaletteIcon,
+  ScanLineIcon,
+} from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import type {
   PPTImageStyle,
@@ -11,6 +17,7 @@ import type {
   PPTTemplate,
 } from "@/lib/api/presentations/v2/types"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { resolveCatalogText } from "@/lib/presentations/v2/catalog-localization"
 import { cn } from "@/lib/utils"
 
 interface TemplateStepProps {
@@ -18,26 +25,29 @@ interface TemplateStepProps {
   selectedTemplate: PPTTemplate | null
   imageStyles: PPTImageStyle[]
   selectedImageStyle: PPTImageStyle | null
-  language: PPTLanguage
   templatesLoading?: boolean
   imageStylesLoading?: boolean
   onSelectTemplate: (template: PPTTemplate) => void
   onSelectImageStyle: (imageStyle: PPTImageStyle) => void
 }
 
+const PRIVATE_TEMPLATE_WECHAT_QR_URL =
+  "https://cdn.joyword.link/materials/8/d5830bc566a8f5513802749f6b781378.jpg"
+
 export function TemplateStep({
   templates,
   selectedTemplate,
   imageStyles,
   selectedImageStyle,
-  language,
   templatesLoading = false,
   imageStylesLoading = false,
   onSelectTemplate,
   onSelectImageStyle,
 }: TemplateStepProps) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const displayLanguage: PPTLanguage = locale
   const [previewTemplate, setPreviewTemplate] = useState<PPTTemplate | null>(null)
+  const [privateTemplateQrPreviewOpen, setPrivateTemplateQrPreviewOpen] = useState(false)
 
   return (
     <>
@@ -67,7 +77,11 @@ export function TemplateStep({
                 const selected =
                   template.template_key === selectedTemplate?.template_key &&
                   template.version === selectedTemplate.version
-                const templateName = template.name_i18n[language] || template.template_key
+                const templateName = resolveCatalogText(
+                  template.name_i18n,
+                  displayLanguage,
+                  template.template_key
+                )
 
                 return (
                   <div
@@ -116,12 +130,51 @@ export function TemplateStep({
                         />
                       </div>
                       <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground">
-                        {template.description_i18n[language] || t("presentationV2.template.noDescription")}
+                        {resolveCatalogText(
+                          template.description_i18n,
+                          displayLanguage,
+                          t("presentationV2.template.noDescription")
+                        )}
                       </p>
                     </button>
                   </div>
                 )
               })}
+
+              <div className="group overflow-hidden rounded-xl border border-emerald-500/30 bg-background text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-500/60 hover:shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setPrivateTemplateQrPreviewOpen(true)}
+                  className="relative flex aspect-video w-full flex-col items-center justify-center gap-1.5 bg-emerald-50/70 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset dark:bg-emerald-950/20"
+                  aria-label={t("presentationV2.template.privateTemplateQrPreview")}
+                >
+                  <div className="overflow-hidden rounded-lg border border-emerald-500/20 bg-white p-1.5 shadow-sm">
+                    <img
+                      src={PRIVATE_TEMPLATE_WECHAT_QR_URL}
+                      alt={t("presentationV2.template.privateTemplateQrAlt")}
+                      className="size-28 object-contain sm:size-32 lg:size-28 xl:size-32"
+                    />
+                  </div>
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                    <ScanLineIcon className="size-3.5" />
+                    {t("presentationV2.template.privateTemplateQrHint")}
+                  </p>
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/25 group-focus-within:bg-black/25">
+                    <span className="flex translate-y-1 items-center gap-2 rounded-full bg-black/70 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-sm backdrop-blur-sm transition-all group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                      <Maximize2Icon className="size-3.5" />
+                      {t("presentationV2.template.viewLarge")}
+                    </span>
+                  </span>
+                </button>
+                <div className="p-4">
+                  <p className="font-semibold">
+                    {t("presentationV2.template.privateTemplateTitle")}
+                  </p>
+                  <p className="mt-2 min-h-10 text-sm leading-5 text-muted-foreground">
+                    {t("presentationV2.template.privateTemplateDescription")}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -145,10 +198,11 @@ export function TemplateStep({
               <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {imageStyles.map((imageStyle) => {
                   const selected = imageStyle.id === selectedImageStyle?.id
-                  const label =
-                    imageStyle.label_i18n[language] ||
-                    imageStyle.label_i18n.zh ||
-                    imageStyle.label_i18n.en
+                  const label = resolveCatalogText(
+                    imageStyle.label_i18n,
+                    displayLanguage,
+                    imageStyle.id
+                  )
 
                   return (
                     <button
@@ -186,16 +240,44 @@ export function TemplateStep({
       >
         <DialogContent className="max-h-[96vh] w-[98vw] max-w-[98vw] gap-0 overflow-hidden p-0 sm:max-w-[min(98vw,1800px)]">
           <DialogTitle className="border-b px-5 py-4 pr-12 text-base">
-            {previewTemplate?.name_i18n[language] || previewTemplate?.template_key}
+            {previewTemplate
+              ? resolveCatalogText(
+                  previewTemplate.name_i18n,
+                  displayLanguage,
+                  previewTemplate.template_key
+                )
+              : null}
           </DialogTitle>
           <div className="flex min-h-0 items-center justify-center bg-muted/30 p-3 sm:p-5">
             {previewTemplate?.cover_url ? (
               <img
                 src={previewTemplate.cover_url}
-                alt={previewTemplate.name_i18n[language] || previewTemplate.template_key}
+                alt={resolveCatalogText(
+                  previewTemplate.name_i18n,
+                  displayLanguage,
+                  previewTemplate.template_key
+                )}
                 className="max-h-[calc(96vh-5rem)] max-w-full rounded-md object-contain shadow-xl"
               />
             ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={privateTemplateQrPreviewOpen}
+        onOpenChange={setPrivateTemplateQrPreviewOpen}
+      >
+        <DialogContent className="max-h-[96vh] w-[98vw] max-w-[98vw] gap-0 overflow-hidden p-0 sm:max-w-[min(98vw,1800px)]">
+          <DialogTitle className="border-b px-5 py-4 pr-12 text-base">
+            {t("presentationV2.template.privateTemplateTitle")}
+          </DialogTitle>
+          <div className="flex min-h-0 items-center justify-center bg-muted/30 p-3 sm:p-5">
+            <img
+              src={PRIVATE_TEMPLATE_WECHAT_QR_URL}
+              alt={t("presentationV2.template.privateTemplateQrAlt")}
+              className="max-h-[calc(96vh-5rem)] max-w-full rounded-md object-contain shadow-xl"
+            />
           </div>
         </DialogContent>
       </Dialog>

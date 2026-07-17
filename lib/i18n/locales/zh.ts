@@ -26,6 +26,8 @@ export const zh = {
         feedbackButton: "反馈",
         feedbackTitle: "意见反馈",
         feedbackLoading: "加载中...",
+        feedbackRewardValue: "100 积分",
+        feedbackRewardAriaLabel: "提交反馈，赠送 100 积分",
         cookiePreferences: "Cookie 偏好设置",
         themeSwitcher: {
             tooltip: "切换主题",
@@ -2020,6 +2022,11 @@ export const zh = {
             noDescription: "暂无模板说明",
             viewLarge: "查看大图",
             previewCover: "查看{name}封面大图",
+            privateTemplateTitle: "使用私有模板",
+            privateTemplateDescription: "想用自己的模板？联系我们完成模板处理，之后即可用它生成任意内容的 PPT。",
+            privateTemplateQrHint: "微信扫码，或点击放大",
+            privateTemplateQrAlt: "联系我们处理私有模板的微信二维码",
+            privateTemplateQrPreview: "查看私有模板联系二维码大图",
             generate: "使用所选模板与风格生成",
         },
         imageStyle: {

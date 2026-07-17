@@ -26,6 +26,8 @@ export const en = {
         feedbackButton: "Feedback",
         feedbackTitle: "Send Feedback",
         feedbackLoading: "Loading...",
+        feedbackRewardValue: "100 CREDITS",
+        feedbackRewardAriaLabel: "Send feedback and earn 100 credits",
         cookiePreferences: "Cookie Preferences",
         themeSwitcher: {
             tooltip: "Switch theme",
@@ -2020,6 +2022,11 @@ export const en = {
             noDescription: "No template description",
             viewLarge: "View large image",
             previewCover: "View the {name} cover in full size",
+            privateTemplateTitle: "Use a private template",
+            privateTemplateDescription: "Want to use your own template? Contact us to have it prepared, then generate presentations from any content.",
+            privateTemplateQrHint: "Scan with WeChat or click to enlarge",
+            privateTemplateQrAlt: "WeChat QR code for private template setup",
+            privateTemplateQrPreview: "View the private template contact QR code",
             generate: "Generate with selected template and style",
         },
         imageStyle: {

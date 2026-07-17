@@ -842,7 +842,6 @@ export function PresentationFlowDialog({
           selectedTemplate={selectedTemplate}
           imageStyles={imageStyles}
           selectedImageStyle={selectedImageStyle}
-          language={language}
           templatesLoading={templatesLoading}
           imageStylesLoading={imageStylesLoading}
           onSelectTemplate={(template) => {
