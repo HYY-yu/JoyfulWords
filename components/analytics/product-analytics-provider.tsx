@@ -9,6 +9,7 @@ import {
   hasAnalyticsConsent,
 } from "@/lib/analytics/cookie-consent"
 import {
+  getIdentifiedProductUserId,
   identifyProductUser,
   initializeProductAnalytics,
   optInProductAnalytics,
@@ -18,6 +19,7 @@ import {
   trackProductEvent,
 } from "@/lib/analytics/client"
 import { PRODUCT_ANALYTICS_EVENTS } from "@/lib/analytics/events"
+import { shouldResetProductIdentity } from "@/lib/analytics/identity"
 
 export function ProductAnalyticsProvider() {
   const { user, loading } = useAuth()
@@ -84,14 +86,20 @@ export function ProductAnalyticsProvider() {
   useEffect(() => {
     if (!isReady || loading) return
 
+    const authenticatedUserId = user ? String(user.id) : null
+    const identifiedUserId = getIdentifiedProductUserId()
+
+    if (
+      shouldResetProductIdentity(identifiedUserId, authenticatedUserId)
+    ) {
+      resetProductUser()
+    }
+
     if (user) {
       identifyProductUser(user.id, {
         locale,
       })
-      return
     }
-
-    resetProductUser()
   }, [isReady, loading, locale, user])
 
   useEffect(() => {

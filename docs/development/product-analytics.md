@@ -36,6 +36,8 @@ Every `NEXT_PUBLIC_*` variable must also be declared in `Dockerfile.prod` and pa
 - `lib/analytics/cookie-consent.ts`: reads and broadcasts analytics consent changes.
 - `components/cookie-banner/cookie-banner-provider.tsx`: global Cookie Banner and consent event source.
 
+Anonymous visitors keep their PostHog identity across reloads so acquisition data remains attributable. Reset the PostHog identity only when an identified user signs out, loses authentication, or switches accounts.
+
 ## Privacy rules
 
 Allowed:

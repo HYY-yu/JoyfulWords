@@ -260,6 +260,13 @@ export function identifyProductUser(
   posthogClient.identify(String(userId), sanitizeProperties(properties))
 }
 
+export function getIdentifiedProductUserId() {
+  if (!posthogClient || !isInitialized) return null
+
+  const userId = posthogClient.get_property("$user_id")
+  return typeof userId === "string" && userId ? userId : null
+}
+
 export function resetProductUser() {
   if (!posthogClient || !isInitialized) return
 
