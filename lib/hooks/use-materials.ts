@@ -372,7 +372,8 @@ export function useMaterials() {
       if (materialType === "image" && uploadForm.imageFile) {
         const presignedResult = await materialsClient.getPresignedUrl(
           uploadForm.imageFile.name,
-          uploadForm.imageFile.type
+          uploadForm.imageFile.type,
+          uploadForm.imageFile.size
         )
 
         if ("error" in presignedResult) {
@@ -390,8 +391,13 @@ export function useMaterials() {
           throw new Error("图片上传失败")
         }
 
+        const completed = await materialsClient.completeUpload(presignedResult)
+        if ("error" in completed) {
+          throw new Error(completed.error)
+        }
+
         // 使用返回的 file_url 作为素材内容
-        content = presignedResult.file_url
+        content = completed.file_url
       }
 
       // 创建素材记录

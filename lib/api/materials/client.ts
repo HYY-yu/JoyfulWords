@@ -16,6 +16,7 @@ import type {
   CreateMaterialResponse,
   CreateMaterialFavoriteResponse,
   PresignedUrlResponse,
+  CompleteUploadResponse,
   MessageResponse,
   ErrorResponse,
   TriggerMaterialSearchV2Response,
@@ -195,7 +196,7 @@ export const materialsClient = {
    * @returns Promise<PresignedUrlResponse | ErrorResponse>
    *
    * @example
-   * const result = await materialsClient.getPresignedUrl('photo.jpg', 'image/jpeg')
+   * const result = await materialsClient.getPresignedUrl('photo.jpg', 'image/jpeg', file.size)
    * if ('error' in result) {
    *   console.error(result.error)
    * } else {
@@ -206,14 +207,31 @@ export const materialsClient = {
    */
   async getPresignedUrl(
     filename: GetPresignedUrlRequest['filename'],
-    contentType: GetPresignedUrlRequest['content_type']
+    contentType: GetPresignedUrlRequest['content_type'],
+    sizeBytes: GetPresignedUrlRequest['size_bytes']
   ): Promise<PresignedUrlResponse | ErrorResponse> {
     return authenticatedApiRequest<PresignedUrlResponse>('/materials/presigned-url', {
       method: 'POST',
       body: JSON.stringify({
         filename,
         content_type: contentType,
+        size_bytes: sizeBytes,
       } as GetPresignedUrlRequest),
+    })
+  },
+
+  async completeUpload(
+    presigned: PresignedUrlResponse
+  ): Promise<CompleteUploadResponse | ErrorResponse> {
+    if (!presigned.upload_token) {
+      if (presigned.file_url) {
+        return { file_url: presigned.file_url, content_type: "", size_bytes: 0 }
+      }
+      return { error: "Missing upload confirmation" }
+    }
+    return authenticatedApiRequest<CompleteUploadResponse>('/materials/upload-complete', {
+      method: 'POST',
+      body: JSON.stringify({ upload_token: presigned.upload_token }),
     })
   },
 

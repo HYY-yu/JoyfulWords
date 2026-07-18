@@ -38,12 +38,19 @@ export type ToolboxImageTaskResultResponse = TaskResultResponse
 export interface ToolboxTempUploadURLRequest {
   filename: string
   content_type: string
+  size_bytes: number
 }
 
 export interface ToolboxTempUploadURLResponse {
   upload_url: string
-  file_url: string
+  upload_token: string
   expires_at: string
+}
+
+export interface ToolboxCompleteTempUploadResponse {
+  file_url: string
+  content_type: string
+  size_bytes: number
 }
 
 export type ToolboxGenerateInfographicRequest = GenerateInfographicRequest

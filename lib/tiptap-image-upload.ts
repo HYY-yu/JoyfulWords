@@ -60,7 +60,8 @@ export async function uploadImageToR2(file: File): Promise<string> {
   // 2. 获取预签名URL
   const presignedResult = await materialsClient.getPresignedUrl(
     file.name,
-    file.type
+    file.type,
+    file.size
   )
 
   // 检查是否返回错误
@@ -90,6 +91,10 @@ export async function uploadImageToR2(file: File): Promise<string> {
     throw new Error('fileUploadFailed')
   }
 
-  // 4. 返回最终访问URL
-  return presignedResult.file_url
+  // 4. 后端校验对象后返回最终访问 URL
+  const completed = await materialsClient.completeUpload(presignedResult)
+  if ('error' in completed) {
+    throw new Error(completed.error)
+  }
+  return completed.file_url
 }

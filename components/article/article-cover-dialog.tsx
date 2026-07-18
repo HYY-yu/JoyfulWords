@@ -1164,7 +1164,7 @@ export function ArticleCoverDialog({
       })
       const filename = `article-cover-${articleId}-${Date.now()}.${extension}`
       const file = new File([blob], filename, { type: mimeType })
-      const presigned = await materialsClient.getPresignedUrl(filename, mimeType)
+      const presigned = await materialsClient.getPresignedUrl(filename, mimeType, file.size)
 
       if ("error" in presigned) {
         throw new Error(presigned.error)
@@ -1175,11 +1175,16 @@ export function ArticleCoverDialog({
         throw new Error("upload_failed")
       }
 
+      const completed = await materialsClient.completeUpload(presigned)
+      if ("error" in completed) {
+        throw new Error(completed.error)
+      }
+
       const trimmedTitle = coverTitle
       const materialResult = await materialsClient.createMaterial({
         title: `${trimmedTitle} - ${t("imageGeneration.cover.altText")}`,
         material_type: "image",
-        content: presigned.file_url,
+        content: completed.file_url,
         article_id: articleId,
       })
 
@@ -1198,7 +1203,7 @@ export function ArticleCoverDialog({
       onArticleTitleUpdated?.(trimmedTitle)
       window.dispatchEvent(new CustomEvent("joyfulwords-insert-cover-image", {
         detail: {
-          imageUrl: presigned.file_url,
+          imageUrl: completed.file_url,
           title: trimmedTitle,
         },
       }))

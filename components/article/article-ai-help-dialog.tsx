@@ -254,11 +254,11 @@ export function ArticleAIHelpDialog({
       console.log('[AI Help] Starting file upload:', file.name, file.type, file.size)
 
       // 1. 获取预签名 URL
-      const presignedResult = await materialsClient.getPresignedUrl(file.name, file.type)
+      const presignedResult = await materialsClient.getPresignedUrl(file.name, file.type, file.size)
       if ('error' in presignedResult) {
         throw new Error(presignedResult.error)
       }
-      console.log('[AI Help] Presigned URL received:', presignedResult.file_url)
+      console.log('[AI Help] Presigned URL received')
 
       // 2. 上传文件到 R2
       const { uploadFileToPresignedUrl } = await import("@/lib/api/materials/client")
@@ -272,9 +272,14 @@ export function ArticleAIHelpDialog({
       }
       console.log('[AI Help] File uploaded to R2 successfully')
 
+      const completed = await materialsClient.completeUpload(presignedResult)
+      if ('error' in completed) {
+        throw new Error(completed.error)
+      }
+
       // 3. 保存文件信息（不创建 material 记录）
       setUploadedFile({
-        url: presignedResult.file_url,
+        url: completed.file_url,
         name: file.name
       })
 

@@ -246,6 +246,7 @@ export interface UpdateMaterialRequest {
 export interface GetPresignedUrlRequest {
   filename: string // 文件名
   content_type: string // 文件 MIME 类型
+  size_bytes: number // 文件字节数
 }
 
 // ==================== Response Types ====================
@@ -296,8 +297,15 @@ export interface CreateMaterialFavoriteResponse {
  */
 export interface PresignedUrlResponse {
   upload_url: string // 用于 PUT 请求上传文件
-  file_url: string // 文件最终访问 URL
-  expires_at: string // URL 过期时间（15 分钟有效期）
+  upload_token?: string // 图片上传完成后的校验凭证
+  file_url?: string // 非图片旧流程的最终访问 URL
+  expires_at: string // URL 过期时间（5 分钟有效期）
+}
+
+export interface CompleteUploadResponse {
+  file_url: string
+  content_type: string
+  size_bytes: number
 }
 
 /**

@@ -4,6 +4,7 @@ import { tokenStore } from "@/lib/tokens/token-store"
 import type {
   ToolboxCreateImageTaskRequest,
   ToolboxCreateImageTaskResponse,
+  ToolboxCompleteTempUploadResponse,
   ToolboxGenerateInfographicRequest,
   ToolboxGenerateInfographicResponse,
   ToolboxGenerateEChartRequest,
@@ -99,6 +100,7 @@ export const toolboxClient = {
         body: JSON.stringify({
           filename: file.name,
           content_type: file.type || "image/png",
+          size_bytes: file.size,
         }),
       },
       options
@@ -133,13 +135,26 @@ export const toolboxClient = {
       }
     }
 
+    const completed = await toolboxApiRequest<ToolboxCompleteTempUploadResponse>(
+      "/toolbox/image-generation/temp-upload-complete",
+      {
+        method: "POST",
+        body: JSON.stringify({ upload_token: tempUpload.upload_token }),
+      },
+      options
+    )
+
+    if ("error" in completed) {
+      return completed
+    }
+
     console.info("[Toolbox] Reference image uploaded", {
       fileName: file.name,
-      fileUrl: tempUpload.file_url,
+      fileUrl: completed.file_url,
     })
 
     return {
-      file_url: tempUpload.file_url,
+      file_url: completed.file_url,
     }
   },
 

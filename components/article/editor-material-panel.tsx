@@ -1924,15 +1924,18 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
       const uploadFile = materialType === "info" ? dataFile : imageFile
       if (!uploadFile) throw new Error("Missing upload file")
 
-      const presigned = await materialsClient.getPresignedUrl(uploadFile.name, uploadFile.type || "application/octet-stream")
+      const presigned = await materialsClient.getPresignedUrl(uploadFile.name, uploadFile.type || "application/octet-stream", uploadFile.size)
       if ("error" in presigned) throw new Error(presigned.error)
 
       const ok = await uploadFileToPresignedUrl(presigned.upload_url, uploadFile, uploadFile.type || "application/octet-stream")
       if (!ok) throw new Error("File upload failed")
 
+      const completed = await materialsClient.completeUpload(presigned)
+      if ("error" in completed) throw new Error(completed.error)
+
       if (materialType === "info") {
         const parseResult = await materialsClient.createParsePreview({
-          file_url: presigned.file_url,
+          file_url: completed.file_url,
           file_name: uploadFile.name,
         })
 
@@ -1954,7 +1957,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
       const result = await materialsClient.createMaterial({
         title: title.trim(),
         material_type: "image",
-        content: presigned.file_url,
+        content: completed.file_url,
         article_id: articleId,
       })
 
