@@ -249,7 +249,7 @@ export function MaterialDialogs({
                       </div>
                       <input
                         type="file"
-                        accept="image/png,image/jpeg,image/jpg"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.webp,.gif,.avif,.heic,.heif"
                         onChange={onImageChange}
                         className="hidden"
                         id="image-upload"

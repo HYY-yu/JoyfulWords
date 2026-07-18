@@ -25,6 +25,7 @@ import { Label } from "@/components/ui/base/label"
 import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
 import { MaterialClueBoardDialog } from "@/components/article/material-clue-board"
 import { normalizeMarkdownLinksWithSpaceDestinations } from "@/components/article/material-clue-board/markdown-utils"
+import { isSupportedImageFile } from "@/lib/upload-file"
 
 // ==================== MaterialCard ====================
 
@@ -1757,7 +1758,7 @@ const DATA_FILE_ACCEPT = [
   ".xlsx",
 ].join(",")
 
-const IMAGE_FILE_ACCEPT = "image/png,image/jpeg,image/jpg,image/jp2,image/webp,image/gif,image/bmp"
+const IMAGE_FILE_ACCEPT = "image/png,image/jpeg,image/jp2,image/webp,image/gif,image/bmp,image/avif,image/heic,image/heif,.jpg,.jpeg,.jp2,.webp,.gif,.bmp,.avif,.heic,.heif"
 
 const SUPPORTED_DATA_EXTENSIONS = new Set(["pdf", "png", "jpg", "jpeg", "jp2", "webp", "gif", "bmp", "docx", "pptx", "xlsx"])
 const UPLOAD_PARSE_POLL_INTERVAL_MS = 3000
@@ -1833,7 +1834,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
       const file = e.target.files?.[0]
       if (!file) return
 
-      if (!file.type.startsWith("image/")) {
+      if (!isSupportedImageFile(file)) {
         setErrors({ content: t("contentWriting.materials.errors.invalidImageType") })
         return
       }

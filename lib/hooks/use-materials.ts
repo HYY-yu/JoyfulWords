@@ -12,6 +12,7 @@ import type {
   MaterialStatus,
 } from "@/lib/api/materials/types"
 import { UI_TAB_TO_API_TYPE } from "@/lib/api/materials/enums"
+import { isSupportedImageFile } from "@/lib/upload-file"
 
 // Re-export types for use in other modules
 export type { Material, MaterialLog, MaterialType, MaterialStatus } from "@/lib/api/materials/types"
@@ -461,7 +462,7 @@ export function useMaterials() {
       const file = e.target.files?.[0]
       if (file) {
         // 验证文件类型
-        if (!file.type.startsWith("image/")) {
+        if (!isSupportedImageFile(file)) {
           setUploadErrors({ content: t("contentWriting.materials.errors.invalidImageType") })
           return
         }

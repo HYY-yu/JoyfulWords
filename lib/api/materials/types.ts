@@ -297,8 +297,8 @@ export interface CreateMaterialFavoriteResponse {
  */
 export interface PresignedUrlResponse {
   upload_url: string // 用于 PUT 请求上传文件
-  upload_token?: string // 图片上传完成后的校验凭证
-  file_url?: string // 非图片旧流程的最终访问 URL
+  upload_token?: string // 文件上传完成后的校验凭证
+  file_url?: string // 兼容旧服务返回的最终访问 URL
   expires_at: string // URL 过期时间（5 分钟有效期）
 }
 
@@ -320,4 +320,7 @@ export interface MessageResponse {
  */
 export interface ErrorResponse {
   error: string
+  status?: number
+  reason?: string
+  error_description?: string
 }

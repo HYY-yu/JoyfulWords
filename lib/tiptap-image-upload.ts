@@ -1,17 +1,5 @@
-import { materialsClient } from '@/lib/api/materials/client'
-import type { PresignedUrlResponse, ErrorResponse } from '@/lib/api/materials/types'
-
-// 5MB 文件大小限制
-const MAX_FILE_SIZE = 5 * 1024 * 1024
-
-// 允许的图片类型
-const ALLOWED_IMAGE_TYPES = [
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-]
+import { materialsClient, uploadFileToPresignedUrl } from '@/lib/api/materials/client'
+import { isSupportedImageFile, MAX_IMAGE_UPLOAD_BYTES, resolveUploadContentType } from '@/lib/upload-file'
 
 /**
  * 验证图片文件
@@ -20,7 +8,7 @@ const ALLOWED_IMAGE_TYPES = [
  */
 export function validateImageFile(file: File): { valid: boolean; error?: string } {
   // 检查文件类型
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+  if (!isSupportedImageFile(file)) {
     return {
       valid: false,
       error: 'invalidFileType',
@@ -28,7 +16,7 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
   }
 
   // 检查文件大小
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
     return {
       valid: false,
       error: 'fileTooLarge',
@@ -60,7 +48,7 @@ export async function uploadImageToR2(file: File): Promise<string> {
   // 2. 获取预签名URL
   const presignedResult = await materialsClient.getPresignedUrl(
     file.name,
-    file.type,
+    resolveUploadContentType(file.name, file.type),
     file.size
   )
 
@@ -72,20 +60,18 @@ export async function uploadImageToR2(file: File): Promise<string> {
       errorMessage = typeof rawError === 'string' 
         ? (rawError === 'Internal Service Error' ? '服务器内部错误，请稍后重试' : rawError) 
         : JSON.stringify(rawError) || '获取预签名URL失败，请稍后重试'
-    } catch (e) {
+    } catch {
       errorMessage = '获取预签名URL失败，请稍后重试'
     }
     throw new Error(errorMessage)
   }
 
   // 3. 上传文件到R2
-  const uploadSuccess = await fetch(presignedResult.upload_url, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type,
-    },
-  }).then(response => response.ok)
+  const uploadSuccess = await uploadFileToPresignedUrl(
+    presignedResult.upload_url,
+    file,
+    resolveUploadContentType(file.name, file.type)
+  )
 
   if (!uploadSuccess) {
     throw new Error('fileUploadFailed')

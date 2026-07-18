@@ -1,6 +1,7 @@
-import { apiRequest, getLanguageHeader } from "@/lib/api/client"
+import { apiRequest } from "@/lib/api/client"
 import { getValidAccessToken } from "@/lib/tokens/refresh"
 import { tokenStore } from "@/lib/tokens/token-store"
+import { MAX_IMAGE_UPLOAD_BYTES, putFileToPresignedUrl, resolveUploadContentType } from "@/lib/upload-file"
 import type {
   ToolboxCreateImageTaskRequest,
   ToolboxCreateImageTaskResponse,
@@ -48,6 +49,12 @@ async function toolboxApiRequest<T>(
   })
 }
 
+function isRetryableUploadCompletionError(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false
+  const error = value as Record<string, unknown>
+  return error.reason === "network_error" || (typeof error.status === "number" && error.status >= 500)
+}
+
 export const toolboxClient = {
   async createImageTask(
     request: ToolboxCreateImageTaskRequest,
@@ -86,9 +93,10 @@ export const toolboxClient = {
   },
 
   async createTempUploadURL(file: File, options: ToolboxRequestOptions = {}) {
+    const contentType = resolveUploadContentType(file.name, file.type)
     console.debug("[Toolbox] Creating temp upload URL", {
       fileName: file.name,
-      fileType: file.type,
+      fileType: contentType,
       fileSize: file.size,
       preferAuth: Boolean(options.preferAuth),
     })
@@ -99,7 +107,7 @@ export const toolboxClient = {
         method: "POST",
         body: JSON.stringify({
           filename: file.name,
-          content_type: file.type || "image/png",
+          content_type: contentType,
           size_bytes: file.size,
         }),
       },
@@ -108,20 +116,20 @@ export const toolboxClient = {
   },
 
   async uploadReferenceImage(file: File, options: ToolboxRequestOptions = {}) {
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      return { error: "fileTooLarge", status: 413 }
+    }
     const tempUpload = await this.createTempUploadURL(file, options)
 
     if ("error" in tempUpload) {
       return tempUpload
     }
 
-    const uploadResponse = await fetch(tempUpload.upload_url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type || "image/png",
-        "Accept-Language": getLanguageHeader(),
-      },
-      body: file,
-    })
+    const uploadResponse = await putFileToPresignedUrl(
+      tempUpload.upload_url,
+      file,
+      resolveUploadContentType(file.name, file.type)
+    )
 
     if (!uploadResponse.ok) {
       console.error("[Toolbox] Temp image upload failed", {
@@ -135,7 +143,7 @@ export const toolboxClient = {
       }
     }
 
-    const completed = await toolboxApiRequest<ToolboxCompleteTempUploadResponse>(
+    let completed = await toolboxApiRequest<ToolboxCompleteTempUploadResponse>(
       "/toolbox/image-generation/temp-upload-complete",
       {
         method: "POST",
@@ -143,6 +151,17 @@ export const toolboxClient = {
       },
       options
     )
+
+    if (isRetryableUploadCompletionError(completed)) {
+      completed = await toolboxApiRequest<ToolboxCompleteTempUploadResponse>(
+        "/toolbox/image-generation/temp-upload-complete",
+        {
+          method: "POST",
+          body: JSON.stringify({ upload_token: tempUpload.upload_token }),
+        },
+        options
+      )
+    }
 
     if ("error" in completed) {
       return completed

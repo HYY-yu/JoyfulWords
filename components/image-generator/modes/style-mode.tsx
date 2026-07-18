@@ -376,9 +376,7 @@ export function StyleMode({ articleId }: StyleModeProps) {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
-    if (file && file.type.startsWith("image/")) {
-      handleFileUpload(file)
-    }
+    if (file) handleFileUpload(file)
   }, [handleFileUpload])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

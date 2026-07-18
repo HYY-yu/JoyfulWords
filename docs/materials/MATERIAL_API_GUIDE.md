@@ -408,8 +408,9 @@ const result = await materialsClient.createMaterial({
 ```typescript
 // 1. 获取预签名上传 URL
 const presignedResult = await materialsClient.getPresignedUrl(
-  'photo.jpg',
-  'image/jpeg'
+  imageFile.name,
+  imageFile.type,
+  imageFile.size
 )
 
 if ('error' in presignedResult) {
@@ -429,11 +430,18 @@ if (!uploadSuccess) {
   return
 }
 
-// 3. 创建素材记录（使用返回的 file_url）
+// 3. 完成确认：后端通过 HEAD 检查实际大小
+const completed = await materialsClient.completeUpload(presignedResult)
+if ('error' in completed) {
+  console.error('上传确认失败:', completed.error)
+  return
+}
+
+// 4. 创建素材记录（使用完成确认返回的 file_url）
 const result = await materialsClient.createMaterial({
   title: '产品宣传图',
   material_type: 'image',
-  content: presignedResult.file_url,
+  content: completed.file_url,
 })
 ```
 
@@ -783,7 +791,7 @@ const fetchMaterials = async () => {
 ```typescript
 const handleImageUpload = async (file: File) => {
   // 验证
-  if (!file.type.startsWith('image/')) {
+  if (!isSupportedImageFile(file)) {
     toast({ title: '请选择图片文件' })
     return
   }
@@ -796,7 +804,8 @@ const handleImageUpload = async (file: File) => {
   // 上传
   const presignedResult = await materialsClient.getPresignedUrl(
     file.name,
-    file.type
+    resolveUploadContentType(file.name, file.type),
+    file.size
   )
 
   if ('error' in presignedResult) {
@@ -815,8 +824,13 @@ const handleImageUpload = async (file: File) => {
     return
   }
 
-  // 创建素材
-  return presignedResult.file_url
+  const completed = await materialsClient.completeUpload(presignedResult)
+  if ('error' in completed) {
+    toast({ title: '上传确认失败' })
+    return
+  }
+
+  return completed.file_url
 }
 ```
 

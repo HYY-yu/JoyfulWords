@@ -17,6 +17,7 @@ import { useState, useMemo } from "react"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { cn } from "@/lib/utils"
 import { getMatchedSizePreset, IMAGE_SIZE_PRESETS } from "../presets"
+import { isSupportedImageFile, MAX_IMAGE_UPLOAD_BYTES } from "@/lib/upload-file"
 
 interface PropertiesPanelProps {
   selectedLayer: Layer | null
@@ -103,10 +104,18 @@ export function PropertiesPanel({
   }
 
   const handleReferenceImageUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
+    if (!isSupportedImageFile(file)) {
       toast({
         variant: "destructive",
         title: t("imageGeneration.toast.error.invalidFileType"),
+      })
+      return
+    }
+
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+      toast({
+        variant: "destructive",
+        title: t("materials.dialog.imageTooLarge"),
       })
       return
     }

@@ -31,6 +31,7 @@ import {
 import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
 import type { Material } from "@/lib/api/materials/types"
 import { cn } from "@/lib/utils"
+import { getFileExtension } from "@/lib/upload-file"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -216,8 +217,9 @@ export function ArticleAIHelpDialog({
 
   // 文件验证
   const validateFile = (file: File): { valid: boolean; error?: string } => {
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf']
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'])
+    const allowedExtensions = new Set(['png', 'jpg', 'jpeg', 'pdf'])
+    if (!allowedTypes.has(file.type.toLowerCase()) && !allowedExtensions.has(getFileExtension(file.name))) {
       return { valid: false, error: t("contentWriting.aiHelp.invalidFileType") }
     }
     const maxSize = 5 * 1024 * 1024 // 5MB

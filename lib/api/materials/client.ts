@@ -1,4 +1,5 @@
 import { authenticatedApiRequest } from '@/lib/api/client'
+import { putFileToPresignedUrl, resolveUploadContentType } from '@/lib/upload-file'
 import type {
   SearchMaterialsRequest,
   GetMaterialsRequest,
@@ -200,9 +201,9 @@ export const materialsClient = {
    * if ('error' in result) {
    *   console.error(result.error)
    * } else {
-   *   // 使用 result.upload_url 上传文件
-   *   await fetch(result.upload_url, { method: 'PUT', body: file })
-   *   // 上传成功后使用 result.file_url 作为素材内容
+   *   // 使用 result.upload_url 上传文件，再调用 completeUpload 获取最终 URL
+   *   await uploadFileToPresignedUrl(result.upload_url, file, file.type)
+   *   const completed = await materialsClient.completeUpload(result)
    * }
    */
   async getPresignedUrl(
@@ -210,11 +211,12 @@ export const materialsClient = {
     contentType: GetPresignedUrlRequest['content_type'],
     sizeBytes: GetPresignedUrlRequest['size_bytes']
   ): Promise<PresignedUrlResponse | ErrorResponse> {
+    const resolvedContentType = resolveUploadContentType(filename, contentType)
     return authenticatedApiRequest<PresignedUrlResponse>('/materials/presigned-url', {
       method: 'POST',
       body: JSON.stringify({
         filename,
-        content_type: contentType,
+        content_type: resolvedContentType,
         size_bytes: sizeBytes,
       } as GetPresignedUrlRequest),
     })
@@ -229,10 +231,20 @@ export const materialsClient = {
       }
       return { error: "Missing upload confirmation" }
     }
-    return authenticatedApiRequest<CompleteUploadResponse>('/materials/upload-complete', {
+    const firstResult = await authenticatedApiRequest<CompleteUploadResponse | ErrorResponse>('/materials/upload-complete', {
       method: 'POST',
       body: JSON.stringify({ upload_token: presigned.upload_token }),
     })
+    if (
+      'error' in firstResult &&
+      (firstResult.reason === 'network_error' || (firstResult.status !== undefined && firstResult.status >= 500))
+    ) {
+      return authenticatedApiRequest<CompleteUploadResponse | ErrorResponse>('/materials/upload-complete', {
+        method: 'POST',
+        body: JSON.stringify({ upload_token: presigned.upload_token }),
+      })
+    }
+    return firstResult
   },
 
   /**
@@ -418,18 +430,12 @@ export async function uploadFileToPresignedUrl(
   file: File,
   contentType: string
 ): Promise<boolean> {
-  try {
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: {
-        'Content-Type': contentType,
-      },
+  const result = await putFileToPresignedUrl(uploadUrl, file, contentType)
+  if (!result.ok) {
+    console.error('Failed to upload file to presigned URL', {
+      fileName: file.name,
+      status: result.status,
     })
-
-    return response.ok
-  } catch (error) {
-    console.error('Failed to upload file to presigned URL:', error)
-    return false
   }
+  return result.ok
 }
