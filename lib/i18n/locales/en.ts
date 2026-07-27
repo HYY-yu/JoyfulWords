@@ -1567,6 +1567,127 @@ export const en = {
         and: "and",
         termsRequired: "You must agree to all terms to continue registration",
     },
+    fileConverter: {
+        sampleMarkdown: `# Quarterly Business Report
+
+## Key Takeaways
+
+> This quarter's growth was driven primarily by automated delivery and renewals from key customers.
+
+1. Revenue continued to grow
+2. Customer retention improved
+3. The next phase will focus on workflow automation
+
+## Metrics
+
+| Metric | Current | Change |
+| --- | --- | --- |
+| Revenue | 12.8M | +18% |
+| Paying customers | 420 | +12% |`,
+        page: {
+            eyebrow: "Document Converter",
+            title: "File Converter",
+            studioDescription: "Convert article Markdown to Word and apply Word template styles.",
+            studioTitle: "Article Markdown to Word",
+        },
+        modes: {
+            markdownToWord: "Markdown to Word",
+            pptToWord: "PPT to Word",
+            pdfToWord: "PDF to Word",
+        },
+        actions: {
+            generateWord: "Generate Word",
+            startConversion: "Start Conversion",
+            generating: "Generating",
+            converting: "Converting",
+            downloadWord: "Download Word",
+            download: "Download",
+            refresh: "Refresh",
+            upload: "Upload",
+            remove: "Remove",
+        },
+        source: {
+            articleMarkdown: "Article Markdown",
+            markdown: "Markdown",
+            articleMarkdownPreview: "Article Markdown Preview",
+            markdownInput: "Markdown Input",
+            selectPpt: "Select a PPT File",
+            selectPdf: "Select a PDF File",
+            task: "Task {id}",
+            generatedWord: "Word file generated",
+            templateSummary: "Template: {name}",
+        },
+        templates: {
+            title: "Word Templates",
+            selection: "Template",
+            selectPlaceholder: "Select a Word template",
+            systemDefault: "System Default",
+            publicPrefix: "Public · ",
+            minePrefix: "Mine · ",
+            uploadTitle: "Upload Template",
+            namePlaceholder: "Template name",
+            selectDocx: "Select .docx",
+            defaultDescription: "Upload a Word template to preview its content and styles.",
+        },
+        preview: {
+            paragraphs: "Paragraphs: {count}",
+            tables: "Tables: {count}",
+            images: "Images: {count}",
+            emptyBody: "This template has no body content to preview.",
+            hoverHint: "Hover over template content to inspect style details",
+            imageLayout: "Image layout {count}",
+            roles: {
+                heading1: "Heading 1",
+                heading2: "Heading 2",
+                heading3: "Heading 3",
+                quote: "Quote Style",
+                table: "Standard Business Table",
+                image: "Image Layout",
+                orderedList: "Multilevel Numbering",
+                normal: "Body Text",
+            },
+            style: {
+                labels: {
+                    style: "Style",
+                    font: "Font",
+                    size: "Size",
+                    color: "Color",
+                    bold: "Bold",
+                    italic: "Italic",
+                    alignment: "Alignment",
+                    lineSpacing: "Line Spacing",
+                    spaceBefore: "Before",
+                    spaceAfter: "After",
+                },
+                defaultValue: "Default",
+                inheritedValue: "Inherited",
+                yes: "Yes",
+                no: "No",
+                alignments: {
+                    left: "Left",
+                    center: "Center",
+                    right: "Right",
+                    justify: "Justified",
+                },
+            },
+        },
+        errors: {
+            templateReadFailed: "Failed to Load Templates",
+            unsupportedFormat: "Unsupported File Format",
+            selectPptx: "Select a .pptx file.",
+            selectPdf: "Select a .pdf file.",
+            selectDocx: "Select a .docx file.",
+            fileTooLarge: "File Too Large",
+            fileTooLargeDescription: "Upload a file smaller than 50 MB.",
+            selectWordTemplate: "Select a Word template file.",
+            templateParsed: "Template parsed",
+            templateUploadFailed: "Failed to Upload Template",
+            conversionCompleted: "Conversion complete",
+            conversionFailed: "Conversion failed",
+            authenticationRequired: "Sign in to continue.",
+            requestFailed: "Request failed. Please try again later.",
+        },
+    },
     tiptapEditor: {
         toolbar: {
             undo: "Undo",

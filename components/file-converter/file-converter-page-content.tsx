@@ -25,6 +25,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/base/tabs"
 import { Textarea } from "@/components/ui/base/textarea"
 import { useToast } from "@/hooks/use-toast"
 import {
+  FileConverterApiError,
   absoluteDownloadURL,
   convertMarkdownToWord,
   convertPdfToWord,
@@ -41,26 +42,12 @@ import type {
   WordStyleDetails,
   WordTemplateConfig,
 } from "@/lib/api/file-converter/types"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
-const DEFAULT_MARKDOWN = `# 季度经营报告
-
-## 核心结论
-
-> 本季度增长主要来自自动化交付和重点客户续约。
-
-1. 收入保持增长
-2. 客户留存率改善
-3. 下一阶段聚焦流程自动化
-
-## 数据表
-
-| 指标 | 本期 | 环比 |
-| --- | --- | --- |
-| 收入 | 1280 万 | +18% |
-| 付费客户 | 420 | +12% |`
+type Translate = ReturnType<typeof useTranslation>["t"]
 
 type HoverState = {
   title: string
@@ -81,12 +68,13 @@ export function FileConverterPageContent({
   initialMarkdownVersion = 0,
 }: FileConverterPageContentProps = {}) {
   const { toast } = useToast()
+  const { t } = useTranslation()
   const isStudio = variant === "studio"
   const pptInputRef = useRef<HTMLInputElement | null>(null)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const templateInputRef = useRef<HTMLInputElement | null>(null)
   const [mode, setMode] = useState<DocumentConversionMode>("markdown-to-word")
-  const [markdown, setMarkdown] = useState(initialMarkdown ?? DEFAULT_MARKDOWN)
+  const [markdown, setMarkdown] = useState<string>(initialMarkdown ?? t("fileConverter.sampleMarkdown"))
   const [pptFile, setPptFile] = useState<File | null>(null)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [templates, setTemplates] = useState<DocumentTemplateRecord[]>([])
@@ -118,15 +106,16 @@ export function FileConverterPageContent({
       const records = await listWordTemplates()
       setTemplates(records)
     } catch (error) {
+      console.error("[FileConverter] Failed to load Word templates", error)
       toast({
-        title: "模板读取失败",
-        description: error instanceof Error ? error.message : "请稍后重试。",
+        title: t("fileConverter.errors.templateReadFailed"),
+        description: localizedErrorDescription(t, error),
         variant: "destructive",
       })
     } finally {
       setIsLoadingTemplates(false)
     }
-  }, [toast])
+  }, [t, toast])
 
   useEffect(() => {
     void refreshTemplates()
@@ -145,12 +134,20 @@ export function FileConverterPageContent({
   const handlePptSelect = (file: File | null) => {
     if (!file) return
     if (!isPptFile(file)) {
-      toast({ title: "文件格式不支持", description: "请选择 .pptx 文件。", variant: "destructive" })
+      toast({
+        title: t("fileConverter.errors.unsupportedFormat"),
+        description: t("fileConverter.errors.selectPptx"),
+        variant: "destructive",
+      })
       resetFileInput(pptInputRef)
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast({ title: "文件过大", description: "请上传 50MB 以内的文件。", variant: "destructive" })
+      toast({
+        title: t("fileConverter.errors.fileTooLarge"),
+        description: t("fileConverter.errors.fileTooLargeDescription"),
+        variant: "destructive",
+      })
       resetFileInput(pptInputRef)
       return
     }
@@ -160,12 +157,20 @@ export function FileConverterPageContent({
   const handlePdfSelect = (file: File | null) => {
     if (!file) return
     if (!isPdfFile(file)) {
-      toast({ title: "文件格式不支持", description: "请选择 .pdf 文件。", variant: "destructive" })
+      toast({
+        title: t("fileConverter.errors.unsupportedFormat"),
+        description: t("fileConverter.errors.selectPdf"),
+        variant: "destructive",
+      })
       resetFileInput(pdfInputRef)
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast({ title: "文件过大", description: "请上传 50MB 以内的文件。", variant: "destructive" })
+      toast({
+        title: t("fileConverter.errors.fileTooLarge"),
+        description: t("fileConverter.errors.fileTooLargeDescription"),
+        variant: "destructive",
+      })
       resetFileInput(pdfInputRef)
       return
     }
@@ -175,12 +180,20 @@ export function FileConverterPageContent({
   const handleTemplateSelect = (file: File | null) => {
     if (!file) return
     if (!isDocxFile(file)) {
-      toast({ title: "文件格式不支持", description: "请选择 .docx 文件。", variant: "destructive" })
+      toast({
+        title: t("fileConverter.errors.unsupportedFormat"),
+        description: t("fileConverter.errors.selectDocx"),
+        variant: "destructive",
+      })
       resetFileInput(templateInputRef)
       return
     }
     if (file.size > MAX_FILE_SIZE) {
-      toast({ title: "文件过大", description: "请上传 50MB 以内的文件。", variant: "destructive" })
+      toast({
+        title: t("fileConverter.errors.fileTooLarge"),
+        description: t("fileConverter.errors.fileTooLargeDescription"),
+        variant: "destructive",
+      })
       resetFileInput(templateInputRef)
       return
     }
@@ -192,7 +205,7 @@ export function FileConverterPageContent({
 
   const handleUploadTemplate = async () => {
     if (!templateFile) {
-      toast({ title: "请选择 Word 模板文件", variant: "destructive" })
+      toast({ title: t("fileConverter.errors.selectWordTemplate"), variant: "destructive" })
       return
     }
     setIsUploadingTemplate(true)
@@ -203,11 +216,12 @@ export function FileConverterPageContent({
       setTemplateFile(null)
       setTemplateName("")
       resetFileInput(templateInputRef)
-      toast({ title: "模板已解析" })
+      toast({ title: t("fileConverter.errors.templateParsed") })
     } catch (error) {
+      console.error("[FileConverter] Failed to upload Word template", error)
       toast({
-        title: "模板上传失败",
-        description: error instanceof Error ? error.message : "请稍后重试。",
+        title: t("fileConverter.errors.templateUploadFailed"),
+        description: localizedErrorDescription(t, error),
         variant: "destructive",
       })
     } finally {
@@ -228,11 +242,12 @@ export function FileConverterPageContent({
         converted = await convertPdfToWord(assertPdfFile(pdfFile), selectedTemplateId)
       }
       setResult(converted)
-      toast({ title: "转换完成" })
+      toast({ title: t("fileConverter.errors.conversionCompleted") })
     } catch (error) {
+      console.error("[FileConverter] Document conversion failed", { mode, error })
       toast({
-        title: "转换失败",
-        description: error instanceof Error ? error.message : "请稍后重试。",
+        title: t("fileConverter.errors.conversionFailed"),
+        description: localizedErrorDescription(t, error),
         variant: "destructive",
       })
     } finally {
@@ -241,10 +256,18 @@ export function FileConverterPageContent({
   }
 
   const canConvert = mode === "markdown-to-word" ? markdown.trim().length > 0 : mode === "ppt-to-word" ? Boolean(pptFile) : Boolean(pdfFile)
-  const sourceLabel = mode === "markdown-to-word" ? (isStudio ? "文章 Markdown" : "Markdown") : mode === "ppt-to-word" ? pptFile?.name ?? "PPT" : pdfFile?.name ?? "PDF"
+  const sourceLabel = mode === "markdown-to-word"
+    ? (isStudio ? t("fileConverter.source.articleMarkdown") : t("fileConverter.source.markdown"))
+    : mode === "ppt-to-word"
+      ? pptFile?.name ?? "PPT"
+      : pdfFile?.name ?? "PDF"
   const downloadHref = result ? absoluteDownloadURL(result.download_url) : ""
-  const primaryActionLabel = mode === "markdown-to-word" && isStudio ? "生成 Word" : "开始转换"
-  const primaryActionLoadingLabel = mode === "markdown-to-word" && isStudio ? "生成中" : "转换中"
+  const primaryActionLabel = mode === "markdown-to-word" && isStudio
+    ? t("fileConverter.actions.generateWord")
+    : t("fileConverter.actions.startConversion")
+  const primaryActionLoadingLabel = mode === "markdown-to-word" && isStudio
+    ? t("fileConverter.actions.generating")
+    : t("fileConverter.actions.converting")
 
   return (
     <div className={cn("jw-app-shell", isStudio ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-screen")}>
@@ -261,13 +284,15 @@ export function FileConverterPageContent({
           {isStudio ? (
             <div className="min-w-0">
               <p className="text-xs leading-5 text-[var(--jw-muted)]">
-                文章 Markdown 转 Word，可套用 Word 模板样式。
+                {t("fileConverter.page.studioDescription")}
               </p>
             </div>
           ) : (
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-[var(--jw-muted)]">Document Converter</p>
-              <h1 className="jw-heading-text text-2xl font-semibold">文件转换</h1>
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--jw-muted)]">
+                {t("fileConverter.page.eyebrow")}
+              </p>
+              <h1 className="jw-heading-text text-2xl font-semibold">{t("fileConverter.page.title")}</h1>
             </div>
           )}
           <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
@@ -275,7 +300,7 @@ export function FileConverterPageContent({
               <Button asChild className="jw-primary-button h-9 flex-1 rounded-md sm:flex-none">
                 <a href={downloadHref} download={result.filename}>
                   <DownloadIcon className="size-4" />
-                  下载 Word
+                  {t("fileConverter.actions.downloadWord")}
                 </a>
               </Button>
             ) : null}
@@ -301,22 +326,22 @@ export function FileConverterPageContent({
               {isStudio ? (
                 <div className="flex h-10 items-center gap-2 rounded-md border border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] px-3 text-sm font-medium">
                   <FileTextIcon className="size-4 text-[var(--jw-accent)]" />
-                  <span className="truncate">文章 Markdown 转 Word</span>
+                  <span className="truncate">{t("fileConverter.page.studioTitle")}</span>
                 </div>
               ) : (
                 <Tabs value={mode} onValueChange={(value) => setMode(value as DocumentConversionMode)}>
                   <TabsList className="grid h-10 w-full min-w-0 grid-cols-3 rounded-md">
                     <TabsTrigger value="markdown-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
                       <FileTextIcon className="size-4" />
-                      <span className="truncate">Markdown 转 Word</span>
+                      <span className="truncate">{t("fileConverter.modes.markdownToWord")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="ppt-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
                       <LayersIcon className="size-4" />
-                      <span className="truncate">PPT 转 Word</span>
+                      <span className="truncate">{t("fileConverter.modes.pptToWord")}</span>
                     </TabsTrigger>
                     <TabsTrigger value="pdf-to-word" className="min-w-0 px-1 text-xs sm:px-2 sm:text-sm">
                       <FileIcon className="size-4" />
-                      <span className="truncate">PDF 转 Word</span>
+                      <span className="truncate">{t("fileConverter.modes.pdfToWord")}</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -326,7 +351,11 @@ export function FileConverterPageContent({
             <div className="min-h-0 flex-1 p-4">
               {mode === "markdown-to-word" ? (
                 <div className="flex h-full min-h-[520px] flex-col gap-2">
-                  <label className="text-sm font-medium text-[var(--jw-muted)]">{isStudio ? "文章 Markdown 预览" : "Markdown 输入区"}</label>
+                  <label className="text-sm font-medium text-[var(--jw-muted)]">
+                    {isStudio
+                      ? t("fileConverter.source.articleMarkdownPreview")
+                      : t("fileConverter.source.markdownInput")}
+                  </label>
                   <Textarea
                     value={markdown}
                     onChange={(event) => setMarkdown(event.target.value)}
@@ -340,7 +369,9 @@ export function FileConverterPageContent({
                   file={mode === "ppt-to-word" ? pptFile : pdfFile}
                   uploadIcon={<FileUpIcon className="mb-3 size-10 text-[var(--jw-accent)]" />}
                   summaryIcon={mode === "ppt-to-word" ? <LayersIcon className="size-4" /> : <FileIcon className="size-4" />}
-                  title={mode === "ppt-to-word" ? "选择 PPT 文件" : "选择 PDF 文件"}
+                  title={mode === "ppt-to-word"
+                    ? t("fileConverter.source.selectPpt")
+                    : t("fileConverter.source.selectPdf")}
                   hint={mode === "ppt-to-word" ? ".pptx · 50MB" : ".pdf · 50MB"}
                   accept={mode === "ppt-to-word" ? ".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" : ".pdf,application/pdf"}
                   onSelect={(file) => (mode === "ppt-to-word" ? handlePptSelect(file) : handlePdfSelect(file))}
@@ -363,22 +394,28 @@ export function FileConverterPageContent({
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{result.filename}</p>
-                      <p className="text-xs text-[var(--jw-muted)]">任务 {result.task_id}</p>
+                      <p className="text-xs text-[var(--jw-muted)]">
+                        {t("fileConverter.source.task", { id: result.task_id })}
+                      </p>
                     </div>
                     <Button asChild variant="outline" size="sm" className="h-8 rounded-md">
                       <a href={downloadHref} download={result.filename}>
                         <DownloadIcon className="size-4" />
-                        下载
+                        {t("fileConverter.actions.download")}
                       </a>
                     </Button>
                   </div>
                   <pre className="max-h-32 overflow-auto rounded-md bg-[#121826] p-3 text-xs leading-5 text-slate-100">
-                    {result.preview_markdown || "已生成 Word 文件"}
+                    {result.preview_markdown || t("fileConverter.source.generatedWord")}
                   </pre>
                 </div>
               ) : (
                 <div className="flex items-center justify-between text-xs text-[var(--jw-muted)]">
-                  <span>模板：{selectedTemplate?.name ?? "系统默认模板"}</span>
+                  <span>
+                    {t("fileConverter.source.templateSummary", {
+                      name: selectedTemplate?.name ?? t("fileConverter.templates.systemDefault"),
+                    })}
+                  </span>
                   <span>{sourceLabel} → Word</span>
                 </div>
               )}
@@ -388,25 +425,29 @@ export function FileConverterPageContent({
           <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)]">
             <div className="border-b border-[var(--jw-border-subtle)] p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="jw-heading-text text-sm font-semibold">Word 模板</h2>
+                <h2 className="jw-heading-text text-sm font-semibold">{t("fileConverter.templates.title")}</h2>
                 <Button variant="outline" size="sm" className="h-8 rounded-md" onClick={() => void refreshTemplates()} disabled={isLoadingTemplates}>
                   {isLoadingTemplates ? <Loader2Icon className="size-4 animate-spin" /> : <RefreshCwIcon className="size-4" />}
-                  刷新
+                  {t("fileConverter.actions.refresh")}
                 </Button>
               </div>
 
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
                 <div className="min-w-0">
-                  <label className="mb-1 block text-xs font-medium text-[var(--jw-muted)]">模板选择</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--jw-muted)]">
+                    {t("fileConverter.templates.selection")}
+                  </label>
                   <Select value={selectedTemplateId || "default"} onValueChange={(value) => setSelectedTemplateId(value === "default" ? "" : value)}>
                     <SelectTrigger className="h-10 w-full bg-[var(--jw-surface)]">
-                      <SelectValue placeholder="选择 Word 模板" />
+                      <SelectValue placeholder={t("fileConverter.templates.selectPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="default">系统默认模板</SelectItem>
+                      <SelectItem value="default">{t("fileConverter.templates.systemDefault")}</SelectItem>
                       {templates.map((template) => (
                         <SelectItem key={template.template_id} value={template.template_id}>
-                          {template.user_id === 0 ? "公共 · " : "我的 · "}
+                          {template.user_id === 0
+                            ? t("fileConverter.templates.publicPrefix")
+                            : t("fileConverter.templates.minePrefix")}
                           {template.name}
                         </SelectItem>
                       ))}
@@ -416,22 +457,26 @@ export function FileConverterPageContent({
                 </div>
 
                 <div className="min-w-0">
-                  <label className="mb-1 block text-xs font-medium text-[var(--jw-muted)]">上传模板</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--jw-muted)]">
+                    {t("fileConverter.templates.uploadTitle")}
+                  </label>
                   <div className="grid gap-2">
                     <input
                       value={templateName}
                       onChange={(event) => setTemplateName(event.target.value)}
-                      placeholder="模板名称"
+                      placeholder={t("fileConverter.templates.namePlaceholder")}
                       className="h-10 rounded-md border border-[var(--jw-border)] bg-[var(--jw-surface)] px-3 text-sm outline-none focus:border-[var(--jw-accent)]"
                     />
                     <div className="flex min-w-0 gap-2">
                       <Button variant="outline" className="h-10 min-w-0 flex-1 rounded-md" onClick={() => templateInputRef.current?.click()}>
                         <UploadCloudIcon className="size-4" />
-                        <span className="truncate">{templateFile?.name ?? "选择 .docx"}</span>
+                        <span className="truncate">
+                          {templateFile?.name ?? t("fileConverter.templates.selectDocx")}
+                        </span>
                       </Button>
                       <Button className="jw-primary-button h-10 rounded-md" disabled={isUploadingTemplate || !templateFile} onClick={handleUploadTemplate}>
                         {isUploadingTemplate ? <Loader2Icon className="size-4 animate-spin" /> : <FileUpIcon className="size-4" />}
-                        上传
+                        {t("fileConverter.actions.upload")}
                       </Button>
                     </div>
                     <input
@@ -533,6 +578,7 @@ function TemplatePreview({
   hover: HoverState
   setHover: (value: HoverState) => void
 }) {
+  const { t } = useTranslation()
   const config = template?.config_json
   const blocks = config?.preview?.blocks ?? config?.serialized_content?.blocks ?? []
   const page = config?.page_setup ?? {}
@@ -542,8 +588,10 @@ function TemplatePreview({
       <div className="flex h-full min-h-[520px] items-center justify-center rounded-md border border-dashed border-[var(--jw-border)] bg-[var(--jw-surface)] p-6 text-center">
         <div>
           <FileTextIcon className="mx-auto mb-3 size-10 text-[var(--jw-muted)]" />
-          <p className="text-sm font-medium">系统默认模板</p>
-          <p className="mt-1 text-xs text-[var(--jw-muted)]">可上传 Word 模板后查看原内容和样式。</p>
+          <p className="text-sm font-medium">{t("fileConverter.templates.systemDefault")}</p>
+          <p className="mt-1 text-xs text-[var(--jw-muted)]">
+            {t("fileConverter.templates.defaultDescription")}
+          </p>
         </div>
       </div>
     )
@@ -557,9 +605,13 @@ function TemplatePreview({
           <p className="truncate text-xs text-[var(--jw-muted)]">{template.original_filename}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2 text-xs text-[var(--jw-muted)]">
-          <span>{config.document?.paragraph_count ?? blocks.length} 段</span>
-          <span>{config.document?.table_count ?? 0} 表</span>
-          <span>{config.document?.inline_shape_count ?? 0} 图</span>
+          <span>
+            {t("fileConverter.preview.paragraphs", {
+              count: config.document?.paragraph_count ?? blocks.length,
+            })}
+          </span>
+          <span>{t("fileConverter.preview.tables", { count: config.document?.table_count ?? 0 })}</span>
+          <span>{t("fileConverter.preview.images", { count: config.document?.inline_shape_count ?? 0 })}</span>
         </div>
       </div>
 
@@ -581,11 +633,15 @@ function TemplatePreview({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">模板没有可展示的正文内容。</p>
+            <p className="text-sm text-slate-500">{t("fileConverter.preview.emptyBody")}</p>
           )}
         </div>
       </div>
-      {hover ? null : <div className="border-t border-[var(--jw-border-subtle)] px-4 py-2 text-xs text-[var(--jw-muted)]">鼠标悬浮模板内容查看样式详情</div>}
+      {hover ? null : (
+        <div className="border-t border-[var(--jw-border-subtle)] px-4 py-2 text-xs text-[var(--jw-muted)]">
+          {t("fileConverter.preview.hoverHint")}
+        </div>
+      )}
     </div>
   )
 }
@@ -601,8 +657,9 @@ function PreviewBlock({
   onHover: (event: MouseEvent<HTMLElement>, title: string, style: WordStyleDetails) => void
   onLeave: () => void
 }) {
+  const { t } = useTranslation()
   const style = styleForBlock(block, config)
-  const title = roleLabel(block.role ?? block.type)
+  const title = roleLabel(t, block.role ?? block.type)
   const commonProps = {
     onMouseMove: (event: MouseEvent<HTMLElement>) => onHover(event, title, style),
     onMouseLeave: onLeave,
@@ -634,7 +691,7 @@ function PreviewBlock({
     return (
       <div {...commonProps} className="flex items-center justify-center rounded-sm border border-dashed border-slate-300 py-8 text-slate-500">
         <ImageIcon className="mr-2 size-5" />
-        <span>{block.text || `图片版式 ${block.image_count ?? 1}`}</span>
+        <span>{block.text || t("fileConverter.preview.imageLayout", { count: block.image_count ?? 1 })}</span>
       </div>
     )
   }
@@ -653,8 +710,9 @@ function PreviewBlock({
 }
 
 function StyleHoverCard({ hover }: { hover: HoverState }) {
+  const { t } = useTranslation()
   if (!hover) return null
-  const details = styleDetails(hover.style)
+  const details = styleDetails(t, hover.style)
   return (
     <div
       className="pointer-events-none fixed z-[80] w-[300px] rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-700 shadow-xl"
@@ -677,6 +735,7 @@ function StyleHoverCard({ hover }: { hover: HoverState }) {
 }
 
 function FileSummary({ icon, name, meta, onClear }: { icon: ReactNode; name: string; meta: string; onClear: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="rounded-md border border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] p-3">
       <div className="flex min-w-0 items-center justify-between gap-3">
@@ -688,7 +747,7 @@ function FileSummary({ icon, name, meta, onClear }: { icon: ReactNode; name: str
           </div>
         </div>
         <Button type="button" variant="ghost" size="sm" className="h-8 rounded-md" onClick={onClear}>
-          移除
+          {t("fileConverter.actions.remove")}
         </Button>
       </div>
     </div>
@@ -734,18 +793,19 @@ function tableHeaderStyle(style: WordStyleDetails): CSSProperties {
   }
 }
 
-function styleDetails(style: WordStyleDetails): Array<[string, string]> {
+function styleDetails(t: Translate, style: WordStyleDetails): Array<[string, string]> {
+  const inherited = t("fileConverter.preview.style.inheritedValue")
   return [
-    ["样式", style.style_name || style.style_id || "默认"],
-    ["字体", style.font || "继承"],
-    ["字号", style.size ? `${style.size} pt` : "继承"],
-    ["色号", style.color || "继承"],
-    ["加粗", style.bold ? "是" : "否"],
-    ["斜体", style.italic ? "是" : "否"],
-    ["对齐", style.alignment || "left"],
-    ["行距", style.line_spacing ? String(style.line_spacing) : "继承"],
-    ["段前", style.space_before ? `${style.space_before} pt` : "0"],
-    ["段后", style.space_after ? `${style.space_after} pt` : "0"],
+    [t("fileConverter.preview.style.labels.style"), style.style_name || style.style_id || t("fileConverter.preview.style.defaultValue")],
+    [t("fileConverter.preview.style.labels.font"), style.font || inherited],
+    [t("fileConverter.preview.style.labels.size"), style.size ? `${style.size} pt` : inherited],
+    [t("fileConverter.preview.style.labels.color"), style.color || inherited],
+    [t("fileConverter.preview.style.labels.bold"), style.bold ? t("fileConverter.preview.style.yes") : t("fileConverter.preview.style.no")],
+    [t("fileConverter.preview.style.labels.italic"), style.italic ? t("fileConverter.preview.style.yes") : t("fileConverter.preview.style.no")],
+    [t("fileConverter.preview.style.labels.alignment"), localizedAlignment(t, style.alignment)],
+    [t("fileConverter.preview.style.labels.lineSpacing"), style.line_spacing ? String(style.line_spacing) : inherited],
+    [t("fileConverter.preview.style.labels.spaceBefore"), style.space_before ? `${style.space_before} pt` : "0"],
+    [t("fileConverter.preview.style.labels.spaceAfter"), style.space_after ? `${style.space_after} pt` : "0"],
   ]
 }
 
@@ -768,19 +828,29 @@ function iconForRole(role?: string) {
   return null
 }
 
-function roleLabel(role: string): string {
+function roleLabel(t: Translate, role: string): string {
   return {
-    heading1: "标题1",
-    heading2: "标题2",
-    heading3: "标题3",
-    quote: "引用样式",
-    table: "标准业务表格样式",
-    image: "图片版式",
-    list_number: "多级自动编号",
-    ordered_list: "多级自动编号",
-    normal: "正文",
-    paragraph: "正文",
+    heading1: t("fileConverter.preview.roles.heading1"),
+    heading2: t("fileConverter.preview.roles.heading2"),
+    heading3: t("fileConverter.preview.roles.heading3"),
+    quote: t("fileConverter.preview.roles.quote"),
+    table: t("fileConverter.preview.roles.table"),
+    image: t("fileConverter.preview.roles.image"),
+    list_number: t("fileConverter.preview.roles.orderedList"),
+    ordered_list: t("fileConverter.preview.roles.orderedList"),
+    normal: t("fileConverter.preview.roles.normal"),
+    paragraph: t("fileConverter.preview.roles.normal"),
   }[role] ?? role
+}
+
+function localizedAlignment(t: Translate, alignment?: string): string {
+  if (!alignment) return t("fileConverter.preview.style.alignments.left")
+  return {
+    left: t("fileConverter.preview.style.alignments.left"),
+    center: t("fileConverter.preview.style.alignments.center"),
+    right: t("fileConverter.preview.style.alignments.right"),
+    justify: t("fileConverter.preview.style.alignments.justify"),
+  }[alignment] ?? alignment
 }
 
 function isDocxFile(file: File): boolean {
@@ -796,13 +866,23 @@ function isPdfFile(file: File): boolean {
 }
 
 function assertPptFile(file: File | null): File {
-  if (!file) throw new Error("请选择 PPT 文件")
+  if (!file) throw new Error("ppt_file_required")
   return file
 }
 
 function assertPdfFile(file: File | null): File {
-  if (!file) throw new Error("请选择 PDF 文件")
+  if (!file) throw new Error("pdf_file_required")
   return file
+}
+
+function localizedErrorDescription(t: Translate, error: unknown): string {
+  if (
+    error instanceof FileConverterApiError
+    && (error.kind === "authentication-required" || error.status === 401)
+  ) {
+    return t("fileConverter.errors.authenticationRequired")
+  }
+  return t("fileConverter.errors.requestFailed")
 }
 
 function resetFileInput(ref: RefObject<HTMLInputElement | null>) {

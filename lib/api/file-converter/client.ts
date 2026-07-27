@@ -12,13 +12,17 @@ import type {
 
 const DOCUMENT_CONVERTER_BASE = `${API_BASE_URL}/api/document-converter`
 
+export type FileConverterErrorKind = "authentication-required" | "request-failed"
+
 export class FileConverterApiError extends Error {
   status: number
+  kind: FileConverterErrorKind
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, kind: FileConverterErrorKind = "request-failed") {
     super(message)
     this.name = "FileConverterApiError"
     this.status = status
+    this.kind = kind
   }
 }
 
@@ -38,7 +42,7 @@ export async function listWordTemplates(): Promise<DocumentTemplateRecord[]> {
 export async function uploadWordTemplate(file: File, name: string): Promise<DocumentTemplateRecord> {
   const token = await getValidAccessToken()
   if (!token) {
-    throw new FileConverterApiError("请先登录后上传模板", 401)
+    throw new FileConverterApiError("authentication_required", 401, "authentication-required")
   }
 
   const formData = new FormData()
@@ -135,12 +139,12 @@ async function readErrorMessage(response: Response): Promise<string> {
   if (contentType.includes("application/json")) {
     try {
       const payload = (await response.json()) as ApiErrorResponse
-      return payload.error || "转换失败，请稍后重试"
+      return payload.error || response.statusText || "request_failed"
     } catch {
-      return "转换失败，请稍后重试"
+      return response.statusText || "request_failed"
     }
   }
 
   const text = await response.text()
-  return text || "转换失败，请稍后重试"
+  return text || response.statusText || "request_failed"
 }

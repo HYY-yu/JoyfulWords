@@ -1567,6 +1567,127 @@ export const zh = {
         and: "和",
         termsRequired: "您必须同意所有条款才能继续注册",
     },
+    fileConverter: {
+        sampleMarkdown: `# 季度经营报告
+
+## 核心结论
+
+> 本季度增长主要来自自动化交付和重点客户续约。
+
+1. 收入保持增长
+2. 客户留存率改善
+3. 下一阶段聚焦流程自动化
+
+## 数据表
+
+| 指标 | 本期 | 环比 |
+| --- | --- | --- |
+| 收入 | 1280 万 | +18% |
+| 付费客户 | 420 | +12% |`,
+        page: {
+            eyebrow: "文档转换器",
+            title: "文件转换",
+            studioDescription: "文章 Markdown 转 Word，可套用 Word 模板样式。",
+            studioTitle: "文章 Markdown 转 Word",
+        },
+        modes: {
+            markdownToWord: "Markdown 转 Word",
+            pptToWord: "PPT 转 Word",
+            pdfToWord: "PDF 转 Word",
+        },
+        actions: {
+            generateWord: "生成 Word",
+            startConversion: "开始转换",
+            generating: "生成中",
+            converting: "转换中",
+            downloadWord: "下载 Word",
+            download: "下载",
+            refresh: "刷新",
+            upload: "上传",
+            remove: "移除",
+        },
+        source: {
+            articleMarkdown: "文章 Markdown",
+            markdown: "Markdown",
+            articleMarkdownPreview: "文章 Markdown 预览",
+            markdownInput: "Markdown 输入区",
+            selectPpt: "选择 PPT 文件",
+            selectPdf: "选择 PDF 文件",
+            task: "任务 {id}",
+            generatedWord: "已生成 Word 文件",
+            templateSummary: "模板：{name}",
+        },
+        templates: {
+            title: "Word 模板",
+            selection: "模板选择",
+            selectPlaceholder: "选择 Word 模板",
+            systemDefault: "系统默认模板",
+            publicPrefix: "公共 · ",
+            minePrefix: "我的 · ",
+            uploadTitle: "上传模板",
+            namePlaceholder: "模板名称",
+            selectDocx: "选择 .docx",
+            defaultDescription: "可上传 Word 模板后查看原内容和样式。",
+        },
+        preview: {
+            paragraphs: "{count} 段",
+            tables: "{count} 表",
+            images: "{count} 图",
+            emptyBody: "模板没有可展示的正文内容。",
+            hoverHint: "鼠标悬浮模板内容查看样式详情",
+            imageLayout: "图片版式 {count}",
+            roles: {
+                heading1: "标题 1",
+                heading2: "标题 2",
+                heading3: "标题 3",
+                quote: "引用样式",
+                table: "标准业务表格样式",
+                image: "图片版式",
+                orderedList: "多级自动编号",
+                normal: "正文",
+            },
+            style: {
+                labels: {
+                    style: "样式",
+                    font: "字体",
+                    size: "字号",
+                    color: "色号",
+                    bold: "加粗",
+                    italic: "斜体",
+                    alignment: "对齐",
+                    lineSpacing: "行距",
+                    spaceBefore: "段前",
+                    spaceAfter: "段后",
+                },
+                defaultValue: "默认",
+                inheritedValue: "继承",
+                yes: "是",
+                no: "否",
+                alignments: {
+                    left: "左对齐",
+                    center: "居中",
+                    right: "右对齐",
+                    justify: "两端对齐",
+                },
+            },
+        },
+        errors: {
+            templateReadFailed: "模板读取失败",
+            unsupportedFormat: "文件格式不支持",
+            selectPptx: "请选择 .pptx 文件。",
+            selectPdf: "请选择 .pdf 文件。",
+            selectDocx: "请选择 .docx 文件。",
+            fileTooLarge: "文件过大",
+            fileTooLargeDescription: "请上传 50MB 以内的文件。",
+            selectWordTemplate: "请选择 Word 模板文件",
+            templateParsed: "模板已解析",
+            templateUploadFailed: "模板上传失败",
+            conversionCompleted: "转换完成",
+            conversionFailed: "转换失败",
+            authenticationRequired: "请先登录后继续。",
+            requestFailed: "请求失败，请稍后重试。",
+        },
+    },
     tiptapEditor: {
         toolbar: {
             undo: "撤销",
