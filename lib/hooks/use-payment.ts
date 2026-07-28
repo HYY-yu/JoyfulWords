@@ -7,6 +7,7 @@ import type {
   CreateOrderRequest,
   CreateOrderResponse,
   OrderDetail,
+  OrderStatusResponse,
   PaymentProvider,
 } from '@/lib/api/payment/types'
 
@@ -142,9 +143,9 @@ export function usePayment() {
    * 查询订单状态（主动查询支付提供商）
    *
    * @param orderNo - 订单号
-   * @returns Promise<OrderDetail | null> 成功返回订单详情，失败返回 null
+   * @returns Promise<OrderStatusResponse | null> 成功返回订单状态，失败返回 null
    */
-  const getOrderStatus = useCallback(async (orderNo: string): Promise<OrderDetail | null> => {
+  const getOrderStatus = useCallback(async (orderNo: string): Promise<OrderStatusResponse | null> => {
     setLoading(true)
 
     try {

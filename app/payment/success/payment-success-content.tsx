@@ -6,7 +6,13 @@ import { usePayment } from '@/lib/hooks/use-payment'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { Loader2Icon, CheckCircle2Icon, XCircleIcon } from 'lucide-react'
 import { Button } from '@/components/ui/base/button'
-import { detectPaymentProvider, getProviderDescription, getLastOrderNo, clearLastOrderNo } from '@/lib/payment'
+import {
+  clearLastOrderNo,
+  detectPaymentProvider,
+  getLastOrderNo,
+  getPaymentReturnStatus,
+  getProviderDescription,
+} from '@/lib/payment'
 import { trackProductEvent } from '@/lib/analytics/client'
 import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
 
@@ -171,7 +177,9 @@ export function PaymentSuccessContent() {
       credits: result.credits,
     })
 
-    if (result.status === 'completed') {
+    const paymentReturnStatus = getPaymentReturnStatus(result.status)
+
+    if (paymentReturnStatus === 'success') {
       console.info('[PaymentSuccess] 订单已完成', { orderNo: currentOrderNo, credits: result.credits })
       trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
         provider: detectionRef.current?.provider || null,
@@ -183,7 +191,7 @@ export function PaymentSuccessContent() {
 
       // 清除 localStorage 中的订单号
       clearLastOrderNo()
-    } else if (result.status === 'pending' || result.status === 'paid') {
+    } else if (paymentReturnStatus === 'processing') {
       console.debug('[PaymentSuccess] 订单处理中，继续轮询', {
         orderNo: currentOrderNo,
         status: result.status,
@@ -205,7 +213,6 @@ export function PaymentSuccessContent() {
         setOrderStatus('timeout')
       }
     } else {
-      // failed, cancelled, compensation_needed
       console.warn('[PaymentSuccess] 订单失败', { orderNo: currentOrderNo, status: result.status })
       trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
         provider: detectionRef.current?.provider || null,

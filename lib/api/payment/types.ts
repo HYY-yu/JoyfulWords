@@ -14,12 +14,18 @@ export type PaymentProvider = 'paypal' | 'oxapay' | 'stripe' | 'creem'
  * 订单状态
  */
 export type OrderStatus =
+  | 'creating'
+  | 'create_failed'
   | 'pending'
   | 'paid'
   | 'completed'
+  | 'review_required'
+  | 'refund_pending'
+  | 'partially_refunded'
+  | 'refunded'
+  | 'dispute_pending'
+  | 'disputed'
   | 'failed'
-  | 'cancelled'
-  | 'compensation_needed'
 
 // ==================== Request Types ====================
 
@@ -38,36 +44,32 @@ export interface CreateOrderRequest {
 // ==================== Response Types ====================
 
 /**
- * 创建订单响应
+ * 标准订单 DTO
  */
-export interface CreateOrderResponse {
-  order_no: string // 订单号
-  status: 'pending' // 订单状态
-  provider: PaymentProvider // 支付提供商
-  amount: number // 支付金额（USD）
-  currency: 'USD' // 币种
-  credits: number // 购买的积分数
-  approval_url: string // 支付页面 URL
-  created_at: string // 创建时间（ISO 8601 格式）
-}
-
-/**
- * 订单详情
- */
-export interface OrderDetail {
+export interface PaymentOrder {
   order_no: string // 订单号
   status: OrderStatus // 订单状态
-  provider_status: string // 支付提供商状态
+  provider_status?: string // 支付提供商状态
   amount: number // 支付金额
   currency: 'USD' // 币种
   credits: number // 订单积分数
-  credits_added?: number // 实际充值成功的积分数（完成后才有值）
   provider: PaymentProvider // 支付提供商
-  approval_url?: string // 支付页面 URL（仅 pending 状态有效）
+  approval_url?: string // 支付页面 URL
+  credits_added?: number // 实际充值成功的积分数（完成后才有值）
   created_at: string // 创建时间
   paid_at?: string // 支付成功时间
   completed_at?: string // 订单完成时间
 }
+
+/**
+ * 创建订单响应
+ */
+export type CreateOrderResponse = PaymentOrder
+
+/**
+ * 订单详情
+ */
+export type OrderDetail = PaymentOrder
 
 /**
  * 订单状态查询响应

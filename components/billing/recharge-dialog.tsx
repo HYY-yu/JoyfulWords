@@ -54,6 +54,9 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
       if (result && result.approval_url) {
         // 跳转到支付页面
         window.location.href = result.approval_url
+      } else if (result) {
+        // 幂等重试可能直接返回处理中或已完成订单，此时进入统一的订单状态确认页
+        window.location.href = `/payment/success?order_no=${encodeURIComponent(result.order_no)}`
       }
     } catch (error) {
       console.error('Failed to create order:', error)
