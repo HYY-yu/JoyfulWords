@@ -69,6 +69,7 @@ export function useAdaptivePolling(
   const timerRef = useRef<number | null>(null)
   const requestControllerRef = useRef<AbortController | null>(null)
   const inFlightRef = useRef(false)
+  const rerunRequestedRef = useRef(false)
   const runRef = useRef<() => void>(() => undefined)
 
   const clearTimer = useCallback(() => {
@@ -81,6 +82,7 @@ export function useAdaptivePolling(
   const stopPolling = useCallback(() => {
     isActiveRef.current = false
     inFlightRef.current = false
+    rerunRequestedRef.current = false
     clearTimer()
     requestControllerRef.current?.abort()
     requestControllerRef.current = null
@@ -190,8 +192,12 @@ export function useAdaptivePolling(
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = null
+        inFlightRef.current = false
+        if (isActiveRef.current && rerunRequestedRef.current) {
+          rerunRequestedRef.current = false
+          schedule(0)
+        }
       }
-      inFlightRef.current = false
     }
   }, [schedule, stopPolling])
 
@@ -221,6 +227,10 @@ export function useAdaptivePolling(
   const pollNow = useCallback(() => {
     if (!isActiveRef.current) {
       startPolling()
+      return
+    }
+    if (inFlightRef.current) {
+      rerunRequestedRef.current = true
       return
     }
     schedule(0)

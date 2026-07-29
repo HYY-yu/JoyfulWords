@@ -31,6 +31,7 @@ import type { EChartsLogResponse, JoyChartDisplay, JoyChartSpec } from "@/lib/ap
 import type { TaskCenterEChartsTaskDetail } from "@/lib/api/taskcenter/types"
 import { JOY_CHART_THEME_OPTIONS, mergeJoyChartDisplay } from "@/lib/echarts/joy-chart-defaults"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 
 interface EChartsTaskDetailProps {
@@ -105,7 +106,19 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const rendererRef = useRef<JoyChartRendererHandle | null>(null)
+  const detailRef = useRef(detail)
+  detailRef.current = detail
   const initialSpec = useMemo(() => (isJoyChartSpec(detail.spec) ? detail.spec : null), [detail.spec])
+  const detailDraftKey = useMemo(
+    () =>
+      JSON.stringify({
+        id: detail.id,
+        prompt: detail.prompt,
+        version: detail.version,
+        spec: detail.spec,
+      }),
+    [detail.id, detail.prompt, detail.spec, detail.version]
+  )
   const [spec, setSpec] = useState<JoyChartSpec | null>(initialSpec)
   const [version, setVersion] = useState(detail.version)
   const [draftDisplay, setDraftDisplay] = useState<JoyChartDisplay>(() =>
@@ -119,13 +132,16 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
   const [inserted, setInserted] = useState(false)
 
   useEffect(() => {
-    setSpec(initialSpec)
-    setVersion(detail.version)
-    setDraftDisplay(mergeJoyChartDisplay(initialSpec?.display))
-    setPromptDraft(detail.prompt)
-    setSubmittedPrompt(detail.prompt.trim())
+    const nextDetail = detailRef.current
+    const nextSpec = isJoyChartSpec(nextDetail.spec) ? nextDetail.spec : null
+
+    setSpec(nextSpec)
+    setVersion(nextDetail.version)
+    setDraftDisplay(mergeJoyChartDisplay(nextSpec?.display))
+    setPromptDraft(nextDetail.prompt)
+    setSubmittedPrompt(nextDetail.prompt.trim())
     setInserted(false)
-  }, [detail.id, detail.prompt, detail.version, initialSpec])
+  }, [detailDraftKey])
 
   const chartType = detail.chart_type || spec?.chart.type || "bar"
   const referenceContext = spec?.extensions?.reference_context ?? null
@@ -164,6 +180,11 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
       }
 
       setSubmittedPrompt(normalizedPromptDraft)
+      notifyTaskCenterTaskSubmitted({
+        type: "echarts",
+        taskId: result.id,
+        articleId: detail.article_id,
+      })
       console.info("[EChartsTaskDetail] Created regenerated chart task", {
         sourceLogId: detail.id,
         newLogId: result.id,

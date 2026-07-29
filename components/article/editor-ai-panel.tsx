@@ -65,7 +65,7 @@ import {
   SparklesIcon,
   WandSparklesIcon
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useState, type ReactNode, type UIEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react"
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
 import { PresentationFlowDialog } from "@/components/presentation/v2/presentation-flow-dialog"
@@ -352,6 +352,7 @@ export function EditorAIPanel({
   const [selectedTaskRef, setSelectedTaskRef] = useState<TaskCenterTaskReference | null>(null)
   const [taskDetail, setTaskDetail] = useState<TaskCenterTaskDetailResponse | null>(null)
   const [loadingTaskDetail, setLoadingTaskDetail] = useState(false)
+  const [refreshingTaskDetail, setRefreshingTaskDetail] = useState(false)
   const [taskDetailError, setTaskDetailError] = useState<string | null>(null)
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [copyToMaterialsError, setCopyToMaterialsError] = useState<string | null>(null)
@@ -375,10 +376,13 @@ export function EditorAIPanel({
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
   const [echartsArticleAnalysisSession, setEchartsArticleAnalysisSession] =
     useState<EChartsArticleAnalysisSession | null>(null)
+  const taskDetailRequestSequenceRef = useRef(0)
+  const taskDetailRequestControllerRef = useRef<AbortController | null>(null)
+  const loadedTaskDetailKeyRef = useRef<string | null>(null)
 
   const {
     tasks: liveTasks,
-    refetch,
+    pollNow,
     loadMore,
     loadingMore,
     hasMore,
@@ -424,8 +428,8 @@ export function EditorAIPanel({
 
   useEffect(() => {
     if (submissionTick === 0) return
-    void refetch({ silent: true })
-  }, [refetch, submissionTick])
+    pollNow()
+  }, [pollNow, submissionTick])
 
   useEffect(() => {
     const handleOpenCreateImage = () => {
@@ -472,13 +476,13 @@ export function EditorAIPanel({
       if (taskItems.length > 0) {
         setLiveTasks((currentTasks) => mergeTaskCenterTasks(currentTasks, taskItems))
       }
-      void refetch({ silent: true })
+      pollNow()
       console.info("[EditorAIPanel] Submitted echarts tasks", {
         taskCount: taskRefs.length,
         articleId,
       })
     },
-    [articleId, refetch, setLiveTasks]
+    [articleId, pollNow, setLiveTasks]
   )
 
   useEffect(() => {
@@ -545,67 +549,81 @@ export function EditorAIPanel({
     return ""
   }
 
-  const fetchTaskDetail = useCallback(async (task: TaskItem) => {
-    const taskCenterTask = task.taskCenterData as TaskCenterTaskListItem | undefined
-    if (!taskCenterTask) return
+  const fetchTaskDetail = useCallback(async (
+    taskRef: TaskCenterTaskReference,
+    { background = false }: { background?: boolean } = {}
+  ) => {
+    const requestSequence = ++taskDetailRequestSequenceRef.current
+    const controller = new AbortController()
+    taskDetailRequestControllerRef.current?.abort()
+    taskDetailRequestControllerRef.current = controller
 
-    const taskRef = {
-      id: taskCenterTask.id,
-      type: taskCenterTask.type,
-    } satisfies TaskCenterTaskReference
-
-    setLoadingTaskDetail(true)
-    setTaskDetailError(null)
-    setSelectedTaskRef((current) => {
-      if (current && current.id === taskRef.id && current.type === taskRef.type) {
-        return current
-      }
-
-      return taskRef
-    })
-    setCopyToMaterialsError(null)
-    setCopyToMaterialsSuccess(null)
+    if (background) {
+      setRefreshingTaskDetail(true)
+    } else {
+      setLoadingTaskDetail(true)
+      setTaskDetailError(null)
+    }
 
     try {
-      const result = await taskCenterClient.getTaskDetail(taskRef.type, taskRef.id)
+      const result = await taskCenterClient.getTaskDetail(
+        taskRef.type,
+        taskRef.id,
+        controller.signal
+      )
+      if (requestSequence !== taskDetailRequestSequenceRef.current) return
+
       if (isTaskCenterErrorResponse(result)) {
         throw new Error(String(result.error))
       }
 
       setTaskDetail(result)
-      setIsTaskDetailOpen(true)
+      setTaskDetailError(null)
+      loadedTaskDetailKeyRef.current = getTaskCenterTaskKey(taskRef)
     } catch (error) {
+      if (requestSequence !== taskDetailRequestSequenceRef.current || controller.signal.aborted) {
+        return
+      }
       const errorMessage = getCaughtErrorMessage(
         error,
         t("contentWriting.taskCenter.detailLoadFailed")
       )
       console.error("[EditorAIPanel] Failed to fetch task detail", errorMessage, { taskRef })
-      setTaskDetailError(errorMessage)
-      setTaskDetail(null)
-      setIsTaskDetailOpen(true)
+      if (!background) {
+        setTaskDetailError(errorMessage)
+        setTaskDetail(null)
+        loadedTaskDetailKeyRef.current = null
+      }
     } finally {
-      setLoadingTaskDetail(false)
+      if (requestSequence === taskDetailRequestSequenceRef.current) {
+        taskDetailRequestControllerRef.current = null
+        setLoadingTaskDetail(false)
+        setRefreshingTaskDetail(false)
+      }
     }
   }, [t])
 
   useEffect(() => {
     if (!isTaskDetailOpen || !selectedTaskRef || !selectedLiveTaskFingerprint) return
 
-    const matchedTask = liveTasks.find(
-      (task) => task.id === selectedTaskRef.id && task.type === selectedTaskRef.type
-    )
-
-    if (!matchedTask) return
-
-    void fetchTaskDetail(mapTaskCenterTaskToProgressItem(matchedTask, t))
+    const taskKey = getTaskCenterTaskKey(selectedTaskRef)
+    void fetchTaskDetail(selectedTaskRef, {
+      background: loadedTaskDetailKeyRef.current === taskKey,
+    })
   }, [
     fetchTaskDetail,
     isTaskDetailOpen,
-    liveTasks,
     selectedLiveTaskFingerprint,
     selectedTaskRef,
-    t,
   ])
+
+  useEffect(
+    () => () => {
+      taskDetailRequestSequenceRef.current += 1
+      taskDetailRequestControllerRef.current?.abort()
+    },
+    []
+  )
 
   const handleRemoveTask = useCallback(
     async (task: TaskItem, options?: { skipConfirm?: boolean }) => {
@@ -660,11 +678,16 @@ export function EditorAIPanel({
         )
 
         if (selectedTaskRef?.id === taskCenterTask.id && selectedTaskRef.type === taskCenterTask.type) {
+          taskDetailRequestSequenceRef.current += 1
+          taskDetailRequestControllerRef.current?.abort()
+          taskDetailRequestControllerRef.current = null
+          loadedTaskDetailKeyRef.current = null
           setIsTaskDetailOpen(false)
           setSelectedTaskRef(null)
           setTaskDetail(null)
           setTaskDetailError(null)
           setLoadingTaskDetail(false)
+          setRefreshingTaskDetail(false)
           setCopyToMaterialsError(null)
           setCopyToMaterialsSuccess(null)
         }
@@ -1006,7 +1029,15 @@ export function EditorAIPanel({
                   return
                 }
 
-                void fetchTaskDetail(task)
+                const nextTaskRef = {
+                  id: taskCenterTask.id,
+                  type: taskCenterTask.type,
+                } satisfies TaskCenterTaskReference
+                setSelectedTaskRef(nextTaskRef)
+                setTaskDetailError(null)
+                setCopyToMaterialsError(null)
+                setCopyToMaterialsSuccess(null)
+                setIsTaskDetailOpen(true)
               }}
             />
             {loadingMore ? (
@@ -1047,6 +1078,13 @@ export function EditorAIPanel({
             </DialogDescription>
           </DialogHeader>
 
+          {refreshingTaskDetail ? (
+            <LoaderIcon
+              className="absolute right-6 top-6 h-4 w-4 animate-spin text-muted-foreground"
+              aria-label={t("common.refresh")}
+            />
+          ) : null}
+
           {loadingTaskDetail ? (
             <div className="flex justify-center py-8">
               <LoaderIcon className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -1068,7 +1106,7 @@ export function EditorAIPanel({
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
                   onContinuePresentation={handleContinuePresentationFromTask}
-                  onPresentationRetried={() => refetch({ silent: true })}
+                  onPresentationRetried={() => pollNow()}
                 />
               </div>
 
@@ -1111,7 +1149,7 @@ export function EditorAIPanel({
         open={isAiWriteOpen}
         onOpenChange={setIsAiWriteOpen}
         onArticleCreated={() => {
-          void refetch({ silent: true })
+          pollNow()
         }}
         articleId={articleId ?? undefined}
         variant="feature-compact"
@@ -1130,7 +1168,7 @@ export function EditorAIPanel({
         articleId={articleId}
         articleTitle={articleTitle}
         onTaskSubmitted={() => {
-          void refetch({ silent: true })
+          pollNow()
         }}
         onArticleTitleUpdated={onArticleTitleUpdated}
       />
@@ -1171,7 +1209,7 @@ export function EditorAIPanel({
         onOpenChange={setIsPresentationOpen}
         articleId={articleId}
         onPresentationTaskChanged={(event) => {
-          void refetch({ silent: true })
+          pollNow()
           console.info("[EditorAIPanel] Presentation generation changed", {
             generationId: event.generationId,
             status: event.status,

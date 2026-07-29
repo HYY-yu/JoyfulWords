@@ -42,6 +42,7 @@ import {
   type InfographicPollingState,
 } from "@/lib/hooks/use-infographic-polling"
 import { cn } from "@/lib/utils"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 
 interface InfographicDialogProps {
   open: boolean
@@ -375,6 +376,13 @@ export function InfographicDialog({
           }),
         })
 
+        result.log_ids.forEach((taskId) => {
+          notifyTaskCenterTaskSubmitted({
+            type: "infographic",
+            taskId,
+            articleId,
+          })
+        })
         await startBatchPolling(result.log_ids, result.batch_id)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error"
@@ -452,6 +460,11 @@ export function InfographicDialog({
         description: pollingToastDescription,
       })
 
+      notifyTaskCenterTaskSubmitted({
+        type: "infographic",
+        taskId: result.log_id,
+        articleId,
+      })
       await startPolling(result.log_id)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error"

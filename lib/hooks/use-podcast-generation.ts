@@ -17,6 +17,7 @@ import {
   type UpdateArticlePodcastScriptRequest,
 } from "@/lib/api/podcast/types"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 
 export type PodcastGenerationPhaseState =
   | "idle"
@@ -560,6 +561,11 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
 
         setScript(result)
         setScriptState(result.status)
+        notifyTaskCenterTaskSubmitted({
+          type: "podcast",
+          taskId: result.id,
+          articleId: request.article_id,
+        })
 
         if (isPodcastTerminalStatus(result.status)) {
           if (result.status === "success") {
@@ -607,6 +613,10 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         const nextTask = applyAudioTask(result, "full")
         setAudioTask(nextTask)
         setAudioState(nextTask.status)
+        notifyTaskCenterTaskSubmitted({
+          type: "podcast_audio",
+          taskId: nextTask.id,
+        })
 
         if (!isPodcastTerminalStatus(nextTask.status)) {
           startAudioPolling(nextTask.id, "full")
@@ -665,6 +675,10 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         pendingAudioSegmentIdsRef.current.add(segmentId)
         const nextTask = applyAudioTask(result, "segment")
         setAudioTask(nextTask)
+        notifyTaskCenterTaskSubmitted({
+          type: "podcast_audio",
+          taskId: nextTask.id,
+        })
 
         if (!isPodcastTerminalStatus(nextTask.status)) {
           startAudioPolling(nextTask.id, "segment")

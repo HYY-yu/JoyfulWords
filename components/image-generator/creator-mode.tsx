@@ -23,6 +23,7 @@ import type {
   TaskResultResponse,
 } from "@/lib/api/image-generation/types"
 import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 
 import type {
   CanvasTemplateId,
@@ -730,8 +731,11 @@ export function CreatorMode({
       }, pollingConfig)
       setCurrentTaskId(taskId)
       
-      // 发送事件通知主页面刷新任务列表
-      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+        articleId,
+      })
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -818,8 +822,11 @@ export function CreatorMode({
       }, pollingConfig)
       setCurrentTaskId(taskId)
       
-      // 发送事件通知主页面刷新任务列表
-      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+        articleId,
+      })
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'

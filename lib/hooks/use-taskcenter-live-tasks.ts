@@ -8,6 +8,7 @@ import type {
 } from "@/lib/api/taskcenter/types"
 import { isTaskCenterTerminalTask } from "@/lib/api/taskcenter/types"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
+import { subscribeTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 
 interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "signal" | "page_size" | "cursor"> {
   enabled?: boolean
@@ -239,6 +240,30 @@ export function useTaskCenterLiveTasks({
     startAdaptivePolling({ immediate: false })
     return stopAdaptivePolling
   }, [enabled, startAdaptivePolling, stopAdaptivePolling])
+
+  useEffect(() => {
+    if (!enabled) return
+
+    return subscribeTaskCenterTaskSubmitted((submittedTask) => {
+      if (queryType && submittedTask.type !== queryType) return
+      if (
+        typeof queryArticleId === "number" &&
+        typeof submittedTask.articleId === "number" &&
+        submittedTask.articleId !== queryArticleId
+      ) {
+        return
+      }
+
+      console.debug("[TaskCenter] Task submitted; requesting immediate refresh", {
+        realtimeScope,
+        taskType: submittedTask.type,
+        taskId: submittedTask.taskId ?? null,
+        articleId: submittedTask.articleId ?? null,
+      })
+      // TODO(observability): add a counter for submission-triggered TaskCenter refresh latency.
+      pollNow()
+    })
+  }, [enabled, pollNow, queryArticleId, queryType, realtimeScope])
 
   const refetch = useCallback(async (options: { silent?: boolean; signal?: AbortSignal } = {}) => {
     await fetchTasks(options)

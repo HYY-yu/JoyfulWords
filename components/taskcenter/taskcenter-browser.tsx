@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type UIEvent } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type UIEvent } from "react"
 import { useRouter } from "next/navigation"
 import { AlertCircleIcon, DownloadIcon, Loader2Icon, RefreshCwIcon, XIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
@@ -203,9 +203,13 @@ export function TaskCenterBrowser({
   const [selectedTaskRef, setSelectedTaskRef] = useState<TaskCenterTaskReference | null>(null)
   const [taskDetail, setTaskDetail] = useState<TaskCenterTaskDetailResponse | null>(null)
   const [taskDetailLoading, setTaskDetailLoading] = useState(false)
+  const [taskDetailRefreshing, setTaskDetailRefreshing] = useState(false)
   const [taskDetailError, setTaskDetailError] = useState<string | null>(null)
   const [deletingTaskKeys, setDeletingTaskKeys] = useState<Set<string>>(new Set())
   const [retryingTaskKeys, setRetryingTaskKeys] = useState<Set<string>>(new Set())
+  const taskDetailRequestSequenceRef = useRef(0)
+  const taskDetailRequestControllerRef = useRef<AbortController | null>(null)
+  const loadedTaskDetailKeyRef = useRef<string | null>(null)
 
   const {
     tasks,
@@ -215,6 +219,7 @@ export function TaskCenterBrowser({
     hasMore,
     error,
     refetch,
+    pollNow,
     loadMore,
     setTasks,
   } = useTaskCenterLiveTasks({
@@ -261,29 +266,66 @@ export function TaskCenterBrowser({
       })
     : null
 
-  const fetchTaskDetail = useCallback(async (taskRef: TaskCenterTaskReference) => {
-    setTaskDetailLoading(true)
-    setTaskDetailError(null)
+  const fetchTaskDetail = useCallback(async (
+    taskRef: TaskCenterTaskReference,
+    { background = false }: { background?: boolean } = {}
+  ) => {
+    const requestSequence = ++taskDetailRequestSequenceRef.current
+    const controller = new AbortController()
+    taskDetailRequestControllerRef.current?.abort()
+    taskDetailRequestControllerRef.current = controller
+
+    if (background) {
+      setTaskDetailRefreshing(true)
+    } else {
+      setTaskDetailLoading(true)
+      setTaskDetailError(null)
+    }
 
     try {
-      const result = await taskCenterClient.getTaskDetail(taskRef.type, taskRef.id)
+      const result = await taskCenterClient.getTaskDetail(
+        taskRef.type,
+        taskRef.id,
+        controller.signal
+      )
+      if (requestSequence !== taskDetailRequestSequenceRef.current) return
 
       if (isTaskCenterErrorResponse(result)) {
-        setTaskDetailError(String(result.error))
-        setTaskDetail(null)
+        if (!background) {
+          setTaskDetailError(String(result.error))
+          setTaskDetail(null)
+          loadedTaskDetailKeyRef.current = null
+        } else {
+          console.warn("[TaskCenter] Background task detail refresh failed", {
+            taskRef,
+            error: result.error,
+          })
+        }
         return
       }
 
       setTaskDetail(result)
+      setTaskDetailError(null)
+      loadedTaskDetailKeyRef.current = getTaskCenterTaskKey(taskRef)
     } catch (error) {
+      if (requestSequence !== taskDetailRequestSequenceRef.current || controller.signal.aborted) {
+        return
+      }
       console.error("[TaskCenter] Failed to fetch task detail", {
         taskRef,
         error,
       })
-      setTaskDetailError(error instanceof Error ? error.message : "Failed to fetch task detail")
-      setTaskDetail(null)
+      if (!background) {
+        setTaskDetailError(error instanceof Error ? error.message : "Failed to fetch task detail")
+        setTaskDetail(null)
+        loadedTaskDetailKeyRef.current = null
+      }
     } finally {
-      setTaskDetailLoading(false)
+      if (requestSequence === taskDetailRequestSequenceRef.current) {
+        taskDetailRequestControllerRef.current = null
+        setTaskDetailLoading(false)
+        setTaskDetailRefreshing(false)
+      }
     }
   }, [])
 
@@ -311,21 +353,28 @@ export function TaskCenterBrowser({
 
   useEffect(() => {
     if (!enabled || !selectedTaskRef) return
-    void fetchTaskDetail(selectedTaskRef)
-  }, [enabled, fetchTaskDetail, selectedTaskRef])
 
-  useEffect(() => {
-    if (!enabled || !selectedTaskRef || !selectedTaskFingerprint) return
-    void fetchTaskDetail(selectedTaskRef)
+    const taskKey = getTaskCenterTaskKey(selectedTaskRef)
+    if (!selectedTaskFingerprint && loadedTaskDetailKeyRef.current === taskKey) return
+    void fetchTaskDetail(selectedTaskRef, {
+      background: loadedTaskDetailKeyRef.current === taskKey,
+    })
   }, [enabled, fetchTaskDetail, selectedTaskFingerprint, selectedTaskRef])
 
   useEffect(() => {
     if (!enabled || !initialTaskRef) return
 
     setSelectedTaskRef(initialTaskRef)
-    void fetchTaskDetail(initialTaskRef)
     onInitialTaskHandled?.()
-  }, [enabled, fetchTaskDetail, initialTaskRef, onInitialTaskHandled])
+  }, [enabled, initialTaskRef, onInitialTaskHandled])
+
+  useEffect(
+    () => () => {
+      taskDetailRequestSequenceRef.current += 1
+      taskDetailRequestControllerRef.current?.abort()
+    },
+    []
+  )
 
   const handleOpenArticle = useCallback(
     (nextArticleId: number) => {
@@ -379,10 +428,15 @@ export function TaskCenterBrowser({
         )
 
         if (selectedTaskRef?.id === task.id && selectedTaskRef.type === task.type) {
+          taskDetailRequestSequenceRef.current += 1
+          taskDetailRequestControllerRef.current?.abort()
+          taskDetailRequestControllerRef.current = null
+          loadedTaskDetailKeyRef.current = null
           setSelectedTaskRef(null)
           setTaskDetail(null)
           setTaskDetailError(null)
           setTaskDetailLoading(false)
+          setTaskDetailRefreshing(false)
         }
       } catch (error) {
         const fallbackMessage = t("contentWriting.taskCenter.deleteFailed")
@@ -447,7 +501,7 @@ export function TaskCenterBrowser({
               : currentTask
           )
         )
-        await refetch({ silent: true })
+        pollNow()
       } finally {
         setRetryingTaskKeys((current) => {
           const next = new Set(current)
@@ -456,7 +510,7 @@ export function TaskCenterBrowser({
         })
       }
     },
-    [refetch, retryingTaskKeys, setTasks, t, toast]
+    [pollNow, retryingTaskKeys, setTasks, t, toast]
   )
 
   return (
@@ -598,7 +652,13 @@ export function TaskCenterBrowser({
 
         <div className="min-h-[360px] overflow-hidden rounded-3xl border bg-background">
           <ScrollArea className="h-full">
-            <div className="p-5">
+            <div className="relative p-5">
+              {taskDetailRefreshing ? (
+                <Loader2Icon
+                  className="absolute right-5 top-5 h-4 w-4 animate-spin text-muted-foreground"
+                  aria-label={t("common.refresh")}
+                />
+              ) : null}
               {taskDetailLoading ? (
                 <div className="space-y-4">
                   <Skeleton className="h-6 w-40" />
@@ -615,7 +675,7 @@ export function TaskCenterBrowser({
                   taskRef={selectedTaskRef}
                   detail={taskDetail}
                   onOpenArticle={handleOpenArticle}
-                  onPresentationRetried={() => refetch({ silent: true })}
+                  onPresentationRetried={() => pollNow()}
                 />
               ) : loading ? (
                 <div className="flex min-h-[300px] items-center justify-center">

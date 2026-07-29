@@ -13,6 +13,7 @@ import { ModelSelector } from "@/components/image-generator/ui/model-selector"
 import { MaterialSelectorDialog } from "@/components/image-generator/ui/material-selector-dialog"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
 import { Button } from "@/components/ui/base/button"
@@ -469,8 +470,11 @@ export function StyleMode({ articleId }: StyleModeProps) {
       // 设置当前任务ID
       setCurrentTaskId(Number(result.task_id))
       
-      // 发送事件通知主页面刷新任务列表
-      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+        articleId,
+      })
     } catch (error) {
       console.error('[StyleMode] Generation error:', error)
       setRenderStatus("error")

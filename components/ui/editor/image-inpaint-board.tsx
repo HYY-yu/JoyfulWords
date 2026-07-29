@@ -29,6 +29,7 @@ import { Slider } from "../base/slider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../base/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { imageGenerationClient } from "@/lib/api/image-generation/client";
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events";
 import type { TaskResultSuccess } from "@/lib/api/image-generation/types";
 import type { CreatorConfig } from "@/components/image-generator/types";
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload";
@@ -828,6 +829,11 @@ export function ImageInpaintBoard({
         throw new Error(String(result.error));
       }
 
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+        articleId,
+      });
       onTaskSubmitted?.();
       setCurrentTaskId(String(result.task_id));
     } catch (error) {

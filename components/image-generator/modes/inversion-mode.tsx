@@ -13,6 +13,7 @@ import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { MaterialSelectorDialog } from "@/components/image-generator/ui/material-selector-dialog"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { Button } from "@/components/ui/base/button"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Slider } from "@/components/ui/base/slider"
@@ -376,8 +377,11 @@ export function InversionMode({ articleId }: InversionModeProps) {
         description: pollingToastDescription,
       })
       
-      // 发送事件通知主页面刷新任务列表
-      window.postMessage({ type: 'TASK_CREATED', taskType: 'image' }, '*')
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+        articleId,
+      })
     } catch (error) {
       console.error('[InversionMode] Unexpected error:', error)
       setSplitStatus("error")

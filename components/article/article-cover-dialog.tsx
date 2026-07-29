@@ -43,6 +43,7 @@ import type { UnsplashPhoto } from "@/lib/api/image-generation/types"
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
 import type { Material } from "@/lib/api/materials/types"
 import { taskCenterClient } from "@/lib/api/taskcenter/client"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { parseTaskCenterImageUrls, type TaskCenterImageTaskListItem } from "@/lib/api/taskcenter/types"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -809,6 +810,11 @@ export function ArticleCoverDialog({
     pendingFontTaskIdsRef.current.add(taskId)
     setActiveFontTaskId(taskId)
     setActiveFontTaskStatus("pending")
+    notifyTaskCenterTaskSubmitted({
+      type: "image",
+      taskId: result.task_id,
+      articleId,
+    })
     onTaskSubmitted?.()
     toast({ title: t("imageGeneration.cover.toast.fontTaskCreated") })
   }

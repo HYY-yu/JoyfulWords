@@ -32,6 +32,7 @@ import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
 import type { Material } from "@/lib/api/materials/types"
 import { cn } from "@/lib/utils"
 import { getFileExtension } from "@/lib/upload-file"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 
 // Types for dialog props
 interface ArticleAIHelpDialogProps {
@@ -381,6 +382,11 @@ export function ArticleAIHelpDialog({
       console.info('[AI Help] AI write submitted successfully:', {
         articleId: result.id,
         isOverwrite: Boolean(articleIdFilter),
+      })
+      notifyTaskCenterTaskSubmitted({
+        type: "article",
+        taskId: result.id,
+        articleId: result.id,
       })
 
       // AI 写作启动成功

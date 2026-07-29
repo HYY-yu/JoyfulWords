@@ -39,6 +39,7 @@ import {
 } from "@/lib/presentations/v2/flow-session"
 import { getNonRegressingStageIndex } from "@/lib/presentations/v2/generation-stage"
 import { resolveImageStyle } from "@/lib/presentations/v2/image-style"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { PresentationFlowStepper } from "./presentation-flow-stepper"
 import { StorycardStep } from "./storycard-step"
 import { TemplateStep } from "./template-step"
@@ -600,6 +601,11 @@ export function PresentationFlowDialog({
       setStep(result.status === "succeeded" ? 3 : 2)
       persistSession(result, selectedTemplate, selectedImageStyle)
       lastNotifiedGenerationRef.current = `${result.id}:${result.status}`
+      notifyTaskCenterTaskSubmitted({
+        type: "presentation",
+        taskId: result.id,
+        articleId: result.article_id,
+      })
       onPresentationTaskChangedRef.current?.({
         generationId: result.id,
         articleId: result.article_id,
@@ -630,6 +636,11 @@ export function PresentationFlowDialog({
       setStep(2)
       persistSession(result)
       lastNotifiedGenerationRef.current = `${result.id}:${result.status}`
+      notifyTaskCenterTaskSubmitted({
+        type: "presentation",
+        taskId: result.id,
+        articleId: result.article_id,
+      })
       onPresentationTaskChangedRef.current?.({
         generationId: result.id,
         articleId: result.article_id,

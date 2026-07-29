@@ -12,6 +12,7 @@ import {
   loadTaskFromStorage,
 } from "@/hooks/use-image-generation-polling"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
 import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
 import type {
@@ -524,6 +525,10 @@ export function ImageGeneration() {
 
       // 保存任务状态，由统一轮询器继续跟踪
       setCurrentTaskId(result.task_id)
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+      })
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -600,6 +605,10 @@ export function ImageGeneration() {
 
       // 保存任务状态，由统一轮询器继续跟踪
       setCurrentTaskId(result.task_id)
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+      })
     } catch (error) {
       // ERROR: 网络错误或意外错误
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'

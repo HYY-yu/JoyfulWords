@@ -40,6 +40,7 @@ import type {
 import type { EChartsArticleAnalysisSession } from "@/lib/echarts/article-analysis-session"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { cn } from "@/lib/utils"
 
 interface EChartsDialogProps {
@@ -231,6 +232,13 @@ export function EChartsDialog({
       const suggestionCount = result.suggestion_count
 
       onTasksSubmitted?.(taskRefs, taskItems)
+      taskRefs.forEach((taskRef) => {
+        notifyTaskCenterTaskSubmitted({
+          type: taskRef.type,
+          taskId: taskRef.id,
+          articleId,
+        })
+      })
 
       if (suggestionCount === 0) {
         onArticleAnalysisSessionChange?.({
@@ -338,6 +346,11 @@ export function EChartsDialog({
     }
 
     onTasksSubmitted?.([{ id: result.id, type: "echarts" }], [mapEChartsLogToTaskItem(result)])
+    notifyTaskCenterTaskSubmitted({
+      type: "echarts",
+      taskId: result.id,
+      articleId,
+    })
     toast({
       title: t("echarts.dialog.selectionSubmittedTitle"),
       description: t("echarts.dialog.selectionSubmittedDescription"),

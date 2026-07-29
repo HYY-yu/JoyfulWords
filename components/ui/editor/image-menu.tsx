@@ -22,6 +22,7 @@ import { ScrollArea } from "../base/scroll-area";
 import { Textarea } from "../base/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { imageGenerationClient } from "@/lib/api/image-generation/client";
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { cn } from "@/lib/utils";
 import { ImageInpaintBoard } from "./image-inpaint-board";
@@ -155,6 +156,11 @@ function ImageStylePopover({
       });
       toast({
         title: t("tiptapEditor.imageMenu.taskCreated"),
+      });
+      notifyTaskCenterTaskSubmitted({
+        type: "image",
+        taskId: result.task_id,
+        articleId,
       });
       setOpen(false);
       onTaskSubmitted?.();
