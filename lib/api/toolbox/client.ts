@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api/client"
+import type { ErrorResponse } from "@/lib/api/types"
 import { getValidAccessToken } from "@/lib/tokens/refresh"
 import { tokenStore } from "@/lib/tokens/token-store"
 import { MAX_IMAGE_UPLOAD_BYTES, putFileToPresignedUrl, resolveUploadContentType } from "@/lib/upload-file"
@@ -10,6 +11,7 @@ import type {
   ToolboxGenerateInfographicResponse,
   ToolboxGenerateEChartRequest,
   ToolboxGenerateEChartResponse,
+  ToolboxEChartTaskResponse,
   ToolboxImageTaskResultResponse,
   ToolboxInfographicLogDetailResponse,
   ToolboxTempUploadURLResponse,
@@ -221,7 +223,7 @@ export const toolboxClient = {
   async generateEChart(
     request: ToolboxGenerateEChartRequest,
     options: ToolboxRequestOptions = {}
-  ) {
+  ): Promise<ToolboxGenerateEChartResponse | ErrorResponse> {
     console.info("[Toolbox] Generating AI chart", {
       dataTextLength: request.data_text.length,
       requirementLength: request.requirement.length,
@@ -236,6 +238,22 @@ export const toolboxClient = {
         method: "POST",
         body: JSON.stringify(request),
       },
+      options
+    )
+  },
+
+  async getEChartTask(
+    taskId: number,
+    options: ToolboxRequestOptions = {}
+  ): Promise<ToolboxEChartTaskResponse | ErrorResponse> {
+    console.debug("[Toolbox] Polling AI chart task", {
+      taskId,
+      preferAuth: Boolean(options.preferAuth),
+    })
+
+    return toolboxApiRequest<ToolboxEChartTaskResponse>(
+      `/toolbox/echarts/tasks/${taskId}`,
+      { method: "GET" },
       options
     )
   },

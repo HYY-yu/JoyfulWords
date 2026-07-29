@@ -12,6 +12,7 @@ import type {
   EChartsLogResponse,
   JoyChartDisplay,
   JoyChartSpec,
+  JoyChartStatus,
   JoyChartType,
 } from "@/lib/api/echarts/types"
 
@@ -65,13 +66,35 @@ export interface ToolboxGenerateEChartRequest {
   display?: JoyChartDisplay
 }
 
-export interface ToolboxGenerateEChartGuestResponse {
+export interface ToolboxGenerateEChartTaskResponse {
+  task_id: number
+  status: JoyChartStatus
+  poll_url: string
+  estimated_eta: number
+  created_at: string
+}
+
+export interface ToolboxGuestEChartTaskResponse {
+  task_id: number
+  prompt: string
   schema_version?: "joychart.v1" | string
   chart_type?: JoyChartType | string
   title?: string
-  spec: JoyChartSpec
+  status: JoyChartStatus
+  spec: JoyChartSpec | Record<string, never>
+  error_code?: string
+  error_message?: string
+  version: number
+  created_at: string
+  updated_at: string
+  completed_at?: string
+  poll_url: string
 }
 
 export type ToolboxGenerateEChartResponse =
-  | ToolboxGenerateEChartGuestResponse
+  | ToolboxGenerateEChartTaskResponse
+  | EChartsLogResponse
+
+export type ToolboxEChartTaskResponse =
+  | ToolboxGuestEChartTaskResponse
   | EChartsLogResponse

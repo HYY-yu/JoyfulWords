@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { Upload, Split, Download, CheckCircle2, Layers, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -12,6 +12,7 @@ import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
 import { MaterialSelectorDialog } from "@/components/image-generator/ui/material-selector-dialog"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { Button } from "@/components/ui/base/button"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Slider } from "@/components/ui/base/slider"
@@ -87,9 +88,6 @@ export function InversionMode({ articleId }: InversionModeProps) {
   const baseImagePreview = uploadedImage ?? selectedMaterialUrl
   const baseImageUrl = uploadedImageUrl ?? selectedMaterialUrl
 
-  // 轮询任务状态
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
   // 处理任务完成
   const handleTaskComplete = useCallback((data: any) => {
     if (data.task_id === currentTaskId) {
@@ -143,62 +141,71 @@ export function InversionMode({ articleId }: InversionModeProps) {
     }
   }, [currentTaskId, t, taskToast])
 
-  // 轮询任务状态
+  const {
+    startPolling: startTaskPolling,
+    stopPolling: stopTaskPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!currentTaskId) return "stop"
+      const result = await imageGenerationClient.getTaskResult(currentTaskId, signal)
+      if (signal.aborted) return "stop"
+      if ('error' in result) {
+        console.warn('[InversionMode] Failed to get task status; retrying:', result.error)
+        throw new Error(String(result.error))
+      }
+
+      console.debug('[InversionMode] Task status check:', {
+        taskId: currentTaskId,
+        status: result.status,
+      })
+      if (result.status === 'success') {
+        handleTaskComplete(result)
+        setCurrentTaskId(null)
+        setIsProcessing(false)
+        return "stop"
+      }
+      if (result.status === 'failed') {
+        handleTaskFailed(result)
+        setCurrentTaskId(null)
+        setIsProcessing(false)
+        return "stop"
+      }
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn('[InversionMode] Task polling timed out:', { taskId: currentTaskId })
+      setSplitStatus("error")
+      setIsProcessing(false)
+      setCurrentTaskId(null)
+      taskToast.showFailure({
+        title: t("imageGeneration.toast.generationFailed"),
+      })
+    },
+    policy: {
+      fastIntervalMs: INVERSION_POLLING_CONFIG.minDelay,
+      standardIntervalMs: 10_000,
+      slowIntervalMs: INVERSION_POLLING_CONFIG.maxDelay,
+      maxErrorIntervalMs: INVERSION_POLLING_CONFIG.maxDelay,
+      timeoutMs: INVERSION_POLLING_CONFIG.timeout,
+    },
+    debugLabel: "image-inversion",
+  })
+
   useEffect(() => {
-    if (!currentTaskId) return
-
-    const checkTaskStatus = async () => {
-      try {
-        const result = await imageGenerationClient.getTaskResult(currentTaskId)
-
-        if ('error' in result) {
-          console.error('[InversionMode] Failed to get task status:', result.error)
-          setSplitStatus("error")
-          setIsProcessing(false)
-          taskToast.showFailure({
-            title: t("imageGeneration.toast.generationFailed"),
-          })
-          return
-        }
-
-        console.info('[InversionMode] Task status check:', {
-          taskId: currentTaskId,
-          status: result.status
-        })
-
-        if (result.status === 'success') {
-          handleTaskComplete(result)
-          setCurrentTaskId(null)
-          setIsProcessing(false)
-        } else if (result.status === 'failed') {
-          handleTaskFailed(result)
-          setCurrentTaskId(null)
-          setIsProcessing(false)
-        }
-      } catch (error) {
-        console.error('[InversionMode] Error checking task status:', error)
-      }
+    if (!currentTaskId) {
+      stopTaskPolling()
+      return
     }
-
-    // 立即检查一次
-    checkTaskStatus()
-
-    // 开始轮询，每10秒检查一次
-    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
-    }
-  }, [currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
+    startTaskPolling()
+    return stopTaskPolling
+  }, [currentTaskId, startTaskPolling, stopTaskPolling])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
     const savedTask = loadTaskFromStorage(INVERSION_POLLING_CONFIG)
 
     if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
-      // INFO: 发现未完成的任务，等待 WebSocket 通知
+      // INFO: 发现未完成的任务，继续轮询恢复
       console.info('[InversionMode] Found pending task in localStorage:', {
         taskId: savedTask.task_id,
         status: savedTask.status,

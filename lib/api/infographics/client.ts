@@ -55,12 +55,14 @@ export const infographicsClient = {
   },
 
   async getLogDetail(
-    id: number
+    id: number,
+    signal?: AbortSignal
   ): Promise<InfographicLogDetailResponse | ErrorResponse> {
     console.debug("[Infographics] Fetching infographic detail:", { logId: id })
 
     return authenticatedApiRequest<InfographicLogDetailResponse>(`/infographics/logs/${id}`, {
       method: "GET",
+      signal,
     })
   },
 

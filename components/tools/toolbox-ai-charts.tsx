@@ -34,11 +34,13 @@ import type { EChartsLogResponse, JoyChartDisplay, JoyChartSpec } from "@/lib/ap
 import { toolboxClient } from "@/lib/api/toolbox/client"
 import { useAuth } from "@/lib/auth/auth-context"
 import { JOY_CHART_THEME_OPTIONS, mergeJoyChartDisplay } from "@/lib/echarts/joy-chart-defaults"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 
 const DATA_TEXT_MIN_LENGTH = 8
 const REQUIREMENT_MIN_LENGTH = 4
+const CHART_POLL_TIMEOUT_MS = 5 * 60 * 1000
 
 type StepKey = "data" | "requirement" | "preview"
 
@@ -74,6 +76,19 @@ function isApiError(value: unknown): value is { error: string; status?: number; 
 
 function isEChartsLogResponse(value: unknown): value is EChartsLogResponse {
   return Boolean(value && typeof value === "object" && "id" in value && "spec" in value)
+}
+
+function isToolboxEChartsTaskResponse(
+  value: unknown
+): value is { task_id: number; status: string; poll_url: string } {
+  if (!value || typeof value !== "object") return false
+
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate.task_id === "number" &&
+    typeof candidate.status === "string" &&
+    typeof candidate.poll_url === "string"
+  )
 }
 
 function toRequiredDisplay(display?: JoyChartDisplay): RequiredJoyChartDisplay {
@@ -174,6 +189,11 @@ export function ToolboxAICharts() {
   const { user, loading } = useAuth()
   const { toast } = useToast()
   const rendererRef = useRef<JoyChartRendererHandle | null>(null)
+  const pollingTaskRef = useRef<{
+    taskId: number
+    mode: "guest" | "account"
+    preferAuth: boolean
+  } | null>(null)
   const [dataText, setDataText] = useState("")
   const [requirement, setRequirement] = useState("")
   const [draftDisplay, setDraftDisplay] = useState<RequiredJoyChartDisplay>(() =>
@@ -265,6 +285,124 @@ export function ToolboxAICharts() {
     }
   }, [user])
 
+  const {
+    startPolling: startChartPolling,
+    stopPolling: stopChartPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal, consecutiveErrors }) => {
+      const pollingTask = pollingTaskRef.current
+      if (!pollingTask) return "stop"
+
+      const task = await toolboxClient.getEChartTask(pollingTask.taskId, {
+        preferAuth: pollingTask.preferAuth,
+        signal,
+      })
+      if (signal.aborted) return "stop"
+
+      if (isApiError(task)) {
+        console.warn("[ToolboxAICharts] Chart task polling failed", {
+          mode: pollingTask.mode,
+          taskId: pollingTask.taskId,
+          attempt: consecutiveErrors + 1,
+          status: task.status ?? null,
+          reason: task.reason ?? null,
+        })
+
+        if (
+          task.reason === "network_error" ||
+          (typeof task.status === "number" && task.status >= 500)
+        ) {
+          throw new Error(task.reason || task.error)
+        }
+
+        pollingTaskRef.current = null
+        setIsGenerating(false)
+        setErrorMessage(t("toolsPage.aiCharts.generationFailed"))
+        return "stop"
+      }
+
+      const taskMode = isEChartsLogResponse(task) ? "account" : "guest"
+      const taskLogId = isEChartsLogResponse(task) ? task.id : task.task_id
+
+      console.debug("[ToolboxAICharts] Chart task status received", {
+        mode: taskMode,
+        taskId: taskLogId,
+        status: task.status,
+      })
+
+      setResultMeta({
+        mode: taskMode,
+        logId: taskLogId,
+        title: task.title,
+        chartType: task.chart_type,
+        status: task.status,
+      })
+
+      if (task.status === "failed") {
+        console.warn("[ToolboxAICharts] Chart task failed", {
+          mode: taskMode,
+          taskId: taskLogId,
+          errorCode: task.error_code ?? null,
+          errorMessage: task.error_message ?? null,
+        })
+        pollingTaskRef.current = null
+        setIsGenerating(false)
+        setErrorMessage(t("toolsPage.aiCharts.generationFailed"))
+        return "stop"
+      }
+
+      if (task.status !== "succeeded") {
+        return "continue"
+      }
+
+      if (!isJoyChartSpec(task.spec)) {
+        console.error("[ToolboxAICharts] Succeeded chart task returned an empty spec", {
+          mode: taskMode,
+          taskId: taskLogId,
+        })
+        pollingTaskRef.current = null
+        setIsGenerating(false)
+        setErrorMessage(t("echarts.chart.emptySpec"))
+        return "stop"
+      }
+
+      setResultSpec(task.spec)
+      setDraftDisplay(toRequiredDisplay(task.spec.display ?? draftDisplay))
+      setResultMeta({
+        mode: taskMode,
+        logId: taskLogId,
+        title: task.title || task.spec.chart.title,
+        chartType: task.chart_type || task.spec.chart.type,
+        status: task.status,
+      })
+      pollingTaskRef.current = null
+      setIsGenerating(false)
+
+      console.info("[ToolboxAICharts] Chart task succeeded", {
+        mode: taskMode,
+        taskId: taskLogId,
+        chartType: task.spec.chart.type,
+      })
+      toast({ title: t("toolsPage.aiCharts.toast.generated") })
+      return "stop"
+    },
+    onTimeout: () => {
+      const pollingTask = pollingTaskRef.current
+      console.warn("[ToolboxAICharts] Chart task polling timed out", {
+        mode: pollingTask?.mode ?? null,
+        taskId: pollingTask?.taskId ?? null,
+        timeoutMs: CHART_POLL_TIMEOUT_MS,
+      })
+      pollingTaskRef.current = null
+      setIsGenerating(false)
+      setErrorMessage(t("toolsPage.aiCharts.generationTimeout"))
+    },
+    policy: {
+      timeoutMs: CHART_POLL_TIMEOUT_MS,
+    },
+    debugLabel: "toolbox-echarts",
+  })
+
   const updateDraft = (patch: JoyChartDisplay) => {
     setDraftDisplay((current) => patchDisplay(current, patch))
   }
@@ -287,6 +425,8 @@ export function ToolboxAICharts() {
 
     setIsGenerating(true)
     setErrorMessage(null)
+    stopChartPolling()
+    let taskCreated = false
 
     try {
       const result = await toolboxClient.generateEChart(
@@ -307,46 +447,41 @@ export function ToolboxAICharts() {
         return
       }
 
-      const nextSpec = isEChartsLogResponse(result) ? result.spec : result.spec
-      if (!isJoyChartSpec(nextSpec)) {
-        console.warn("[ToolboxAICharts] Chart generation returned an empty spec", {
-          isAccountResult: isEChartsLogResponse(result),
+      const isAccountResult = isEChartsLogResponse(result)
+      if (!isAccountResult && !isToolboxEChartsTaskResponse(result)) {
+        console.error("[ToolboxAICharts] Chart creation returned an unknown response", {
+          response: result,
         })
-        setErrorMessage(t("echarts.chart.emptySpec"))
+        setErrorMessage(t("toolsPage.aiCharts.generationFailed"))
         return
       }
 
-      setResultSpec(nextSpec)
-      setDraftDisplay(toRequiredDisplay(nextSpec.display ?? draftDisplay))
-      setResultMeta(
-        isEChartsLogResponse(result)
-          ? {
-              mode: "account",
-              logId: result.id,
-              title: result.title || nextSpec.chart.title,
-              chartType: result.chart_type || nextSpec.chart.type,
-              status: result.status,
-            }
-          : {
-              mode: "guest",
-              title: result.title || nextSpec.chart.title,
-              chartType: result.chart_type || nextSpec.chart.type,
-              status: "succeeded",
-            }
-      )
+      const taskId = isAccountResult ? result.id : result.task_id
+      const mode = isAccountResult ? "account" : "guest"
 
-      console.info("[ToolboxAICharts] Chart generated", {
-        mode: isEChartsLogResponse(result) ? "account" : "guest",
-        logId: isEChartsLogResponse(result) ? result.id : null,
-        chartType: nextSpec.chart.type,
+      setResultSpec(null)
+      setResultMeta({
+        mode,
+        logId: taskId,
+        status: result.status,
       })
-      toast({ title: t("toolsPage.aiCharts.toast.generated") })
+
+      console.info("[ToolboxAICharts] Chart task created; starting polling", {
+        mode,
+        taskId,
+        pollUrl: result.poll_url,
+      })
+      pollingTaskRef.current = { taskId, mode, preferAuth }
+      taskCreated = true
+      startChartPolling()
     } catch (error) {
       const message = error instanceof Error ? error.message : t("common.unknownError")
       console.error("[ToolboxAICharts] Unexpected chart generation error", { error: message })
-      setErrorMessage(message)
+      setErrorMessage(t("toolsPage.aiCharts.generationFailed"))
     } finally {
-      setIsGenerating(false)
+      if (!taskCreated) {
+        setIsGenerating(false)
+      }
     }
   }
 

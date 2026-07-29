@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { usePayment } from '@/lib/hooks/use-payment'
 import { useTranslation } from '@/lib/i18n/i18n-context'
@@ -15,6 +15,7 @@ import {
 } from '@/lib/payment'
 import { trackProductEvent } from '@/lib/analytics/client'
 import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
+import { useAdaptivePolling } from '@/lib/hooks/use-adaptive-polling'
 
 type OrderStatus = 'loading' | 'pending' | 'success' | 'failed' | 'timeout' | 'processing'
 
@@ -52,28 +53,7 @@ export function PaymentSuccessContent() {
   )
   const [credits, setCredits] = useState<number>(0)
   const [retryCount, setRetryCount] = useState(0)
-  const MAX_RETRIES = 15 // 最多轮询 15 次（75 秒，5 秒间隔）
-
-  // 使用 ref 来跟踪轮询是否应该继续，以及 timeout ID
-  const shouldContinuePollingRef = useRef(true)
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null)
-  const retryCountRef = useRef(0)
-  const orderNoRef = useRef(orderNo)
-  const getOrderStatusRef = useRef(getOrderStatus)
-  const isUnmountedRef = useRef(false) // 追踪组件是否真正卸载
-
-  // 同步 ref
-  useEffect(() => {
-    console.log('[PaymentSuccess] 同步 ref', { orderNo, orderNoRefBefore: orderNoRef.current })
-    orderNoRef.current = orderNo
-    getOrderStatusRef.current = getOrderStatus
-  }, [orderNo, getOrderStatus])
-
-  // 将 detection 也存入 ref，避免依赖变化
-  const detectionRef = useRef(detection)
-  useEffect(() => {
-    detectionRef.current = detection
-  }, [detection])
+  const PAYMENT_POLLING_TIMEOUT_MS = 75_000
 
   // localStorage 回退逻辑：URL 无参数时，尝试从 localStorage 读取订单号
   useEffect(() => {
@@ -89,90 +69,35 @@ export function PaymentSuccessContent() {
 
     if (storedOrderNo) {
       console.info('[PaymentSuccess] 从 localStorage 读取到订单号', { storedOrderNo })
-      console.log('[PaymentSuccess] 设置 orderNo 前，shouldContinuePollingRef.current =', shouldContinuePollingRef.current)
       setOrderNo(storedOrderNo)
-      // 注意：不调用 setOrderStatus，避免触发重新渲染导致 cleanup 提前执行
+      setOrderStatus('loading')
     } else {
       console.warn('[PaymentSuccess] localStorage 中也无订单号，显示"处理中"状态')
       setOrderStatus('processing') // URL 和 localStorage 都没有，显示处理中
     }
   }, [urlOrderNo])
 
-  // 追踪组件卸载
-  useEffect(() => {
-    return () => {
-      console.log('[PaymentSuccess] 组件卸载')
-      isUnmountedRef.current = true
-      shouldContinuePollingRef.current = false
-    }
-  }, [])
-
-  const verifyOrder = useCallback(async () => {
-    console.log('[PaymentSuccess] verifyOrder 被调用', {
-      shouldContinuePolling: shouldContinuePollingRef.current,
-      orderNoRef: orderNoRef.current,
-      orderNoState: orderNo,
-    })
-
-    // 检查是否应该继续轮询
-    if (!shouldContinuePollingRef.current) {
-      console.warn('[PaymentSuccess] 轮询已停止，跳过本次查询', {
-        shouldContinuePolling: shouldContinuePollingRef.current,
+  const {
+    startPolling: startOrderPolling,
+    stopPolling: stopOrderPolling,
+  } = useAdaptivePolling({
+    poll: async ({ attempt }) => {
+      if (!orderNo) return "stop"
+      setRetryCount(attempt)
+      console.debug('[PaymentSuccess] 查询订单状态', {
+        orderNo,
+        provider: detection?.provider,
+        attempt,
       })
-      setOrderStatus('failed')
-      return
-    }
-
-    const currentOrderNo = orderNoRef.current
-    if (!currentOrderNo) {
-      console.debug('[PaymentSuccess] 订单号暂未获取，等待 localStorage 回退')
-      // 不要停止轮询，等待 localStorage 回退完成
-      return
-    }
-
-    const currentRetryCount = retryCountRef.current
-    console.debug('[PaymentSuccess] 开始查询订单状态', { orderNo: currentOrderNo, provider: detectionRef.current?.provider, retryCount: currentRetryCount })
-    const result = await getOrderStatusRef.current(currentOrderNo)
-
-    // Debug: 打印完整的 API 返回数据
-    console.log('[PaymentSuccess] API 返回数据:', result, {
-      hasStatus: !!result?.status,
-      status: result?.status,
-      statusType: typeof result?.status,
-    })
-
-    // 检查是否应该继续轮询（API 返回后可能已经停止）
-    if (!shouldContinuePollingRef.current) {
-      console.debug('[PaymentSuccess] 轮询已在请求期间停止，放弃结果')
-      return
-    }
-
+      const result = await getOrderStatus(orderNo)
     if (!result) {
-      console.debug('[PaymentSuccess] 订单状态未返回，继续轮询', {
-        orderNo: currentOrderNo,
-        retryCount: currentRetryCount + 1,
-      })
-      if (currentRetryCount < MAX_RETRIES) {
-        // 继续轮询（5 秒间隔，避免接口频率限制）
-        retryCountRef.current = currentRetryCount + 1
-        setRetryCount(currentRetryCount + 1)
-        timeoutIdRef.current = setTimeout(verifyOrder, 5000)
-      } else {
-        // 超时
-        console.warn('[PaymentSuccess] 订单状态查询超时', { orderNo: currentOrderNo, MAX_RETRIES })
-        trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
-          provider: detectionRef.current?.provider || null,
-          order_status: 'timeout',
-        })
-        shouldContinuePollingRef.current = false
-        setOrderStatus('timeout')
-      }
-      return
+        console.warn('[PaymentSuccess] 订单状态未返回，稍后重试', { orderNo, attempt })
+        throw new Error("Payment order status is unavailable")
     }
 
     setCredits(result.credits)
     console.info('[PaymentSuccess] 订单状态已更新', {
-      orderNo: currentOrderNo,
+        orderNo,
       status: result.status,
       credits: result.credits,
     })
@@ -180,73 +105,65 @@ export function PaymentSuccessContent() {
     const paymentReturnStatus = getPaymentReturnStatus(result.status)
 
     if (paymentReturnStatus === 'success') {
-      console.info('[PaymentSuccess] 订单已完成', { orderNo: currentOrderNo, credits: result.credits })
+        console.info('[PaymentSuccess] 订单已完成', { orderNo, credits: result.credits })
       trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_COMPLETED, {
-        provider: detectionRef.current?.provider || null,
+          provider: detection?.provider || null,
         credits: result.credits,
         order_status: result.status,
       })
-      shouldContinuePollingRef.current = false
       setOrderStatus('success')
-
-      // 清除 localStorage 中的订单号
       clearLastOrderNo()
+        return "stop"
     } else if (paymentReturnStatus === 'processing') {
       console.debug('[PaymentSuccess] 订单处理中，继续轮询', {
-        orderNo: currentOrderNo,
+          orderNo,
         status: result.status,
-        retryCount: currentRetryCount + 1,
+          attempt,
       })
-      // 继续轮询（5 秒间隔，避免接口频率限制）
-      if (currentRetryCount < MAX_RETRIES) {
-        retryCountRef.current = currentRetryCount + 1
-        setRetryCount(currentRetryCount + 1)
-        timeoutIdRef.current = setTimeout(verifyOrder, 5000)
-      } else {
-        // 超时
-        console.warn('[PaymentSuccess] 订单处理超时', { orderNo: currentOrderNo, status: result.status })
-        trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
-          provider: detectionRef.current?.provider || null,
-          order_status: 'timeout',
-        })
-        shouldContinuePollingRef.current = false
-        setOrderStatus('timeout')
-      }
+        setOrderStatus('pending')
+        return { action: "continue", delayMs: 5_000 }
     } else {
-      console.warn('[PaymentSuccess] 订单失败', { orderNo: currentOrderNo, status: result.status })
+        console.warn('[PaymentSuccess] 订单失败', { orderNo, status: result.status })
       trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
-        provider: detectionRef.current?.provider || null,
+          provider: detection?.provider || null,
         order_status: result.status,
       })
-      shouldContinuePollingRef.current = false
       setOrderStatus('failed')
-
-      // 清除 localStorage 中的订单号
       clearLastOrderNo()
+        return "stop"
     }
-  }, [orderNo])
+    },
+    onTimeout: () => {
+      console.warn('[PaymentSuccess] 订单状态查询超时', { orderNo })
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_FAILED, {
+        provider: detection?.provider || null,
+        order_status: 'timeout',
+      })
+      setOrderStatus('timeout')
+    },
+    policy: {
+      fastIntervalMs: 5_000,
+      fastWindowMs: PAYMENT_POLLING_TIMEOUT_MS,
+      standardIntervalMs: 5_000,
+      standardWindowMs: PAYMENT_POLLING_TIMEOUT_MS,
+      slowIntervalMs: 5_000,
+      maxErrorIntervalMs: 10_000,
+      timeoutMs: PAYMENT_POLLING_TIMEOUT_MS,
+      jitterRatio: 0,
+    },
+    debugLabel: "payment-order",
+  })
 
   useEffect(() => {
-    // 只有当 orderNo 有效时才开始轮询
-    if (orderNo) {
-      console.debug('[PaymentSuccess] 订单号已就绪，开始轮询', { orderNo })
-      console.log('[PaymentSuccess] 调用 verifyOrder 前，shouldContinuePollingRef.current =', shouldContinuePollingRef.current)
-      verifyOrder()
+    if (!orderNo) {
+      stopOrderPolling()
+      return
     }
 
-    // cleanup 函数：组件卸载时清除 timeout
-    return () => {
-      console.log('[PaymentSuccess] useEffect cleanup 执行，isUnmounted =', isUnmountedRef.current)
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current)
-        timeoutIdRef.current = null
-      }
-      // 只在组件真正卸载时停止轮询，不要在 re-render cleanup 时停止
-      if (isUnmountedRef.current) {
-        shouldContinuePollingRef.current = false
-      }
-    }
-  }, [orderNo, verifyOrder])
+    console.info('[PaymentSuccess] 订单号已就绪，开始自适应轮询', { orderNo })
+    startOrderPolling()
+    return stopOrderPolling
+  }, [orderNo, startOrderPolling, stopOrderPolling])
 
   const handleBackToBilling = () => {
     router.push('/articles?tab=billing')

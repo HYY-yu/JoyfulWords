@@ -13,6 +13,7 @@ import {
   loadTaskFromStorage,
   saveTaskToStorage,
 } from "@/hooks/use-image-generation-polling"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
 import type {
   CreateGenerationTaskRequest,
@@ -22,7 +23,6 @@ import type {
   TaskResultResponse,
 } from "@/lib/api/image-generation/types"
 import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
-import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 
 import type {
   CanvasTemplateId,
@@ -67,7 +67,6 @@ interface CreatorModeProps {
   defaultModel?: string
   onModelChangeRequest?: (model: string, currentModel: string) => string | void
   pollingConfig?: PollingConfig
-  useRealtimeUpdates?: boolean
   allowSaveToMaterials?: boolean
   allowReferenceMaterialSelector?: boolean
   uploadReferenceImage?: (file: File) => Promise<string>
@@ -127,7 +126,6 @@ export function CreatorMode({
   defaultModel,
   onModelChangeRequest,
   pollingConfig = DEFAULT_POLLING_CONFIG,
-  useRealtimeUpdates = true,
   allowSaveToMaterials = true,
   allowReferenceMaterialSelector = true,
   uploadReferenceImage,
@@ -164,8 +162,6 @@ export function CreatorMode({
   const pollingToastDescription = t("asyncTaskToast.pollingDescription", { task: taskLabel })
   const templateOptions = useMemo(() => getCanvasTemplateOptions(t), [t])
 
-  // 轮询任务状态
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const completedTaskIdsRef = useRef<Set<string>>(new Set())
 
   const copyGeneratedImageToMaterials = useCallback(async (logId: number, showSuccessToast = true) => {
@@ -292,104 +288,65 @@ export function CreatorMode({
     }
   }, [currentTaskId, pollingConfig, t, taskToast])
 
-  const fetchTaskDetailAndFinish = useCallback(async (taskId: string) => {
-    const result = await client.getTaskResult(taskId)
-    if ('error' in result) {
+  const {
+    startPolling: startTaskPolling,
+    stopPolling: stopTaskPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!currentTaskId) return "stop"
+      const result = await client.getTaskResult(currentTaskId, signal)
+      if (signal.aborted) return "stop"
+      if ('error' in result) {
+        console.warn('[ImageGeneration] Failed to get task status; retrying:', result.error)
+        throw new Error(String(result.error))
+      }
+
+      console.debug('[ImageGeneration] Task status check:', {
+        taskId: currentTaskId,
+        status: result.status,
+      })
+
+      if (result.status === 'success') {
+        await handleTaskComplete(result)
+        return "stop"
+      }
+      if (result.status === 'failed') {
+        handleTaskFailed(result)
+        return "stop"
+      }
+
+      setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn('[ImageGeneration] Task polling timed out:', { taskId: currentTaskId })
+      setIsGenerating(false)
+      setGeneratingMessage("")
+      setCurrentTaskId(null)
+      clearTaskFromStorage(pollingConfig)
+      taskToast.showFailure({
+        title: t("imageGeneration.toast.generationFailed"),
+      })
+    },
+    policy: {
+      fastIntervalMs: pollingConfig.minDelay,
+      standardIntervalMs: Math.min(10_000, pollingConfig.maxDelay),
+      slowIntervalMs: pollingConfig.maxDelay,
+      maxErrorIntervalMs: pollingConfig.maxDelay,
+      timeoutMs: pollingConfig.timeout,
+    },
+    debugLabel: "image-generation-creator",
+  })
+
+  useEffect(() => {
+    if (!currentTaskId) {
+      stopTaskPolling()
       return
     }
 
-    if (result.status === 'success') {
-      await handleTaskComplete(result)
-    } else if (result.status === 'failed') {
-      handleTaskFailed(result)
-    } else {
-      setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
-    }
-  }, [client, handleTaskComplete, handleTaskFailed, t])
-
-  const handleRealtimeTaskComplete = useCallback((payload: TaskUpdatePayload) => {
-    if (payload.task_type !== "image") return
-    if (!currentTaskId || String(payload.task_id) !== currentTaskId) return
-    void fetchTaskDetailAndFinish(currentTaskId)
-  }, [currentTaskId, fetchTaskDetailAndFinish])
-
-  const handleRealtimeTaskFailed = useCallback((payload: TaskUpdatePayload) => {
-    if (payload.task_type !== "image") return
-    if (!currentTaskId || String(payload.task_id) !== currentTaskId) return
-    handleTaskFailed({ task_id: currentTaskId, error_message: payload.error })
-  }, [currentTaskId, handleTaskFailed])
-
-  const handleRealtimeTaskUpdate = useCallback((payload: TaskUpdatePayload) => {
-    if (payload.task_type !== "image") return
-    if (!currentTaskId || String(payload.task_id) !== currentTaskId) return
-    setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
-  }, [currentTaskId, t])
-
-  useEffect(() => {
-    if (!useRealtimeUpdates) return
-
-    webSocketService.on('image:task:update', handleRealtimeTaskUpdate)
-    webSocketService.on('image:task:complete', handleRealtimeTaskComplete)
-    webSocketService.on('image:task:failed', handleRealtimeTaskFailed)
-    return () => {
-      webSocketService.off('image:task:update', handleRealtimeTaskUpdate)
-      webSocketService.off('image:task:complete', handleRealtimeTaskComplete)
-      webSocketService.off('image:task:failed', handleRealtimeTaskFailed)
-    }
-  }, [handleRealtimeTaskComplete, handleRealtimeTaskFailed, handleRealtimeTaskUpdate, useRealtimeUpdates])
-
-  // 轮询任务状态
-  useEffect(() => {
-    if (!currentTaskId) return
-
-    const checkTaskStatus = async () => {
-      try {
-        const result = await client.getTaskResult(currentTaskId)
-
-        if ('error' in result) {
-          console.error('[ImageGeneration] Failed to get task status:', result.error)
-          setIsGenerating(false)
-          setGeneratingMessage("")
-          setCurrentTaskId(null)
-          taskToast.showFailure({
-            title: t("imageGeneration.toast.generationFailed"),
-          })
-          return
-        }
-
-        console.info('[ImageGeneration] Task status check:', {
-          taskId: currentTaskId,
-          status: result.status
-        })
-
-        if (result.status === 'success') {
-          await handleTaskComplete(result)
-        } else if (result.status === 'failed') {
-          handleTaskFailed(result)
-        } else if (result.status === 'processing') {
-          setGeneratingMessage(
-            t("imageGeneration.generating.processing", {
-              eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
-            })
-          )
-        }
-      } catch (error) {
-        console.error('[ImageGeneration] Error checking task status:', error)
-      }
-    }
-
-    // 立即检查一次
-    checkTaskStatus()
-
-    // 开始轮询，每10秒检查一次
-    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
-    }
-  }, [client, currentTaskId, handleTaskComplete, handleTaskFailed, t, taskToast])
+    startTaskPolling()
+    return stopTaskPolling
+  }, [currentTaskId, startTaskPolling, stopTaskPolling])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {

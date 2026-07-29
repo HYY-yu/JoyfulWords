@@ -6,12 +6,8 @@ import type {
   TaskCenterTaskListItem,
   TaskCenterTasksQuery,
 } from "@/lib/api/taskcenter/types"
-import {
-  shouldRefetchPresentationTask,
-  webSocketService,
-  type TaskSocketEvent,
-} from "@/lib/websocket/websocket-service"
-import { tokenStore } from "@/lib/tokens/token-store"
+import { isTaskCenterTerminalTask } from "@/lib/api/taskcenter/types"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 
 interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "signal" | "page_size" | "cursor"> {
   enabled?: boolean
@@ -20,6 +16,8 @@ interface UseTaskCenterLiveTasksOptions extends Omit<TaskCenterTasksQuery, "sign
 }
 
 const DEFAULT_TASK_PAGE_SIZE = 20
+const ACTIVE_TASK_POLL_INTERVAL_MS = 5000
+const IDLE_TASK_POLL_INTERVAL_MS = 30_000
 
 function dedupeTasks(tasks: TaskCenterTaskListItem[]): TaskCenterTaskListItem[] {
   const deduped = new Map<string, TaskCenterTaskListItem>()
@@ -29,39 +27,6 @@ function dedupeTasks(tasks: TaskCenterTaskListItem[]): TaskCenterTaskListItem[] 
   })
 
   return Array.from(deduped.values())
-}
-
-function mergeTaskFromSocketEvent(
-  currentTask: TaskCenterTaskListItem,
-  event: TaskSocketEvent
-): TaskCenterTaskListItem {
-  const socketDetails = {
-    ...(event.payload.outputs && typeof event.payload.outputs === "object"
-      ? event.payload.outputs
-      : {}),
-    ...(event.payload.error_code ? { error_code: event.payload.error_code } : {}),
-  }
-  const mergedDetails =
-    Object.keys(socketDetails).length > 0
-      ? {
-          ...currentTask.details,
-          ...socketDetails,
-        }
-      : currentTask.details
-
-  const nextDetails =
-    event.payload.error && mergedDetails && typeof mergedDetails === "object"
-      ? {
-          ...mergedDetails,
-          error: event.payload.error,
-        }
-      : mergedDetails
-
-  return {
-    ...currentTask,
-    status: event.payload.status as TaskCenterTaskListItem["status"],
-    details: nextDetails as TaskCenterTaskListItem["details"],
-  } as TaskCenterTaskListItem
 }
 
 export function useTaskCenterLiveTasks({
@@ -89,8 +54,14 @@ export function useTaskCenterLiveTasks({
   }, [tasks])
 
   const fetchTasks = useCallback(
-    async ({ silent = false }: { silent?: boolean } = {}) => {
-      if (!enabled) return
+    async ({
+      silent = false,
+      signal,
+    }: {
+      silent?: boolean
+      signal?: AbortSignal
+    } = {}) => {
+      if (!enabled) return null
       const currentSequence = ++fetchSequenceRef.current
 
       if (silent) {
@@ -107,10 +78,11 @@ export function useTaskCenterLiveTasks({
           status: queryStatus,
           sort: querySort,
           page_size: silent ? Math.max(pageSize, tasksRef.current.length || pageSize) : pageSize,
+          signal,
         })
 
         if (currentSequence !== fetchSequenceRef.current) {
-          return
+          return null
         }
 
         if ("error" in result) {
@@ -119,14 +91,18 @@ export function useTaskCenterLiveTasks({
           setTasks([])
           setNextCursor(null)
           setHasMore(false)
-          return
+          return null
         }
 
-        setTasks(dedupeTasks(result.items))
+        const nextTasks = dedupeTasks(result.items)
+        tasksRef.current = nextTasks
+        setTasks(nextTasks)
         setNextCursor(result.next_cursor ?? null)
         setHasMore(result.has_more)
+        return nextTasks
       } catch (error) {
-        if (currentSequence !== fetchSequenceRef.current) return
+        if (currentSequence !== fetchSequenceRef.current) return null
+        if (signal?.aborted) return null
 
         const nextError = error instanceof Error ? error.message : "Failed to fetch tasks"
         console.error("[TaskCenter] Failed to fetch tasks", {
@@ -139,6 +115,7 @@ export function useTaskCenterLiveTasks({
           error,
         })
         setError(nextError)
+        return null
       } finally {
         if (currentSequence === fetchSequenceRef.current) {
           setLoading(false)
@@ -148,6 +125,33 @@ export function useTaskCenterLiveTasks({
     },
     [enabled, pageSize, queryArticleId, querySort, queryStatus, queryType]
   )
+
+  const {
+    startPolling: startAdaptivePolling,
+    stopPolling: stopAdaptivePolling,
+    pollNow,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const refreshedTasks = await fetchTasks({ silent: true, signal })
+      if (!refreshedTasks) {
+        throw new Error("Failed to refresh Task Center tasks")
+      }
+      const hasActiveTasks = refreshedTasks.some(
+        (task) => !isTaskCenterTerminalTask(task)
+      )
+
+      return {
+        action: "continue",
+        delayMs: hasActiveTasks
+          ? ACTIVE_TASK_POLL_INTERVAL_MS
+          : IDLE_TASK_POLL_INTERVAL_MS,
+      }
+    },
+    policy: {
+      timeoutMs: Number.POSITIVE_INFINITY,
+    },
+    debugLabel: `taskcenter:${realtimeScope}`,
+  })
 
   const loadMore = useCallback(async () => {
     if (!enabled || loading || refreshing || loadingMore || !hasMore || !nextCursor) {
@@ -227,81 +231,18 @@ export function useTaskCenterLiveTasks({
   }, [enabled, fetchTasks])
 
   useEffect(() => {
-    if (!enabled) return
-
-    const token = tokenStore.getAccessToken()
-    const articleId = typeof queryArticleId === "number" ? queryArticleId : null
-    const eventName =
-      realtimeScope === "article" && articleId
-        ? `task:event:article:${articleId}`
-        : "task:event"
-    const reconnectEventName =
-      realtimeScope === "article" && articleId
-        ? `connection:reconnected:article:${articleId}`
-        : "connection:reconnected"
-
-    if (realtimeScope === "article" && articleId && token) {
-      webSocketService.ensureArticleConnection(articleId, token)
+    if (!enabled) {
+      stopAdaptivePolling()
+      return
     }
 
-    const handleTaskEvent = (event: TaskSocketEvent) => {
-      if (queryType && event.payload.task_type !== queryType) return
-      if (
-        typeof queryArticleId === "number" &&
-        typeof event.payload.article_id === "number" &&
-        event.payload.article_id !== queryArticleId
-      ) {
-        return
-      }
+    startAdaptivePolling({ immediate: false })
+    return stopAdaptivePolling
+  }, [enabled, startAdaptivePolling, stopAdaptivePolling])
 
-      if (shouldRefetchPresentationTask(event)) {
-        console.debug("[TaskCenter] Refetching presentation task after websocket event", {
-          taskId: event.payload.task_id,
-          messageType: event.messageType,
-          status: event.payload.status,
-        })
-        // Presentation socket payloads are refresh signals. The TaskCenter API remains
-        // the source of truth for all three update/complete/failed message types.
-        void fetchTasks({ silent: true })
-        return
-      }
-
-      setTasks((currentTasks) => {
-        const taskIndex = currentTasks.findIndex(
-          (task) => task.id === event.payload.task_id && task.type === event.payload.task_type
-        )
-
-        if (taskIndex === -1) {
-          void fetchTasks({ silent: true })
-          return currentTasks
-        }
-
-        const nextTasks = [...currentTasks]
-        nextTasks[taskIndex] = mergeTaskFromSocketEvent(nextTasks[taskIndex], event)
-        return dedupeTasks(nextTasks)
-      })
-    }
-
-    const handleReconnect = () => {
-      console.info("[TaskCenter] Refetching after websocket reconnect", {
-        realtimeScope,
-        articleId,
-      })
-      void fetchTasks({ silent: true })
-    }
-
-    webSocketService.on(eventName, handleTaskEvent)
-    webSocketService.on(reconnectEventName, handleReconnect)
-
-    return () => {
-      webSocketService.off(eventName, handleTaskEvent)
-      webSocketService.off(reconnectEventName, handleReconnect)
-
-      if (realtimeScope === "article" && articleId) {
-        webSocketService.releaseArticleConnection(articleId)
-      }
-    }
-  }, [enabled, fetchTasks, queryArticleId, queryType, realtimeScope])
+  const refetch = useCallback(async (options: { silent?: boolean; signal?: AbortSignal } = {}) => {
+    await fetchTasks(options)
+  }, [fetchTasks])
 
   return {
     tasks,
@@ -310,7 +251,8 @@ export function useTaskCenterLiveTasks({
     loadingMore,
     hasMore,
     error,
-    refetch: fetchTasks,
+    refetch,
+    pollNow,
     loadMore,
     setTasks,
   }

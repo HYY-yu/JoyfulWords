@@ -42,11 +42,15 @@ export const podcastClient = {
     })
   },
 
-  async getArticleScript(id: number): Promise<ArticlePodcastScriptRecord | ErrorResponse> {
+  async getArticleScript(
+    id: number,
+    signal?: AbortSignal
+  ): Promise<ArticlePodcastScriptRecord | ErrorResponse> {
     console.debug("[Podcast] Fetching article podcast script", { scriptId: id })
 
     return authenticatedApiRequest<ArticlePodcastScriptRecord>(`/podcast/article-scripts/${id}`, {
       method: "GET",
+      signal,
     })
   },
 
@@ -168,11 +172,15 @@ export const podcastClient = {
     )
   },
 
-  async getAudioTask(id: number): Promise<ArticlePodcastAudioTask | ErrorResponse> {
+  async getAudioTask(
+    id: number,
+    signal?: AbortSignal
+  ): Promise<ArticlePodcastAudioTask | ErrorResponse> {
     console.debug("[Podcast] Fetching article podcast audio task", { audioTaskId: id })
 
     return authenticatedApiRequest<ArticlePodcastAudioTask>(`/podcast/audio-tasks/${id}`, {
       method: "GET",
+      signal,
     })
   },
 

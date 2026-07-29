@@ -54,7 +54,6 @@ import { AuthProvider } from "@/lib/auth/auth-context"
 import { Toaster } from "@/components/ui/hooks/toaster"
 import { OpenTelemetryProvider } from "@/components/otel/client-tracing-provider"
 import { InsufficientCreditsRoot } from "@/lib/credits/index"
-import { WebSocketProvider } from "@/components/websocket/websocket-provider"
 import { CookieBannerProvider } from "@/components/cookie-banner/cookie-banner-provider"
 import { ProductAnalyticsProvider } from "@/components/analytics/product-analytics-provider"
 
@@ -119,16 +118,14 @@ export default async function RootLayout({
         <OpenTelemetryProvider />
         <I18nProvider initialLocale={initialLocale}>
           <AuthProvider>
-            <WebSocketProvider>
-              <InsufficientCreditsRoot>
-                {children}
-                <Toaster />
-                <CookieBannerProvider />
-                <Suspense fallback={null}>
-                  <ProductAnalyticsProvider />
-                </Suspense>
-              </InsufficientCreditsRoot>
-            </WebSocketProvider>
+            <InsufficientCreditsRoot>
+              {children}
+              <Toaster />
+              <CookieBannerProvider />
+              <Suspense fallback={null}>
+                <ProductAnalyticsProvider />
+              </Suspense>
+            </InsufficientCreditsRoot>
           </AuthProvider>
         </I18nProvider>
       </body>

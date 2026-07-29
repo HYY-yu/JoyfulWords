@@ -38,6 +38,7 @@ import type {
   TaskCenterTaskReference,
 } from "@/lib/api/taskcenter/types"
 import type { EChartsArticleAnalysisSession } from "@/lib/echarts/article-analysis-session"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 
@@ -57,6 +58,7 @@ interface EChartsDialogProps {
 type ChartMode = "selection" | "article"
 
 const SELECTION_TEXT_LIMIT = 300
+const ARTICLE_REQUEST_POLL_TIMEOUT_MS = 15 * 60 * 1000
 
 function isErrorResponse<T extends object>(value: T | ErrorResponse): value is ErrorResponse {
   return "error" in value && typeof value.error === "string"
@@ -106,6 +108,13 @@ function getArticleResponseLogs(
     .filter((log): log is EChartsLogResponse => Boolean(log?.id))
 }
 
+function isRetryablePollingError(error: ErrorResponse): boolean {
+  return (
+    error.reason === "network_error" ||
+    (typeof error.status === "number" && error.status >= 500)
+  )
+}
+
 export function EChartsDialog({
   open,
   onOpenChange,
@@ -153,6 +162,150 @@ export function EChartsDialog({
     setSubmitting(false)
     setErrorMessage(null)
   }, [activeArticleAnalysisSession, locale, open, selectedText, t])
+
+  const articleRequestId =
+    activeArticleAnalysisSession?.status === "submitting"
+      ? Number(activeArticleAnalysisSession.requestId)
+      : Number.NaN
+
+  const {
+    startPolling: startArticleRequestPolling,
+    stopPolling: stopArticleRequestPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal, consecutiveErrors }) => {
+      if (!activeArticleAnalysisSession) return "stop"
+
+      const markFailed = (errorMessage: string) => {
+        onArticleAnalysisSessionChange?.({
+          ...activeArticleAnalysisSession,
+          status: "failed",
+          updatedAt: Date.now(),
+          errorMessage,
+        })
+      }
+
+      const result = await echartsClient.getRequest(articleRequestId, { signal })
+      if (signal.aborted) return "stop"
+
+      if (isErrorResponse(result)) {
+        console.warn("[EChartsDialog] Article extraction polling failed", {
+          articleId,
+          requestId: articleRequestId,
+          attempt: consecutiveErrors + 1,
+          status: result.status ?? null,
+          reason: result.reason ?? null,
+        })
+        if (isRetryablePollingError(result)) {
+          throw new Error(result.reason || result.error)
+        }
+
+        markFailed(t("echarts.dialog.analysisFailedDescription"))
+        return "stop"
+      }
+
+      console.debug("[EChartsDialog] Article extraction status received", {
+        articleId,
+        requestId: articleRequestId,
+        status: result.status,
+        suggestionCount: result.suggestion_count,
+      })
+
+      if (result.status === "pending" || result.status === "processing") {
+        return "continue"
+      }
+
+      if (result.status === "failed") {
+        console.warn("[EChartsDialog] Article extraction failed", {
+          articleId,
+          requestId: articleRequestId,
+          errorCode: result.error_code ?? null,
+          errorMessage: result.error_message ?? null,
+        })
+        markFailed(t("echarts.dialog.analysisFailedDescription"))
+        return "stop"
+      }
+
+      const logs = getArticleResponseLogs(result.items)
+      const taskRefs = logs.map((log) => ({ id: log.id, type: "echarts" as const }))
+      const taskItems = logs.map(mapEChartsLogToTaskItem)
+      const suggestionCount = result.suggestion_count
+
+      onTasksSubmitted?.(taskRefs, taskItems)
+
+      if (suggestionCount === 0) {
+        onArticleAnalysisSessionChange?.({
+          ...activeArticleAnalysisSession,
+          status: "empty",
+          updatedAt: Date.now(),
+          total: 0,
+          taskRefs,
+        })
+        toast({
+          title: t("echarts.dialog.noChartsTitle"),
+          description: t("echarts.dialog.noChartsDescription"),
+        })
+        return "stop"
+      }
+
+      onArticleAnalysisSessionChange?.({
+        ...activeArticleAnalysisSession,
+        status: "submitted",
+        updatedAt: Date.now(),
+        total: suggestionCount,
+        taskRefs,
+      })
+      toast({
+        title: t("echarts.dialog.articleSubmittedTitle"),
+        description: t("echarts.dialog.articleSubmittedDescription", {
+          count: suggestionCount,
+        }),
+      })
+      return "stop"
+    },
+    onTimeout: () => {
+      if (!activeArticleAnalysisSession) return
+      console.warn("[EChartsDialog] Article extraction polling timed out", {
+        articleId,
+        requestId: articleRequestId,
+        timeoutMs: ARTICLE_REQUEST_POLL_TIMEOUT_MS,
+      })
+      onArticleAnalysisSessionChange?.({
+        ...activeArticleAnalysisSession,
+        status: "failed",
+        updatedAt: Date.now(),
+        errorMessage: t("echarts.dialog.analysisTimeoutDescription"),
+      })
+    },
+    policy: {
+      timeoutMs: ARTICLE_REQUEST_POLL_TIMEOUT_MS,
+    },
+    debugLabel: "echarts-article-extraction",
+  })
+
+  useEffect(() => {
+    if (
+      !activeArticleAnalysisSession ||
+      activeArticleAnalysisSession.status !== "submitting" ||
+      !Number.isSafeInteger(articleRequestId) ||
+      articleRequestId <= 0
+    ) {
+      stopArticleRequestPolling()
+      return
+    }
+
+    console.info("[EChartsDialog] Starting article extraction polling", {
+      articleId,
+      requestId: articleRequestId,
+    })
+    startArticleRequestPolling()
+    return stopArticleRequestPolling
+  }, [
+    activeArticleAnalysisSession,
+    articleId,
+    articleRequestId,
+    startArticleRequestPolling,
+    stopArticleRequestPolling,
+  ])
 
   const canSubmit =
     !submitting &&
@@ -235,37 +388,14 @@ export function EChartsDialog({
     }
 
     const response = result as GenerateEChartsFromArticleResponse
-    const logs = getArticleResponseLogs(response.items)
-    const taskRefs = logs.map((log) => ({ id: log.id, type: "echarts" as const }))
-    const taskItems = logs.map(mapEChartsLogToTaskItem)
-
-    onTasksSubmitted?.(taskRefs, taskItems)
-
-    if (response.total === 0) {
-      onArticleAnalysisSessionChange?.({
-        ...pendingSession,
-        status: "empty",
-        updatedAt: Date.now(),
-        total: 0,
-        taskRefs,
-      })
-      toast({
-        title: t("echarts.dialog.noChartsTitle"),
-        description: t("echarts.dialog.noChartsDescription"),
-      })
-      return
-    }
-
     onArticleAnalysisSessionChange?.({
       ...pendingSession,
-      status: "submitted",
+      requestId: String(response.request_id),
       updatedAt: Date.now(),
-      total: response.total,
-      taskRefs,
     })
     toast({
-      title: t("echarts.dialog.articleSubmittedTitle"),
-      description: t("echarts.dialog.articleSubmittedDescription", { count: response.total }),
+      title: t("echarts.dialog.analysisQueuedTitle"),
+      description: t("echarts.dialog.analysisQueuedDescription"),
     })
   }
 

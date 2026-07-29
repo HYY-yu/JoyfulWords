@@ -26,6 +26,7 @@ import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
 import { MaterialClueBoardDialog } from "@/components/article/material-clue-board"
 import { normalizeMarkdownLinksWithSpaceDestinations } from "@/components/article/material-clue-board/markdown-utils"
 import { isSupportedImageFile } from "@/lib/upload-file"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 
 // ==================== MaterialCard ====================
 
@@ -359,7 +360,6 @@ const SEARCH_TYPE_TABS = [
 ] as const
 
 const SEARCH_POLL_INTERVAL_MS = 3000
-const SEARCH_MAX_FAIL_COUNT = 3
 const SEARCH_RESULT_DEFAULT_PAGE_SIZE = 10
 
 interface PersistedMaterialSearchTask {
@@ -963,8 +963,6 @@ function SearchTab({
   const [clueBoardInitialQuery, setClueBoardInitialQuery] = useState("")
   const [isPagingSearch, setIsPagingSearch] = useState(false)
 
-  const pollingRef = useRef<NodeJS.Timeout | null>(null)
-  const networkFailCountRef = useRef(0)
   const searchTriggerLockedRef = useRef(false)
   const activeSearchLogIdRef = useRef<number | null>(null)
   const searchRequestSeqRef = useRef(0)
@@ -983,13 +981,61 @@ function SearchTab({
     [articleId, userId]
   )
 
+  const {
+    startPolling: startAdaptiveSearchPolling,
+    stopPolling: stopAdaptiveSearchPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const logId = activeSearchLogIdRef.current
+      if (logId === null) return "stop"
+
+      console.debug("[MaterialSearch] polling detail", { logId })
+      const response = await materialsClient.getSearchLogDetail(logId, signal)
+      if (activeSearchLogIdRef.current !== logId) return "stop"
+      if ("error" in response) {
+        console.warn("[MaterialSearch] detail poll failed; retrying", {
+          logId,
+          error: response.error,
+        })
+        throw new Error(String(response.error))
+      }
+
+      setDetail(response)
+      if (response.status === "doing") {
+        setBannerStatus("polling")
+        return "continue"
+      }
+
+      setBannerStatus(null)
+      setSelectedUrls(new Set())
+      console.info("[MaterialSearch] search finished", {
+        logId,
+        status: response.status,
+      })
+      return "stop"
+    },
+    onTimeout: () => {
+      console.warn("[MaterialSearch] detail polling timed out", {
+        logId: activeSearchLogIdRef.current,
+      })
+      setBannerStatus(null)
+      toast({
+        variant: "destructive",
+        title: t("contentWriting.materialPanel.searchFailed"),
+      })
+    },
+    policy: {
+      fastIntervalMs: SEARCH_POLL_INTERVAL_MS,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: 10 * 60 * 1000,
+    },
+    debugLabel: "material-search",
+  })
+
   const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearTimeout(pollingRef.current)
-      pollingRef.current = null
-    }
-    networkFailCountRef.current = 0
-  }, [])
+    stopAdaptiveSearchPolling()
+  }, [stopAdaptiveSearchPolling])
 
   const clearSearchTask = useCallback(() => {
     console.info("[MaterialSearch] clearing active card")
@@ -1010,67 +1056,13 @@ function SearchTab({
     }
   }, [articleId, stopPolling, userId])
 
-  const resetSelections = useCallback(() => {
-    setSelectedUrls(new Set())
-  }, [])
-
   const handlePollResult = useCallback(
     async (task: PersistedMaterialSearchTask) => {
-      console.debug("[MaterialSearch] polling detail", { logId: task.logId, query: task.query })
-      const response = await materialsClient.getSearchLogDetail(task.logId)
-      if (activeSearchLogIdRef.current !== task.logId) {
-        console.debug("[MaterialSearch] ignoring stale poll result", {
-          logId: task.logId,
-          activeLogId: activeSearchLogIdRef.current,
-        })
-        return
-      }
-
-      if ("error" in response) {
-        networkFailCountRef.current += 1
-        console.warn("[MaterialSearch] detail poll failed", {
-          logId: task.logId,
-          failCount: networkFailCountRef.current,
-          error: response.error,
-        })
-
-        if (networkFailCountRef.current >= SEARCH_MAX_FAIL_COUNT) {
-          stopPolling()
-          clearSearchTask()
-          toast({
-            variant: "destructive",
-            title: t("contentWriting.materialPanel.searchFailed"),
-            description: response.error,
-          })
-          return
-        }
-
-        pollingRef.current = setTimeout(() => {
-          void handlePollResult(task)
-        }, SEARCH_POLL_INTERVAL_MS)
-        return
-      }
-
-      networkFailCountRef.current = 0
-      setDetail(response)
-
-      if (response.status === "doing") {
-        setBannerStatus("polling")
-        pollingRef.current = setTimeout(() => {
-          void handlePollResult(task)
-        }, SEARCH_POLL_INTERVAL_MS)
-        return
-      }
-
-      stopPolling()
-      setBannerStatus(null)
-      resetSelections()
-      console.info("[MaterialSearch] search finished", {
-        logId: task.logId,
-        status: response.status,
-      })
+      activeSearchLogIdRef.current = task.logId
+      stopAdaptiveSearchPolling()
+      startAdaptiveSearchPolling()
     },
-    [clearSearchTask, resetSelections, stopPolling, t, toast]
+    [startAdaptiveSearchPolling, stopAdaptiveSearchPolling]
   )
 
   useEffect(() => {
@@ -1094,8 +1086,6 @@ function SearchTab({
 
     return stopPolling
   }, [articleId, handlePollResult, onSearchTypeChange, stopPolling, userId])
-
-  useEffect(() => stopPolling, [stopPolling])
 
   useEffect(() => {
     onSearchLockedChange?.(Boolean(activeTask) || isTriggeringSearch || isPagingSearch)
@@ -1782,14 +1772,67 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
   const [parseStatus, setParseStatus] = useState<MaterialParseStatus>("")
   const [parseError, setParseError] = useState("")
   const [parsedMarkdown, setParsedMarkdown] = useState("")
-  const parsePollTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const parseTaskIdRef = useRef("")
   const [errors, setErrors] = useState<{ title?: string; content?: string }>({})
 
+  const {
+    startPolling: startParsePolling,
+    stopPolling: stopParsePolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const taskId = parseTaskIdRef.current
+      if (!taskId) return "stop"
+      const result = await materialsClient.getParsePreview(taskId, signal)
+
+      if ("error" in result) {
+        console.warn("[MaterialUpload] Parse preview refresh failed; retrying", {
+          taskId,
+          error: result.error,
+        })
+        throw new Error(String(result.error))
+      }
+
+      setParseStatus(result.parse_status)
+      setParseError(result.error_message || "")
+      if (result.parse_status === "success") {
+        setParsedMarkdown(result.content)
+        setIsUploading(false)
+        return "stop"
+      }
+      if (result.parse_status === "failed") {
+        setIsUploading(false)
+        setParseError(
+          result.error_message ||
+            (result.parse_failed_code
+              ? t("contentWriting.materialPanel.uploadParseFailedWithCode", {
+                  code: result.parse_failed_code,
+                })
+              : t("contentWriting.materialPanel.uploadParseFailed"))
+        )
+        return "stop"
+      }
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn("[MaterialUpload] Parse preview polling timed out", {
+        taskId: parseTaskIdRef.current,
+      })
+      setParseStatus("failed")
+      setParseError(t("contentWriting.materialPanel.uploadParseFailed"))
+      setIsUploading(false)
+    },
+    policy: {
+      fastIntervalMs: UPLOAD_PARSE_POLL_INTERVAL_MS,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: 10 * 60 * 1000,
+    },
+    debugLabel: "material-parse-preview",
+  })
+
   const resetForm = useCallback(() => {
-    if (parsePollTimerRef.current) {
-      clearTimeout(parsePollTimerRef.current)
-      parsePollTimerRef.current = null
-    }
+    stopParsePolling()
+    parseTaskIdRef.current = ""
     setTitle("")
     setMaterialType("info")
     setDataFile(null)
@@ -1802,7 +1845,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
     setParseError("")
     setParsedMarkdown("")
     setErrors({})
-  }, [])
+  }, [stopParsePolling])
 
   const handleDataFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1820,13 +1863,15 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
 
       setDataFile(file)
       if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ""))
+      stopParsePolling()
+      parseTaskIdRef.current = ""
       setParseTaskId("")
       setParseStatus("")
       setParseError("")
       setParsedMarkdown("")
       setErrors({})
     },
-    [t, title]
+    [stopParsePolling, t, title]
   )
 
   const handleImageSelect = useCallback(
@@ -1854,49 +1899,12 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
 
   const pollParsePreview = useCallback(
     async (taskId: string) => {
-      const result = await materialsClient.getParsePreview(taskId)
-
-      if ("error" in result) {
-        setParseStatus("failed")
-        setParseError(result.error)
-        setIsUploading(false)
-        return
-      }
-
-      setParseStatus(result.parse_status)
-      setParseError(result.error_message || "")
-
-      if (result.parse_status === "success") {
-        setParsedMarkdown(result.content)
-        setIsUploading(false)
-        return
-      }
-
-      if (result.parse_status === "failed") {
-        setIsUploading(false)
-        setParseError(
-          result.error_message ||
-            (result.parse_failed_code
-              ? t("contentWriting.materialPanel.uploadParseFailedWithCode", { code: result.parse_failed_code })
-              : t("contentWriting.materialPanel.uploadParseFailed"))
-        )
-        return
-      }
-
-      parsePollTimerRef.current = setTimeout(() => {
-        void pollParsePreview(taskId)
-      }, UPLOAD_PARSE_POLL_INTERVAL_MS)
+      parseTaskIdRef.current = taskId
+      stopParsePolling()
+      startParsePolling()
     },
-    [t]
+    [startParsePolling, stopParsePolling]
   )
-
-  useEffect(() => {
-    return () => {
-      if (parsePollTimerRef.current) {
-        clearTimeout(parsePollTimerRef.current)
-      }
-    }
-  }, [])
 
   const handleSubmit = useCallback(async () => {
     if (!articleId) {

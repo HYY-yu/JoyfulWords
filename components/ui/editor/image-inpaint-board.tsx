@@ -34,6 +34,7 @@ import type { CreatorConfig } from "@/components/image-generator/types";
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload";
 import { useTranslation } from "@/lib/i18n/i18n-context";
 import { cn } from "@/lib/utils";
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling";
 
 type Tool = "pan" | "draw" | "erase";
 type Status = "idle" | "loading" | "uploading" | "generating" | "success" | "error";
@@ -81,7 +82,6 @@ const STROKE_ALPHA = 0.45;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const COMPARISON_GAP = 56;
 const POLL_INTERVAL_MS = 3500;
-const MAX_POLL_ATTEMPTS = 60;
 const INPAINT_PROMPT =
   "Use the uploaded reference image as the only visual instruction. The semi-transparent colored brush marks identify local areas to repaint or revise. Infer the intended local edit from the marked regions, keep unmarked areas unchanged, and return a polished natural image.";
 
@@ -418,8 +418,6 @@ export function ImageInpaintBoard({
   const { toast } = useToast();
   const stageRef = useRef<HTMLDivElement | null>(null);
   const pointerRef = useRef<{ type: Tool | null; x: number; y: number }>({ type: null, x: 0, y: 0 });
-  const pollingAbortRef = useRef(false);
-  const pollingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const strokeIndexRef = useRef(0);
 
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
@@ -436,6 +434,7 @@ export function ImageInpaintBoard({
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
   const [status, setStatus] = useState<Status>("idle");
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
 
   const isBusy = status === "uploading" || status === "generating";
   const modelOptions = useMemo(() => Array.from(new Set([DEFAULT_MODEL, ...models.filter(Boolean)])), [models]);
@@ -548,13 +547,6 @@ export function ImageInpaintBoard({
       })
       .finally(() => setModelsLoading(false));
   }, [open]);
-
-  useEffect(() => {
-    return () => {
-      pollingAbortRef.current = true;
-      if (pollingTimerRef.current) clearTimeout(pollingTimerRef.current);
-    };
-  }, []);
 
   const getPointer = useCallback((event: { clientX: number; clientY: number }) => {
     const rect = stageRef.current?.getBoundingClientRect();
@@ -702,37 +694,97 @@ export function ImageInpaintBoard({
     setSelectedStrokeId((current) => (current === strokeId ? null : current));
   }, []);
 
-  const pollTask = useCallback(async (taskId: string): Promise<string> => {
-    pollingAbortRef.current = false;
-
-    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-      if (pollingAbortRef.current) throw new Error("polling_cancelled");
-
-      await new Promise<void>((resolve) => {
-        pollingTimerRef.current = setTimeout(resolve, POLL_INTERVAL_MS);
-      });
-
-      if (pollingAbortRef.current) throw new Error("polling_cancelled");
-
-      const result = await imageGenerationClient.getTaskResult(taskId);
+  const {
+    startPolling: startTaskPolling,
+    stopPolling: stopTaskPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!currentTaskId || !image) return "stop";
+      const result = await imageGenerationClient.getTaskResult(currentTaskId, signal);
+      if (signal.aborted) return "stop";
       if ("error" in result) {
-        console.error("[ImageInpaintBoard] Polling failed", { taskId, error: result.error });
-        continue;
+        console.warn("[ImageInpaintBoard] Polling failed; retrying", {
+          taskId: currentTaskId,
+          error: result.error,
+        });
+        throw new Error(String(result.error));
       }
-
-      if (result.status === "success") {
-        const imageUrl = getFirstImageUrl(result.image_url);
-        if (!imageUrl) throw new Error("generated_image_missing");
-        return imageUrl;
-      }
-
       if (result.status === "failed") {
-        throw new Error(result.error_message || "generation_failed");
+        const message = result.error_message || "generation_failed";
+        console.error("[ImageInpaintBoard] Repaint generation failed", { error: message });
+        setCurrentTaskId(null);
+        setStatus("error");
+        toast({
+          variant: "destructive",
+          title: t("tiptapEditor.imageMenu.inpaintFailed"),
+          description: message,
+        });
+        return "stop";
       }
-    }
+      if (result.status !== "success") return "continue";
 
-    throw new Error("polling_timeout");
-  }, []);
+      const imageUrl = getFirstImageUrl(result.image_url);
+      if (!imageUrl) {
+        setCurrentTaskId(null);
+        setStatus("error");
+        toast({
+          variant: "destructive",
+          title: t("tiptapEditor.imageMenu.inpaintFailed"),
+          description: "generated_image_missing",
+        });
+        return "stop";
+      }
+      const loadedComparison = await loadImage(imageUrl);
+      if (signal.aborted) return "stop";
+      const nextComparison: BoardImage = {
+        id: makeId("comparison"),
+        src: imageUrl,
+        safeSrc: getCanvasSafeSrc(imageUrl),
+        w: Math.max(1, loadedComparison.naturalWidth),
+        h: Math.max(1, loadedComparison.naturalHeight),
+      };
+
+      setComparisonImage(nextComparison);
+      setGeneratedUrl(imageUrl);
+      setCurrentTaskId(null);
+      setStatus("success");
+      window.requestAnimationFrame(() => {
+        const rect = stageRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        setViewport(fitImageViewport(image, rect.width, rect.height, nextComparison));
+      });
+      toast({ title: t("tiptapEditor.imageMenu.inpaintGenerated") });
+      return "stop";
+    },
+    onTimeout: () => {
+      console.warn("[ImageInpaintBoard] Repaint polling timed out", {
+        taskId: currentTaskId,
+      });
+      setCurrentTaskId(null);
+      setStatus("error");
+      toast({
+        variant: "destructive",
+        title: t("tiptapEditor.imageMenu.inpaintFailed"),
+        description: "polling_timeout",
+      });
+    },
+    policy: {
+      fastIntervalMs: POLL_INTERVAL_MS,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: POLL_INTERVAL_MS * 60,
+    },
+    debugLabel: "image-inpaint",
+  });
+
+  useEffect(() => {
+    if (!open || !currentTaskId) {
+      stopTaskPolling();
+      return;
+    }
+    startTaskPolling({ immediate: false });
+    return stopTaskPolling;
+  }, [currentTaskId, open, startTaskPolling, stopTaskPolling]);
 
   const handleConfirmImage = useCallback(async () => {
     if (!image || isBusy || strokes.length === 0) return;
@@ -777,25 +829,7 @@ export function ImageInpaintBoard({
       }
 
       onTaskSubmitted?.();
-      const imageUrl = await pollTask(String(result.task_id));
-      const loadedComparison = await loadImage(imageUrl);
-      const nextComparison: BoardImage = {
-        id: makeId("comparison"),
-        src: imageUrl,
-        safeSrc: getCanvasSafeSrc(imageUrl),
-        w: Math.max(1, loadedComparison.naturalWidth),
-        h: Math.max(1, loadedComparison.naturalHeight),
-      };
-
-      setComparisonImage(nextComparison);
-      setGeneratedUrl(imageUrl);
-      setStatus("success");
-      window.requestAnimationFrame(() => {
-        const rect = stageRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        setViewport(fitImageViewport(image, rect.width, rect.height, nextComparison));
-      });
-      toast({ title: t("tiptapEditor.imageMenu.inpaintGenerated") });
+      setCurrentTaskId(String(result.task_id));
     } catch (error) {
       const message = error instanceof Error ? error.message : "generation_failed";
       console.error("[ImageInpaintBoard] Repaint generation failed", { error: message });
@@ -806,7 +840,7 @@ export function ImageInpaintBoard({
         description: message,
       });
     }
-  }, [articleId, image, isBusy, onTaskSubmitted, pollTask, selectedModel, strokes, t, toast]);
+  }, [articleId, image, isBusy, onTaskSubmitted, selectedModel, strokes, t, toast]);
 
   const handleInsertGenerated = useCallback(() => {
     if (!generatedUrl) return;
@@ -836,13 +870,13 @@ export function ImageInpaintBoard({
 
   const closeDialog = useCallback((nextOpen: boolean) => {
     if (!nextOpen) {
-      pollingAbortRef.current = true;
-      if (pollingTimerRef.current) clearTimeout(pollingTimerRef.current);
+      stopTaskPolling();
+      setCurrentTaskId(null);
       pointerRef.current = { type: null, x: 0, y: 0 };
       setDraftStroke(null);
     }
     onOpenChange(nextOpen);
-  }, [onOpenChange]);
+  }, [onOpenChange, stopTaskPolling]);
 
   const toolButtons: Array<{ id: Tool; label: string; icon: React.ReactNode }> = [
     { id: "pan", label: t("tiptapEditor.imageMenu.inpaintPan"), icon: <HandIcon className="h-4 w-4" /> },

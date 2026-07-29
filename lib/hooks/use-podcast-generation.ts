@@ -16,6 +16,7 @@ import {
   type RegenerateArticlePodcastAudioSegmentRequest,
   type UpdateArticlePodcastScriptRequest,
 } from "@/lib/api/podcast/types"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 
 export type PodcastGenerationPhaseState =
   | "idle"
@@ -23,7 +24,6 @@ export type PodcastGenerationPhaseState =
   | "submitting"
   | PodcastGenerationStatus
 
-const POLL_INTERVAL_MS = 5000
 const POLLING_TIMEOUT_MS = 10 * 60 * 1000
 const AUDIO_MANIFEST_CACHE_PREFIX = "joyfulwords-podcast-audio-manifest-v1"
 const AUDIO_MANIFEST_CACHE_TTL_MS = 60 * 60 * 1000
@@ -218,47 +218,14 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   const [scriptErrorMessage, setScriptErrorMessage] = useState<string | null>(null)
   const [audioErrorMessage, setAudioErrorMessage] = useState<string | null>(null)
 
-  const scriptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const audioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scriptStartedAtRef = useRef<number | null>(null)
-  const audioStartedAtRef = useRef<number | null>(null)
   const activeScriptIdRef = useRef<number | null>(null)
   const activeAudioTaskIdRef = useRef<number | null>(null)
   const lastKnownAudioManifestRef = useRef<ArticlePodcastAudioManifest | null>(null)
   const pendingAudioSegmentIdsRef = useRef<Set<string>>(new Set())
   const audioPollingModeRef = useRef<AudioPollingMode>("full")
-  const scriptPollingActiveRef = useRef(false)
-  const audioPollingActiveRef = useRef(false)
 
   const audioManifest = useMemo(() => getTaskManifest(audioTask), [audioTask])
   const audioSegments = useMemo(() => getSortedPodcastAudioSegments(audioManifest), [audioManifest])
-
-  const clearScriptTimer = useCallback(() => {
-    if (!scriptTimerRef.current) return
-    clearTimeout(scriptTimerRef.current)
-    scriptTimerRef.current = null
-  }, [])
-
-  const clearAudioTimer = useCallback(() => {
-    if (!audioTimerRef.current) return
-    clearTimeout(audioTimerRef.current)
-    audioTimerRef.current = null
-  }, [])
-
-  const stopScriptPolling = useCallback(() => {
-    scriptPollingActiveRef.current = false
-    clearScriptTimer()
-  }, [clearScriptTimer])
-
-  const stopAudioPolling = useCallback(() => {
-    audioPollingActiveRef.current = false
-    clearAudioTimer()
-  }, [clearAudioTimer])
-
-  const stopPolling = useCallback(() => {
-    stopScriptPolling()
-    stopAudioPolling()
-  }, [stopAudioPolling, stopScriptPolling])
 
   const applyAudioTask = useCallback(
     (task: ArticlePodcastAudioTask, mode: AudioPollingMode = "full"): ArticlePodcastAudioTask => {
@@ -349,42 +316,32 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     }
   }, [applyAudioTask])
 
-  const pollAudioTask = useCallback(async function pollAudioTask(taskId: number) {
-    if (!audioPollingActiveRef.current || activeAudioTaskIdRef.current !== taskId) return
-
-    const startedAt = audioStartedAtRef.current ?? Date.now()
-    if (Date.now() - startedAt > POLLING_TIMEOUT_MS) {
-      console.warn("[Podcast] Audio polling timed out", { taskId })
-      stopAudioPolling()
-      setAudioState("failed")
-      setAudioErrorMessage("polling_timeout")
-      return
-    }
-
-    try {
-      const result = await podcastClient.getAudioTask(taskId)
-
+  const {
+    isPolling: isAudioPolling,
+    startPolling: startAdaptiveAudioPolling,
+    stopPolling: stopAdaptiveAudioPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const taskId = activeAudioTaskIdRef.current
+      if (taskId === null) return "stop"
+      const result = await podcastClient.getAudioTask(taskId, signal)
       if (isErrorResponse(result)) {
-        console.error("[Podcast] Failed to poll podcast audio task", {
+        console.warn("[Podcast] Failed to poll podcast audio task; retrying", {
           taskId,
           error: result.error,
           status: result.status,
         })
-        stopAudioPolling()
-        setAudioState("failed")
-        setAudioErrorMessage(getErrorMessage(result, "Failed to load podcast audio"))
-        return
+        throw new Error(getErrorMessage(result, "Failed to load podcast audio"))
       }
-
-      console.debug("[Podcast] Podcast audio task status", {
-        taskId,
-        status: result.status,
-        completedSegments: result.completed_segments,
-        totalSegments: result.total_segments,
-      })
 
       const pollingMode = audioPollingModeRef.current
       const nextTask = applyAudioTask(result, pollingMode)
+      console.debug("[Podcast] Podcast audio task status", {
+        taskId,
+        status: nextTask.status,
+        completedSegments: nextTask.completed_segments,
+        totalSegments: nextTask.total_segments,
+      })
       setAudioTask(nextTask)
       if (pollingMode === "full" || isPodcastTerminalStatus(nextTask.status)) {
         setAudioState(nextTask.status)
@@ -397,127 +354,125 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
           mode: pollingMode,
           totalSegments: nextTask.total_segments,
         })
-        stopAudioPolling()
-        return
+        return "stop"
       }
-
       if (nextTask.status === "failed") {
         console.warn("[Podcast] Podcast audio generation failed", {
           taskId,
           mode: pollingMode,
           errorMessage: nextTask.error_message,
         })
-        stopAudioPolling()
-        return
+        return "stop"
       }
-
-      clearAudioTimer()
-      audioTimerRef.current = setTimeout(() => {
-        void pollAudioTask(taskId)
-      }, POLL_INTERVAL_MS)
-    } catch (error) {
-      console.error("[Podcast] Unexpected podcast audio polling error", {
-        taskId,
-        error,
-      })
-      stopAudioPolling()
-      setAudioState("failed")
-      setAudioErrorMessage(error instanceof Error ? error.message : "Failed to poll podcast audio")
-    }
-  }, [applyAudioTask, clearAudioTimer, stopAudioPolling])
-
-  const startAudioPolling = useCallback(
-    (taskId: number, mode: AudioPollingMode = "full") => {
-      stopAudioPolling()
-      activeAudioTaskIdRef.current = taskId
-      audioPollingModeRef.current = mode
-      audioStartedAtRef.current = Date.now()
-      audioPollingActiveRef.current = true
-      console.info("[Podcast] Starting podcast audio polling", { taskId, mode })
-      // TODO(observability): add active podcast audio polling gauge.
-      void pollAudioTask(taskId)
+      return "continue"
     },
-    [pollAudioTask, stopAudioPolling]
-  )
+    onTimeout: () => {
+      console.warn("[Podcast] Audio polling timed out", {
+        taskId: activeAudioTaskIdRef.current,
+      })
+      setAudioState("failed")
+      setAudioErrorMessage("polling_timeout")
+    },
+    policy: {
+      fastIntervalMs: 3_000,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: POLLING_TIMEOUT_MS,
+    },
+    debugLabel: "podcast-audio",
+  })
 
-  const pollScript = useCallback(async function pollScript(scriptId: number) {
-    if (!scriptPollingActiveRef.current || activeScriptIdRef.current !== scriptId) return
-
-    const startedAt = scriptStartedAtRef.current ?? Date.now()
-    if (Date.now() - startedAt > POLLING_TIMEOUT_MS) {
-      console.warn("[Podcast] Script polling timed out", { scriptId })
-      stopScriptPolling()
-      setScriptState("failed")
-      setScriptErrorMessage("polling_timeout")
-      return
-    }
-
-    try {
-      const result = await podcastClient.getArticleScript(scriptId)
-
+  const {
+    startPolling: startAdaptiveScriptPolling,
+    stopPolling: stopAdaptiveScriptPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const scriptId = activeScriptIdRef.current
+      if (scriptId === null) return "stop"
+      const result = await podcastClient.getArticleScript(scriptId, signal)
       if (isErrorResponse(result)) {
-        console.error("[Podcast] Failed to poll podcast script", {
+        console.warn("[Podcast] Failed to poll podcast script; retrying", {
           scriptId,
           error: result.error,
           status: result.status,
         })
-        stopScriptPolling()
-        setScriptState("failed")
-        setScriptErrorMessage(getErrorMessage(result, "Failed to load podcast script"))
-        return
+        throw new Error(getErrorMessage(result, "Failed to load podcast script"))
       }
 
       console.debug("[Podcast] Podcast script status", {
         scriptId,
         status: result.status,
       })
-
       setScript(result)
       setScriptState(result.status)
       setScriptErrorMessage(result.status === "failed" ? result.error_message ?? null : null)
 
       if (result.status === "success") {
         console.info("[Podcast] Podcast script generation succeeded", { scriptId })
-        stopScriptPolling()
         await loadCurrentAudio(result.id)
-        return
+        return "stop"
       }
-
       if (result.status === "failed") {
         console.warn("[Podcast] Podcast script generation failed", {
           scriptId,
           errorMessage: result.error_message,
         })
-        stopScriptPolling()
-        return
+        return "stop"
       }
-
-      clearScriptTimer()
-      scriptTimerRef.current = setTimeout(() => {
-        void pollScript(scriptId)
-      }, POLL_INTERVAL_MS)
-    } catch (error) {
-      console.error("[Podcast] Unexpected podcast script polling error", {
-        scriptId,
-        error,
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn("[Podcast] Script polling timed out", {
+        scriptId: activeScriptIdRef.current,
       })
-      stopScriptPolling()
       setScriptState("failed")
-      setScriptErrorMessage(error instanceof Error ? error.message : "Failed to poll podcast script")
-    }
-  }, [clearScriptTimer, loadCurrentAudio, stopScriptPolling])
+      setScriptErrorMessage("polling_timeout")
+    },
+    policy: {
+      fastIntervalMs: 3_000,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: POLLING_TIMEOUT_MS,
+    },
+    debugLabel: "podcast-script",
+  })
+
+  const stopAudioPolling = useCallback(() => {
+    stopAdaptiveAudioPolling()
+    activeAudioTaskIdRef.current = null
+  }, [stopAdaptiveAudioPolling])
+
+  const stopScriptPolling = useCallback(() => {
+    stopAdaptiveScriptPolling()
+    activeScriptIdRef.current = null
+  }, [stopAdaptiveScriptPolling])
+
+  const stopPolling = useCallback(() => {
+    stopScriptPolling()
+    stopAudioPolling()
+  }, [stopAudioPolling, stopScriptPolling])
+
+  const startAudioPolling = useCallback(
+    (taskId: number, mode: AudioPollingMode = "full") => {
+      stopAdaptiveAudioPolling()
+      activeAudioTaskIdRef.current = taskId
+      audioPollingModeRef.current = mode
+      console.info("[Podcast] Starting adaptive podcast audio polling", { taskId, mode })
+      // TODO(observability): add active podcast audio polling gauge.
+      startAdaptiveAudioPolling()
+    },
+    [startAdaptiveAudioPolling, stopAdaptiveAudioPolling]
+  )
 
   const startScriptPolling = useCallback(
     (scriptId: number) => {
-      stopScriptPolling()
+      stopAdaptiveScriptPolling()
       activeScriptIdRef.current = scriptId
-      scriptStartedAtRef.current = Date.now()
-      scriptPollingActiveRef.current = true
-      console.info("[Podcast] Starting podcast script polling", { scriptId })
+      console.info("[Podcast] Starting adaptive podcast script polling", { scriptId })
       // TODO(observability): add active podcast script polling gauge.
-      void pollScript(scriptId)
+      startAdaptiveScriptPolling()
     },
-    [pollScript, stopScriptPolling]
+    [startAdaptiveScriptPolling, stopAdaptiveScriptPolling]
   )
 
   const loadLatestScript = useCallback(
@@ -784,8 +739,6 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     lastKnownAudioManifestRef.current = null
     pendingAudioSegmentIdsRef.current.clear()
     audioPollingModeRef.current = "full"
-    scriptStartedAtRef.current = null
-    audioStartedAtRef.current = null
     setScript(null)
     setAudioTask(null)
     setScriptState("idle")
@@ -797,17 +750,11 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
 
   useEffect(() => {
     if (!audioTask || isPodcastTerminalStatus(audioTask.status)) return
-    if (audioState === "loading" || audioState === "submitting") return
-    if (audioPollingActiveRef.current && activeAudioTaskIdRef.current === audioTask.id) return
+    if (audioState === "loading" || audioState === "submitting" || audioState === "failed") return
+    if (isAudioPolling && activeAudioTaskIdRef.current === audioTask.id) return
 
     startAudioPolling(audioTask.id, hasPlayableAudioSegment(audioTask) ? "segment" : "full")
-  }, [audioState, audioTask, startAudioPolling])
-
-  useEffect(() => {
-    return () => {
-      stopPolling()
-    }
-  }, [stopPolling])
+  }, [audioState, audioTask, isAudioPolling, startAudioPolling])
 
   return {
     script,

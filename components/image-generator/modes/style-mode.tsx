@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useCallback, useEffect, useMemo, useRef } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { Upload, Sparkles, Image as ImageIcon, Zap, CheckCircle2, Loader2, Copy } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
@@ -12,6 +12,8 @@ import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 import { ModelSelector } from "@/components/image-generator/ui/model-selector"
 import { MaterialSelectorDialog } from "@/components/image-generator/ui/material-selector-dialog"
 import { useInfiniteMaterials } from "@/lib/hooks/use-infinite-materials"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
+import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/base/dialog"
 import { Button } from "@/components/ui/base/button"
 import { Textarea } from "@/components/ui/base/textarea"
@@ -223,88 +225,65 @@ export function StyleMode({ articleId }: StyleModeProps) {
     fetchModels()
   }, [t, toast])
 
-  // 轮询任务状态
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const {
+    startPolling: startTaskPolling,
+    stopPolling: stopTaskPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!currentTaskId) return "stop"
+      const result = await imageGenerationClient.getTaskResult(
+        currentTaskId.toString(),
+        signal
+      )
+      if (signal.aborted) return "stop"
+      if ('error' in result) {
+        console.warn('[StyleMode] Failed to get task status; retrying:', result.error)
+        throw new Error(String(result.error))
+      }
+
+      console.debug('[StyleMode] Task status check:', {
+        taskId: currentTaskId,
+        status: result.status,
+      })
+      if (result.status === 'success') {
+        setRenderedImage(parseTaskCenterImageUrls(result.image_url)[0] ?? "")
+        setRenderStatus("completed")
+        setCurrentGenerationLogId(currentTaskId)
+        setCurrentTaskId(null)
+        taskToast.showSuccess({ title: t("imageGeneration.toast.generationSuccess") })
+        return "stop"
+      }
+      if (result.status === 'failed') {
+        console.error('[StyleMode] Task failed:', result.error_message)
+        setRenderStatus("error")
+        setCurrentTaskId(null)
+        taskToast.showFailure({
+          title: t("imageGeneration.toast.generationFailed"),
+        })
+        return "stop"
+      }
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn('[StyleMode] Task polling timed out:', { taskId: currentTaskId })
+      setRenderStatus("error")
+      setCurrentTaskId(null)
+      toast({
+        variant: "destructive",
+        title: t("imageGeneration.toast.generationFailed"),
+      })
+    },
+    debugLabel: "image-style",
+  })
 
   useEffect(() => {
-    if (!currentTaskId) return
-
-    const checkTaskStatus = async () => {
-      try {
-        const result = await imageGenerationClient.getTaskResult(currentTaskId.toString())
-
-        if ('error' in result) {
-          console.error('[StyleMode] Failed to get task status:', result.error)
-          setRenderStatus("error")
-          setCurrentTaskId(null)
-          toast({
-            variant: "destructive",
-            title: t("imageGeneration.toast.generationFailed"),
-          })
-          return
-        }
-
-        console.info('[StyleMode] Task status check:', {
-          taskId: currentTaskId,
-          status: result.status
-        })
-
-        if (result.status === 'success') {
-          // 解析 image_url（可能是字符串或数组）
-          let imageUrl: string
-          if (result.image_url) {
-            if (Array.isArray(result.image_url) && result.image_url.length > 0) {
-              imageUrl = result.image_url[0]
-            } else if (typeof result.image_url === 'string') {
-              if (result.image_url.startsWith('[')) {
-                try {
-                  const urls = JSON.parse(result.image_url) as string[]
-                  imageUrl = urls[0]
-                } catch {
-                  imageUrl = result.image_url
-                }
-              } else {
-                imageUrl = result.image_url
-              }
-            } else {
-              imageUrl = String(result.image_url)
-            }
-          } else {
-            imageUrl = ''
-          }
-
-          setRenderedImage(imageUrl)
-          setRenderStatus("completed")
-          setCurrentGenerationLogId(currentTaskId)
-          setCurrentTaskId(null)
-
-          taskToast.showSuccess({ title: t("imageGeneration.toast.generationSuccess") })
-        } else if (result.status === 'failed') {
-          console.error('[StyleMode] Task failed:', result.error_message)
-          setRenderStatus("error")
-          setCurrentTaskId(null)
-
-          taskToast.showFailure({
-            title: t("imageGeneration.toast.generationFailed"),
-          })
-        }
-      } catch (error) {
-        console.error('[StyleMode] Error checking task status:', error)
-      }
+    if (!currentTaskId) {
+      stopTaskPolling()
+      return
     }
-
-    // 立即检查一次
-    checkTaskStatus()
-
-    // 开始轮询，每10秒检查一次
-    pollingIntervalRef.current = setInterval(checkTaskStatus, 10000)
-
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-      }
-    }
-  }, [currentTaskId, t, taskToast, toast])
+    startTaskPolling()
+    return stopTaskPolling
+  }, [currentTaskId, startTaskPolling, stopTaskPolling])
 
   const handleFileUpload = useCallback(async (file: File) => {
     setIsUploading(true)

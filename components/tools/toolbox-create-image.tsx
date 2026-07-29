@@ -154,7 +154,6 @@ export function ToolboxCreateImage() {
           defaultModel={TOOLBOX_GUEST_MODEL}
           onModelChangeRequest={handleModelChangeRequest}
           pollingConfig={TOOLBOX_IMAGE_POLLING_CONFIG}
-          useRealtimeUpdates={false}
           allowSaveToMaterials={false}
           allowReferenceMaterialSelector={false}
           uploadReferenceImage={uploadReferenceImage}

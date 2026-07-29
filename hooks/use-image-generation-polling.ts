@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState, useMemo } from 'react'
+import { useRef, useCallback, useState, useMemo } from 'react'
 import { imageGenerationClient } from '@/lib/api/image-generation/client'
 import type {
   TaskResultResponse,
@@ -6,9 +6,7 @@ import type {
   PollingConfig,
 } from '@/lib/api/image-generation/types'
 import { DEFAULT_POLLING_CONFIG } from '@/lib/api/image-generation/types'
-
-// 指数退避睡眠函数
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+import { useAdaptivePolling } from '@/lib/hooks/use-adaptive-polling'
 
 /**
  * 保存任务到 localStorage
@@ -168,12 +166,95 @@ export function useImageGenerationPolling(
     ...customConfig,
   }), [customConfig])
 
-  // 使用 useState 而不是 useRef 以提供响应式状态
-  const [isPolling, setIsPolling] = useState(false)
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
+  const currentTaskIdRef = useRef<string | null>(null)
 
-  const shouldStopRef = useRef(false)
-  const abortControllerRef = useRef<AbortController | null>(null)
+  const {
+    isPolling,
+    startPolling: startAdaptivePolling,
+    stopPolling: stopAdaptivePolling,
+  } = useAdaptivePolling({
+    poll: async ({ attempt, elapsedMs, signal }) => {
+      const taskId = currentTaskIdRef.current
+      if (!taskId) return 'stop'
+      if (attempt >= config.maxAttempts) {
+        console.error('[ImageGeneration] Max polling attempts reached:', {
+          taskId,
+          attemptCount: attempt,
+          elapsedSeconds: Math.floor(elapsedMs / 1000),
+        })
+        clearTaskFromStorage(config)
+        currentTaskIdRef.current = null
+        setCurrentTaskId(null)
+        onError?.(new Error('Polling timeout: max attempts reached'))
+        return 'stop'
+      }
+
+      const result = await imageGenerationClient.getTaskResult(taskId, signal)
+      if (signal.aborted) return 'stop'
+      if ('error' in result) {
+        console.warn('[ImageGeneration] Polling attempt failed; retrying:', {
+          taskId,
+          attemptCount: attempt,
+          error: result.error,
+        })
+        throw new Error(String(result.error))
+      }
+
+      if (result.status === 'success') {
+        console.info('[ImageGeneration] Task completed successfully:', {
+          taskId,
+          imageUrl: result.image_url,
+          elapsedSeconds: Math.floor(elapsedMs / 1000),
+          attemptCount: attempt,
+        })
+        clearTaskFromStorage(config)
+        currentTaskIdRef.current = null
+        setCurrentTaskId(null)
+        onSuccess?.(result)
+        return 'stop'
+      }
+      if (result.status === 'failed') {
+        console.error('[ImageGeneration] Task failed:', {
+          taskId,
+          errorMessage: result.error_message,
+          elapsedSeconds: Math.floor(elapsedMs / 1000),
+          attemptCount: attempt,
+        })
+        clearTaskFromStorage(config)
+        currentTaskIdRef.current = null
+        setCurrentTaskId(null)
+        onError?.(new Error(result.error_message))
+        return 'stop'
+      }
+
+      console.debug('[ImageGeneration] Task status:', {
+        taskId,
+        status: result.status,
+        attemptCount: attempt,
+        elapsedSeconds: Math.floor(elapsedMs / 1000),
+      })
+      onProgress?.(result)
+      return 'continue'
+    },
+    onTimeout: () => {
+      console.error('[ImageGeneration] Polling timeout:', {
+        taskId: currentTaskIdRef.current,
+      })
+      clearTaskFromStorage(config)
+      currentTaskIdRef.current = null
+      setCurrentTaskId(null)
+      onTimeout?.()
+    },
+    policy: {
+      fastIntervalMs: config.minDelay,
+      standardIntervalMs: Math.min(10_000, config.maxDelay),
+      slowIntervalMs: config.maxDelay,
+      maxErrorIntervalMs: config.maxDelay,
+      timeoutMs: config.timeout,
+    },
+    debugLabel: 'image-generation-hook',
+  })
 
   /**
    * 停止轮询
@@ -185,16 +266,11 @@ export function useImageGenerationPolling(
         taskId: currentTaskId,
       })
 
-      shouldStopRef.current = true
-      setIsPolling(false)
-
-      // 取消进行中的请求
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-        abortControllerRef.current = null
-      }
+      stopAdaptivePolling()
+      currentTaskIdRef.current = null
+      setCurrentTaskId(null)
     }
-  }, [isPolling, currentTaskId])
+  }, [currentTaskId, isPolling, stopAdaptivePolling])
 
   /**
    * 开始轮询
@@ -229,148 +305,12 @@ export function useImageGenerationPolling(
         )
       }
 
-      setIsPolling(true)
-      shouldStopRef.current = false
+      currentTaskIdRef.current = taskId
       setCurrentTaskId(taskId)
-      abortControllerRef.current = new AbortController()
-
-      let delay = config.minDelay
-      let attemptCount = 0
-      const startTime = Date.now()
-
-      try {
-        // 初始延迟（给后端足够时间提交任务）
-        await sleep(config.initialDelay)
-
-        while (!shouldStopRef.current && attemptCount < config.maxAttempts) {
-          // 检查超时
-          const elapsed = Date.now() - startTime
-          if (elapsed > config.timeout) {
-            // ERROR: 轮询超时 - 任务执行时间过长
-            console.error('[ImageGeneration] Polling timeout:', {
-              taskId,
-              elapsedSeconds: Math.floor(elapsed / 1000),
-              attemptCount,
-            })
-
-            clearTaskFromStorage(config)
-            onTimeout?.()
-            break
-          }
-
-          attemptCount++
-
-          try {
-            // 调用 API 获取任务结果，传递 signal 以支持取消
-            const result = await imageGenerationClient.getTaskResult(
-              taskId,
-              abortControllerRef.current?.signal
-            )
-
-            // 检查是否需要停止
-            if (shouldStopRef.current) {
-              break
-            }
-
-            // 根据任务状态处理
-            if (result.status === 'success') {
-              // INFO: 任务完成 - 轮询成功
-              console.info('[ImageGeneration] Task completed successfully:', {
-                taskId,
-                imageUrl: result.image_url,
-                elapsedSeconds: Math.floor((Date.now() - startTime) / 1000),
-                attemptCount,
-              })
-
-              clearTaskFromStorage(config)
-              onSuccess?.(result)
-              break
-            } else if (result.status === 'failed') {
-              // ERROR: 任务失败 - 后端返回失败状态
-              console.error('[ImageGeneration] Task failed:', {
-                taskId,
-                errorMessage: result.error_message,
-                elapsedSeconds: Math.floor((Date.now() - startTime) / 1000),
-                attemptCount,
-              })
-
-              clearTaskFromStorage(config)
-              onError?.(new Error(result.error_message))
-              break
-            } else if (result.status === 'processing' || result.status === 'pending') {
-              // DEBUG: 任务处理中 - 继续轮询
-              console.debug('[ImageGeneration] Task status:', {
-                taskId,
-                status: result.status as 'processing' | 'pending',  // 记录实际状态（pending 或 processing）
-                attemptCount,
-                elapsedSeconds: Math.floor((Date.now() - startTime) / 1000),
-                nextDelaySeconds: Math.floor(delay / 1000),
-              })
-
-              onProgress?.(result)
-
-              // 等待下次轮询（指数退避）
-              await sleep(delay)
-
-              // 更新延迟时间（指数退避，最大不超过 maxDelay）
-              delay = Math.min(delay * 2, config.maxDelay)
-            }
-          } catch (error) {
-            // ERROR: 网络错误或 API 错误 - 继续重试
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-            console.error('[ImageGeneration] Polling attempt failed:', {
-              taskId,
-              attemptCount,
-              error: errorMessage,
-            })
-
-            // 如果是用户主动停止，不重试
-            if (shouldStopRef.current) {
-              break
-            }
-
-            // 等待后重试
-            await sleep(delay)
-            delay = Math.min(delay * 2, config.maxDelay)
-          }
-        }
-
-        // 检查是否达到最大尝试次数
-        if (
-          !shouldStopRef.current &&
-          attemptCount >= config.maxAttempts
-        ) {
-          // ERROR: 达到最大尝试次数 - 轮询失败
-          console.error('[ImageGeneration] Max polling attempts reached:', {
-            taskId,
-            attemptCount,
-            elapsedSeconds: Math.floor((Date.now() - startTime) / 1000),
-          })
-
-          clearTaskFromStorage(config)
-          onError?.(new Error('Polling timeout: max attempts reached'))
-        }
-      } finally {
-        // TRACE: 轮询退出 - 清理状态
-        setIsPolling(false)
-        setCurrentTaskId(null)
-        abortControllerRef.current = null
-
-        console.debug('[ImageGeneration] Polling stopped:', {
-          taskId,
-          reason: shouldStopRef.current ? 'user cancelled' : 'completed or failed',
-        })
-      }
+      startAdaptivePolling({ delayMs: config.initialDelay })
     },
-    [config, onProgress, onSuccess, onError, onTimeout, isPolling]
+    [config, isPolling, startAdaptivePolling]
   )
-
-  // 组件卸载时自动停止轮询
-  useEffect(() => {
-    return () => {
-      stopPolling()
-    }
-  }, [stopPolling])
 
   return {
     startPolling,

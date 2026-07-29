@@ -464,6 +464,23 @@ export function EditorAIPanel({
     [articleId]
   )
 
+  const handleEChartsTasksSubmitted = useCallback(
+    (
+      taskRefs: TaskCenterTaskReference[],
+      taskItems: TaskCenterEChartsTaskListItem[] = []
+    ) => {
+      if (taskItems.length > 0) {
+        setLiveTasks((currentTasks) => mergeTaskCenterTasks(currentTasks, taskItems))
+      }
+      void refetch({ silent: true })
+      console.info("[EditorAIPanel] Submitted echarts tasks", {
+        taskCount: taskRefs.length,
+        articleId,
+      })
+    },
+    [articleId, refetch, setLiveTasks]
+  )
+
   useEffect(() => {
     if (echartsArticleAnalysisSession?.status !== "submitted") return
 
@@ -1146,16 +1163,7 @@ export function EditorAIPanel({
         selectedText={selectedEChartsText}
         articleAnalysisSession={echartsArticleAnalysisSession}
         onArticleAnalysisSessionChange={handleEChartsArticleAnalysisSessionChange}
-        onTasksSubmitted={(taskRefs, taskItems = []) => {
-          if (taskItems.length > 0) {
-            setLiveTasks((currentTasks) => mergeTaskCenterTasks(currentTasks, taskItems))
-          }
-          void refetch({ silent: true })
-          console.info("[EditorAIPanel] Submitted echarts tasks", {
-            taskCount: taskRefs.length,
-            articleId,
-          })
-        }}
+        onTasksSubmitted={handleEChartsTasksSubmitted}
       />
 
       <PresentationFlowDialog

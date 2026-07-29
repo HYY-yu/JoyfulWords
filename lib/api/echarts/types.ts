@@ -90,6 +90,8 @@ export interface EChartsLogResponse {
   version: number
   created_at: string
   updated_at: string
+  completed_at?: string
+  poll_url?: string
 }
 
 export interface GenerateEChartsRequest {
@@ -114,9 +116,19 @@ export interface GenerateEChartsFromArticleItem {
 }
 
 export interface GenerateEChartsFromArticleResponse {
+  request_id: number
+  user_id: number
   article_id: number
-  total: number
+  status: JoyChartStatus
+  max_charts: number
+  suggestion_count: number
   items: GenerateEChartsFromArticleItem[]
+  error_code?: string
+  error_message?: string
+  poll_url: string
+  created_at: string
+  updated_at: string
+  completed_at?: string
 }
 
 export interface UpdateEChartsDisplayRequest {

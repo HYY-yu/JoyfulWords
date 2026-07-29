@@ -53,6 +53,21 @@ export const echartsClient = {
     })
   },
 
+  async getRequest(
+    id: number,
+    options: { signal?: AbortSignal } = {}
+  ): Promise<GenerateEChartsFromArticleResponse | ErrorResponse> {
+    console.debug("[ECharts] Polling article chart extraction request", { requestId: id })
+
+    return authenticatedApiRequest<GenerateEChartsFromArticleResponse>(
+      `/echarts/requests/${id}`,
+      {
+        method: "GET",
+        signal: options.signal,
+      }
+    )
+  },
+
   async replaceSpec(
     id: number,
     request: ReplaceEChartsSpecRequest

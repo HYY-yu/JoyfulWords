@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -11,7 +11,7 @@ import { normalizeContentToHTML, detectContentFormat, htmlToMarkdown } from "@/l
 import { articlesClient } from "@/lib/api/articles/client"
 import type { Article } from "@/lib/api/articles/types"
 import type { TaskCenterTaskReference } from "@/lib/api/taskcenter/types"
-import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
+import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
 import { ArticleEditorLayout } from "@/components/article/article-editor-layout"
 import { EditorTopBar } from "@/components/article/editor-top-bar"
 import { EditorMaterialPanel } from "@/components/article/editor-material-panel"
@@ -69,6 +69,18 @@ export default function ArticleEditPage() {
   const [activeArticleEditTaskRef, setActiveArticleEditTaskRef] =
     useState<TaskCenterTaskReference | null>(null)
   const [taskSubmissionTick, setTaskSubmissionTick] = useState(0)
+  const {
+    tasks: liveArticleTasks,
+    loading: liveArticleTasksLoading,
+  } = useTaskCenterLiveTasks({
+    enabled: Boolean(user && articleId),
+    type: "article",
+    article_id: articleId ?? undefined,
+    realtimeScope: "article",
+    pageSize: 50,
+  })
+  const writerTaskStatusesRef = useRef(new Map<number, string>())
+  const writerTasksInitializedRef = useRef(false)
 
   // ==================== Auth guard ====================
 
@@ -157,44 +169,64 @@ export default function ArticleEditPage() {
   }, [])
 
   useEffect(() => {
+    writerTaskStatusesRef.current.clear()
+    writerTasksInitializedRef.current = false
+  }, [articleId])
+
+  useEffect(() => {
     if (!article?.id) return
 
-    const handleWriterUpdateComplete = (payload: TaskUpdatePayload) => {
-      const outputs = payload.outputs ?? {}
-      const operateType = typeof outputs.operate_type === "string" ? outputs.operate_type : ""
-      const operationType =
-        typeof outputs.operation_type === "string" ? outputs.operation_type : ""
-      const isWriterUpdate =
-        payload.task_type === "article" &&
-        (operateType === "writer" || operationType === "writer_update") &&
-        operationType === "writer_update"
+    if (liveArticleTasksLoading) return
+    let completedWriterUpdate = false
+    if (!writerTasksInitializedRef.current) {
+      liveArticleTasks.forEach((task) => {
+        writerTaskStatusesRef.current.set(task.id, task.status)
+      })
+      writerTasksInitializedRef.current = true
+      completedWriterUpdate = liveArticleTasks.some(
+        (task) =>
+          task.type === "article" &&
+          task.details.operation_type === "writer_update" &&
+          task.status === "success"
+      )
+    } else {
+      completedWriterUpdate = liveArticleTasks.some((task) => {
+        const previousStatus = writerTaskStatusesRef.current.get(task.id)
+        writerTaskStatusesRef.current.set(task.id, task.status)
 
-      if (!isWriterUpdate) return
-
-      const reloadRemoteArticle = () => {
-        autoSave.cancelPendingSave()
-        void loadArticle({ silent: true })
-      }
-
-      if (editorState.metadata.isDirty) {
-        const confirmed = window.confirm(
-          t("contentWriting.taskCenter.writerUpdateReloadConfirm")
+        return (
+          task.type === "article" &&
+          task.details.operation_type === "writer_update" &&
+          task.status === "success" &&
+          previousStatus !== "success"
         )
-        if (confirmed) {
-          reloadRemoteArticle()
-        }
-        return
-      }
+      })
+    }
+    if (!completedWriterUpdate) return
 
-      reloadRemoteArticle()
+    const reloadRemoteArticle = () => {
+      autoSave.cancelPendingSave()
+      void loadArticle({ silent: true })
     }
 
-    webSocketService.on(`task:complete:article:${article.id}`, handleWriterUpdateComplete)
-
-    return () => {
-      webSocketService.off(`task:complete:article:${article.id}`, handleWriterUpdateComplete)
+    if (editorState.metadata.isDirty) {
+      const confirmed = window.confirm(
+        t("contentWriting.taskCenter.writerUpdateReloadConfirm")
+      )
+      if (confirmed) reloadRemoteArticle()
+      return
     }
-  }, [article?.id, autoSave, editorState, loadArticle, t])
+
+    reloadRemoteArticle()
+  }, [
+    article?.id,
+    autoSave,
+    editorState.metadata.isDirty,
+    liveArticleTasks,
+    liveArticleTasksLoading,
+    loadArticle,
+    t,
+  ])
 
   // ==================== Editor change handler ====================
 

@@ -91,7 +91,11 @@ export function ToolboxInfographic() {
   const { user, loading } = useAuth()
   const { toast } = useToast()
   const taskToast = useAsyncTaskToast()
-  const getLogDetail = useCallback((logId: number) => toolboxClient.getInfographicLog(logId), [])
+  const getLogDetail = useCallback(
+    (logId: number, signal?: AbortSignal) =>
+      toolboxClient.getInfographicLog(logId, { signal }),
+    []
+  )
   const {
     currentLogId,
     detail,

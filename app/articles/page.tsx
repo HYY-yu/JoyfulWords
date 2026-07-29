@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -60,7 +60,7 @@ import { ArticleCreateModeDialog } from "@/components/article/article-create-mod
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
 import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
-import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
+import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
 import { cn } from "@/lib/utils"
 import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 import { type JoyfulTheme, useJoyfulTheme } from "@/lib/theme/joyful-theme"
@@ -81,18 +81,6 @@ const DEFAULT_ARTICLE_THUMBNAIL_PATHS = new Set<string>([
   "/article-default-thumbnail.svg",
   ...Object.values(DEFAULT_ARTICLE_THUMBNAILS),
 ])
-
-function isWriterCreatePayload(payload: TaskUpdatePayload): boolean {
-  const outputs = payload.outputs ?? {}
-  const operateType = typeof outputs.operate_type === "string" ? outputs.operate_type : ""
-  const operationType = typeof outputs.operation_type === "string" ? outputs.operation_type : ""
-
-  return (
-    payload.task_type === "article" &&
-    (operateType === "writer" || operationType === "writer_create") &&
-    operationType === "writer_create"
-  )
-}
 
 function getFirstArticleImage(content: string) {
   const htmlImageMatch = content.match(/<img[^>]+src=(["'])(.*?)\1/i)
@@ -218,6 +206,16 @@ export default function ArticlesPage() {
     deletingId,
     statusUpdatingId,
   } = useArticles({ enabled: !authLoading && Boolean(user) })
+  const {
+    tasks: liveArticleTasks,
+    loading: liveArticleTasksLoading,
+  } = useTaskCenterLiveTasks({
+    enabled: !authLoading && Boolean(user),
+    type: "article",
+    pageSize: 50,
+  })
+  const writerTaskStatusesRef = useRef(new Map<number, string>())
+  const writerTasksInitializedRef = useRef(false)
 
   // Dialog states
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
@@ -229,6 +227,11 @@ export default function ArticlesPage() {
       router.push("/auth/login")
     }
   }, [user, authLoading, router])
+
+  useEffect(() => {
+    writerTaskStatusesRef.current.clear()
+    writerTasksInitializedRef.current = false
+  }, [user?.id])
 
   const handleOpenCookiePreferences = useCallback(() => {
     if (!window.silktideCookieBannerManager?.openPreferences) {
@@ -291,18 +294,43 @@ export default function ArticlesPage() {
   }
 
   useEffect(() => {
-    const handleWriterCreateComplete = (payload: TaskUpdatePayload) => {
-      if (isWriterCreatePayload(payload)) {
+    if (liveArticleTasksLoading) return
+
+    if (!writerTasksInitializedRef.current) {
+      liveArticleTasks.forEach((task) => {
+        writerTaskStatusesRef.current.set(task.id, task.status)
+      })
+      writerTasksInitializedRef.current = true
+      if (
+        liveArticleTasks.some(
+          (task) =>
+            task.type === "article" &&
+            task.details.operation_type === "writer_create" &&
+            task.status === "success"
+        )
+      ) {
         handleRefresh()
       }
+      return
     }
 
-    webSocketService.on("task:complete", handleWriterCreateComplete)
+    let shouldRefresh = false
+    liveArticleTasks.forEach((task) => {
+      const previousStatus = writerTaskStatusesRef.current.get(task.id)
+      writerTaskStatusesRef.current.set(task.id, task.status)
 
-    return () => {
-      webSocketService.off("task:complete", handleWriterCreateComplete)
-    }
-  }, [handleRefresh])
+      if (
+        task.type === "article" &&
+        task.details.operation_type === "writer_create" &&
+        task.status === "success" &&
+        previousStatus !== "success"
+      ) {
+        shouldRefresh = true
+      }
+    })
+
+    if (shouldRefresh) handleRefresh()
+  }, [handleRefresh, liveArticleTasks, liveArticleTasksLoading])
 
   const handleCreateManualArticle = async () => {
     setIsCreatingArticle(true)

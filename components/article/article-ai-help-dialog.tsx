@@ -377,7 +377,7 @@ export function ArticleAIHelpDialog({
       }
 
       // Add Info log for success. The backend may return only article id; task
-      // lifecycle is recovered through Task Center refetch and websocket events.
+      // lifecycle is recovered through Task Center adaptive polling.
       console.info('[AI Help] AI write submitted successfully:', {
         articleId: result.id,
         isOverwrite: Boolean(articleIdFilter),

@@ -129,9 +129,12 @@ export const materialsClient = {
    * GET /materials/search-logs/:id
    */
   async getSearchLogDetail(
-    id: number
+    id: number,
+    signal?: AbortSignal
   ): Promise<MaterialSearchDetailResponse | ErrorResponse> {
-    return authenticatedApiRequest<MaterialSearchDetailResponse>(`/materials/search-logs/${id}`)
+    return authenticatedApiRequest<MaterialSearchDetailResponse>(`/materials/search-logs/${id}`, {
+      signal,
+    })
   },
 
   /**
@@ -316,10 +319,12 @@ export const materialsClient = {
    * GET /materials/parse-preview/:task_id
    */
   async getParsePreview(
-    taskId: string
+    taskId: string,
+    signal?: AbortSignal
   ): Promise<ParseMaterialPreviewResponse | ErrorResponse> {
     return authenticatedApiRequest<ParseMaterialPreviewResponse>(
-      `/materials/parse-preview/${encodeURIComponent(taskId)}`
+      `/materials/parse-preview/${encodeURIComponent(taskId)}`,
+      { signal }
     )
   },
 

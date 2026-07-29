@@ -7,9 +7,13 @@ import { ImageIcon } from "lucide-react"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
-import { loadTaskFromStorage } from "@/hooks/use-image-generation-polling"
+import {
+  clearTaskFromStorage,
+  loadTaskFromStorage,
+} from "@/hooks/use-image-generation-polling"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { DEFAULT_POLLING_CONFIG } from "@/lib/api/image-generation/types"
-import { webSocketService } from "@/lib/websocket/websocket-service"
+import { parseTaskCenterImageUrls } from "@/lib/api/taskcenter/types"
 import type {
   CanvasTemplateId,
   Layer,
@@ -82,121 +86,95 @@ export function ImageGeneration() {
   const [isLoadingModels, setIsLoadingModels] = useState(true)
   const [modelsLoadError, setModelsLoadError] = useState<string | null>(null)
 
-  // 处理任务完成事件
-  const handleTaskComplete = useCallback((payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // INFO: 任务完成 - WebSocket 通知
-      console.info('[ImageGeneration] Task completed successfully via WebSocket:', {
-        taskId: payload.task_id,
-        imageUrl: payload.outputs?.image_urls,
-      })
-
-      // 解析 image_url（可能是 JSON 数组字符串或直接是字符串）
-      let imageUrl: string
-      try {
-        const imageUrls = payload.outputs?.image_urls
-        if (typeof imageUrls === 'string' && imageUrls.startsWith('[')) {
-          // JSON 数组字符串，解析并取第一个元素
-          const urls = JSON.parse(imageUrls) as string[]
-          imageUrl = urls[0]
-          console.debug('[ImageGeneration] Parsed image_url from JSON array:', imageUrl)
-        } else if (Array.isArray(imageUrls)) {
-          // 已经是数组，取第一个元素
-          imageUrl = imageUrls[0]
-          console.debug('[ImageGeneration] Extracted first URL from array:', imageUrl)
-        } else if (typeof imageUrls === 'string') {
-          // 直接是字符串
-          imageUrl = imageUrls
-        } else {
-          // 回退到空字符串
-          imageUrl = ''
-        }
-      } catch (error) {
-        // ERROR: 解析失败，回退到原始值
-        console.error('[ImageGeneration] Failed to parse image_url:', error)
-        imageUrl = ''
+  const {
+    startPolling: startTaskPolling,
+    stopPolling: stopTaskPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!currentTaskId) return "stop"
+      const result = await imageGenerationClient.getTaskResult(currentTaskId, signal)
+      if (signal.aborted) return "stop"
+      if ('error' in result) {
+        console.warn('[ImageGeneration] Failed to refresh task; retrying:', result.error)
+        throw new Error(String(result.error))
       }
 
+      if (result.status === 'success') {
+        const imageUrl = parseTaskCenterImageUrls(result.image_url)[0] ?? ""
+        console.info('[ImageGeneration] Task completed successfully via polling:', {
+          taskId: result.task_id,
+          imageUrl,
+        })
+        setIsGenerating(false)
+        setGeneratingMessage("")
+        setCurrentTaskId(null)
+        setGeneratedImageUrl(imageUrl)
+        setShowGeneratedImage(true)
+        setCurrentGenerationLogId(Number(result.task_id))
+        clearTaskFromStorage(DEFAULT_POLLING_CONFIG)
+        toast({
+          title: t("imageGeneration.toast.generationSuccess"),
+          description: t("imageGeneration.generating.description"),
+        })
+        return "stop"
+      }
+
+      if (result.status === 'failed') {
+        console.error('[ImageGeneration] Task failed via polling:', {
+          taskId: result.task_id,
+          error: result.error_message,
+        })
+        setIsGenerating(false)
+        setGeneratingMessage("")
+        setCurrentTaskId(null)
+        clearTaskFromStorage(DEFAULT_POLLING_CONFIG)
+        toast({
+          variant: "destructive",
+          title: t("imageGeneration.toast.generationFailed"),
+          description: result.error_message || t("imageGeneration.toast.generationFailed"),
+        })
+        return "stop"
+      }
+
+      setGeneratingMessage(t("imageGeneration.generating.processing", { eta: 60 }))
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn('[ImageGeneration] Task polling timed out:', { taskId: currentTaskId })
       setIsGenerating(false)
       setGeneratingMessage("")
       setCurrentTaskId(null)
-      setGeneratedImageUrl(imageUrl)
-      setShowGeneratedImage(true)
-
-      // 保存生成记录ID
-      setCurrentGenerationLogId(Number(payload.task_id))
-      console.info('[ImageGeneration] Saved generation log ID:', payload.task_id)
-
-      toast({
-        title: t("imageGeneration.toast.generationSuccess"),
-        description: t("imageGeneration.generating.description"),
-      })
-    }
-  }, [currentTaskId, t, toast])
-
-  // 处理任务失败事件
-  const handleTaskFailed = useCallback((payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // ERROR: 任务失败 - WebSocket 通知
-      console.error('[ImageGeneration] Task failed via WebSocket:', {
-        taskId: payload.task_id,
-        error: payload.error,
-      })
-
-      setIsGenerating(false)
-      setGeneratingMessage("")
-      setCurrentTaskId(null)
-
+      clearTaskFromStorage(DEFAULT_POLLING_CONFIG)
       toast({
         variant: "destructive",
         title: t("imageGeneration.toast.generationFailed"),
-        description: payload.error || t("imageGeneration.toast.generationFailed"),
       })
-    }
-  }, [currentTaskId, t, toast])
+    },
+    policy: {
+      fastIntervalMs: DEFAULT_POLLING_CONFIG.minDelay,
+      standardIntervalMs: 10_000,
+      slowIntervalMs: DEFAULT_POLLING_CONFIG.maxDelay,
+      maxErrorIntervalMs: DEFAULT_POLLING_CONFIG.maxDelay,
+      timeoutMs: DEFAULT_POLLING_CONFIG.timeout,
+    },
+    debugLabel: "image-generation",
+  })
 
-  // 处理任务更新事件
-  const handleTaskUpdate = useCallback((payload: any) => {
-    if (payload.task_id === currentTaskId) {
-      // DEBUG: 任务进度 - WebSocket 通知
-      console.debug('[ImageGeneration] Task status updated via WebSocket:', {
-        taskId: payload.task_id,
-        status: payload.status,
-      })
-
-      if (payload.status === 'processing') {
-        setGeneratingMessage(
-          t("imageGeneration.generating.processing", {
-            eta: Math.ceil(Math.random() * 30 + 10), // 模拟 ETA
-          })
-        )
-      }
-    }
-  }, [currentTaskId, t])
-
-  // 监听 WebSocket 事件
   useEffect(() => {
-    // 监听图片生成任务完成事件
-    webSocketService.on('image:task:complete', handleTaskComplete)
-    // 监听图片生成任务失败事件
-    webSocketService.on('image:task:failed', handleTaskFailed)
-    // 监听图片生成任务更新事件
-    webSocketService.on('image:task:update', handleTaskUpdate)
-
-    // 组件卸载时取消监听
-    return () => {
-      webSocketService.off('image:task:complete', handleTaskComplete)
-      webSocketService.off('image:task:failed', handleTaskFailed)
-      webSocketService.off('image:task:update', handleTaskUpdate)
+    if (!currentTaskId) {
+      stopTaskPolling()
+      return
     }
-  }, [handleTaskComplete, handleTaskFailed, handleTaskUpdate])
+    startTaskPolling()
+    return stopTaskPolling
+  }, [currentTaskId, startTaskPolling, stopTaskPolling])
 
   // 组件 mount 时检查 localStorage，恢复未完成的任务
   useEffect(() => {
     const savedTask = loadTaskFromStorage(DEFAULT_POLLING_CONFIG)
 
     if (savedTask && (savedTask.status === 'pending' || savedTask.status === 'processing')) {
-      // INFO: 发现未完成的任务，等待 WebSocket 通知
+      // INFO: 发现未完成的任务，继续轮询恢复
       console.info('[ImageGeneration] Found pending task in localStorage:', {
         taskId: savedTask.task_id,
         status: savedTask.status,
@@ -544,7 +522,7 @@ export function ImageGeneration() {
         description: t("imageGeneration.generating.started"),
       })
 
-      // 保存任务状态，等待 WebSocket 通知
+      // 保存任务状态，由统一轮询器继续跟踪
       setCurrentTaskId(result.task_id)
     } catch (error) {
       // ERROR: 网络错误或意外错误
@@ -620,7 +598,7 @@ export function ImageGeneration() {
         description: t("imageGeneration.generating.started"),
       })
 
-      // 保存任务状态，等待 WebSocket 通知
+      // 保存任务状态，由统一轮询器继续跟踪
       setCurrentTaskId(result.task_id)
     } catch (error) {
       // ERROR: 网络错误或意外错误

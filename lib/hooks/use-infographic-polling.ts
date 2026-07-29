@@ -1,20 +1,21 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import type {
   InfographicLogDetailResponse,
   InfographicStatus,
 } from "@/lib/api/infographics/types"
 import type { ErrorResponse } from "@/lib/api/types"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 
 export type InfographicPollingState = "idle" | "submitting" | InfographicStatus
 
 type GetInfographicLogDetail = (
-  logId: number
+  logId: number,
+  signal?: AbortSignal
 ) => Promise<InfographicLogDetailResponse | ErrorResponse>
 
-const POLL_INTERVAL_MS = 5000
 const POLLING_TIMEOUT_MS = 5 * 60 * 1000
 
 interface UseInfographicPollingReturn {
@@ -52,6 +53,10 @@ function isInfographicTerminalStatus(status: InfographicStatus): boolean {
   return status === "success" || status === "failed"
 }
 
+function isRetryablePollingError(result: ErrorResponse): boolean {
+  return typeof result.status !== "number" || result.status === 429 || result.status >= 500
+}
+
 function getBatchProgress(
   logIds: number[],
   details: InfographicLogDetailResponse[]
@@ -74,11 +79,17 @@ function getBatchPollingState(
 ): InfographicPollingState {
   if (logIds.length === 0) return "idle"
   if (details.length < logIds.length) return "processing"
-
-  const allTerminal = details.every((detail) => isInfographicTerminalStatus(detail.status))
-  if (!allTerminal) return "processing"
-
+  if (!details.every((detail) => isInfographicTerminalStatus(detail.status))) {
+    return "processing"
+  }
   return details.some((detail) => detail.status === "success") ? "success" : "failed"
+}
+
+const INFOGRAPHIC_POLLING_POLICY = {
+  fastIntervalMs: 3_000,
+  standardIntervalMs: 5_000,
+  slowIntervalMs: 10_000,
+  timeoutMs: POLLING_TIMEOUT_MS,
 }
 
 export function useInfographicPolling(
@@ -88,116 +99,76 @@ export function useInfographicPolling(
   const [detail, setDetail] = useState<InfographicLogDetailResponse | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [state, setState] = useState<InfographicPollingState>("idle")
-
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const startedAtRef = useRef<number | null>(null)
   const currentLogIdRef = useRef<number | null>(null)
-  const isActiveRef = useRef(false)
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-  }, [])
+  const {
+    startPolling: startAdaptivePolling,
+    stopPolling: stopAdaptivePolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const logId = currentLogIdRef.current
+      if (logId === null) return "stop"
 
-  const stopPolling = useCallback(() => {
-    isActiveRef.current = false
-    clearTimer()
-  }, [clearTimer])
-
-  const scheduleNextPoll = useCallback((callback: () => void) => {
-    clearTimer()
-    timerRef.current = setTimeout(callback, POLL_INTERVAL_MS)
-  }, [clearTimer])
-
-  const poll = useCallback(async () => {
-    const logId = currentLogIdRef.current
-    if (!isActiveRef.current || logId === null) {
-      return
-    }
-
-    const startedAt = startedAtRef.current ?? Date.now()
-    if (Date.now() - startedAt > POLLING_TIMEOUT_MS) {
-      console.warn("[Infographics] Polling timed out:", { logId })
-      stopPolling()
-      setState("failed")
-      setErrorMessage("polling_timeout")
-      return
-    }
-
-    try {
-      const result = await getLogDetail(logId)
-
+      const result = await getLogDetail(logId, signal)
       if ("error" in result) {
-        console.error("[Infographics] Failed to fetch infographic detail:", {
+        console.warn("[Infographics] Failed to fetch detail", {
           logId,
+          status: result.status,
           error: result.error,
         })
-        stopPolling()
+        if (isRetryablePollingError(result)) throw new Error(String(result.error))
         setState("failed")
         setErrorMessage(String(result.error))
-        return
+        return "stop"
       }
 
-      console.debug("[Infographics] Polling detail status:", {
+      console.debug("[Infographics] Polling detail status", {
         logId,
         status: result.status,
       })
-
       setDetail(result)
       setErrorMessage(result.status === "failed" ? result.error_message || null : null)
       setState(result.status)
 
       if (result.status === "success") {
-        console.info("[Infographics] Infographic generation succeeded:", {
-          logId,
-          completedAt: result.completed_at ?? null,
-        })
-        stopPolling()
-        return
+        console.info("[Infographics] Infographic generation succeeded", { logId })
+        return "stop"
       }
-
       if (result.status === "failed") {
-        console.warn("[Infographics] Infographic generation failed:", {
+        console.warn("[Infographics] Infographic generation failed", {
           logId,
           errorMessage: result.error_message,
         })
-        stopPolling()
-        return
+        return "stop"
       }
-
-      scheduleNextPoll(() => {
-        void poll()
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn("[Infographics] Polling timed out", {
+        logId: currentLogIdRef.current,
       })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error"
-      console.error("[Infographics] Unexpected polling error:", {
-        logId,
-        error: message,
-      })
-      stopPolling()
       setState("failed")
-      setErrorMessage(message)
-    }
-  }, [getLogDetail, scheduleNextPoll, stopPolling])
+      setErrorMessage("polling_timeout")
+    },
+    policy: INFOGRAPHIC_POLLING_POLICY,
+    debugLabel: "infographic",
+  })
+
+  const stopPolling = useCallback(() => {
+    stopAdaptivePolling()
+  }, [stopAdaptivePolling])
 
   const startPolling = useCallback(async (logId: number) => {
-    stopPolling()
-
+    stopAdaptivePolling()
     currentLogIdRef.current = logId
-    startedAtRef.current = Date.now()
-    isActiveRef.current = true
-
     setCurrentLogId(logId)
     setDetail(null)
     setErrorMessage(null)
     setState("pending")
-
     // TODO(observability): add active polling gauge for infographic generation.
-    console.info("[Infographics] Starting polling:", { logId })
-    await poll()
-  }, [poll, stopPolling])
+    console.info("[Infographics] Starting adaptive polling", { logId })
+    startAdaptivePolling()
+  }, [startAdaptivePolling, stopAdaptivePolling])
 
   const markSubmitting = useCallback(() => {
     setState("submitting")
@@ -206,20 +177,13 @@ export function useInfographicPolling(
   }, [])
 
   const reset = useCallback(() => {
-    stopPolling()
+    stopAdaptivePolling()
     currentLogIdRef.current = null
-    startedAtRef.current = null
     setCurrentLogId(null)
     setDetail(null)
     setErrorMessage(null)
     setState("idle")
-  }, [stopPolling])
-
-  useEffect(() => {
-    return () => {
-      stopPolling()
-    }
-  }, [stopPolling])
+  }, [stopAdaptivePolling])
 
   return {
     currentLogId,
@@ -241,67 +205,37 @@ export function useInfographicBatchPolling(
   const [details, setDetails] = useState<InfographicLogDetailResponse[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [state, setState] = useState<InfographicPollingState>("idle")
-
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const startedAtRef = useRef<number | null>(null)
   const logIdsRef = useRef<number[]>([])
   const batchIdRef = useRef<string | null>(null)
-  const isActiveRef = useRef(false)
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-      timerRef.current = null
-    }
-  }, [])
+  const {
+    startPolling: startAdaptivePolling,
+    stopPolling: stopAdaptivePolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      const currentLogIds = logIdsRef.current
+      if (currentLogIds.length === 0) return "stop"
 
-  const stopPolling = useCallback(() => {
-    isActiveRef.current = false
-    clearTimer()
-  }, [clearTimer])
-
-  const scheduleNextPoll = useCallback((callback: () => void) => {
-    clearTimer()
-    timerRef.current = setTimeout(callback, POLL_INTERVAL_MS)
-  }, [clearTimer])
-
-  const poll = useCallback(async () => {
-    const currentLogIds = logIdsRef.current
-    if (!isActiveRef.current || currentLogIds.length === 0) {
-      return
-    }
-
-    const startedAt = startedAtRef.current ?? Date.now()
-    if (Date.now() - startedAt > POLLING_TIMEOUT_MS) {
-      console.warn("[Infographics] Batch polling timed out:", {
-        batchId: batchIdRef.current,
-        logIds: currentLogIds,
-      })
-      stopPolling()
-      setState("failed")
-      setErrorMessage("polling_timeout")
-      return
-    }
-
-    try {
       const results = await Promise.all(
-        currentLogIds.map(async (logId) => {
-          const result = await getLogDetail(logId)
-          return { logId, result }
-        })
+        currentLogIds.map(async (logId) => ({
+          logId,
+          result: await getLogDetail(logId, signal),
+        }))
       )
-
       const errorResult = results.find(({ result }) => "error" in result)
       if (errorResult && "error" in errorResult.result) {
-        console.error("[Infographics] Failed to fetch infographic batch detail:", {
+        console.warn("[Infographics] Failed to fetch batch detail", {
           batchId: batchIdRef.current,
           logId: errorResult.logId,
+          status: errorResult.result.status,
           error: errorResult.result.error,
         })
-        stopPolling()
+        if (isRetryablePollingError(errorResult.result)) {
+          throw new Error(String(errorResult.result.error))
+        }
         setState("failed")
         setErrorMessage(String(errorResult.result.error))
-        return
+        return "stop"
       }
 
       const nextDetails = results
@@ -314,63 +248,54 @@ export function useInfographicBatchPolling(
         })
       const nextState = getBatchPollingState(currentLogIds, nextDetails)
 
-      console.debug("[Infographics] Batch polling detail status:", {
+      console.debug("[Infographics] Batch polling detail status", {
         batchId: batchIdRef.current,
-        total: currentLogIds.length,
         progress: getBatchProgress(currentLogIds, nextDetails),
         state: nextState,
       })
-
       setDetails(nextDetails)
       setErrorMessage(
         nextState === "failed"
-          ? nextDetails.find((detail) => detail.error_message)?.error_message || null
+          ? nextDetails.find((item) => item.error_message)?.error_message || null
           : null
       )
       setState(nextState)
 
       if (nextState === "success") {
-        console.info("[Infographics] Article infographic batch completed:", {
+        console.info("[Infographics] Article infographic batch completed", {
           batchId: batchIdRef.current,
-          progress: getBatchProgress(currentLogIds, nextDetails),
         })
-        stopPolling()
-        return
+        return "stop"
       }
-
       if (nextState === "failed") {
-        console.warn("[Infographics] Article infographic batch failed:", {
+        console.warn("[Infographics] Article infographic batch failed", {
           batchId: batchIdRef.current,
-          progress: getBatchProgress(currentLogIds, nextDetails),
         })
-        stopPolling()
-        return
+        return "stop"
       }
-
-      scheduleNextPoll(() => {
-        void poll()
-      })
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error"
-      console.error("[Infographics] Unexpected batch polling error:", {
+      return "continue"
+    },
+    onTimeout: () => {
+      console.warn("[Infographics] Batch polling timed out", {
         batchId: batchIdRef.current,
-        error: message,
+        logIds: logIdsRef.current,
       })
-      stopPolling()
       setState("failed")
-      setErrorMessage(message)
-    }
-  }, [getLogDetail, scheduleNextPoll, stopPolling])
+      setErrorMessage("polling_timeout")
+    },
+    policy: INFOGRAPHIC_POLLING_POLICY,
+    debugLabel: "infographic-batch",
+  })
+
+  const stopPolling = useCallback(() => {
+    stopAdaptivePolling()
+  }, [stopAdaptivePolling])
 
   const startPolling = useCallback(async (nextLogIds: number[], nextBatchId?: string) => {
-    stopPolling()
-
+    stopAdaptivePolling()
     const normalizedLogIds = Array.from(new Set(nextLogIds.filter((logId) => logId > 0)))
     logIdsRef.current = normalizedLogIds
     batchIdRef.current = nextBatchId ?? null
-    startedAtRef.current = Date.now()
-    isActiveRef.current = normalizedLogIds.length > 0
-
     setBatchId(nextBatchId ?? null)
     setLogIds(normalizedLogIds)
     setDetails([])
@@ -378,15 +303,12 @@ export function useInfographicBatchPolling(
     setState(normalizedLogIds.length > 0 ? "pending" : "success")
 
     // TODO(observability): add active batch polling gauge for article infographic generation.
-    console.info("[Infographics] Starting batch polling:", {
+    console.info("[Infographics] Starting adaptive batch polling", {
       batchId: nextBatchId ?? null,
       logIds: normalizedLogIds,
     })
-
-    if (normalizedLogIds.length > 0) {
-      await poll()
-    }
-  }, [poll, stopPolling])
+    if (normalizedLogIds.length > 0) startAdaptivePolling()
+  }, [startAdaptivePolling, stopAdaptivePolling])
 
   const markSubmitting = useCallback(() => {
     setState("submitting")
@@ -395,22 +317,15 @@ export function useInfographicBatchPolling(
   }, [])
 
   const reset = useCallback(() => {
-    stopPolling()
+    stopAdaptivePolling()
     logIdsRef.current = []
     batchIdRef.current = null
-    startedAtRef.current = null
     setBatchId(null)
     setLogIds([])
     setDetails([])
     setErrorMessage(null)
     setState("idle")
-  }, [stopPolling])
-
-  useEffect(() => {
-    return () => {
-      stopPolling()
-    }
-  }, [stopPolling])
+  }, [stopAdaptivePolling])
 
   return {
     batchId,

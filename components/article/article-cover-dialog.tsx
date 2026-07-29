@@ -44,9 +44,9 @@ import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/c
 import type { Material } from "@/lib/api/materials/types"
 import { taskCenterClient } from "@/lib/api/taskcenter/client"
 import { parseTaskCenterImageUrls, type TaskCenterImageTaskListItem } from "@/lib/api/taskcenter/types"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
-import { webSocketService, type TaskUpdatePayload } from "@/lib/websocket/websocket-service"
 
 type BackgroundMode = "solid" | "gradient" | "unsplash" | "material"
 type FontMode = "preset" | "custom" | "task"
@@ -865,18 +865,23 @@ export function ArticleCoverDialog({
     toast({ variant: "destructive", title: t("imageGeneration.cover.toast.fontGenerateFailed") })
   }, [t, toast])
 
-  const loadFontTaskDetail = useCallback(async (taskId: string) => {
-    if (!pendingFontTaskIdsRef.current.has(taskId)) return
-    if (resolvingFontTaskIdsRef.current.has(taskId)) return
+  const loadFontTaskDetail = useCallback(async (taskId: string, signal?: AbortSignal) => {
+    if (!pendingFontTaskIdsRef.current.has(taskId)) return null
+    if (resolvingFontTaskIdsRef.current.has(taskId)) return null
 
     resolvingFontTaskIdsRef.current.add(taskId)
-    const result = await imageGenerationClient.getTaskResult(taskId)
-    resolvingFontTaskIdsRef.current.delete(taskId)
+    const result = await imageGenerationClient.getTaskResult(taskId, signal).finally(() => {
+      resolvingFontTaskIdsRef.current.delete(taskId)
+    })
 
-    if (!pendingFontTaskIdsRef.current.has(taskId)) return
+    if (!pendingFontTaskIdsRef.current.has(taskId)) return null
 
     if ("error" in result) {
-      return
+      console.warn("[ArticleCover] Font task refresh failed; retrying", {
+        taskId,
+        error: result.error,
+      })
+      throw new Error(String(result.error))
     }
 
     setActiveFontTaskStatus(result.status)
@@ -890,7 +895,7 @@ export function ArticleCoverDialog({
 
       if (!imageUrl) {
         toast({ variant: "destructive", title: t("imageGeneration.cover.toast.fontGenerateFailed") })
-        return
+        return result.status
       }
 
       applyFontImageUrl(imageUrl, "custom")
@@ -907,68 +912,49 @@ export function ArticleCoverDialog({
     } else if (result.status === "failed") {
       finishFontTaskFailure(taskId)
     }
+    return result.status
   }, [applyFontImageUrl, finishFontTaskFailure, t, toast])
 
-  const completeFontTask = useCallback((payload: TaskUpdatePayload) => {
-    const taskId = String(payload.task_id)
-    const outputs = payload.outputs && typeof payload.outputs === "object"
-      ? payload.outputs as Record<string, unknown>
-      : {}
-
-    if (payload.task_type !== "image") return
-    if (outputs.gen_mode !== "font") return
-    if (!pendingFontTaskIdsRef.current.has(taskId)) return
-
-    void loadFontTaskDetail(taskId)
-  }, [loadFontTaskDetail])
-
-  const failFontTask = useCallback((payload: TaskUpdatePayload) => {
-    const taskId = String(payload.task_id)
-    const outputs = payload.outputs && typeof payload.outputs === "object"
-      ? payload.outputs as Record<string, unknown>
-      : {}
-
-    if (payload.task_type !== "image") return
-    if (outputs.gen_mode !== "font") return
-    if (!pendingFontTaskIdsRef.current.has(taskId)) return
-
-    finishFontTaskFailure(taskId)
-  }, [finishFontTaskFailure])
-
-  const updateFontTask = useCallback((payload: TaskUpdatePayload) => {
-    const taskId = String(payload.task_id)
-    const outputs = payload.outputs && typeof payload.outputs === "object"
-      ? payload.outputs as Record<string, unknown>
-      : {}
-
-    if (payload.task_type !== "image") return
-    if (outputs.gen_mode !== "font") return
-    if (!pendingFontTaskIdsRef.current.has(taskId)) return
-
-    setActiveFontTaskStatus(payload.status)
-  }, [])
+  const {
+    startPolling: startFontTaskPolling,
+    stopPolling: stopFontTaskPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!activeFontTaskId) return "stop"
+      const status = await loadFontTaskDetail(activeFontTaskId, signal)
+      return status === "pending" || status === "processing"
+        ? "continue"
+        : "stop"
+    },
+    onTimeout: () => {
+      if (!activeFontTaskId) return
+      console.warn("[ArticleCover] Font task polling timed out", {
+        taskId: activeFontTaskId,
+      })
+      finishFontTaskFailure(activeFontTaskId)
+    },
+    policy: {
+      fastIntervalMs: 3_000,
+      standardIntervalMs: 8_000,
+      slowIntervalMs: 15_000,
+    },
+    debugLabel: "article-cover-font",
+  })
 
   useEffect(() => {
-    webSocketService.on("image:task:update", updateFontTask)
-    webSocketService.on("image:task:complete", completeFontTask)
-    webSocketService.on("image:task:failed", failFontTask)
-    return () => {
-      webSocketService.off("image:task:update", updateFontTask)
-      webSocketService.off("image:task:complete", completeFontTask)
-      webSocketService.off("image:task:failed", failFontTask)
+    if (!activeFontTaskId || !isGeneratingFont) {
+      stopFontTaskPolling()
+      return
     }
-  }, [completeFontTask, failFontTask, updateFontTask])
 
-  useEffect(() => {
-    if (!activeFontTaskId || !isGeneratingFont) return
-
-    void loadFontTaskDetail(activeFontTaskId)
-    const intervalId = window.setInterval(() => {
-      void loadFontTaskDetail(activeFontTaskId)
-    }, 8000)
-
-    return () => window.clearInterval(intervalId)
-  }, [activeFontTaskId, isGeneratingFont, loadFontTaskDetail])
+    startFontTaskPolling()
+    return stopFontTaskPolling
+  }, [
+    activeFontTaskId,
+    isGeneratingFont,
+    startFontTaskPolling,
+    stopFontTaskPolling,
+  ])
 
   const panelCardClass = "rounded-2xl border border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-5 shadow-[0_18px_44px_-36px_rgba(0,0,0,0.34)]"
   const panelTitleClass = "mb-5 flex items-center gap-2.5 border-b border-[var(--jw-border-subtle)] pb-3 text-[15px] font-semibold text-[var(--jw-heading)]"

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useCallback } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
@@ -13,6 +13,7 @@ import type {
 } from "@/lib/api/materials/types"
 import { UI_TAB_TO_API_TYPE } from "@/lib/api/materials/enums"
 import { isSupportedImageFile } from "@/lib/upload-file"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 
 // Re-export types for use in other modules
 export type { Material, MaterialLog, MaterialType, MaterialStatus } from "@/lib/api/materials/types"
@@ -53,7 +54,6 @@ export function useMaterials() {
   const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>([])
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
-  const [, setHasActivePolling] = useState(false)
   const [pagination, setPagination] = useState<{
     materials: { page: number; pageSize: number; total: number }
     logs: { page: number; pageSize: number; total: number }
@@ -88,9 +88,6 @@ export function useMaterials() {
   })
   const [uploadErrors, setUploadErrors] = useState<UploadErrors>({})
   const [imagePreview, setImagePreview] = useState<string>("")
-
-  // 搜索轮询
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // ==================== 数据获取 ====================
 
@@ -159,15 +156,6 @@ export function useMaterials() {
 
   // ==================== 搜索功能 ====================
 
-  const stopSearchPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-    setHasActivePolling(false)
-    setSearching(false)
-  }, [])
-
   const checkSearchStatus = useCallback(async (): Promise<boolean> => {
     const result = await materialsClient.getSearchLogs({
       page: 1,
@@ -176,8 +164,10 @@ export function useMaterials() {
     })
 
     if ("error" in result) {
-      console.error("Failed to check search status:", result.error)
-      return false
+      console.warn("[Materials] Failed to check search status; retrying", {
+        error: result.error,
+      })
+      throw new Error(String(result.error))
     }
 
     // 每次轮询都刷新搜索日志列表（让用户看到最新状态）
@@ -198,27 +188,31 @@ export function useMaterials() {
     return allCompleted
   }, [fetchMaterials, fetchSearchLogs, toast, t])
 
-  const startSearchPolling = useCallback(() => {
-    // 清除之前的轮询
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-    }
-
-    // 设置轮询状态
-    setHasActivePolling(true)
-
-    // 立即执行一次
-    checkSearchStatus()
-
-    // 设置轮询
-    pollingIntervalRef.current = setInterval(async () => {
+  const {
+    startPolling: startAdaptiveSearchPolling,
+    stopPolling: stopAdaptiveSearchPolling,
+  } = useAdaptivePolling({
+    poll: async () => {
       const completed = await checkSearchStatus()
+      return completed ? "stop" : "continue"
+    },
+    onTimeout: () => {
+      console.warn("[Materials] Search polling timed out")
+      setSearching(false)
+    },
+    policy: {
+      fastIntervalMs: 3_000,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: 10 * 60 * 1000,
+    },
+    debugLabel: "materials-search",
+  })
 
-      if (completed) {
-        stopSearchPolling()
-      }
-    }, 3000) // 每 3 秒轮询一次
-  }, [checkSearchStatus, stopSearchPolling])
+  const startSearchPolling = useCallback(() => {
+    stopAdaptiveSearchPolling()
+    startAdaptiveSearchPolling()
+  }, [startAdaptiveSearchPolling, stopAdaptiveSearchPolling])
 
   const handleSearch = useCallback(
     async (searchQuery: string, activeSearchTab: string) => {
@@ -492,13 +486,6 @@ export function useMaterials() {
     setImagePreview("")
     setUploadErrors({})
   }, [])
-
-  // 清理轮询
-  useEffect(() => {
-    return () => {
-      stopSearchPolling()
-    }
-  }, [stopSearchPolling])
 
   return {
     // 状态

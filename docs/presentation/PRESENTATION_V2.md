@@ -14,8 +14,8 @@ article.
 6. From a terminal generation, explicitly return to the Storycard to start a new revision and
    generation job.
 
-The Storycard and generation are separate state machines. Polling their GET endpoints is the
-reliable status source. WebSocket presentation events only trigger an immediate refresh.
+The Storycard and generation are separate state machines. Adaptive polling of their GET endpoints
+is the only frontend status source.
 
 ## Image style and generation contract
 
@@ -66,12 +66,11 @@ TaskCenter reads presentation jobs directly from `ppt_generation_jobs` through t
 presentation statuses are `queued`, `processing`, `succeeded`, and `failed`; the terminal statuses
 are `succeeded` and `failed`.
 
-Presentation WebSocket `task_update`, `task_complete`, and `task_failed` messages are refresh
-signals. They invalidate the shared TaskCenter query keyed by `type + task_id`; the TaskCenter GET
-response remains the source of truth. TaskCenter detail does not run a second presentation polling
-loop. Retrying a failed job calls `/presentations/v2/generations/:id/retry`, keeps the same job ID,
-and immediately refreshes the shared query. HTTP 402 continues through the global insufficient
-credits dialog.
+The shared TaskCenter query polls adaptively: active jobs use a short interval, idle lists back off,
+and hidden tabs pause until visible again. TaskCenter detail does not run a second presentation
+polling loop. Retrying a failed job calls `/presentations/v2/generations/:id/retry`, keeps the same
+job ID, and immediately refreshes the shared query. HTTP 402 continues through the global
+insufficient credits dialog.
 
 TaskCenter uses the same generation-stage type as the article flow, so the image catalog, planning,
 and generation stages render with the same localized copy. The current TaskCenter response does not
@@ -83,7 +82,7 @@ The TaskCenter frontend does not read V1 presentation fields such as `slide_summ
 
 ## Observability
 
-- Debug: article-flow polling, TaskCenter WebSocket-triggered refresh, and stage changes.
+- Debug: article-flow polling, TaskCenter adaptive refresh, and stage changes.
 - Info: generate, save, confirm, create, retry, and download actions.
 - Warn: network retry, polling timeout, stale recovery data, and version conflicts.
 - Error: terminal HTTP failures and invalid task/download responses.

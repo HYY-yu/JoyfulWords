@@ -16,9 +16,8 @@ import { Button } from "@/components/ui/base/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/base/select"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth/auth-context"
+import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
-import { tokenStore } from "@/lib/tokens/token-store"
-import { webSocketService, type TaskSocketEvent } from "@/lib/websocket/websocket-service"
 import { presentationsV2Client } from "@/lib/api/presentations/v2/client"
 import type {
   GenerationResponse,
@@ -45,8 +44,6 @@ import { StorycardStep } from "./storycard-step"
 import { TemplateStep } from "./template-step"
 import { GenerationStep } from "./generation-step"
 
-const STORYCARD_POLL_INTERVAL_MS = 1_800
-const GENERATION_POLL_INTERVAL_MS = 2_000
 const STORYCARD_POLL_TIMEOUT_MS = 10 * 60 * 1_000
 
 type FlowStep = 0 | 1 | 2 | 3
@@ -92,7 +89,6 @@ export function PresentationFlowDialog({
   const { user } = useAuth()
   const userId = user?.id ?? null
   const mountedSequenceRef = useRef(0)
-  const storycardPollStartedAtRef = useRef<number | null>(null)
   const lastNotifiedGenerationRef = useRef<string | null>(null)
   const onPresentationTaskChangedRef = useRef(onPresentationTaskChanged)
 
@@ -136,17 +132,13 @@ export function PresentationFlowDialog({
       setDraft(null)
     }
 
-    if (nextStorycard.status === "generating") {
-      storycardPollStartedAtRef.current ??= Date.now()
-    } else {
-      storycardPollStartedAtRef.current = null
+    if (nextStorycard.status !== "generating") {
       setStorycardPollingTimedOut(false)
     }
   }, [])
 
   const reset = useCallback(() => {
     mountedSequenceRef.current += 1
-    storycardPollStartedAtRef.current = null
     lastNotifiedGenerationRef.current = null
     setStep(0)
     setLanguage(locale === "zh" ? "zh" : "en")
@@ -193,8 +185,18 @@ export function PresentationFlowDialog({
   )
 
   const refreshGeneration = useCallback(
-    async (generationId: number, options: { clearInvalid?: boolean; revealStep?: boolean } = {}) => {
-      const result = await presentationsV2Client.getGeneration(generationId)
+    async (
+      generationId: number,
+      options: {
+        clearInvalid?: boolean
+        revealStep?: boolean
+        signal?: AbortSignal
+      } = {}
+    ) => {
+      const result = await presentationsV2Client.getGeneration(
+        generationId,
+        options.signal
+      )
       if (hasApiError(result)) {
         if (
           result.status === 404 &&
@@ -208,7 +210,7 @@ export function PresentationFlowDialog({
           })
           clearPresentationFlowSession(userId, articleId)
           setGeneration(null)
-          return
+          return null
         }
 
         if (isTransientNetworkError(result)) {
@@ -216,7 +218,7 @@ export function PresentationFlowDialog({
             generationId,
             error: result.error,
           })
-          return
+          return null
         }
 
         console.error("[PresentationV2] Failed to refresh generation", {
@@ -224,7 +226,7 @@ export function PresentationFlowDialog({
           status: result.status,
           error: result.error,
         })
-        return
+        return null
       }
 
       if (typeof articleId === "number" && result.article_id !== articleId) {
@@ -234,7 +236,7 @@ export function PresentationFlowDialog({
           actualArticleId: result.article_id,
         })
         if (typeof userId === "number") clearPresentationFlowSession(userId, articleId)
-        return
+        return null
       }
 
       setGeneration(result)
@@ -252,9 +254,66 @@ export function PresentationFlowDialog({
           status: result.status,
         })
       }
+      return result
     },
     [articleId, persistSession, userId]
   )
+
+  const {
+    startPolling: startStorycardPolling,
+    stopPolling: stopStorycardPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (typeof articleId !== "number") return "stop"
+      const result = await presentationsV2Client.getStorycard(articleId, signal)
+      if (signal.aborted) return "stop"
+      if (hasApiError(result)) {
+        console.warn("[PresentationV2] Storycard poll failed and will retry", {
+          articleId,
+          status: result.status,
+          error: result.error,
+        })
+        throw new Error(result.error)
+      }
+
+      syncStorycard(result)
+      return result.status === "generating" ? "continue" : "stop"
+    },
+    onTimeout: () => {
+      console.warn("[PresentationV2] Storycard polling timed out", { articleId })
+      setErrorKey("presentationV2.errors.storycardTimeout")
+      setStorycardPollingTimedOut(true)
+    },
+    policy: {
+      fastIntervalMs: 1_800,
+      standardIntervalMs: 3_000,
+      slowIntervalMs: 5_000,
+      timeoutMs: STORYCARD_POLL_TIMEOUT_MS,
+    },
+    debugLabel: "presentation-storycard",
+  })
+
+  const {
+    startPolling: startGenerationPolling,
+    stopPolling: stopGenerationPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (typeof generationId !== "number") return "stop"
+      const result = await refreshGeneration(generationId, { signal })
+      if (signal.aborted) return "stop"
+      if (!result) throw new Error("Failed to refresh presentation generation")
+      return result.status === "queued" || result.status === "processing"
+        ? "continue"
+        : "stop"
+    },
+    policy: {
+      fastIntervalMs: 2_000,
+      standardIntervalMs: 5_000,
+      slowIntervalMs: 10_000,
+      timeoutMs: STORYCARD_POLL_TIMEOUT_MS,
+    },
+    debugLabel: "presentation-generation",
+  })
 
   useEffect(() => {
     if (!open) {
@@ -360,86 +419,37 @@ export function PresentationFlowDialog({
       storycard?.status !== "generating" ||
       storycardPollingTimedOut ||
       typeof articleId !== "number"
-    ) return
-
-    let cancelled = false
-    let timer: number | null = null
-    let networkFailureCount = 0
-
-    const schedule = (delay: number) => {
-      if (cancelled) return
-      timer = window.setTimeout(() => void poll(), delay)
+    ) {
+      stopStorycardPolling()
+      return
     }
 
-    const poll = async () => {
-      const startedAt = storycardPollStartedAtRef.current ?? Date.now()
-      storycardPollStartedAtRef.current = startedAt
-      if (Date.now() - startedAt > STORYCARD_POLL_TIMEOUT_MS) {
-        console.warn("[PresentationV2] Storycard polling timed out", { articleId })
-        setErrorKey("presentationV2.errors.storycardTimeout")
-        setStorycardPollingTimedOut(true)
-        return
-      }
-
-      const result = await presentationsV2Client.getStorycard(articleId)
-      if (hasApiError(result)) {
-        networkFailureCount = isTransientNetworkError(result) ? networkFailureCount + 1 : 0
-        const retryDelay = isTransientNetworkError(result)
-          ? Math.min(15_000, STORYCARD_POLL_INTERVAL_MS * 2 ** networkFailureCount)
-          : STORYCARD_POLL_INTERVAL_MS
-        console.warn("[PresentationV2] Storycard poll failed and will retry", {
-          articleId,
-          status: result.status,
-          error: result.error,
-          retryDelay,
-        })
-        schedule(retryDelay)
-        return
-      }
-      networkFailureCount = 0
-      syncStorycard(result)
-      if (result.status === "generating") schedule(STORYCARD_POLL_INTERVAL_MS)
-    }
-
-    schedule(STORYCARD_POLL_INTERVAL_MS)
-    return () => {
-      cancelled = true
-      if (timer !== null) window.clearTimeout(timer)
-    }
-  }, [articleId, open, storycard?.status, storycardPollingTimedOut, syncStorycard])
+    startStorycardPolling({ immediate: false })
+    return stopStorycardPolling
+  }, [
+    articleId,
+    open,
+    startStorycardPolling,
+    stopStorycardPolling,
+    storycard?.status,
+    storycardPollingTimedOut,
+  ])
 
   useEffect(() => {
-    if (!open || !generationBusy || typeof generationId !== "number") return
-    const timer = window.setInterval(
-      () => void refreshGeneration(generationId),
-      GENERATION_POLL_INTERVAL_MS
-    )
-    return () => window.clearInterval(timer)
-  }, [generationBusy, generationId, open, refreshGeneration])
-
-  useEffect(() => {
-    if (!open || typeof articleId !== "number" || typeof generationId !== "number") return
-    const token = tokenStore.getAccessToken()
-    if (token) webSocketService.ensureArticleConnection(articleId, token)
-
-    const eventName = `task:event:article:${articleId}`
-    const handleTaskEvent = (event: TaskSocketEvent) => {
-      if (event.payload.task_type !== "presentation" || event.payload.task_id !== generationId) {
-        return
-      }
-      console.debug("[PresentationV2] Refreshing generation after websocket event", {
-        generationId,
-        messageType: event.messageType,
-      })
-      void refreshGeneration(generationId)
+    if (!open || !generationBusy || typeof generationId !== "number") {
+      stopGenerationPolling()
+      return
     }
 
-    webSocketService.on(eventName, handleTaskEvent)
-    return () => {
-      webSocketService.off(eventName, handleTaskEvent)
-      if (token) webSocketService.releaseArticleConnection(articleId)
-    }
-  }, [articleId, generationId, open, refreshGeneration])
+    startGenerationPolling({ immediate: false })
+    return stopGenerationPolling
+  }, [
+    generationBusy,
+    generationId,
+    open,
+    startGenerationPolling,
+    stopGenerationPolling,
+  ])
 
   const reloadLatestStorycard = useCallback(async () => {
     if (typeof articleId !== "number") return
