@@ -30,6 +30,8 @@ interface StyleItem {
 
 type RenderStatus = "idle" | "generating" | "completed" | "error"
 
+const DEFAULT_STYLE_MODEL = "gpt-image-2"
+
 // StyleCard 子组件
 interface StyleCardProps {
   name: string
@@ -214,7 +216,11 @@ export function StyleMode({ articleId }: StyleModeProps) {
 
         setAvailableModels(result.models)
         if (result.models.length > 0) {
-          setSelectedModel(result.models[0])
+          setSelectedModel(
+            result.models.includes(DEFAULT_STYLE_MODEL)
+              ? DEFAULT_STYLE_MODEL
+              : result.models[0]
+          )
         }
       } catch (error) {
         console.error('[StyleMode] Unexpected error fetching models:', error)

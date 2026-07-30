@@ -80,7 +80,7 @@ export interface TaskCenterImageListDetails {
   prompt?: string
   model_name?: string
   image_urls?: string | string[]
-  reference_image_urls?: string | string[]
+  reference_image_urls?: string[]
   is_settle?: boolean
   billing_charged?: boolean
   completed_at?: string | null
@@ -271,7 +271,7 @@ export interface TaskCenterImageTaskDetail {
   gen_mode?: string
   config?: string
   referenced_material_ids?: string
-  reference_image_urls?: string | string[]
+  reference_image_urls?: string[]
   image_urls?: string | string[]
   status: TaskCenterImageStatus
   error?: string

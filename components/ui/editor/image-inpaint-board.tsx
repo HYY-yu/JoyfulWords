@@ -84,7 +84,7 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const COMPARISON_GAP = 56;
 const POLL_INTERVAL_MS = 3500;
 const INPAINT_PROMPT =
-  "Use the uploaded reference image as the only visual instruction. The semi-transparent colored brush marks identify local areas to repaint or revise. Infer the intended local edit from the marked regions, keep unmarked areas unchanged, and return a polished natural image.";
+  "Use the uploaded reference image as the only visual instruction. The semi-transparent colored brush marks are temporary annotations that identify local areas to repaint or revise; they are not part of the image content. Use the marks only to locate the requested edits. The final image must completely remove every annotation: do not reproduce, preserve, blend, tint, outline, or leave any trace of the brush colors or brush shapes. Reconstruct the edited areas naturally, keep unmarked areas unchanged, and return a polished image that looks as if the annotations never existed.";
 
 const STROKE_COLORS = [
   "#d99b2b",
@@ -822,7 +822,6 @@ export function ImageInpaintBoard({
         config,
         model_name: selectedModel,
         article_id: articleId ?? undefined,
-        reference_images: [uploadedUrl],
       });
 
       if ("error" in result) {

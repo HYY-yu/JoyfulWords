@@ -213,7 +213,7 @@ export interface GenerationLog {
     title: string
     material_type: 'info' | 'news' | 'image'
   }>
-  reference_image_urls: string  // JSON 数组字符串
+  reference_image_urls: string[]
   status: 'pending' | 'processing' | 'success' | 'failed'
   image_urls: string  // JSON 数组字符串
   model_name: string
