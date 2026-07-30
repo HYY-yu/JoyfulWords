@@ -18,8 +18,9 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { Textarea } from "@/components/ui/base/textarea"
 import { cn, formatDate } from "@/lib/utils"
 import type { CheckedState } from "@radix-ui/react-checkbox"
-import type { Material, MaterialType, MaterialFavorite, MaterialParseStatus, MaterialSearchDetailResponse, MaterialSearchResultItem } from "@/lib/api/materials/types"
+import type { Material, MaterialType, MaterialFavorite, MaterialParseStatus, MaterialSearchDetailResponse, MaterialSearchResultItem, MaterialAcceptedResponse, MaterialImportResult, ParseMaterialResult } from "@/lib/api/materials/types"
 import { materialsClient, uploadFileToPresignedUrl } from "@/lib/api/materials/client"
+import { isAbortError, MaterialRequestFailedError, waitForMaterialRequest } from "@/lib/api/materials/polling"
 import { useToast } from "@/hooks/use-toast"
 import { Label } from "@/components/ui/base/label"
 import { MATERIAL_IMAGE_DATA_TRANSFER_TYPE } from "@/lib/editor-drag-drop"
@@ -967,6 +968,7 @@ function SearchTab({
   const activeSearchLogIdRef = useRef<number | null>(null)
   const searchRequestSeqRef = useRef(0)
   const searchAbortControllerRef = useRef<AbortController | null>(null)
+  const importAbortControllerRef = useRef<AbortController | null>(null)
 
   const persistTask = useCallback(
     (task: PersistedMaterialSearchTask | null) => {
@@ -1042,6 +1044,8 @@ function SearchTab({
     searchRequestSeqRef.current += 1
     searchAbortControllerRef.current?.abort()
     searchAbortControllerRef.current = null
+    importAbortControllerRef.current?.abort()
+    importAbortControllerRef.current = null
     searchTriggerLockedRef.current = false
     activeSearchLogIdRef.current = null
     stopPolling()
@@ -1051,6 +1055,7 @@ function SearchTab({
     setSelectedUrls(new Set())
     setIsTriggeringSearch(false)
     setIsPagingSearch(false)
+    setIsImporting(false)
     if (userId && articleId) {
       clearPersistedMaterialSearchTask(userId, articleId)
     }
@@ -1090,6 +1095,13 @@ function SearchTab({
   useEffect(() => {
     onSearchLockedChange?.(Boolean(activeTask) || isTriggeringSearch || isPagingSearch)
   }, [activeTask, isPagingSearch, isTriggeringSearch, onSearchLockedChange])
+
+  useEffect(() => {
+    return () => {
+      importAbortControllerRef.current?.abort()
+      importAbortControllerRef.current = null
+    }
+  }, [articleId])
 
   const handleSearch = useCallback(async () => {
     const trimmed = searchText.trim()
@@ -1296,12 +1308,15 @@ function SearchTab({
   }, [searchText])
 
   const handleImport = useCallback(async () => {
-    if (!activeTask || selectedUrls.size === 0) return
+    if (!activeTask || selectedUrls.size === 0 || isImporting) return
 
     console.info("[MaterialSearch] importing selected results", {
       logId: activeTask.logId,
       count: selectedUrls.size,
     })
+    importAbortControllerRef.current?.abort()
+    const controller = new AbortController()
+    importAbortControllerRef.current = controller
     setIsImporting(true)
     const itemByUrl = new Map((detail?.ai_result?.ai_result ?? []).map((item) => [item.url, item]))
     const selectedItems: MaterialSearchResultItem[] = Array.from(selectedUrls)
@@ -1316,52 +1331,89 @@ function SearchTab({
         }]
       })
 
-    const result = activeTask.materialType === "image" || selectedItems.length === 0
-      ? await materialsClient.addFromAISearch({
-          material_log_id: activeTask.logId,
-          article_id: activeTask.articleId,
-          urls: Array.from(selectedUrls),
-        })
-      : await materialsClient.addFromAISearch({
-          article_id: activeTask.articleId,
-          material_type: activeTask.materialType,
-          query: activeTask.query,
-          items: selectedItems,
-        })
+    try {
+      const accepted = activeTask.materialType === "image" || selectedItems.length === 0
+        ? await materialsClient.addFromAISearch({
+            material_log_id: activeTask.logId,
+            article_id: activeTask.articleId,
+            urls: Array.from(selectedUrls),
+          })
+        : await materialsClient.addFromAISearch({
+            article_id: activeTask.articleId,
+            material_type: activeTask.materialType,
+            query: activeTask.query,
+            items: selectedItems,
+          })
 
-    if ("error" in result) {
+      if ("error" in accepted) throw new Error(accepted.error)
+
+      console.info("[MaterialSearch] import accepted", {
+        logId: activeTask.logId,
+        requestId: accepted.id,
+        jobId: accepted.job_id,
+      })
+      const result = await waitForMaterialRequest<MaterialImportResult>(accepted, {
+        signal: controller.signal,
+        onStatusChange: (request) => {
+          console.debug("[MaterialSearch] import status changed", {
+            logId: activeTask.logId,
+            requestId: request.id,
+            status: request.status,
+          })
+        },
+      })
+      const failedResults = Array.isArray(result.failed_results) ? result.failed_results : []
+      const failedUrls = failedResults.map((item) => item.url).join(", ")
+
+      if (failedResults.length) {
+        console.warn("[MaterialSearch] partial import failures", {
+          logId: activeTask.logId,
+          succeededCount: result.ids.length,
+          failedCount: failedResults.length,
+          failedUrls: failedResults.map((item) => item.url),
+        })
+        toast({
+          variant: result.ids.length > 0 ? "default" : "destructive",
+          title: result.ids.length > 0
+            ? t("contentWriting.materialPanel.importPartialSuccess")
+            : t("contentWriting.materialPanel.importFailed"),
+          description: t("contentWriting.materialPanel.importPartialSuccessDescription", {
+            success: result.ids.length,
+            failed: failedResults.length,
+            urls: failedUrls,
+          }),
+        })
+      } else {
+        toast({
+          title: t("contentWriting.materialPanel.importSuccess"),
+          description: t("contentWriting.materialPanel.importSuccessCount", { count: result.ids.length }),
+        })
+      }
+
+      if (result.ids.length > 0) onImportSuccess?.(activeTask.materialType)
+      clearSearchTask()
+    } catch (error) {
+      if (isAbortError(error)) {
+        console.debug("[MaterialSearch] import polling aborted", { logId: activeTask.logId })
+        return
+      }
       console.warn("[MaterialSearch] import failed", {
         logId: activeTask.logId,
-        error: result.error,
+        error,
+        errorCode: error instanceof MaterialRequestFailedError ? error.errorCode : null,
       })
       toast({
         variant: "destructive",
         title: t("contentWriting.materialPanel.importFailed"),
-        description: result.error,
+        description: t("contentWriting.materialPanel.importWorkerFailed"),
       })
-      setIsImporting(false)
-      return
+    } finally {
+      if (importAbortControllerRef.current === controller) {
+        importAbortControllerRef.current = null
+        setIsImporting(false)
+      }
     }
-
-    const failedResults = "failed_results" in result && Array.isArray(result.failed_results)
-      ? result.failed_results
-      : []
-
-    if (failedResults.length) {
-      console.warn("[MaterialSearch] partial import failures", {
-        logId: activeTask.logId,
-        failedCount: failedResults.length,
-      })
-    }
-
-    toast({
-      title: t("contentWriting.materialPanel.importSuccess"),
-      description: t("contentWriting.materialPanel.importSuccessCount", { count: result.ids.length }),
-    })
-    onImportSuccess?.(activeTask.materialType)
-    clearSearchTask()
-    setIsImporting(false)
-  }, [activeTask, clearSearchTask, detail?.ai_result?.ai_result, onImportSuccess, selectedUrls, t, toast])
+  }, [activeTask, clearSearchTask, detail?.ai_result?.ai_result, isImporting, onImportSuccess, selectedUrls, t, toast])
 
   const trimmedSearchText = searchText.trim()
   const isSearchLocked = Boolean(activeTask) || isTriggeringSearch || isPagingSearch
@@ -1751,7 +1803,6 @@ const DATA_FILE_ACCEPT = [
 const IMAGE_FILE_ACCEPT = "image/png,image/jpeg,image/jp2,image/webp,image/gif,image/bmp,image/avif,image/heic,image/heif,.jpg,.jpeg,.jp2,.webp,.gif,.bmp,.avif,.heic,.heif"
 
 const SUPPORTED_DATA_EXTENSIONS = new Set(["pdf", "png", "jpg", "jpeg", "jp2", "webp", "gif", "bmp", "docx", "pptx", "xlsx"])
-const UPLOAD_PARSE_POLL_INTERVAL_MS = 3000
 
 function getFileExtension(file: File) {
   return file.name.split(".").pop()?.toLowerCase() ?? ""
@@ -1768,71 +1819,20 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
   const [imagePreview, setImagePreview] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const [isAddingToMaterials, setIsAddingToMaterials] = useState(false)
-  const [parseTaskId, setParseTaskId] = useState("")
+  const [parseRequestId, setParseRequestId] = useState("")
   const [parseStatus, setParseStatus] = useState<MaterialParseStatus>("")
   const [parseError, setParseError] = useState("")
   const [parsedMarkdown, setParsedMarkdown] = useState("")
-  const parseTaskIdRef = useRef("")
+  const parseRequestControllerRef = useRef<AbortController | null>(null)
   const [errors, setErrors] = useState<{ title?: string; content?: string }>({})
 
-  const {
-    startPolling: startParsePolling,
-    stopPolling: stopParsePolling,
-  } = useAdaptivePolling({
-    poll: async ({ signal }) => {
-      const taskId = parseTaskIdRef.current
-      if (!taskId) return "stop"
-      const result = await materialsClient.getParsePreview(taskId, signal)
-
-      if ("error" in result) {
-        console.warn("[MaterialUpload] Parse preview refresh failed; retrying", {
-          taskId,
-          error: result.error,
-        })
-        throw new Error(String(result.error))
-      }
-
-      setParseStatus(result.parse_status)
-      setParseError(result.error_message || "")
-      if (result.parse_status === "success") {
-        setParsedMarkdown(result.content)
-        setIsUploading(false)
-        return "stop"
-      }
-      if (result.parse_status === "failed") {
-        setIsUploading(false)
-        setParseError(
-          result.error_message ||
-            (result.parse_failed_code
-              ? t("contentWriting.materialPanel.uploadParseFailedWithCode", {
-                  code: result.parse_failed_code,
-                })
-              : t("contentWriting.materialPanel.uploadParseFailed"))
-        )
-        return "stop"
-      }
-      return "continue"
-    },
-    onTimeout: () => {
-      console.warn("[MaterialUpload] Parse preview polling timed out", {
-        taskId: parseTaskIdRef.current,
-      })
-      setParseStatus("failed")
-      setParseError(t("contentWriting.materialPanel.uploadParseFailed"))
-      setIsUploading(false)
-    },
-    policy: {
-      fastIntervalMs: UPLOAD_PARSE_POLL_INTERVAL_MS,
-      standardIntervalMs: 5_000,
-      slowIntervalMs: 10_000,
-      timeoutMs: 10 * 60 * 1000,
-    },
-    debugLabel: "material-parse-preview",
-  })
+  const stopParsePolling = useCallback(() => {
+    parseRequestControllerRef.current?.abort()
+    parseRequestControllerRef.current = null
+  }, [])
 
   const resetForm = useCallback(() => {
     stopParsePolling()
-    parseTaskIdRef.current = ""
     setTitle("")
     setMaterialType("info")
     setDataFile(null)
@@ -1840,12 +1840,14 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
     setImagePreview("")
     setIsUploading(false)
     setIsAddingToMaterials(false)
-    setParseTaskId("")
+    setParseRequestId("")
     setParseStatus("")
     setParseError("")
     setParsedMarkdown("")
     setErrors({})
   }, [stopParsePolling])
+
+  useEffect(() => stopParsePolling, [stopParsePolling])
 
   const handleDataFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1864,8 +1866,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
       setDataFile(file)
       if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ""))
       stopParsePolling()
-      parseTaskIdRef.current = ""
-      setParseTaskId("")
+      setParseRequestId("")
       setParseStatus("")
       setParseError("")
       setParsedMarkdown("")
@@ -1897,14 +1898,52 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
     [t]
   )
 
-  const pollParsePreview = useCallback(
-    async (taskId: string) => {
-      parseTaskIdRef.current = taskId
-      stopParsePolling()
-      startParsePolling()
-    },
-    [startParsePolling, stopParsePolling]
-  )
+  const pollParsePreview = useCallback(async (accepted: MaterialAcceptedResponse) => {
+    stopParsePolling()
+    const controller = new AbortController()
+    parseRequestControllerRef.current = controller
+
+    try {
+      const result = await waitForMaterialRequest<ParseMaterialResult>(accepted, {
+        signal: controller.signal,
+        onStatusChange: (request) => {
+          console.debug("[MaterialUpload] Parse preview status changed", {
+            requestId: request.id,
+            status: request.status,
+          })
+          if (request.status === "pending" || request.status === "processing") {
+            setParseStatus("parsing")
+          }
+        },
+      })
+      setParseStatus("success")
+      setParseError("")
+      setParsedMarkdown(result.content)
+      console.info("[MaterialUpload] Parse preview finished", {
+        requestId: accepted.id,
+        contentLength: result.content.length,
+      })
+    } catch (error) {
+      if (isAbortError(error)) {
+        console.debug("[MaterialUpload] Parse preview polling aborted", {
+          requestId: accepted.id,
+        })
+        return
+      }
+      console.warn("[MaterialUpload] Parse preview failed", {
+        requestId: accepted.id,
+        error,
+        errorCode: error instanceof MaterialRequestFailedError ? error.errorCode : null,
+      })
+      setParseStatus("failed")
+      setParseError(t("contentWriting.materialPanel.uploadParseFailed"))
+    } finally {
+      if (parseRequestControllerRef.current === controller) {
+        parseRequestControllerRef.current = null
+        setIsUploading(false)
+      }
+    }
+  }, [stopParsePolling, t])
 
   const handleSubmit = useCallback(async () => {
     if (!articleId) {
@@ -1950,16 +1989,16 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
 
         if ("error" in parseResult) throw new Error(parseResult.error)
 
-        if (parseResult.parse_status === "failed") {
-          throw new Error(parseResult.error_message || t("contentWriting.materialPanel.uploadParseFailed"))
-        }
-
-        setParseTaskId(parseResult.task_id)
-        setParseStatus(parseResult.parse_status)
+        setParseRequestId(String(parseResult.id))
+        setParseStatus("parsing")
         setParseError("")
-        setParsedMarkdown(parseResult.content || "")
+        setParsedMarkdown("")
+        console.info("[MaterialUpload] Parse preview accepted", {
+          requestId: parseResult.id,
+          jobId: parseResult.job_id,
+        })
         toast({ title: t("contentWriting.materialPanel.uploadParseStarted") })
-        void pollParsePreview(parseResult.task_id)
+        void pollParsePreview(parseResult)
         return
       }
 
@@ -2020,7 +2059,7 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
   }, [articleId, onOpenChange, onUploadSuccess, parseStatus, parsedMarkdown, resetForm, t, title, toast])
 
   const hasParsedResult = materialType === "info" && parseStatus === "success"
-  const isParsingUpload = materialType === "info" && parseStatus === "parsing" && Boolean(parseTaskId)
+  const isParsingUpload = materialType === "info" && parseStatus === "parsing" && Boolean(parseRequestId)
 
   return (
     <Dialog
@@ -2107,7 +2146,9 @@ function UploadDialog({ articleId, open, onOpenChange, onUploadSuccess }: Upload
                     type="button"
                     onClick={() => {
                       setDataFile(null)
-                      setParseTaskId("")
+                      stopParsePolling()
+                      setIsUploading(false)
+                      setParseRequestId("")
                       setParseStatus("")
                       setParseError("")
                       setParsedMarkdown("")

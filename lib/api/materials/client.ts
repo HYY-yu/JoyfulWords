@@ -20,8 +20,8 @@ import type {
   ErrorResponse,
   TriggerMaterialSearchV2Response,
   MaterialSearchDetailResponse,
-  AddMaterialsFromAISearchResponse,
-  ParseMaterialPreviewResponse,
+  MaterialAcceptedResponse,
+  MaterialRequest,
 } from './types'
 
 /**
@@ -223,8 +223,8 @@ export const materialsClient = {
    */
   async addFromAISearch(
     data: AddMaterialsFromAISearchRequest
-  ): Promise<AddMaterialsFromAISearchResponse | ErrorResponse> {
-    return authenticatedApiRequest<AddMaterialsFromAISearchResponse>('/materials/add-from-ai-search', {
+  ): Promise<MaterialAcceptedResponse | ErrorResponse> {
+    return authenticatedApiRequest<MaterialAcceptedResponse>('/materials/add-from-ai-search', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -236,29 +236,44 @@ export const materialsClient = {
    */
   async createParsePreview(
     data: ParseMaterialPreviewRequest
-  ): Promise<ParseMaterialPreviewResponse | ErrorResponse> {
-    return authenticatedApiRequest<ParseMaterialPreviewResponse>('/materials/parse-preview', {
+  ): Promise<MaterialAcceptedResponse | ErrorResponse> {
+    return authenticatedApiRequest<MaterialAcceptedResponse>('/materials/parse-preview', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
   /**
-   * 10. 查询资料解析预览结果
-   * GET /materials/parse-preview/:task_id
+   * 10. 查询 Materials Worker 请求
+   * GET {poll_url}
    */
-  async getParsePreview(
-    taskId: string,
+  async getRequest<TResult>(
+    pollUrl: string,
     signal?: AbortSignal
-  ): Promise<ParseMaterialPreviewResponse | ErrorResponse> {
-    return authenticatedApiRequest<ParseMaterialPreviewResponse>(
-      `/materials/parse-preview/${encodeURIComponent(taskId)}`,
-      { signal }
-    )
+  ): Promise<MaterialRequest<TResult> | ErrorResponse> {
+    if (!pollUrl.startsWith('/materials/')) {
+      return { error: 'Invalid materials poll URL', status: 400 }
+    }
+    return authenticatedApiRequest<MaterialRequest<TResult>>(pollUrl, { signal })
   },
 
   /**
-   * 11. 置顶收藏
+   * 11. 创建线索白板扩展请求
+   * POST /materials/clue-board/expand
+   */
+  async expandClueBoard(
+    query: string,
+    signal?: AbortSignal
+  ): Promise<MaterialAcceptedResponse | ErrorResponse> {
+    return authenticatedApiRequest<MaterialAcceptedResponse>('/materials/clue-board/expand', {
+      method: 'POST',
+      signal,
+      body: JSON.stringify({ query }),
+    })
+  },
+
+  /**
+   * 12. 置顶收藏
    * PUT /materials/favorites/:id/pin
    */
   async pinFavorite(

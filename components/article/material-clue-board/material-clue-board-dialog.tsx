@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Network, Search, XIcon } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { Button } from "@/components/ui/base/button"
@@ -27,12 +27,17 @@ export function MaterialClueBoardDialog({
   const [inputValue, setInputValue] = useState(initialQuery)
   const [rootQuery, setRootQuery] = useState("")
   const [resetToken, setResetToken] = useState(0)
+  const autoStartedQueryRef = useRef("")
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      autoStartedQueryRef.current = ""
+      return
+    }
     const nextQuery = initialQuery.trim()
     setInputValue(initialQuery)
-    if (nextQuery) {
+    if (nextQuery && autoStartedQueryRef.current !== nextQuery) {
+      autoStartedQueryRef.current = nextQuery
       setRootQuery(nextQuery)
       setResetToken((value) => value + 1)
       console.info("[MaterialClueBoard] opened with initial query", { query: nextQuery })
@@ -42,6 +47,7 @@ export function MaterialClueBoardDialog({
   const handleStart = useCallback(() => {
     const nextQuery = inputValue.trim()
     if (!nextQuery) return
+    autoStartedQueryRef.current = nextQuery
     setRootQuery(nextQuery)
     setResetToken((value) => value + 1)
     console.info("[MaterialClueBoard] manual root query submitted", { query: nextQuery })

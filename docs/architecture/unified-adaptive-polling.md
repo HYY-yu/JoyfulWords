@@ -2,9 +2,10 @@
 
 ## 目标
 
-前端异步任务只通过 HTTP GET 获取服务端状态，不再依赖 WebSocket 推送。业务组件不直接维护
-`setInterval`、重试次数、页面可见性或请求取消逻辑，统一使用
-`lib/hooks/use-adaptive-polling.ts`。
+前端异步任务只通过 HTTP GET 获取服务端状态，不再依赖 WebSocket 推送。通用业务组件使用
+`lib/hooks/use-adaptive-polling.ts`；Materials Worker 使用后端合同专用的
+`lib/api/materials/polling.ts`（1 秒起步、最大 5 秒、按 `poll_url` 查询）。业务组件不直接维护
+`setInterval`、重试次数或请求取消循环。
 
 ## 统一策略
 
@@ -33,7 +34,7 @@
 | PPT V2 | `GET /presentations/v2/storycards?article_id=...`、`GET /presentations/v2/generations/:id` | Storycard 与生成任务使用独立轮询实例 |
 | 播客 | `GET /podcast/article-scripts/:id`、`GET /podcast/audio-tasks/:id` | 文稿与音频任务独立轮询，保留分段音频合并语义 |
 | 素材搜索 | `GET /materials/search-logs/:id` | 支持恢复本地持久化的未完成搜索 |
-| 素材解析预览 | `GET /materials/parse-preview/:task_id` | 文件上传完成后跟踪解析状态 |
+| 素材 Worker 请求 | `GET /materials/requests/:id`（以提交响应 `poll_url` 为准） | 搜索结果导入、线索白板扩展、解析预览及数据文件解析共用；请求 ID 是 Materials request ID，不是 MinerU task ID |
 | 素材库搜索状态 | 搜索日志列表 API | 活跃搜索结束后刷新日志和素材列表 |
 | 支付回跳确认 | 订单状态查询 API | 固定 5 秒业务间隔，总超时 75 秒 |
 

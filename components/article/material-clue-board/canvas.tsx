@@ -14,6 +14,7 @@ import { NodeCard } from "./node-card"
 import { buildClueLinkId } from "./markdown-view"
 import { sanitizeClueBoardMaterialContent } from "./markdown-utils"
 import { materialsClient } from "@/lib/api/materials/client"
+import { isAbortError } from "@/lib/api/materials/polling"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -115,6 +116,27 @@ export function MaterialClueCanvas({
   const panState = useRef({ dragging: false, sx: 0, sy: 0, px: 0, py: 0 })
   const rootRequestSeqRef = useRef(0)
   const loadedRootKeyRef = useRef("")
+  const requestControllersRef = useRef(new Set<AbortController>())
+  const mountedRef = useRef(false)
+
+  const abortActiveRequests = useCallback(() => {
+    requestControllersRef.current.forEach((controller) => controller.abort())
+    requestControllersRef.current.clear()
+  }, [])
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+      // React development Strict Mode immediately replays effects. Defer the
+      // teardown check so the replayed setup can mark this instance as mounted
+      // before active requests are canceled.
+      queueMicrotask(() => {
+        if (!mountedRef.current) abortActiveRequests()
+      })
+    }
+  }, [abortActiveRequests])
 
   useEffect(() => {
     const element = containerRef.current
@@ -135,6 +157,9 @@ export function MaterialClueCanvas({
     const trimmed = query.trim()
     if (!trimmed) return
 
+    abortActiveRequests()
+    const controller = new AbortController()
+    requestControllersRef.current.add(controller)
     const requestSeq = rootRequestSeqRef.current + 1
     rootRequestSeqRef.current = requestSeq
     const rect = containerRef.current?.getBoundingClientRect()
@@ -160,7 +185,7 @@ export function MaterialClueCanvas({
     setLinkStates({})
 
     try {
-      const response = await expandMaterialClue(trimmed)
+      const response = await expandMaterialClue(trimmed, controller.signal)
       if (rootRequestSeqRef.current !== requestSeq) {
         console.debug("[MaterialClueBoard] ignoring stale root response", { query: trimmed })
         return
@@ -174,14 +199,24 @@ export function MaterialClueCanvas({
       }])
       console.info("[MaterialClueBoard] root search finished", { query: response.query })
     } catch (error) {
+      if (rootRequestSeqRef.current !== requestSeq || isAbortError(error)) {
+        console.debug("[MaterialClueBoard] root search ignored after cancellation or replacement", {
+          query: trimmed,
+          requestSeq,
+          currentRequestSeq: rootRequestSeqRef.current,
+        })
+        return
+      }
       console.warn("[MaterialClueBoard] root search failed", { query: trimmed, error })
       setNodes([{
         ...rootNode,
         status: "failed",
-        error: error instanceof Error ? error.message : "Failed to expand query",
+        error: t("contentWriting.materialPanel.clueBoardExpandFailed"),
       }])
+    } finally {
+      requestControllersRef.current.delete(controller)
     }
-  }, [viewport.h, viewport.w])
+  }, [abortActiveRequests, t, viewport.h, viewport.w])
 
   useEffect(() => {
     const trimmed = rootQuery.trim()
@@ -310,8 +345,10 @@ export function MaterialClueCanvas({
       setEdges((prev) => [...prev, tempEdge])
       console.info("[MaterialClueBoard] clue expand started", { sourceNodeId: sourceNode.id, query: trimmed })
 
+      const controller = new AbortController()
+      requestControllersRef.current.add(controller)
       try {
-        const response = await expandMaterialClue(trimmed)
+        const response = await expandMaterialClue(trimmed, controller.signal)
         const newNodeId = uid()
         const newNode: MaterialClueNode = {
           id: newNodeId,
@@ -334,13 +371,22 @@ export function MaterialClueCanvas({
         setLinkStates((prev) => ({ ...prev, [linkId]: "expanded" }))
         console.info("[MaterialClueBoard] clue expand finished", { query: response.query, nodeId: newNodeId })
       } catch (error) {
-        console.warn("[MaterialClueBoard] clue expand failed", { sourceNodeId: sourceNode.id, query: trimmed, error })
+        if (isAbortError(error)) {
+          console.debug("[MaterialClueBoard] clue expand aborted", {
+            sourceNodeId: sourceNode.id,
+            query: trimmed,
+          })
+        } else {
+          console.warn("[MaterialClueBoard] clue expand failed", { sourceNodeId: sourceNode.id, query: trimmed, error })
+        }
         setEdges((prev) => prev.filter((edge) => edge.id !== edgeId))
         setLinkStates((prev) => {
           const next = { ...prev }
           delete next[linkId]
           return next
         })
+      } finally {
+        requestControllersRef.current.delete(controller)
       }
     },
     [edges, linkStates, nodes, pan, scale]

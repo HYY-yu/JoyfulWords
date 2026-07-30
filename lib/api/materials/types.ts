@@ -17,6 +17,18 @@ export type MaterialStatus = 'doing' | 'success' | 'failed' | 'nodata'
 
 export type MaterialParseStatus = 'parsing' | 'success' | 'failed' | ''
 
+export type MaterialRequestType =
+  | 'ai_import'
+  | 'clue_board_expand'
+  | 'parse_preview'
+  | 'material_parse'
+
+export type MaterialRequestStatus =
+  | 'pending'
+  | 'processing'
+  | 'succeeded'
+  | 'failed'
+
 // ==================== Entity Types ====================
 
 /**
@@ -159,19 +171,55 @@ export type AddMaterialsFromAISearchRequest =
     }
 
 /**
- * 从 AI/SERP 搜索结果创建素材响应
+ * Materials Worker 接收响应
  */
-export interface AddMaterialsFromAISearchResponse {
+export interface MaterialAcceptedResponse {
+  id: number
+  job_id: string
+  status: 'pending'
+  poll_url: string
+}
+
+export interface MaterialRequestPending {
+  id: number
+  request_type: MaterialRequestType
+  status: 'pending' | 'processing'
+}
+
+export interface MaterialRequestSucceeded<TResult = unknown> {
+  id: number
+  request_type: MaterialRequestType
+  status: 'succeeded'
+  result: TResult
+}
+
+export interface MaterialRequestFailed {
+  id: number
+  request_type: MaterialRequestType
+  status: 'failed'
+  error_code: string
+  error_message_id: string
+}
+
+export type MaterialRequest<TResult = unknown> =
+  | MaterialRequestPending
+  | MaterialRequestSucceeded<TResult>
+  | MaterialRequestFailed
+
+/**
+ * 从 AI/SERP 搜索结果创建素材的 Worker 成功结果
+ */
+export interface MaterialImportResult {
   ids: number[]
   materials?: Material[]
   failed_results?: Array<{
     url: string
     error: string
   }>
-  message: string
-  tavily_request_id?: string
-  usage?: {
-    credits?: number
+  message?: string
+  tavily_request_id: string
+  usage: {
+    credits: number
   }
 }
 
@@ -187,13 +235,19 @@ export interface ParseMaterialPreviewRequest {
   file_name: string
 }
 
-export interface ParseMaterialPreviewResponse {
+export interface ParseMaterialResult {
   task_id: string
-  parse_status: MaterialParseStatus
+  parse_status: 'success'
   parse_failed_code: number
   markdown_url: string
   content: string
   error_message: string
+}
+
+export interface ClueBoardExpandResult {
+  query: string
+  markdown: string
+  images: string[]
 }
 
 /**
@@ -250,6 +304,9 @@ export interface CreateMaterialResponse {
   id: number
   message: string
   parse_status?: MaterialParseStatus
+  request_id?: number
+  job_id?: string
+  poll_url?: string
 }
 
 /**
