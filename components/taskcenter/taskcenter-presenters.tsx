@@ -514,12 +514,6 @@ export function TaskCenterTaskDetailView({
             value={formatNumberValue(detail.failed_segments)}
           />
           ) : null}
-          {taskRef.type === "podcast_audio" && "provider_cost_usd" in detail ? (
-          <DetailField
-            label={t("contentWriting.taskCenter.fields.providerCost")}
-            value={formatNumberValue(detail.provider_cost_usd)}
-          />
-          ) : null}
           {"card_name" in detail ? (
           <DetailField
             label={t("contentWriting.taskCenter.fields.cardName")}

@@ -131,7 +131,6 @@ export interface ArticlePodcastAudioTask {
   provider?: string
   model_name?: string
   provider_billable_units?: number
-  provider_cost_usd?: number
   revision: number
   audio_manifest_json?: ArticlePodcastAudioManifest | null
   error_message?: string
@@ -163,7 +162,6 @@ export interface ArticlePodcastAudioManifest {
   title: string
   output_format: PodcastOutputFormat | string
   sample_rate: PodcastSampleRate | number
-  estimated_cost_usd?: number
   provider?: string
   model_name?: string
   segments: ArticlePodcastAudioSegment[]

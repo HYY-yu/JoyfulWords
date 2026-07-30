@@ -496,7 +496,6 @@ export const en = {
                 totalSegments: "Total Segments",
                 completedSegments: "Completed Segments",
                 failedSegments: "Failed Segments",
-                providerCost: "Provider Cost",
                 cardName: "Card Name",
                 cardType: "Card Type",
                 prompt: "Prompt",

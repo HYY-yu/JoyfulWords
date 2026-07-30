@@ -496,7 +496,6 @@ export const zh = {
                 totalSegments: "总分段数",
                 completedSegments: "已完成分段",
                 failedSegments: "失败分段",
-                providerCost: "供应商成本",
                 cardName: "卡片名称",
                 cardType: "卡片类型",
                 prompt: "提示词",

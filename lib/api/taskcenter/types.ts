@@ -150,7 +150,6 @@ export interface TaskCenterPodcastAudioListDetails {
   completed_segments?: number
   failed_segments?: number
   provider_billable_units?: number
-  provider_cost_usd?: number
   updated_at?: string
   completed_at?: string | null
   error?: string
@@ -383,7 +382,6 @@ export interface TaskCenterPodcastAudioTaskDetail {
   completed_segments?: number
   failed_segments?: number
   provider_billable_units?: number
-  provider_cost_usd?: number
   error?: string
   error_message?: string
   created_at: string
