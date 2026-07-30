@@ -3098,6 +3098,7 @@ export const en = {
             perKOutput: "credits / 1K output tokens",
             perImage: "credits / image",
             perSlide: "credits / slide",
+            perAudioClip: "credit / audio clip",
             perSearch: "credits / search",
             perGeneration: "credits / run",
         },
@@ -3142,6 +3143,11 @@ export const en = {
                 title: "PPT generation",
                 item: "PPT generation",
                 description: "Generate a presentation structure from your content, billed by generated slide.",
+            },
+            audio: {
+                title: "Audio generation",
+                item: "Audio generation",
+                description: "Billed by generated audio clip.",
             },
         },
         finalCta: {

@@ -3098,6 +3098,7 @@ export const zh = {
             perKOutput: "积分/k token output",
             perImage: "积分/张",
             perSlide: "积分/张",
+            perAudioClip: "积分/段音频",
             perSearch: "积分/次",
             perGeneration: "积分/次",
         },
@@ -3142,6 +3143,11 @@ export const zh = {
                 title: "PPT 生成",
                 item: "PPT 生成",
                 description: "基于内容生成演示结构，按生成页数扣费。",
+            },
+            audio: {
+                title: "音频生成",
+                item: "音频生成",
+                description: "按生成的音频段数扣费。",
             },
         },
         finalCta: {

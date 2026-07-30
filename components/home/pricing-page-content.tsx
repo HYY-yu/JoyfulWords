@@ -129,6 +129,11 @@ export function PricingPageContent() {
         item: t("pricing.sections.ppt.item"),
         price: `1 ${t("pricing.units.perSlide")}`,
       },
+      {
+        module: t("pricing.sections.audio.title"),
+        item: t("pricing.sections.audio.item"),
+        price: `1 ${t("pricing.units.perAudioClip")}`,
+      },
     ],
     [t],
   )
