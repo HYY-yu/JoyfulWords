@@ -2312,6 +2312,7 @@ export const zh = {
             processing: "信息图生成中，正在持续查询结果。",
             success: "信息图生成完成。",
             failed: "信息图生成失败。",
+            articleAnalyzing: "正在分析整篇文章，完成后将自动创建信息图任务。",
             batchProcessing: "整篇文章信息图生成中，已完成 {completed}/{total}。",
             batchSuccess: "整篇文章信息图生成完成，成功 {success}/{total}。"
         },
@@ -2366,7 +2367,7 @@ export const zh = {
             selectionTooLongDesc: "当前内容 {count} 字，最多只能提交 {limit} 字。",
             articleRequired: "缺少文章信息",
             articleRequiredDesc: "整篇文章分析需要当前文章 ID。",
-            batchPolling: "已提交 {count} 个信息图任务，正在生成。",
+            batchPolling: "文章分析任务已提交，正在分析并生成信息图。",
             noArticleImages: "没有找到适合生成信息图的内容",
             noArticleImagesDesc: "可以调整文章内容，或选中一小段文本生成单张信息图。",
             created: "信息图任务已创建",

@@ -2312,6 +2312,7 @@ export const en = {
             processing: "Infographic is generating. Polling for updates.",
             success: "Infographic generation completed.",
             failed: "Infographic generation failed.",
+            articleAnalyzing: "Analyzing the full article. Infographic tasks will be created automatically.",
             batchProcessing: "Article infographics are generating. Completed {completed}/{total}.",
             batchSuccess: "Article infographics completed. {success}/{total} succeeded."
         },
@@ -2366,7 +2367,7 @@ export const en = {
             selectionTooLongDesc: "The current content has {count} characters. The limit is {limit}.",
             articleRequired: "Article is missing",
             articleRequiredDesc: "Full article analysis requires the current article ID.",
-            batchPolling: "{count} infographic task(s) submitted and generating.",
+            batchPolling: "Article analysis submitted. Infographics will be generated next.",
             noArticleImages: "No suitable infographic content found",
             noArticleImagesDesc: "Adjust the article content or select a short passage to generate one infographic.",
             created: "Infographic task created",

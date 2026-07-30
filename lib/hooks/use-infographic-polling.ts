@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react"
 import { infographicsClient } from "@/lib/api/infographics/client"
 import type {
+  InfographicArticleRequestDetailResponse,
   InfographicLogDetailResponse,
   InfographicStatus,
 } from "@/lib/api/infographics/types"
@@ -13,8 +14,15 @@ export type InfographicPollingState = "idle" | "submitting" | InfographicStatus
 
 type GetInfographicLogDetail = (
   logId: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  pollUrl?: string
 ) => Promise<InfographicLogDetailResponse | ErrorResponse>
+
+type GetInfographicArticleRequestDetail = (
+  requestId: number,
+  signal?: AbortSignal,
+  pollUrl?: string
+) => Promise<InfographicArticleRequestDetailResponse | ErrorResponse>
 
 const POLLING_TIMEOUT_MS = 5 * 60 * 1000
 
@@ -24,7 +32,7 @@ interface UseInfographicPollingReturn {
   errorMessage: string | null
   state: InfographicPollingState
   markSubmitting: () => void
-  startPolling: (logId: number) => Promise<void>
+  startPolling: (logId: number, pollUrl?: string) => Promise<void>
   stopPolling: () => void
   reset: () => void
 }
@@ -37,6 +45,8 @@ interface UseInfographicBatchPollingProgress {
 }
 
 interface UseInfographicBatchPollingReturn {
+  requestId: number | null
+  requestDetail: InfographicArticleRequestDetailResponse | null
   batchId: string | null
   logIds: number[]
   details: InfographicLogDetailResponse[]
@@ -44,7 +54,7 @@ interface UseInfographicBatchPollingReturn {
   progress: UseInfographicBatchPollingProgress
   state: InfographicPollingState
   markSubmitting: () => void
-  startPolling: (logIds: number[], batchId?: string) => Promise<void>
+  startPolling: (requestId: number, pollUrl: string, batchId?: string) => Promise<void>
   stopPolling: () => void
   reset: () => void
 }
@@ -100,6 +110,7 @@ export function useInfographicPolling(
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [state, setState] = useState<InfographicPollingState>("idle")
   const currentLogIdRef = useRef<number | null>(null)
+  const currentPollUrlRef = useRef<string | null>(null)
 
   const {
     startPolling: startAdaptivePolling,
@@ -109,7 +120,7 @@ export function useInfographicPolling(
       const logId = currentLogIdRef.current
       if (logId === null) return "stop"
 
-      const result = await getLogDetail(logId, signal)
+      const result = await getLogDetail(logId, signal, currentPollUrlRef.current ?? undefined)
       if ("error" in result) {
         console.warn("[Infographics] Failed to fetch detail", {
           logId,
@@ -158,15 +169,19 @@ export function useInfographicPolling(
     stopAdaptivePolling()
   }, [stopAdaptivePolling])
 
-  const startPolling = useCallback(async (logId: number) => {
+  const startPolling = useCallback(async (logId: number, pollUrl?: string) => {
     stopAdaptivePolling()
     currentLogIdRef.current = logId
+    currentPollUrlRef.current = pollUrl ?? null
     setCurrentLogId(logId)
     setDetail(null)
     setErrorMessage(null)
     setState("pending")
     // TODO(observability): add active polling gauge for infographic generation.
-    console.info("[Infographics] Starting adaptive polling", { logId })
+    console.info("[Infographics] Starting adaptive polling", {
+      logId,
+      pollUrl: pollUrl ?? null,
+    })
     startAdaptivePolling()
   }, [startAdaptivePolling, stopAdaptivePolling])
 
@@ -179,6 +194,7 @@ export function useInfographicPolling(
   const reset = useCallback(() => {
     stopAdaptivePolling()
     currentLogIdRef.current = null
+    currentPollUrlRef.current = null
     setCurrentLogId(null)
     setDetail(null)
     setErrorMessage(null)
@@ -198,14 +214,23 @@ export function useInfographicPolling(
 }
 
 export function useInfographicBatchPolling(
-  getLogDetail: GetInfographicLogDetail = infographicsClient.getLogDetail
+  getLogDetail: GetInfographicLogDetail = infographicsClient.getLogDetail,
+  getArticleRequestDetail: GetInfographicArticleRequestDetail =
+    infographicsClient.getArticleRequestDetail
 ): UseInfographicBatchPollingReturn {
+  const [requestId, setRequestId] = useState<number | null>(null)
+  const [requestDetail, setRequestDetail] =
+    useState<InfographicArticleRequestDetailResponse | null>(null)
   const [batchId, setBatchId] = useState<string | null>(null)
   const [logIds, setLogIds] = useState<number[]>([])
   const [details, setDetails] = useState<InfographicLogDetailResponse[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [state, setState] = useState<InfographicPollingState>("idle")
+  const requestIdRef = useRef<number | null>(null)
+  const requestPollUrlRef = useRef<string | null>(null)
+  const requestResolvedRef = useRef(false)
   const logIdsRef = useRef<number[]>([])
+  const logPollUrlsRef = useRef<Map<number, string>>(new Map())
   const batchIdRef = useRef<string | null>(null)
 
   const {
@@ -213,13 +238,84 @@ export function useInfographicBatchPolling(
     stopPolling: stopAdaptivePolling,
   } = useAdaptivePolling({
     poll: async ({ signal }) => {
+      const currentRequestId = requestIdRef.current
+      if (currentRequestId === null) return "stop"
+
+      if (!requestResolvedRef.current) {
+        const result = await getArticleRequestDetail(
+          currentRequestId,
+          signal,
+          requestPollUrlRef.current ?? undefined
+        )
+        if ("error" in result) {
+          console.warn("[Infographics] Failed to fetch article request detail", {
+            requestId: currentRequestId,
+            status: result.status,
+            error: result.error,
+          })
+          if (isRetryablePollingError(result)) throw new Error(String(result.error))
+          setState("failed")
+          setErrorMessage(String(result.error))
+          return "stop"
+        }
+
+        console.debug("[Infographics] Article request polling status", {
+          requestId: currentRequestId,
+          batchId: result.batch_id,
+          status: result.status,
+          count: result.count,
+        })
+        setRequestDetail(result)
+        batchIdRef.current = result.batch_id
+        setBatchId(result.batch_id)
+
+        if (result.status === "failed") {
+          console.warn("[Infographics] Article infographic analysis failed", {
+            requestId: currentRequestId,
+            batchId: result.batch_id,
+            errorCode: result.error_code,
+            errorMessage: result.error_message,
+          })
+          setState("failed")
+          setErrorMessage(result.error_message || result.error_code || null)
+          return "stop"
+        }
+        if (result.status !== "succeeded") {
+          setState(result.status)
+          return "continue"
+        }
+
+        const normalizedLogIds = Array.from(
+          new Set(result.log_ids.filter((logId) => logId > 0))
+        )
+        requestResolvedRef.current = true
+        logIdsRef.current = normalizedLogIds
+        logPollUrlsRef.current = new Map(
+          result.log_ids.flatMap((logId, index) => {
+            const pollUrl = result.poll_urls[index]
+            return logId > 0 && pollUrl ? [[logId, pollUrl] as const] : []
+          })
+        )
+        setLogIds(normalizedLogIds)
+
+        if (normalizedLogIds.length === 0) {
+          console.info("[Infographics] Article analysis returned no infographic candidates", {
+            requestId: currentRequestId,
+            batchId: result.batch_id,
+          })
+          setState("success")
+          return "stop"
+        }
+
+        setState("processing")
+      }
+
       const currentLogIds = logIdsRef.current
-      if (currentLogIds.length === 0) return "stop"
 
       const results = await Promise.all(
         currentLogIds.map(async (logId) => ({
           logId,
-          result: await getLogDetail(logId, signal),
+          result: await getLogDetail(logId, signal, logPollUrlsRef.current.get(logId)),
         }))
       )
       const errorResult = results.find(({ result }) => "error" in result)
@@ -277,6 +373,7 @@ export function useInfographicBatchPolling(
     },
     onTimeout: () => {
       console.warn("[Infographics] Batch polling timed out", {
+        requestId: requestIdRef.current,
         batchId: batchIdRef.current,
         logIds: logIdsRef.current,
       })
@@ -291,35 +388,62 @@ export function useInfographicBatchPolling(
     stopAdaptivePolling()
   }, [stopAdaptivePolling])
 
-  const startPolling = useCallback(async (nextLogIds: number[], nextBatchId?: string) => {
+  const startPolling = useCallback(async (
+    nextRequestId: number,
+    nextPollUrl: string,
+    nextBatchId?: string
+  ) => {
     stopAdaptivePolling()
-    const normalizedLogIds = Array.from(new Set(nextLogIds.filter((logId) => logId > 0)))
-    logIdsRef.current = normalizedLogIds
+    requestIdRef.current = nextRequestId
+    requestPollUrlRef.current = nextPollUrl
+    requestResolvedRef.current = false
+    logIdsRef.current = []
+    logPollUrlsRef.current = new Map()
     batchIdRef.current = nextBatchId ?? null
+    setRequestId(nextRequestId)
+    setRequestDetail(null)
     setBatchId(nextBatchId ?? null)
-    setLogIds(normalizedLogIds)
+    setLogIds([])
     setDetails([])
     setErrorMessage(null)
-    setState(normalizedLogIds.length > 0 ? "pending" : "success")
+    setState("pending")
 
-    // TODO(observability): add active batch polling gauge for article infographic generation.
-    console.info("[Infographics] Starting adaptive batch polling", {
+    // TODO(observability): add gauges for active article analysis and child-task polling.
+    console.info("[Infographics] Starting article request polling", {
+      requestId: nextRequestId,
+      pollUrl: nextPollUrl,
       batchId: nextBatchId ?? null,
-      logIds: normalizedLogIds,
     })
-    if (normalizedLogIds.length > 0) startAdaptivePolling()
+    startAdaptivePolling()
   }, [startAdaptivePolling, stopAdaptivePolling])
 
   const markSubmitting = useCallback(() => {
+    stopAdaptivePolling()
+    requestIdRef.current = null
+    requestPollUrlRef.current = null
+    requestResolvedRef.current = false
+    logIdsRef.current = []
+    logPollUrlsRef.current = new Map()
+    batchIdRef.current = null
+    setRequestId(null)
+    setRequestDetail(null)
+    setBatchId(null)
+    setLogIds([])
     setState("submitting")
     setErrorMessage(null)
     setDetails([])
-  }, [])
+  }, [stopAdaptivePolling])
 
   const reset = useCallback(() => {
     stopAdaptivePolling()
+    requestIdRef.current = null
+    requestPollUrlRef.current = null
+    requestResolvedRef.current = false
     logIdsRef.current = []
+    logPollUrlsRef.current = new Map()
     batchIdRef.current = null
+    setRequestId(null)
+    setRequestDetail(null)
     setBatchId(null)
     setLogIds([])
     setDetails([])
@@ -328,6 +452,8 @@ export function useInfographicBatchPolling(
   }, [stopAdaptivePolling])
 
   return {
+    requestId,
+    requestDetail,
     batchId,
     logIds,
     details,

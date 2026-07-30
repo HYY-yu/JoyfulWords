@@ -129,6 +129,8 @@ export function InfographicDialog({
     reset,
   } = useInfographicPolling()
   const {
+    requestDetail: batchRequestDetail,
+    logIds: batchLogIds,
     details: batchDetails,
     errorMessage: batchPollingErrorMessage,
     progress: batchProgress,
@@ -148,6 +150,7 @@ export function InfographicDialog({
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
   const lastAnnouncedPollingStateRef = useRef<InfographicPollingState>("idle")
+  const announcedBatchLogIdsRef = useRef<Set<number>>(new Set())
   const styleListRef = useRef<HTMLDivElement | null>(null)
   const styleButtonRefs = useRef<Partial<Record<InfographicCardStyle, HTMLButtonElement | null>>>({})
   const taskLabel = t("tiptapEditor.aiPanel.infographic")
@@ -165,6 +168,7 @@ export function InfographicDialog({
       setActiveImageIndex(0)
       setRequestErrorMessage(null)
       lastAnnouncedPollingStateRef.current = "idle"
+      announcedBatchLogIdsRef.current.clear()
       return
     }
 
@@ -177,6 +181,7 @@ export function InfographicDialog({
     setActiveImageIndex(0)
     setRequestErrorMessage(null)
     lastAnnouncedPollingStateRef.current = "idle"
+    announcedBatchLogIdsRef.current.clear()
     reset()
     resetBatch()
   }, [locale, open, reset, resetBatch, selectedText])
@@ -239,7 +244,17 @@ export function InfographicDialog({
   const selectedStyle = STYLE_PREVIEWS.find((style) => style.value === formState.cardStyle) ?? STYLE_PREVIEWS[0]
 
   const statusText = (() => {
-    if (resultMode === "article" && (batchPollingState === "pending" || batchPollingState === "processing")) {
+    if (
+      resultMode === "article" &&
+      (batchPollingState === "pending" || batchPollingState === "processing") &&
+      batchRequestDetail?.status !== "succeeded"
+    ) {
+      return t("infographicDialog.status.articleAnalyzing")
+    }
+    if (
+      resultMode === "article" &&
+      (batchPollingState === "pending" || batchPollingState === "processing")
+    ) {
       return t("infographicDialog.status.batchProcessing", {
         completed: batchProgress.completed,
         total: batchProgress.total,
@@ -249,6 +264,9 @@ export function InfographicDialog({
       return t(`infographicDialog.status.${resultPollingState}`)
     }
     if (resultMode === "article" && resultPollingState === "success") {
+      if (batchRequestDetail?.status === "succeeded" && batchRequestDetail.count === 0) {
+        return t("infographicDialog.toast.noArticleImages")
+      }
       return t("infographicDialog.status.batchSuccess", {
         success: batchProgress.success,
         total: batchProgress.total,
@@ -293,6 +311,14 @@ export function InfographicDialog({
     lastAnnouncedPollingStateRef.current = batchPollingState
 
     if (batchPollingState === "success") {
+      if (batchRequestDetail?.status === "succeeded" && batchRequestDetail.count === 0) {
+        toast({
+          title: t("infographicDialog.toast.noArticleImages"),
+          description: t("infographicDialog.toast.noArticleImagesDesc"),
+        })
+        return
+      }
+
       taskToast.showSuccess({
         title: t("infographicDialog.status.batchSuccess", {
           success: batchProgress.success,
@@ -307,7 +333,29 @@ export function InfographicDialog({
         title: t("infographicDialog.status.failed"),
       })
     }
-  }, [batchPollingState, batchProgress.success, batchProgress.total, t, taskToast])
+  }, [
+    batchPollingState,
+    batchProgress.success,
+    batchProgress.total,
+    batchRequestDetail?.count,
+    batchRequestDetail?.status,
+    t,
+    taskToast,
+    toast,
+  ])
+
+  useEffect(() => {
+    batchLogIds.forEach((taskId) => {
+      if (announcedBatchLogIdsRef.current.has(taskId)) return
+
+      announcedBatchLogIdsRef.current.add(taskId)
+      notifyTaskCenterTaskSubmitted({
+        type: "infographic",
+        taskId,
+        articleId,
+      })
+    })
+  }, [articleId, batchLogIds])
 
   const handleGenerate = async () => {
     if (sourceMode === "article") {
@@ -355,35 +403,12 @@ export function InfographicDialog({
           return
         }
 
-        if (result.count === 0 || result.log_ids.length === 0) {
-          console.info("[InfographicDialog] Article infographic batch returned no candidates:", {
-            articleId,
-            batchId: result.batch_id,
-            count: result.count,
-          })
-          resetBatch()
-          toast({
-            title: t("infographicDialog.toast.noArticleImages"),
-            description: t("infographicDialog.toast.noArticleImagesDesc"),
-          })
-          return
-        }
-
         taskToast.showPolling({
           title: pollingToastTitle,
-          description: t("infographicDialog.toast.batchPolling", {
-            count: result.count,
-          }),
+          description: t("infographicDialog.toast.batchPolling"),
         })
 
-        result.log_ids.forEach((taskId) => {
-          notifyTaskCenterTaskSubmitted({
-            type: "infographic",
-            taskId,
-            articleId,
-          })
-        })
-        await startBatchPolling(result.log_ids, result.batch_id)
+        await startBatchPolling(result.request_id, result.poll_url, result.batch_id)
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error"
         console.error("[InfographicDialog] Unexpected article infographic batch creation error:", {
@@ -465,7 +490,7 @@ export function InfographicDialog({
         taskId: result.log_id,
         articleId,
       })
-      await startPolling(result.log_id)
+      await startPolling(result.log_id, result.poll_url)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error"
       console.error("[InfographicDialog] Unexpected infographic creation error:", {

@@ -7,6 +7,7 @@ import type {
   GenerateInfographicFromArticleResponse,
   GenerateInfographicRequest,
   GenerateInfographicResponse,
+  InfographicArticleRequestDetailResponse,
   InfographicLogDetailResponse,
 } from "./types"
 
@@ -56,14 +57,39 @@ export const infographicsClient = {
 
   async getLogDetail(
     id: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    pollUrl?: string
   ): Promise<InfographicLogDetailResponse | ErrorResponse> {
-    console.debug("[Infographics] Fetching infographic detail:", { logId: id })
+    const endpoint = pollUrl || `/infographics/logs/${id}`
+    console.debug("[Infographics] Fetching infographic detail:", {
+      logId: id,
+      pollUrl: endpoint,
+    })
 
-    return authenticatedApiRequest<InfographicLogDetailResponse>(`/infographics/logs/${id}`, {
+    return authenticatedApiRequest<InfographicLogDetailResponse>(endpoint, {
       method: "GET",
       signal,
     })
+  },
+
+  async getArticleRequestDetail(
+    id: number,
+    signal?: AbortSignal,
+    pollUrl?: string
+  ): Promise<InfographicArticleRequestDetailResponse | ErrorResponse> {
+    const endpoint = pollUrl || `/infographics/requests/${id}`
+    console.debug("[Infographics] Fetching article infographic request detail:", {
+      requestId: id,
+      pollUrl: endpoint,
+    })
+
+    return authenticatedApiRequest<InfographicArticleRequestDetailResponse>(
+      endpoint,
+      {
+        method: "GET",
+        signal,
+      }
+    )
   },
 
   async copyToMaterials(

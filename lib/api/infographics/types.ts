@@ -17,6 +17,12 @@ export type InfographicDecorationLevel = "simple" | "moderate" | "rich"
 
 export type InfographicStatus = "pending" | "processing" | "success" | "failed"
 
+export type InfographicArticleRequestStatus =
+  | "pending"
+  | "processing"
+  | "succeeded"
+  | "failed"
+
 export const INFOGRAPHIC_CARD_STYLES: InfographicCardStyle[] = [
   "professional",
   "rustic",
@@ -54,9 +60,10 @@ export interface GenerateInfographicRequest {
 
 export interface GenerateInfographicResponse {
   log_id: number
+  job_id: string
   status: "pending"
   poll_url: string
-  estimated_eta?: number
+  estimated_eta: number
 }
 
 export interface GenerateInfographicFromArticleRequest {
@@ -70,15 +77,32 @@ export interface GenerateInfographicFromArticleRequest {
 }
 
 export interface GenerateInfographicFromArticleResponse {
+  request_id: number
+  job_id: string
   batch_id: string
+  status: "pending"
+  poll_url: string
+  estimated_eta: number
+}
+
+export interface InfographicArticleRequestDetailResponse {
+  id: number
+  article_id: number
+  batch_id: string
+  status: InfographicArticleRequestStatus
   count: number
   log_ids: number[]
   poll_urls: string[]
-  estimated_eta?: number
+  error_code: string
+  error_message: string
+  created_at: string
+  updated_at: string
+  completed_at?: string
 }
 
 export interface InfographicLogDetailResponse {
   id: number
+  request_id: number
   article_id: number
   source_text: string
   structured_content: string
@@ -96,6 +120,7 @@ export interface InfographicLogDetailResponse {
   model_reference_id: string
   image_urls: string
   status: InfographicStatus
+  error_code: string
   error_message: string
   batch_id?: string
   batch_index?: number
