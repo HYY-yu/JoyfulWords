@@ -5,7 +5,9 @@ import {
   getPodcastAudioProgress,
   getSortedPodcastAudioSegments,
   isPodcastTerminalStatus,
+  selectLatestPodcastScript,
   type ArticlePodcastAudioManifest,
+  type ArticlePodcastScriptRecord,
 } from "@/lib/api/podcast/types"
 
 const manifest = {
@@ -74,4 +76,33 @@ test("detects podcast terminal statuses", () => {
   assert.equal(isPodcastTerminalStatus("failed"), true)
   assert.equal(isPodcastTerminalStatus("pending"), false)
   assert.equal(isPodcastTerminalStatus("processing"), false)
+})
+
+test("selects the most recently updated podcast script across podcast types", () => {
+  const baseScript = {
+    article_id: 100,
+    language: "zh-CN",
+    exec_id: "podcast-script",
+    status: "success",
+    revision: 1,
+    created_at: "2026-07-30T08:00:00.000Z",
+  } satisfies Omit<ArticlePodcastScriptRecord, "id" | "podcast_type" | "updated_at">
+  const newsScript = {
+    ...baseScript,
+    id: 8,
+    podcast_type: "news_broadcast",
+    updated_at: "2026-07-30T08:30:00.000Z",
+  } satisfies ArticlePodcastScriptRecord
+  const interviewScript = {
+    ...baseScript,
+    id: 9,
+    podcast_type: "two_person_interview",
+    updated_at: "2026-07-30T08:52:30.000Z",
+  } satisfies ArticlePodcastScriptRecord
+
+  assert.equal(
+    selectLatestPodcastScript([newsScript, interviewScript])?.id,
+    interviewScript.id
+  )
+  assert.equal(selectLatestPodcastScript([]), null)
 })

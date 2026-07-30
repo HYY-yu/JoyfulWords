@@ -196,6 +196,21 @@ export function isPodcastTerminalStatus(status: PodcastGenerationStatus | string
   return status === "success" || status === "failed"
 }
 
+export function selectLatestPodcastScript(
+  scripts: ArticlePodcastScriptRecord[]
+): ArticlePodcastScriptRecord | null {
+  return (
+    [...scripts].sort((left, right) => {
+      const leftUpdatedAt = Date.parse(left.updated_at)
+      const rightUpdatedAt = Date.parse(right.updated_at)
+      const leftTimestamp = Number.isNaN(leftUpdatedAt) ? 0 : leftUpdatedAt
+      const rightTimestamp = Number.isNaN(rightUpdatedAt) ? 0 : rightUpdatedAt
+
+      return rightTimestamp - leftTimestamp || right.id - left.id
+    })[0] ?? null
+  )
+}
+
 export function getSortedPodcastAudioSegments(
   manifest: ArticlePodcastAudioManifest | null | undefined
 ): ArticlePodcastAudioSegment[] {

@@ -6,6 +6,8 @@ import { podcastClient } from "@/lib/api/podcast/client"
 import {
   getSortedPodcastAudioSegments,
   isPodcastTerminalStatus,
+  PODCAST_TYPES,
+  selectLatestPodcastScript,
   type ArticlePodcastAudioManifest,
   type ArticlePodcastAudioTask,
   type ArticlePodcastScriptRecord,
@@ -197,7 +199,10 @@ export interface UsePodcastGenerationReturn {
   updatingScript: boolean
   scriptErrorMessage: string | null
   audioErrorMessage: string | null
-  loadLatestScript: (articleId: number, podcastType: PodcastType) => Promise<void>
+  loadLatestScript: (
+    articleId: number,
+    podcastType?: PodcastType
+  ) => Promise<ArticlePodcastScriptRecord | null>
   createScript: (request: CreateArticlePodcastScriptRequest) => Promise<void>
   updateScript: (scriptId: number, request: UpdateArticlePodcastScriptRequest) => Promise<boolean>
   createAudio: (scriptId: number, request: CreateArticlePodcastAudioRequest) => Promise<void>
@@ -224,6 +229,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   const lastKnownAudioManifestRef = useRef<ArticlePodcastAudioManifest | null>(null)
   const pendingAudioSegmentIdsRef = useRef<Set<string>>(new Set())
   const audioPollingModeRef = useRef<AudioPollingMode>("full")
+  const latestScriptLoadIdRef = useRef(0)
 
   const audioManifest = useMemo(() => getTaskManifest(audioTask), [audioTask])
   const audioSegments = useMemo(() => getSortedPodcastAudioSegments(audioManifest), [audioManifest])
@@ -271,9 +277,13 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
     []
   )
 
-  const loadCurrentAudio = useCallback(async (scriptId: number) => {
+  const loadCurrentAudio = useCallback(async (
+    scriptId: number,
+    shouldApply: () => boolean = () => true
+  ) => {
     try {
       const result = await podcastClient.getArticleScriptAudio(scriptId)
+      if (!shouldApply()) return
 
       if (isErrorResponse(result)) {
         if (result.status === 404) {
@@ -308,6 +318,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         })
       }
     } catch (error) {
+      if (!shouldApply()) return
       console.error("[Podcast] Unexpected error while loading existing podcast audio", {
         scriptId,
         error,
@@ -449,6 +460,7 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   }, [stopAdaptiveScriptPolling])
 
   const stopPolling = useCallback(() => {
+    latestScriptLoadIdRef.current += 1
     stopScriptPolling()
     stopAudioPolling()
   }, [stopAudioPolling, stopScriptPolling])
@@ -477,8 +489,13 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
   )
 
   const loadLatestScript = useCallback(
-    async (articleId: number, podcastType: PodcastType) => {
+    async (
+      articleId: number,
+      podcastType?: PodcastType
+    ): Promise<ArticlePodcastScriptRecord | null> => {
       stopPolling()
+      const loadId = latestScriptLoadIdRef.current
+      const podcastTypes = podcastType ? [podcastType] : PODCAST_TYPES
       lastKnownAudioManifestRef.current = null
       pendingAudioSegmentIdsRef.current.clear()
       setScriptState("loading")
@@ -488,26 +505,65 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
       setAudioErrorMessage(null)
 
       try {
-        const result = await podcastClient.getLatestArticleScript(articleId, podcastType)
+        const results = await Promise.all(
+          podcastTypes.map(async (requestedPodcastType) => ({
+            podcastType: requestedPodcastType,
+            result: await podcastClient.getLatestArticleScript(articleId, requestedPodcastType),
+          }))
+        )
+        if (loadId !== latestScriptLoadIdRef.current) return null
 
-        if (isErrorResponse(result)) {
-          if (result.status === 404) {
-            console.debug("[Podcast] No latest podcast script found", { articleId, podcastType })
+        const scripts = results
+          .filter(
+            (
+              entry
+            ): entry is {
+              podcastType: PodcastType
+              result: ArticlePodcastScriptRecord
+            } => !isErrorResponse(entry.result)
+          )
+          .map((entry) => entry.result)
+        const failures = results.filter(
+          (entry): entry is { podcastType: PodcastType; result: ErrorResponse } =>
+            isErrorResponse(entry.result) && entry.result.status !== 404
+        )
+        const result = selectLatestPodcastScript(scripts)
+
+        if (!result) {
+          if (failures.length === 0) {
+            console.debug("[Podcast] No latest podcast script found", {
+              articleId,
+              podcastTypes,
+            })
             setScript(null)
             setScriptState("idle")
-            return
+            return null
           }
 
+          const failure = failures[0]
           console.warn("[Podcast] Failed to load latest podcast script", {
             articleId,
-            podcastType,
-            error: result.error,
-            status: result.status,
+            podcastTypes,
+            failedPodcastType: failure.podcastType,
+            error: failure.result.error,
+            status: failure.result.status,
           })
           setScript(null)
           setScriptState("failed")
-          setScriptErrorMessage(getErrorMessage(result, "Failed to load podcast script"))
-          return
+          setScriptErrorMessage(getErrorMessage(failure.result, "Failed to load podcast script"))
+          return null
+        }
+
+        if (failures.length > 0) {
+          console.warn("[Podcast] Loaded latest podcast script with partial lookup failures", {
+            articleId,
+            selectedPodcastType: result.podcast_type,
+            failures: failures.map((failure) => ({
+              podcastType: failure.podcastType,
+              error: failure.result.error,
+              status: failure.result.status,
+            })),
+          })
         }
 
         setScript(result)
@@ -515,19 +571,25 @@ export function usePodcastGeneration(): UsePodcastGenerationReturn {
         setScriptErrorMessage(result.status === "failed" ? result.error_message ?? null : null)
 
         if (result.status === "success") {
-          await loadCurrentAudio(result.id)
+          await loadCurrentAudio(
+            result.id,
+            () => loadId === latestScriptLoadIdRef.current
+          )
         } else if (!isPodcastTerminalStatus(result.status)) {
           startScriptPolling(result.id)
         }
+        return result
       } catch (error) {
+        if (loadId !== latestScriptLoadIdRef.current) return null
         console.error("[Podcast] Unexpected error while loading latest podcast script", {
           articleId,
-          podcastType,
+          podcastTypes,
           error,
         })
         setScript(null)
         setScriptState("failed")
         setScriptErrorMessage(error instanceof Error ? error.message : "Failed to load podcast script")
+        return null
       }
     },
     [loadCurrentAudio, startScriptPolling, stopPolling]

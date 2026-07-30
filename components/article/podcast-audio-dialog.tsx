@@ -361,8 +361,12 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
       return
     }
 
-    void loadLatestScript(articleId, podcastType)
-  }, [articleId, hasArticleId, loadLatestScript, open, podcastType, reset, resetMerge, stopPolling])
+    void loadLatestScript(articleId).then((latestScript) => {
+      if (latestScript) {
+        setPodcastType(latestScript.podcast_type)
+      }
+    })
+  }, [articleId, hasArticleId, loadLatestScript, open, reset, resetMerge, stopPolling])
 
   useEffect(() => {
     if (!open || !hasArticleId) return
@@ -879,7 +883,13 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                   <Label htmlFor="podcast-audio-type">{t("podcastAudioDialog.podcastTypeLabel")}</Label>
                   <Select
                     value={podcastType}
-                    onValueChange={(value) => setPodcastType(value as PodcastType)}
+                    onValueChange={(value) => {
+                      const nextPodcastType = value as PodcastType
+                      setPodcastType(nextPodcastType)
+                      if (hasArticleId) {
+                        void loadLatestScript(articleId, nextPodcastType)
+                      }
+                    }}
                     disabled={isBusyState(scriptState)}
                   >
                     <SelectTrigger id="podcast-audio-type" className="w-full">
