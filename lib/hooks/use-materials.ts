@@ -7,16 +7,12 @@ import {
 } from "@/lib/api/materials/client"
 import type {
   Material,
-  MaterialLog,
   MaterialType,
-  MaterialStatus,
 } from "@/lib/api/materials/types"
-import { UI_TAB_TO_API_TYPE } from "@/lib/api/materials/enums"
 import { isSupportedImageFile } from "@/lib/upload-file"
-import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 
 // Re-export types for use in other modules
-export type { Material, MaterialLog, MaterialType, MaterialStatus } from "@/lib/api/materials/types"
+export type { Material, MaterialType } from "@/lib/api/materials/types"
 
 export interface UploadForm {
   name: string
@@ -31,19 +27,6 @@ export interface UploadErrors {
   content?: string
 }
 
-export interface PaginationState {
-  page: number
-  pageSize: number
-  total: number
-}
-
-export interface MaterialsState {
-  materials: Material[]
-  materialLogs: MaterialLog[]
-  materialsPagination: PaginationState
-  logsPagination: PaginationState
-}
-
 export function useMaterials() {
   const { toast } = useToast()
   const { t } = useTranslation()
@@ -51,20 +34,16 @@ export function useMaterials() {
   // ==================== 状态管理 ====================
 
   const [materials, setMaterials] = useState<Material[]>([])
-  const [materialLogs, setMaterialLogs] = useState<MaterialLog[]>([])
   const [loading, setLoading] = useState(false)
-  const [searching, setSearching] = useState(false)
   const [pagination, setPagination] = useState<{
     materials: { page: number; pageSize: number; total: number }
-    logs: { page: number; pageSize: number; total: number }
   }>({
     materials: { page: 1, pageSize: 10, total: 0 },
-    logs: { page: 1, pageSize: 10, total: 0 },
   })
 
   // 更新分页的辅助函数
   const updatePagination = useCallback(
-    (type: 'materials' | 'logs', updates: Partial<{ page: number; pageSize: number }>) => {
+    (type: 'materials', updates: Partial<{ page: number; pageSize: number }>) => {
       setPagination((prev) => ({
         ...prev,
         [type]: { ...prev[type], ...updates },
@@ -121,149 +100,6 @@ export function useMaterials() {
       }
     },
     [pagination.materials.page, pagination.materials.pageSize, toast, t]
-  )
-
-  const fetchSearchLogs = useCallback(
-    async (logTypeFilter?: string, logStatusFilter?: string) => {
-      const result = await materialsClient.getSearchLogs({
-        page: pagination.logs.page,
-        page_size: pagination.logs.pageSize,
-        type: logTypeFilter && logTypeFilter !== "all" ? (logTypeFilter as MaterialType) : undefined,
-        status:
-          logStatusFilter && logStatusFilter !== "all"
-            ? (logStatusFilter as MaterialStatus)
-            : undefined,
-      })
-
-      if ("error" in result) {
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.materials.toast.fetchLogsFailed"),
-          description: result.error,
-        })
-        return false
-      } else {
-        setMaterialLogs(result.list)
-        setPagination((prev) => ({
-          ...prev,
-          logs: { ...prev.logs, total: result.total },
-        }))
-        return true
-      }
-    },
-    [pagination.logs.page, pagination.logs.pageSize, toast, t]
-  )
-
-  // ==================== 搜索功能 ====================
-
-  const checkSearchStatus = useCallback(async (): Promise<boolean> => {
-    const result = await materialsClient.getSearchLogs({
-      page: 1,
-      page_size: 10,
-      status: "doing", // 只查询进行中的搜索
-    })
-
-    if ("error" in result) {
-      console.warn("[Materials] Failed to check search status; retrying", {
-        error: result.error,
-      })
-      throw new Error(String(result.error))
-    }
-
-    // 每次轮询都刷新搜索日志列表（让用户看到最新状态）
-    await fetchSearchLogs()
-
-    // 如果没有进行中的搜索，说明搜索已完成
-    const allCompleted = result.list.length === 0
-
-    if (allCompleted) {
-      // 刷新素材列表
-      await fetchMaterials()
-
-      toast({
-        title: t("contentWriting.materials.toast.searchCompleted"),
-      })
-    }
-
-    return allCompleted
-  }, [fetchMaterials, fetchSearchLogs, toast, t])
-
-  const {
-    startPolling: startAdaptiveSearchPolling,
-    stopPolling: stopAdaptiveSearchPolling,
-  } = useAdaptivePolling({
-    poll: async () => {
-      const completed = await checkSearchStatus()
-      return completed ? "stop" : "continue"
-    },
-    onTimeout: () => {
-      console.warn("[Materials] Search polling timed out")
-      setSearching(false)
-    },
-    policy: {
-      fastIntervalMs: 3_000,
-      standardIntervalMs: 5_000,
-      slowIntervalMs: 10_000,
-      timeoutMs: 10 * 60 * 1000,
-    },
-    debugLabel: "materials-search",
-  })
-
-  const startSearchPolling = useCallback(() => {
-    stopAdaptiveSearchPolling()
-    startAdaptiveSearchPolling()
-  }, [startAdaptiveSearchPolling, stopAdaptiveSearchPolling])
-
-  const handleSearch = useCallback(
-    async (searchQuery: string, activeSearchTab: string) => {
-      if (!searchQuery.trim()) return
-
-      // 验证搜索长度
-      const trimmedQuery = searchQuery.trim()
-      const chineseCharCount = (trimmedQuery.match(/[\u4e00-\u9fa5]/g) || []).length
-      const englishWordCount = trimmedQuery.split(/\s+/).filter(word =>
-        word.length > 0 && /[a-zA-Z]/.test(word)
-      ).length
-
-      // 检查是否太短：中文少于2个字，或英文少于1个单词（或总长度少于2个字符）
-      if (chineseCharCount < 2 && englishWordCount < 1 && trimmedQuery.length < 2) {
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.materials.errors.searchTooShort"),
-        })
-        return
-      }
-
-      setSearching(true)
-
-      // 映射 UI Tab 到 API 枚举值
-      const materialType = UI_TAB_TO_API_TYPE[activeSearchTab]
-
-      const result = await materialsClient.search(materialType, searchQuery)
-
-      if ("error" in result) {
-        toast({
-          variant: "destructive",
-          title: t("contentWriting.materials.toast.searchStartFailed"),
-          description: result.error,
-        })
-        setSearching(false)
-        return false
-      }
-
-      // 搜索任务创建成功，立即解锁搜索 bar（允许用户继续输入）
-      setSearching(false)
-
-      // 显示提示并开始后台轮询
-      toast({
-        title: t("contentWriting.materials.toast.searchStarted"),
-        description: t("contentWriting.materials.toast.searchStartedDesc"),
-      })
-
-      startSearchPolling()
-      return true
-    },
-    [startSearchPolling, toast, t]
   )
 
   // ==================== CRUD 操作 ====================
@@ -490,9 +326,7 @@ export function useMaterials() {
   return {
     // 状态
     materials,
-    materialLogs,
     loading,
-    searching,
     pagination,
     editingMaterial,
     deletingId,
@@ -511,10 +345,6 @@ export function useMaterials() {
 
     // 数据获取
     fetchMaterials,
-    fetchSearchLogs,
-
-    // 搜索
-    handleSearch,
 
     // CRUD
     handleDelete,

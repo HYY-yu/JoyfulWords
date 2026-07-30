@@ -41,20 +41,6 @@ export interface Material {
 }
 
 /**
- * 搜索日志实体
- */
-export interface MaterialLog {
-  id: number
-  user_id: number
-  material_type: MaterialType
-  status: MaterialStatus
-  query: string // 查询的字符串
-  remark: string // 搜索执行信息
-  created_at: string // ISO 8601 格式时间
-  updated_at: string // ISO 8601 格式时间
-}
-
-/**
  * 收藏实体
  */
 export interface MaterialFavorite {
@@ -99,16 +85,6 @@ export interface GetMaterialsRequest {
   name?: string // 标题筛选（模糊搜索）
   type?: MaterialType // 素材类型过滤
   article_id?: number // 按文章 ID 筛选素材
-}
-
-/**
- * 获取搜索日志请求参数
- */
-export interface GetSearchLogsRequest {
-  page?: number // 页码，从 1 开始，默认 1
-  page_size?: number // 每页数量，默认 20，最大 100
-  type?: MaterialType // 素材类型过滤
-  status?: MaterialStatus // 状态过滤
 }
 
 /**
@@ -257,14 +233,6 @@ export interface GetPresignedUrlRequest {
 export interface MaterialListResponse {
   total: number
   list: Material[]
-}
-
-/**
- * 搜索日志列表响应
- */
-export interface MaterialLogListResponse {
-  total: number
-  list: MaterialLog[]
 }
 
 /**

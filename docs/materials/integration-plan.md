@@ -4,6 +4,10 @@
 > **状态**: 规划中 📋
 > **优先级**: 高 🔴
 > **预计工作量**: 中等
+>
+> **历史说明**: 本计划记录最初的 `/materials/search` 自动导入实现。该前端流程已于
+> 2026-07-30 删除；当前实现以 `docs/materials/MATERIAL_API_GUIDE.md` 和
+> `components/article/editor-material-panel.tsx` 的 `/materials/search-v2` 调用链为准。
 
 ---
 

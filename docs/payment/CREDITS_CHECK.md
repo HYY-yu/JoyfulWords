@@ -19,7 +19,7 @@
 
 | 接口路径 | 方法 | 最低积分要求 | 功能说明 |
 |---------|------|-------------|---------|
-| `/materials/search` | POST | **40 积分** | 触发素材搜索（通过 n8n） |
+| `/materials/search-v2` | POST | **40 积分** | 触发素材搜索 |
 | `/social/fetch` | POST | **10 积分** | 抓取社交媒体内容 |
 | `/article/ai-write` | POST | **10 积分** | AI 生成文章 |
 | `/article/edit` | POST | **10 积分** | AI 编辑文章 |
@@ -305,7 +305,7 @@ async function handleInsufficientCredits(data: CreditsData) {
 2. **Mock 测试**:
    ```typescript
    // Mock 402 响应
-   mockApi.post('/materials/search').reply(402, {
+   mockApi.post('/materials/search-v2').reply(402, {
      error: '积分余额不足',
      data: {
        current_credits: 25,

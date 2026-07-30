@@ -3,7 +3,6 @@ import { putFileToPresignedUrl, resolveUploadContentType } from '@/lib/upload-fi
 import type {
   SearchMaterialsRequest,
   GetMaterialsRequest,
-  GetSearchLogsRequest,
   CreateMaterialRequest,
   UpdateMaterialRequest,
   GetPresignedUrlRequest,
@@ -12,7 +11,6 @@ import type {
   ParseMaterialPreviewRequest,
   CreateMaterialFavoriteRequest,
   MaterialListResponse,
-  MaterialLogListResponse,
   MaterialFavoriteListResponse,
   CreateMaterialResponse,
   CreateMaterialFavoriteResponse,
@@ -32,43 +30,7 @@ import type {
  */
 export const materialsClient = {
   /**
-   * 1. 触发素材搜索
-   * POST /materials/search
-   *
-   * 调用 n8n 工作流进行异步素材搜索
-   *
-   * @param materialType - 素材类型 (info/news/image)
-   * @param searchText - 搜索关键词 (1-500 字符)
-   * @returns Promise<MessageResponse | ErrorResponse>
-   *
-   * @example
-   * const result = await materialsClient.search('news', 'AI技术')
-   * if ('error' in result) {
-   *   console.error(result.error)
-   * } else {
-   *   console.log(result.message) // "OK"
-   * }
-   */
-  async search(
-    materialType: SearchMaterialsRequest['material_type'],
-    searchText: SearchMaterialsRequest['search_text'],
-    params?: Pick<SearchMaterialsRequest, 'page' | 'page_size'>,
-    options?: { signal?: AbortSignal }
-  ): Promise<MessageResponse | ErrorResponse> {
-    return authenticatedApiRequest<MessageResponse>('/materials/search', {
-      method: 'POST',
-      signal: options?.signal,
-      body: JSON.stringify({
-        material_type: materialType,
-        search_text: searchText,
-        page: params?.page,
-        page_size: params?.page_size,
-      } as SearchMaterialsRequest),
-    })
-  },
-
-  /**
-   * 2. 触发素材搜索 V2
+   * 1. 触发素材搜索 V2
    * POST /materials/search-v2
    *
    * 返回 material_logs.id，供前端轮询详情接口。
@@ -92,40 +54,7 @@ export const materialsClient = {
   },
 
   /**
-   * 2. 获取搜索日志列表
-   * GET /materials/search-logs/list
-   *
-   * 查看用户的素材搜索历史记录
-   *
-   * @param params - 查询参数
-   * @returns Promise<MaterialLogListResponse | ErrorResponse>
-   *
-   * @example
-   * const result = await materialsClient.getSearchLogs({
-   *   page: 1,
-   *   page_size: 20,
-   *   type: 'news',
-   *   status: 'success'
-   * })
-   */
-  async getSearchLogs(
-    params?: GetSearchLogsRequest
-  ): Promise<MaterialLogListResponse | ErrorResponse> {
-    // 构建 URL 查询参数
-    const searchParams = new URLSearchParams()
-    if (params?.page) searchParams.append('page', String(params.page))
-    if (params?.page_size) searchParams.append('page_size', String(params.page_size))
-    if (params?.type) searchParams.append('type', params.type)
-    if (params?.status) searchParams.append('status', params.status)
-
-    const queryString = searchParams.toString()
-    const url = queryString ? `/materials/search-logs/list?${queryString}` : '/materials/search-logs/list'
-
-    return authenticatedApiRequest<MaterialLogListResponse>(url)
-  },
-
-  /**
-   * 4. 获取搜索结果详情
+   * 2. 获取搜索结果详情
    * GET /materials/search-logs/:id
    */
   async getSearchLogDetail(
