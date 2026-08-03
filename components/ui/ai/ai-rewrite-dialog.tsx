@@ -3,8 +3,11 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "../base/button";
 import {
+  ArrowRightIcon,
   SparklesIcon,
   Loader2Icon,
   CheckIcon,
@@ -65,6 +68,86 @@ const STRUCT_TYPE_OPTIONS: StructType[] = [
   "Short-Sentencing",
   "Data-Highlighting",
 ];
+
+function StructureMarkdownPreview({ markdown }: { markdown: string }) {
+  return (
+    <div className="min-w-0 text-[13px] leading-5 text-foreground/85 [overflow-wrap:anywhere] [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-primary/30 [&_blockquote]:pl-2.5 [&_blockquote]:text-muted-foreground [&_del]:text-muted-foreground [&_h3]:mb-1.5 [&_h3]:mt-0 [&_h3]:text-[13px] [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-1 [&_strong]:font-semibold [&_strong]:text-foreground [&_table]:my-1 [&_table]:w-full [&_table]:text-left [&_td]:border-t [&_td]:border-border/60 [&_td]:py-1 [&_td]:pr-2 [&_th]:pb-1 [&_th]:pr-2 [&_th]:text-[11px] [&_th]:font-medium [&_th]:text-muted-foreground [&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-4">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+    </div>
+  );
+}
+
+function StructurePreviewCard({
+  title,
+  description,
+  before,
+  after,
+  beforeLabel,
+  afterLabel,
+  selected,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  before: string;
+  after: string;
+  beforeLabel: string;
+  afterLabel: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={cn(
+        "group flex w-full flex-col rounded-xl border p-3.5 text-left transition-[border-color,background-color,box-shadow] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 xl:last:col-span-2",
+        selected
+          ? "border-primary bg-primary/[0.04] shadow-sm"
+          : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-foreground">{title}</div>
+          <div className="mt-0.5 text-xs leading-5 text-muted-foreground">{description}</div>
+        </div>
+        <div
+          className={cn(
+            "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+            selected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-muted-foreground/30 bg-background text-transparent group-hover:border-primary/50"
+          )}
+          aria-hidden="true"
+        >
+          <CheckIcon className="h-3 w-3" />
+        </div>
+      </div>
+
+      <div className="mt-3 grid min-w-0 flex-1 grid-cols-1 items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+        <div className="min-w-0 rounded-lg bg-muted/45 px-3 py-2.5">
+          <div className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            {beforeLabel}
+          </div>
+          <StructureMarkdownPreview markdown={before} />
+        </div>
+
+        <div className="flex items-center justify-center text-muted-foreground/60" aria-hidden="true">
+          <ArrowRightIcon className="h-4 w-4 rotate-90 sm:rotate-0" />
+        </div>
+
+        <div className="min-w-0 rounded-lg border border-primary/15 bg-primary/[0.045] px-3 py-2.5">
+          <div className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-primary/75">
+            {afterLabel}
+          </div>
+          <StructureMarkdownPreview markdown={after} />
+        </div>
+      </div>
+    </button>
+  );
+}
 
 function RewriteSelectionCard({
   title,
@@ -406,6 +489,8 @@ export function AIRewriteDialog({
     value,
     label: t(`aiRewrite.struct.structures.${value}`),
     description: t(`aiRewrite.struct.descriptions.${value}`),
+    before: t(`aiRewrite.struct.examples.${value}.before`),
+    after: t(`aiRewrite.struct.examples.${value}.after`),
   }));
 
   return (
@@ -719,12 +804,16 @@ export function AIRewriteDialog({
                 {rewriteType === 'struct' && (
                   <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
                     <Label>{t("aiRewrite.struct.selectStructure")}</Label>
-                    <div className="grid min-h-[132px] w-full flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-md border p-2 md:grid-cols-2">
+                    <div className="grid min-h-[132px] w-full flex-1 grid-cols-1 gap-2 overflow-y-auto rounded-md border bg-muted/10 p-2 xl:grid-cols-2">
                       {structOptions.map((option) => (
-                        <RewriteSelectionCard
+                        <StructurePreviewCard
                           key={option.value}
                           title={option.label}
                           description={option.description}
+                          before={option.before}
+                          after={option.after}
+                          beforeLabel={t("aiRewrite.struct.before")}
+                          afterLabel={t("aiRewrite.struct.after")}
                           selected={selectedStructType === option.value}
                           onClick={() => setSelectedStructType(option.value)}
                         />

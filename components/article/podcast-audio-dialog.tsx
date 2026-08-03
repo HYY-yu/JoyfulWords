@@ -36,6 +36,8 @@ import { useToast } from "@/hooks/use-toast"
 import {
   PODCAST_LANGUAGES,
   PODCAST_TYPES,
+  filterPodcastVoicesByLanguage,
+  resolvePodcastVoiceLanguage,
   type PodcastTTSVoice,
   type PodcastTTSVoicesResponse,
   type PodcastLanguage,
@@ -54,7 +56,7 @@ interface PodcastAudioDialogProps {
   articleId?: number | null
 }
 
-const TTS_VOICE_CACHE_KEY = "joyfulwords-podcast-tts-voices-v1"
+const TTS_VOICE_CACHE_KEY = "joyfulwords-podcast-tts-voices-v2"
 const TTS_VOICE_CACHE_TTL_MS = 60 * 60 * 1000
 
 interface CachedTTSVoices {
@@ -127,24 +129,15 @@ function isValidTTSVoiceResponse(value: unknown): value is PodcastTTSVoicesRespo
         typeof voice === "object" &&
         typeof (voice as PodcastTTSVoice).id === "string" &&
         typeof (voice as PodcastTTSVoice).display_name === "string" &&
-        Array.isArray((voice as PodcastTTSVoice).languages)
+        Array.isArray((voice as PodcastTTSVoice).languages) &&
+        ((voice as PodcastTTSVoice).preview_urls === undefined ||
+          ((voice as PodcastTTSVoice).preview_urls !== null &&
+            typeof (voice as PodcastTTSVoice).preview_urls === "object" &&
+            Object.values((voice as PodcastTTSVoice).preview_urls ?? {}).every(
+              (previewUrl) => typeof previewUrl === "string"
+            )))
     )
   )
-}
-
-function getStoredLocalePreviewLanguage(): string {
-  if (typeof window === "undefined") return "en"
-
-  const storedLocale = window.localStorage.getItem("locale")
-  return storedLocale?.toLowerCase().startsWith("zh") ? "zh" : "en"
-}
-
-function resolveVoicePreviewLanguage(language: PodcastLanguage): string {
-  if (language === "auto") {
-    return getStoredLocalePreviewLanguage()
-  }
-
-  return language
 }
 
 function getVoicePreviewCacheKey(voiceId: string, language: string): string {
@@ -192,10 +185,11 @@ function writeCachedTTSVoices(response: PodcastTTSVoicesResponse) {
 }
 
 export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAudioDialogProps) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const { toast } = useToast()
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const previewAudioRef = useRef<HTMLAudioElement | null>(null)
+  const previewRequestPromisesRef = useRef<Map<string, Promise<string>>>(new Map())
   const pendingSavedSegmentIdsRef = useRef<Set<string> | null>(null)
   const submittingSegmentRegenerationIdsRef = useRef<Set<string>>(new Set())
   const [podcastType, setPodcastType] = useState<PodcastType>("news_broadcast")
@@ -245,6 +239,56 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   const scriptJson = script?.script_json ?? null
   const participants = useMemo(() => scriptJson?.participants ?? [], [scriptJson])
   const scriptSegments = useMemo(() => scriptJson?.segments ?? [], [scriptJson])
+  const voiceLanguage = resolvePodcastVoiceLanguage(language, locale)
+  const availableTTSVoices = useMemo(
+    () => filterPodcastVoicesByLanguage(ttsVoices, voiceLanguage),
+    [ttsVoices, voiceLanguage]
+  )
+  const ensureVoicePreviewURL = useCallback(
+    async (voiceId: string, previewLanguage: string): Promise<string> => {
+      const previewKey = getVoicePreviewCacheKey(voiceId, previewLanguage)
+      const inFlightRequest = previewRequestPromisesRef.current.get(previewKey)
+      if (inFlightRequest) return inFlightRequest
+
+      const requestPromise = (async () => {
+        const result = await podcastClient.previewTTSVoice(voiceId, {
+          language: previewLanguage,
+        })
+
+        if (isErrorResponse(result)) {
+          console.warn("[PodcastAudioDialog] Failed to load TTS voice preview", {
+            voiceId,
+            language: previewLanguage,
+            error: result.error,
+            status: result.status,
+          })
+          throw new Error(result.error || t("podcastAudioDialog.toast.voicePreviewFailedDesc"))
+        }
+
+        setVoicePreviewUrls((current) => ({
+          ...current,
+          [previewKey]: result.preview_url,
+        }))
+        console.info("[PodcastAudioDialog] Loaded TTS voice preview", {
+          voiceId,
+          requestedLanguage: previewLanguage,
+          cached: result.cached,
+          language: result.language,
+        })
+        return result.preview_url
+      })()
+
+      previewRequestPromisesRef.current.set(previewKey, requestPromise)
+      try {
+        return await requestPromise
+      } finally {
+        if (previewRequestPromisesRef.current.get(previewKey) === requestPromise) {
+          previewRequestPromisesRef.current.delete(previewKey)
+        }
+      }
+    },
+    [t]
+  )
   const estimatedDurationSeconds = scriptJson?.estimated_duration_seconds ?? 0
   const changedScriptSegments = useMemo(
     () =>
@@ -315,11 +359,11 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
       : 0
   const canGenerateScript = hasArticleId && !isBusyState(scriptState)
   const canSaveScriptText = Boolean(script?.id && scriptState === "success" && hasScriptTextChanges && !updatingScript)
-  const hasVoiceOptions = ttsVoices.length > 0 && !voiceLoadError
+  const hasVoiceOptions = availableTTSVoices.length > 0 && !voiceLoadError
   const hasValidVoiceMap =
     participants.length === 0 ||
     participants.every((participant) =>
-      ttsVoices.some((voice) => voice.id === voiceMap[participant.id])
+      availableTTSVoices.some((voice) => voice.id === voiceMap[participant.id])
     )
   const canGenerateAudio = Boolean(
     script?.id &&
@@ -388,6 +432,15 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
 
       const nextVoices = response.voices
       setTtsVoices(nextVoices)
+      setVoicePreviewUrls((current) => {
+        const next = { ...current }
+        nextVoices.forEach((voice) => {
+          Object.entries(voice.preview_urls ?? {}).forEach(([language, previewUrl]) => {
+            next[getVoicePreviewCacheKey(voice.id, language)] = previewUrl
+          })
+        })
+        return next
+      })
       setPreferredVoice(
         nextVoices.some((voice) => voice.id === response.default_voice)
           ? response.default_voice
@@ -464,9 +517,9 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
 
       participants.forEach((participant, index) => {
         const hasValidVoice =
-          next[participant.id] && ttsVoices.some((voice) => voice.id === next[participant.id])
+          next[participant.id] && availableTTSVoices.some((voice) => voice.id === next[participant.id])
         if (hasValidVoice && manuallySelectedSpeakerIds.has(participant.id)) return
-        next[participant.id] = pickVoiceId(ttsVoices, preferredVoice, index, rotateVoices)
+        next[participant.id] = pickVoiceId(availableTTSVoices, preferredVoice, index, rotateVoices)
         changed = true
       })
 
@@ -478,7 +531,65 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
 
       return changed ? next : current
     })
-  }, [manuallySelectedSpeakerIds, participants, preferredVoice, ttsVoices])
+  }, [availableTTSVoices, manuallySelectedSpeakerIds, participants, preferredVoice])
+
+  useEffect(() => {
+    if (!open || loadingPreviewKey || playingPreviewKey || !previewAudioRef.current) return
+
+    const selectedVoiceId =
+      participants.map((participant) => voiceMap[participant.id]).find(Boolean) || preferredVoice
+    if (!selectedVoiceId) return
+
+    const previewKey = getVoicePreviewCacheKey(selectedVoiceId, voiceLanguage)
+    const previewUrl = voicePreviewUrls[previewKey]
+    if (!previewUrl) return
+
+    const previewAudio = previewAudioRef.current
+    if (previewAudio.src !== previewUrl) {
+      let cancelled = false
+      const handlePreloadError = () => {
+        console.info("[PodcastAudioDialog] Preloaded TTS preview is missing; warming it in background", {
+          voiceId: selectedVoiceId,
+          language: voiceLanguage,
+        })
+        void ensureVoicePreviewURL(selectedVoiceId, voiceLanguage)
+          .then((warmedPreviewUrl) => {
+            if (cancelled || previewAudioRef.current !== previewAudio) return
+            if (previewAudio.src !== previewUrl) return
+            previewAudio.src = warmedPreviewUrl
+            previewAudio.load()
+          })
+          .catch((error) => {
+            console.warn("[PodcastAudioDialog] Failed to warm TTS voice preview", {
+              voiceId: selectedVoiceId,
+              language: voiceLanguage,
+              error,
+            })
+          })
+      }
+      previewAudio.addEventListener("error", handlePreloadError, { once: true })
+      previewAudio.src = previewUrl
+      previewAudio.load()
+      console.debug("[PodcastAudioDialog] Preloading TTS voice preview", {
+        voiceId: selectedVoiceId,
+        language: voiceLanguage,
+      })
+      return () => {
+        cancelled = true
+        previewAudio.removeEventListener("error", handlePreloadError)
+      }
+    }
+  }, [
+    ensureVoicePreviewURL,
+    loadingPreviewKey,
+    open,
+    participants,
+    playingPreviewKey,
+    preferredVoice,
+    voiceLanguage,
+    voiceMap,
+    voicePreviewUrls,
+  ])
 
   useEffect(() => {
     setManuallySelectedSpeakerIds((current) => {
@@ -594,7 +705,9 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   const handleGenerateAudio = async () => {
     if (!script?.id || !canGenerateAudio) return
     const nextVoiceMap = buildVoiceMap()
-    const firstVoice = participants[0] ? nextVoiceMap[participants[0].id] : ttsVoices[0]?.id
+    const firstVoice = participants[0]
+      ? nextVoiceMap[participants[0].id]
+      : availableTTSVoices[0]?.id
 
     await createAudio(script.id, {
       default_voice: firstVoice,
@@ -618,7 +731,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
   const handlePreviewVoice = async (voiceId: string) => {
     if (!voiceId || loadingPreviewKey) return
 
-    const previewLanguage = resolveVoicePreviewLanguage(language)
+    const previewLanguage = voiceLanguage
     const previewKey = getVoicePreviewCacheKey(voiceId, previewLanguage)
 
     if (playingPreviewKey === previewKey) {
@@ -633,42 +746,43 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
 
     try {
       let previewUrl = voicePreviewUrls[previewKey]
+      let previewResolvedByAPI = false
+
       if (!previewUrl) {
-        const result = await podcastClient.previewTTSVoice(voiceId, {
-          language: previewLanguage,
-        })
-
-        if (isErrorResponse(result)) {
-          console.warn("[PodcastAudioDialog] Failed to load TTS voice preview", {
-            voiceId,
-            language: previewLanguage,
-            error: result.error,
-            status: result.status,
-          })
-          toast({
-            title: t("podcastAudioDialog.toast.voicePreviewFailed"),
-            description: result.error || t("podcastAudioDialog.toast.voicePreviewFailedDesc"),
-          })
-          return
-        }
-
-        previewUrl = result.preview_url
-        setVoicePreviewUrls((current) => ({
-          ...current,
-          [previewKey]: previewUrl,
-        }))
-        console.info("[PodcastAudioDialog] Loaded TTS voice preview", {
-          voiceId,
-          requestedLanguage: previewLanguage,
-          cached: result.cached,
-          language: result.language,
-        })
+        previewUrl = await ensureVoicePreviewURL(voiceId, previewLanguage)
+        previewResolvedByAPI = true
       }
 
       if (!previewAudioRef.current) return
 
-      previewAudioRef.current.src = previewUrl
-      await previewAudioRef.current.play()
+      const playPreview = async (forceReload = false) => {
+        if (!previewAudioRef.current) return
+        if (forceReload || previewAudioRef.current.src !== previewUrl) {
+          previewAudioRef.current.src = previewUrl
+          previewAudioRef.current.load()
+        }
+        await previewAudioRef.current.play()
+      }
+
+      try {
+        await playPreview()
+      } catch (error) {
+        const shouldGenerate =
+          !previewResolvedByAPI &&
+          Boolean(
+            previewAudioRef.current?.error ||
+              (error instanceof DOMException && error.name === "NotSupportedError")
+          )
+        if (!shouldGenerate) throw error
+
+        console.info("[PodcastAudioDialog] Preloaded TTS preview is unavailable; generating it", {
+          voiceId,
+          language: previewLanguage,
+        })
+        previewUrl = await ensureVoicePreviewURL(voiceId, previewLanguage)
+        previewResolvedByAPI = true
+        await playPreview(true)
+      }
       setPlayingPreviewKey(previewKey)
     } catch (error) {
       console.error("[PodcastAudioDialog] Failed to play TTS voice preview", {
@@ -960,7 +1074,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                                 <SelectValue placeholder={t("podcastAudioDialog.voiceSelectPlaceholder")} />
                               </SelectTrigger>
                               <SelectContent>
-                                {ttsVoices.map((voice) => (
+                                {availableTTSVoices.map((voice) => (
                                   <SelectItem key={voice.id} value={voice.id}>
                                     {getVoiceDisplayName(voice)}
                                   </SelectItem>
@@ -972,7 +1086,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                               const previewKey = selectedVoiceId
                                 ? getVoicePreviewCacheKey(
                                     selectedVoiceId,
-                                    resolveVoicePreviewLanguage(language)
+                                    voiceLanguage
                                   )
                                 : ""
 
@@ -1263,7 +1377,7 @@ export function PodcastAudioDialog({ open, onOpenChange, articleId }: PodcastAud
                   />
                   <audio
                     ref={previewAudioRef}
-                    preload="metadata"
+                    preload="auto"
                     onEnded={() => setPlayingPreviewKey(null)}
                     onPause={() => setPlayingPreviewKey(null)}
                   />

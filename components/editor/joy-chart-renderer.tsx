@@ -1,6 +1,6 @@
 "use client"
 
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react"
 import * as echarts from "echarts"
 import type { ECharts } from "echarts"
 import type { JoyChartSpec } from "@/lib/api/echarts/types"
@@ -20,7 +20,8 @@ export const JoyChartRenderer = forwardRef<JoyChartRendererHandle, JoyChartRende
   function JoyChartRenderer({ spec, className }, ref) {
     const containerRef = useRef<HTMLDivElement | null>(null)
     const chartRef = useRef<ECharts | null>(null)
-    const option = useMemo(() => createJoyChartOption(spec), [spec])
+    const [viewport, setViewport] = useState({ width: 0, height: 0 })
+    const option = useMemo(() => createJoyChartOption(spec, viewport), [spec, viewport])
 
     useImperativeHandle(ref, () => ({
       exportPng: () =>
@@ -37,8 +38,13 @@ export const JoyChartRenderer = forwardRef<JoyChartRendererHandle, JoyChartRende
       const chart = echarts.init(containerRef.current)
       chartRef.current = chart
 
-      const resizeObserver = new ResizeObserver(() => {
+      const resizeObserver = new ResizeObserver(([entry]) => {
         chart.resize()
+        const width = Math.round(entry?.contentRect.width ?? 0)
+        const height = Math.round(entry?.contentRect.height ?? 0)
+        setViewport((current) =>
+          current.width === width && current.height === height ? current : { width, height }
+        )
       })
       resizeObserver.observe(containerRef.current)
 

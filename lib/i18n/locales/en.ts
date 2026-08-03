@@ -1944,13 +1944,28 @@ export const en = {
             vertical: "Vertical",
             horizontal: "Horizontal",
         },
+        positions: {
+            top: "Top",
+            bottom: "Bottom",
+            left: "Left",
+            right: "Right",
+        },
+        alignments: {
+            left: "Left",
+            center: "Center",
+            right: "Right",
+        },
         actions: {
             reset: "Reset",
         },
         display: {
             theme: "Theme",
             sort: "Sort",
+            title: "Title",
+            titlePosition: "Title position",
+            titleAlign: "Title alignment",
             legend: "Legend",
+            legendPosition: "Legend position",
             tooltip: "Tooltip",
             label: "Data labels",
             grid: "Grid lines",
@@ -2415,6 +2430,8 @@ export const en = {
         },
         struct: {
             selectStructure: "Structure Optimization",
+            before: "Before",
+            after: "After",
             structures: {
                 "De-Redundancy": "Remove Redundancy",
                 "Information-Layering": "Information Layering",
@@ -2428,6 +2445,28 @@ export const en = {
                 "Point-Form": "Convert paragraph to bulleted list",
                 "Short-Sentencing": "Break long sentences into shorter ones",
                 "Data-Highlighting": "Emphasize key data and important information"
+            },
+            examples: {
+                "De-Redundancy": {
+                    before: "I personally think that this plan is currently quite feasible, and I feel we can move forward soon.",
+                    after: "This plan is **feasible** and can move forward **soon**."
+                },
+                "Information-Layering": {
+                    before: "After the new release, sign-ups grew 28%, paid conversion rose 6%, and most growth came from mobile users.",
+                    after: "### Key results\n\nSign-ups grew **28%**, while paid conversion rose **6%**.\n\n> Primary source: mobile users"
+                },
+                "Point-Form": {
+                    before: "This week we need to confirm requirements, finish visual design, schedule development, and share risks by Friday.",
+                    after: "- Confirm requirements\n- Finish visual design\n- Schedule development\n- Share risks by Friday"
+                },
+                "Short-Sentencing": {
+                    before: "Because requirements changed several times and the deadline moved forward, the team must reassess the scope and prioritize core features.",
+                    after: "Requirements changed several times.  \nThe deadline also moved forward.  \nThe team will reassess the scope.  \n**Core features come first.**"
+                },
+                "Data-Highlighting": {
+                    before: "This month we added 1,280 users, up 23% month over month, including 186 paid users.",
+                    after: "| Metric | Result |\n| --- | ---: |\n| New users | **1,280** |\n| MoM growth | **23%** |\n| Paid users | **186** |"
+                }
             }
         },
         toast: {

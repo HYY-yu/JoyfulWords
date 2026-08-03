@@ -97,7 +97,10 @@ export interface PodcastTTSVoice {
   id: string
   display_name: string
   languages: string[]
+  preview_urls?: Record<string, string>
 }
+
+export type PodcastVoiceLanguage = "zh" | "en"
 
 export interface PodcastTTSVoicesResponse {
   model_name: string
@@ -189,6 +192,27 @@ export const PODCAST_SAMPLE_RATES: PodcastSampleRate[] = [
   44100,
   48000,
 ]
+
+export function resolvePodcastVoiceLanguage(
+  language: PodcastLanguage,
+  interfaceLocale: string
+): PodcastVoiceLanguage {
+  if (language === "zh-CN") return "zh"
+  if (language === "en-US") return "en"
+
+  return interfaceLocale.trim().toLowerCase().startsWith("zh") ? "zh" : "en"
+}
+
+export function filterPodcastVoicesByLanguage(
+  voices: PodcastTTSVoice[],
+  language: PodcastVoiceLanguage
+): PodcastTTSVoice[] {
+  return voices.filter((voice) =>
+    voice.languages.some((voiceLanguage) =>
+      voiceLanguage.trim().toLowerCase().includes(language)
+    )
+  )
+}
 
 export function isPodcastTerminalStatus(status: PodcastGenerationStatus | string): boolean {
   return status === "success" || status === "failed"

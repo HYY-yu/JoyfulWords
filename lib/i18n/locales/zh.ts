@@ -1944,13 +1944,28 @@ export const zh = {
             vertical: "纵向",
             horizontal: "横向",
         },
+        positions: {
+            top: "顶部",
+            bottom: "底部",
+            left: "左侧",
+            right: "右侧",
+        },
+        alignments: {
+            left: "左对齐",
+            center: "居中",
+            right: "右对齐",
+        },
         actions: {
             reset: "重置",
         },
         display: {
             theme: "主题",
             sort: "排序",
+            title: "标题",
+            titlePosition: "标题位置",
+            titleAlign: "标题对齐",
             legend: "图例",
+            legendPosition: "图例位置",
             tooltip: "提示框",
             label: "数据标签",
             grid: "网格线",
@@ -2415,6 +2430,8 @@ export const zh = {
         },
         struct: {
             selectStructure: "结构优化",
+            before: "修改前",
+            after: "修改后",
             structures: {
                 "De-Redundancy": "去冗余表达",
                 "Information-Layering": "信息分层",
@@ -2428,6 +2445,28 @@ export const zh = {
                 "Point-Form": "转换为要点列表形式",
                 "Short-Sentencing": "拆分为简短易读的句子",
                 "Data-Highlighting": "突出关键数据和事实"
+            },
+            examples: {
+                "De-Redundancy": {
+                    before: "我个人认为，这个方案目前来说是比较可行的，并且我觉得可以尽快推进。",
+                    after: "这个方案**可行**，可以**尽快推进**。"
+                },
+                "Information-Layering": {
+                    before: "新版本上线后注册量增长 28%，付费转化率提升 6%，增长主要来自移动端用户。",
+                    after: "### 核心结果\n\n注册量增长 **28%**，付费转化率提升 **6%**。\n\n> 主要来源：移动端用户"
+                },
+                "Point-Form": {
+                    before: "本周需要完成需求确认、视觉设计和开发排期，并在周五前同步风险。",
+                    after: "- 确认需求\n- 完成视觉设计\n- 排定开发时间\n- 周五前同步风险"
+                },
+                "Short-Sentencing": {
+                    before: "因为需求变更较多且交付时间提前，所以团队需要重新评估范围并优先完成核心功能。",
+                    after: "需求发生多次变更。  \n交付时间也提前了。  \n团队将重新评估范围。  \n**优先完成核心功能。**"
+                },
+                "Data-Highlighting": {
+                    before: "本月新增用户 1280 人，较上月增长 23%，其中付费用户 186 人。",
+                    after: "| 指标 | 结果 |\n| --- | ---: |\n| 新增用户 | **1,280 人** |\n| 环比增长 | **23%** |\n| 付费用户 | **186 人** |"
+                }
             }
         },
         toast: {

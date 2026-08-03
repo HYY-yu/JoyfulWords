@@ -2,6 +2,17 @@ import type { EChartsOption } from "echarts"
 import type { JoyChartSpec } from "@/lib/api/echarts/types"
 import { mergeJoyChartDisplay } from "./joy-chart-defaults"
 
+export interface JoyChartViewport {
+  width: number
+  height: number
+}
+
+const DEFAULT_VIEWPORT: JoyChartViewport = { width: 640, height: 360 }
+const TITLE_SAFE_SIZE = 40
+const HORIZONTAL_LEGEND_SAFE_SIZE = 32
+const VERTICAL_LEGEND_SAFE_SIZE = 112
+const CARTESIAN_AXIS_NAME_TOP_SAFE_SIZE = 40
+
 const THEME_PALETTES: Record<string, string[]> = {
   vintage: ["#d87c7c", "#919e8b", "#d7ab82", "#6e7074", "#61a0a8", "#efa18d"],
   dark: ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa", "#22d3ee"],
@@ -119,7 +130,10 @@ function formatPercent(params: { name?: string; percent?: number; value?: unknow
   return percent ? `${params.name ?? ""} ${percent}` : String(params.value ?? "")
 }
 
-export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
+export function createJoyChartOption(
+  spec: JoyChartSpec,
+  viewport: JoyChartViewport = DEFAULT_VIEWPORT
+): EChartsOption {
   const display = mergeJoyChartDisplay(spec.display)
   const chartType = spec.chart.type
   const categoryKey = getCategoryKey(spec)
@@ -131,25 +145,92 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
   const palette = THEME_PALETTES[display.style.theme ?? "vintage"] ?? THEME_PALETTES.vintage
   const surface = getJoyChartSurface(display.style.theme)
   const title = spec.chart.title
+  const showTitle = Boolean(title && display.title)
+  const titlePosition = display.layout.titlePosition
+  const titleAlign = display.layout.titleAlign
+  const legendPosition = display.layout.legendPosition
+  const viewportWidth = Math.max(240, Math.round(viewport.width || DEFAULT_VIEWPORT.width))
+  const viewportHeight = Math.max(220, Math.round(viewport.height || DEFAULT_VIEWPORT.height))
+  const titleTop = showTitle && titlePosition === "top" ? TITLE_SAFE_SIZE : 0
+  const titleBottom = showTitle && titlePosition === "bottom" ? TITLE_SAFE_SIZE : 0
+  const legendTop = display.legend && legendPosition === "top" ? HORIZONTAL_LEGEND_SAFE_SIZE : 0
+  const legendBottom = display.legend && legendPosition === "bottom" ? HORIZONTAL_LEGEND_SAFE_SIZE : 0
+  const legendLeft = display.legend && legendPosition === "left" ? VERTICAL_LEGEND_SAFE_SIZE : 0
+  const legendRight = display.legend && legendPosition === "right" ? VERTICAL_LEGEND_SAFE_SIZE : 0
+  const titleOption = showTitle
+    ? {
+        text: title,
+        top: titlePosition === "top" ? 8 : undefined,
+        bottom: titlePosition === "bottom" ? 8 : undefined,
+        left: titleAlign === "left" ? 8 : titleAlign === "center" ? "center" : undefined,
+        right: titleAlign === "right" ? 8 : undefined,
+        textStyle: {
+          fontSize: 14,
+          color: surface.text,
+          width: Math.max(120, viewportWidth - 24),
+          overflow: "truncate" as const,
+        },
+      }
+    : undefined
+  const legendOption = display.legend
+    ? legendPosition === "left" || legendPosition === "right"
+      ? {
+          orient: "vertical" as const,
+          type: "scroll" as const,
+          left: legendPosition === "left" ? 4 : undefined,
+          right: legendPosition === "right" ? 4 : undefined,
+          top: titleTop + 8,
+          bottom: titleBottom + 8,
+          width: VERTICAL_LEGEND_SAFE_SIZE - 12,
+          textStyle: {
+            color: surface.mutedText,
+            width: VERTICAL_LEGEND_SAFE_SIZE - 36,
+            overflow: "truncate" as const,
+          },
+        }
+      : {
+          orient: "horizontal" as const,
+          type: "scroll" as const,
+          left: "center" as const,
+          top: legendPosition === "top" ? titleTop + 4 : undefined,
+          bottom: legendPosition === "bottom" ? titleBottom + 4 : undefined,
+          width: Math.max(120, viewportWidth - 16),
+          textStyle: { color: surface.mutedText },
+        }
+    : undefined
 
   if (chartType === "pie") {
     const pieItemNameKey = getPieItemNameKey(spec, categoryKey)
+    const safeLeft = legendLeft + 8
+    const safeRight = legendRight + 8
+    const safeTop = titleTop + legendTop + 8
+    const safeBottom = titleBottom + legendBottom + 8
+    const safeWidth = Math.max(120, viewportWidth - safeLeft - safeRight)
+    const safeHeight = Math.max(120, viewportHeight - safeTop - safeBottom)
+    const outerRadius = Math.max(42, Math.floor(Math.min(safeWidth, safeHeight) * 0.35))
     return {
       backgroundColor: surface.background,
       color: palette,
-      title: title ? { text: title, left: "center", top: 4, textStyle: { fontSize: 14, color: surface.text } } : undefined,
+      title: titleOption,
       tooltip: display.tooltip ? { trigger: "item" } : undefined,
-      legend: display.legend ? { bottom: 0, type: "scroll", textStyle: { color: surface.mutedText } } : undefined,
+      legend: legendOption,
       series: [
         {
           type: "pie",
-          radius: display.pie.donut ? ["42%", "70%"] : "70%",
+          radius: display.pie.donut
+            ? [Math.round(outerRadius * 0.6), outerRadius]
+            : outerRadius,
           roseType: display.pie.rose ? "radius" : undefined,
-          center: ["50%", display.legend ? "44%" : "52%"],
+          center: [safeLeft + safeWidth / 2, safeTop + safeHeight / 2],
+          avoidLabelOverlap: true,
+          minShowLabelAngle: 3,
           label: {
             show: display.label || display.pie.showPercent,
             formatter: display.pie.showPercent ? formatPercent : "{b}",
+            overflow: "truncate",
+            width: 96,
           },
+          labelLayout: { moveOverlap: "shiftY", hideOverlap: true },
           emphasis: display.style.emphasis ? { scale: true, scaleSize: 6 } : undefined,
           data: source.map((item) => ({
             name: String(item[pieItemNameKey] ?? ""),
@@ -213,14 +294,14 @@ export function createJoyChartOption(spec: JoyChartSpec): EChartsOption {
   return {
     backgroundColor: surface.background,
     color: palette,
-    title: title ? { text: title, left: 4, top: 0, textStyle: { fontSize: 14, color: surface.text } } : undefined,
+    title: titleOption,
     tooltip: display.tooltip ? { trigger: "axis" } : undefined,
-    legend: display.legend ? { top: title ? 28 : 4, right: 4, type: "scroll", textStyle: { color: surface.mutedText } } : undefined,
+    legend: legendOption,
     grid: {
-      left: isHorizontal ? 72 : 44,
-      right: 24,
-      top: display.legend || title ? 64 : 24,
-      bottom: 36,
+      left: (isHorizontal ? 72 : 44) + legendLeft,
+      right: 24 + legendRight,
+      top: Math.max(CARTESIAN_AXIS_NAME_TOP_SAFE_SIZE, 24 + titleTop + legendTop),
+      bottom: 36 + titleBottom + legendBottom,
       containLabel: true,
     },
     xAxis: isHorizontal ? valueAxis : categoryAxis,

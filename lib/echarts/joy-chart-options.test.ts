@@ -173,3 +173,68 @@ test("grouped horizontal bar keeps category order and applies stack", () => {
     { name: "G2", data: [5, 3], stack: "total" },
   ])
 })
+
+test("cartesian layout reserves title and right legend safe areas", () => {
+  const spec = createBaseSpec("bar")
+  spec.display = {
+    title: true,
+    legend: true,
+    layout: {
+      titlePosition: "bottom",
+      titleAlign: "right",
+      legendPosition: "right",
+    },
+  }
+
+  const option = createJoyChartOption(spec, { width: 600, height: 360 }) as Record<string, unknown>
+  const title = option.title as { bottom?: number; right?: number }
+  const legend = option.legend as { orient?: string; right?: number }
+  const grid = option.grid as { right: number; bottom: number }
+
+  assert.equal(title.bottom, 8)
+  assert.equal(title.right, 8)
+  assert.equal(legend.orient, "vertical")
+  assert.equal(legend.right, 4)
+  assert.equal(grid.right, 136)
+  assert.equal(grid.bottom, 76)
+})
+
+test("hidden title releases its safe area while preserving the axis-name top inset", () => {
+  const spec = createBaseSpec("line")
+  spec.display = {
+    title: false,
+    legend: true,
+    layout: { titlePosition: "top", legendPosition: "bottom" },
+  }
+
+  const option = createJoyChartOption(spec, { width: 600, height: 360 }) as Record<string, unknown>
+  const grid = option.grid as { top: number }
+
+  assert.equal(option.title, undefined)
+  assert.equal(grid.top, 40)
+})
+
+test("pie layout centers the series inside title and legend safe areas", () => {
+  const spec = createBaseSpec("pie")
+  spec.display = {
+    title: true,
+    legend: true,
+    label: true,
+    layout: {
+      titlePosition: "top",
+      titleAlign: "center",
+      legendPosition: "bottom",
+    },
+  }
+
+  const option = createJoyChartOption(spec, { width: 600, height: 360 }) as Record<string, unknown>
+  const series = option.series as Array<{
+    center: number[]
+    radius: number
+    labelLayout: { moveOverlap: string; hideOverlap: boolean }
+  }>
+
+  assert.deepEqual(series[0]?.center, [300, 184])
+  assert.equal(series[0]?.radius, 95)
+  assert.deepEqual(series[0]?.labelLayout, { moveOverlap: "shiftY", hideOverlap: true })
+})

@@ -689,12 +689,75 @@ export function ToolboxAICharts() {
                 <h2 className="text-sm font-semibold">{t("toolsPage.aiCharts.displaySettings")}</h2>
               </div>
               <div className="grid gap-2 p-3 sm:grid-cols-2">
+                <SettingRow label={t("echarts.display.title")}>
+                  <Switch
+                    checked={draftDisplay.title}
+                    onCheckedChange={(checked) => updateDraft({ title: checked })}
+                  />
+                </SettingRow>
+                {draftDisplay.title ? (
+                  <>
+                    <SettingRow label={t("echarts.display.titlePosition")}>
+                      <Select
+                        value={draftDisplay.layout.titlePosition}
+                        onValueChange={(value) =>
+                          updateDraft({ layout: { titlePosition: value as "top" | "bottom" } })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top">{t("echarts.positions.top")}</SelectItem>
+                          <SelectItem value="bottom">{t("echarts.positions.bottom")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </SettingRow>
+                    <SettingRow label={t("echarts.display.titleAlign")}>
+                      <Select
+                        value={draftDisplay.layout.titleAlign}
+                        onValueChange={(value) =>
+                          updateDraft({ layout: { titleAlign: value as "left" | "center" | "right" } })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-28">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="left">{t("echarts.alignments.left")}</SelectItem>
+                          <SelectItem value="center">{t("echarts.alignments.center")}</SelectItem>
+                          <SelectItem value="right">{t("echarts.alignments.right")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </SettingRow>
+                  </>
+                ) : null}
                 <SettingRow label={t("echarts.display.legend")}>
                   <Switch
                     checked={draftDisplay.legend}
                     onCheckedChange={(checked) => updateDraft({ legend: checked })}
                   />
                 </SettingRow>
+                {draftDisplay.legend ? (
+                  <SettingRow label={t("echarts.display.legendPosition")}>
+                    <Select
+                      value={draftDisplay.layout.legendPosition}
+                      onValueChange={(value) =>
+                        updateDraft({ layout: { legendPosition: value as "top" | "bottom" | "left" | "right" } })
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="top">{t("echarts.positions.top")}</SelectItem>
+                        <SelectItem value="bottom">{t("echarts.positions.bottom")}</SelectItem>
+                        <SelectItem value="left">{t("echarts.positions.left")}</SelectItem>
+                        <SelectItem value="right">{t("echarts.positions.right")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </SettingRow>
+                ) : null}
                 <SettingRow label={t("echarts.display.label")}>
                   <Switch
                     checked={draftDisplay.label}

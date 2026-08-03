@@ -10,6 +10,7 @@ export const JOY_CHART_THEME_OPTIONS = [
 ] as const
 
 export const DEFAULT_JOY_CHART_DISPLAY: Required<JoyChartDisplay> = {
+  title: true,
   legend: true,
   tooltip: true,
   label: false,
@@ -17,6 +18,9 @@ export const DEFAULT_JOY_CHART_DISPLAY: Required<JoyChartDisplay> = {
     orientation: "vertical",
     stack: false,
     sort: "none",
+    titlePosition: "top",
+    titleAlign: "center",
+    legendPosition: "bottom",
   },
   axis: {
     showGrid: true,

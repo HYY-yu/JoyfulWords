@@ -36,6 +36,7 @@ import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
 
 interface EChartsTaskDetailProps {
   detail: TaskCenterEChartsTaskDetail
+  onInserted?: () => void
 }
 
 function isJoyChartSpec(value: unknown): value is JoyChartSpec {
@@ -102,7 +103,7 @@ function createChartFileName(detail: TaskCenterEChartsTaskDetail): string {
   return `${safeTitle || `chart-${detail.id}`}-${Date.now()}.png`
 }
 
-export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
+export function EChartsTaskDetail({ detail, onInserted }: EChartsTaskDetailProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
   const rendererRef = useRef<JoyChartRendererHandle | null>(null)
@@ -298,6 +299,7 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
           ? t("echarts.taskDetail.inserted")
           : t("echarts.taskDetail.insertedAtCursor"),
       })
+      onInserted?.()
     } catch (error) {
       console.error("[EChartsTaskDetail] Failed to insert chart image", {
         logId: detail.id,
@@ -388,12 +390,75 @@ export function EChartsTaskDetail({ detail }: EChartsTaskDetailProps) {
             </SelectContent>
           </Select>
         </SettingRow>
+        <SettingRow label={t("echarts.display.title")}>
+          <Switch
+            checked={draftDisplay.title ?? true}
+            onCheckedChange={(checked) => updateDraft({ title: checked })}
+          />
+        </SettingRow>
+        {draftDisplay.title ?? true ? (
+          <>
+            <SettingRow label={t("echarts.display.titlePosition")}>
+              <Select
+                value={draftDisplay.layout?.titlePosition ?? "top"}
+                onValueChange={(value) =>
+                  updateDraft({ layout: { titlePosition: value as "top" | "bottom" } })
+                }
+              >
+                <SelectTrigger className="h-8 w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="top">{t("echarts.positions.top")}</SelectItem>
+                  <SelectItem value="bottom">{t("echarts.positions.bottom")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+            <SettingRow label={t("echarts.display.titleAlign")}>
+              <Select
+                value={draftDisplay.layout?.titleAlign ?? "center"}
+                onValueChange={(value) =>
+                  updateDraft({ layout: { titleAlign: value as "left" | "center" | "right" } })
+                }
+              >
+                <SelectTrigger className="h-8 w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="left">{t("echarts.alignments.left")}</SelectItem>
+                  <SelectItem value="center">{t("echarts.alignments.center")}</SelectItem>
+                  <SelectItem value="right">{t("echarts.alignments.right")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
+          </>
+        ) : null}
         <SettingRow label={t("echarts.display.legend")}>
           <Switch
             checked={draftDisplay.legend ?? true}
             onCheckedChange={(checked) => updateDraft({ legend: checked })}
           />
         </SettingRow>
+        {draftDisplay.legend ?? true ? (
+          <SettingRow label={t("echarts.display.legendPosition")}>
+            <Select
+              value={draftDisplay.layout?.legendPosition ?? "bottom"}
+              onValueChange={(value) =>
+                updateDraft({ layout: { legendPosition: value as "top" | "bottom" | "left" | "right" } })
+              }
+            >
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top">{t("echarts.positions.top")}</SelectItem>
+                <SelectItem value="bottom">{t("echarts.positions.bottom")}</SelectItem>
+                <SelectItem value="left">{t("echarts.positions.left")}</SelectItem>
+                <SelectItem value="right">{t("echarts.positions.right")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+        ) : null}
         <SettingRow label={t("echarts.display.label")}>
           <Switch
             checked={draftDisplay.label ?? false}

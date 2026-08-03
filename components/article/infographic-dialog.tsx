@@ -67,7 +67,7 @@ const STYLE_PREVIEWS: Array<{
 const ORIENTATION_OPTIONS: InfographicScreenOrientation[] = ["square", "landscape", "portrait"]
 const LANGUAGE_OPTIONS: InfographicLanguage[] = ["zh", "en"]
 const DECORATION_OPTIONS: InfographicDecorationLevel[] = ["simple", "moderate", "rich"]
-const SELECTION_TEXT_LIMIT = 300
+const SELECTION_TEXT_LIMIT = 500
 const MAX_IMAGE_OPTIONS = [1, 2, 3, 4, 5] as const
 const SOFT_NATIVE_SCROLLBAR_CLASS =
   "[scrollbar-color:color-mix(in_oklch,var(--primary)_18%,transparent)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-0 [&::-webkit-scrollbar-thumb]:bg-primary/12 hover:[&::-webkit-scrollbar-thumb]:bg-primary/28"

@@ -318,6 +318,7 @@ export function TaskCenterTaskDetailView({
   onOpenArticle,
   onContinuePresentation,
   onPresentationRetried,
+  onEChartsInserted,
   className,
 }: {
   taskRef: TaskCenterTaskReference
@@ -325,6 +326,7 @@ export function TaskCenterTaskDetailView({
   onOpenArticle?: (articleId: number) => void
   onContinuePresentation?: (articleId: number) => void
   onPresentationRetried?: () => void | Promise<void>
+  onEChartsInserted?: () => void
   className?: string
 }) {
   const { t } = useTranslation()
@@ -616,7 +618,10 @@ export function TaskCenterTaskDetailView({
           onRetried={onPresentationRetried}
         />
       ) : taskRef.type === "echarts" ? (
-        <EChartsTaskDetail detail={detail as TaskCenterEChartsTaskDetail} />
+        <EChartsTaskDetail
+          detail={detail as TaskCenterEChartsTaskDetail}
+          onInserted={onEChartsInserted}
+        />
       ) : null}
 
       {imageUrls.length > 0 ? (

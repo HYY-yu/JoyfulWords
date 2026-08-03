@@ -58,7 +58,7 @@ interface EChartsDialogProps {
 
 type ChartMode = "selection" | "article"
 
-const SELECTION_TEXT_LIMIT = 300
+const SELECTION_TEXT_LIMIT = 500
 const ARTICLE_REQUEST_POLL_TIMEOUT_MS = 15 * 60 * 1000
 
 function isErrorResponse<T extends object>(value: T | ErrorResponse): value is ErrorResponse {

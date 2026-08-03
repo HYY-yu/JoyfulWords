@@ -4,6 +4,9 @@ export type JoyChartType = "bar" | "line" | "pie"
 export type JoyChartStatus = "pending" | "processing" | "succeeded" | "failed"
 export type JoyChartSort = "none" | "asc" | "desc"
 export type JoyChartOrientation = "vertical" | "horizontal"
+export type JoyChartTitlePosition = "top" | "bottom"
+export type JoyChartTitleAlign = "left" | "center" | "right"
+export type JoyChartLegendPosition = "top" | "bottom" | "left" | "right"
 
 export interface JoyChartDimension {
   id: string
@@ -20,6 +23,7 @@ export interface JoyChartDataset {
 }
 
 export interface JoyChartDisplay {
+  title?: boolean
   legend?: boolean
   tooltip?: boolean
   label?: boolean
@@ -27,6 +31,9 @@ export interface JoyChartDisplay {
     orientation?: JoyChartOrientation
     stack?: boolean
     sort?: JoyChartSort
+    titlePosition?: JoyChartTitlePosition
+    titleAlign?: JoyChartTitleAlign
+    legendPosition?: JoyChartLegendPosition
   }
   axis?: {
     showGrid?: boolean

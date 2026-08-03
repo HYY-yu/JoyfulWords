@@ -7,6 +7,7 @@ import { Markdown } from "@tiptap/markdown";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableRow } from "@tiptap/extension-table";
 import type { EditorView } from "@tiptap/pm/view";
+import { NodeSelection } from "@tiptap/pm/state";
 import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TiptapToolbar } from "./ui/editor/tiptap-toolbar";
@@ -63,6 +64,7 @@ declare global {
         altText?: string,
         referenceContext?: EditorImageReferenceContext | null
       ) => { inserted: boolean; anchorFound: boolean };
+      revealLastInsertedImage: () => boolean;
     }
   }
 }
@@ -118,6 +120,7 @@ export function TiptapEditor({
   // 添加toast提示
   const { toast } = useToast();
   const editorRef = useRef<Editor | null>(null);
+  const lastInsertedImagePositionRef = useRef<number | null>(null);
 
   const { tasks: liveArticleTasks } = useTaskCenterLiveTasks({
     article_id: articleId,
@@ -251,6 +254,7 @@ export function TiptapEditor({
 
       view.dispatch(transaction);
       view.focus();
+      lastInsertedImagePositionRef.current = position;
 
       return true;
     },
@@ -654,6 +658,33 @@ export function TiptapEditor({
     };
   }, [findEditorRangeForText, insertEditorImage]);
 
+  const revealLastInsertedImage = useCallback(() => {
+    if (!editor || lastInsertedImagePositionRef.current === null) return false;
+
+    const position = lastInsertedImagePositionRef.current;
+    const imageNode = editor.state.doc.nodeAt(position);
+    if (imageNode?.type !== editor.state.schema.nodes.customImage) {
+      console.warn("[TiptapEditor] Inserted image position is no longer valid", {
+        position,
+      });
+      return false;
+    }
+
+    const transaction = editor.state.tr
+      .setSelection(NodeSelection.create(editor.state.doc, position))
+      .scrollIntoView();
+
+    editor.view.dispatch(transaction);
+    editor.view.focus();
+
+    const imageDOM = editor.view.nodeDOM(position);
+    if (imageDOM instanceof HTMLElement) {
+      imageDOM.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    return true;
+  }, [editor]);
+
   const applyAIRewrite = useCallback(async (rewrittenText: string) => {
     if (!editor || !activeArticleEditTask) return;
 
@@ -781,6 +812,7 @@ export function TiptapEditor({
         insertImage: insertEditorImage,
         insertImageAtTop: insertEditorImageAtTop,
         insertImageAtReference: insertEditorImageAtReference,
+        revealLastInsertedImage,
       };
 
       const handleOpenAIEdit = () => {
@@ -811,6 +843,7 @@ export function TiptapEditor({
     insertEditorImage,
     insertEditorImageAtTop,
     insertEditorImageAtReference,
+    revealLastInsertedImage,
   ]);
 
   // Handle image upload using presigned URL

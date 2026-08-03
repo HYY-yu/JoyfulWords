@@ -2,13 +2,51 @@ import test from "node:test"
 import assert from "node:assert/strict"
 
 import {
+  filterPodcastVoicesByLanguage,
   getPodcastAudioProgress,
   getSortedPodcastAudioSegments,
   isPodcastTerminalStatus,
+  resolvePodcastVoiceLanguage,
   selectLatestPodcastScript,
   type ArticlePodcastAudioManifest,
   type ArticlePodcastScriptRecord,
 } from "@/lib/api/podcast/types"
+
+const voices = [
+  {
+    id: "vivi_mixed_en_zh_ja_es_id",
+    display_name: "Vivi",
+    languages: ["en", "es", "id", "ja", "zh"],
+  },
+  {
+    id: "stokie_en",
+    display_name: "Stokie",
+    languages: ["en-US"],
+  },
+  {
+    id: "bonnie_zh",
+    display_name: "Bonnie",
+    languages: ["ZH-CN"],
+  },
+]
+
+test("resolves automatic podcast voice language from the interface locale", () => {
+  assert.equal(resolvePodcastVoiceLanguage("auto", "zh"), "zh")
+  assert.equal(resolvePodcastVoiceLanguage("auto", "en"), "en")
+  assert.equal(resolvePodcastVoiceLanguage("zh-CN", "en"), "zh")
+  assert.equal(resolvePodcastVoiceLanguage("en-US", "zh"), "en")
+})
+
+test("filters podcast voices by matching language metadata", () => {
+  assert.deepEqual(
+    filterPodcastVoicesByLanguage(voices, "zh").map((voice) => voice.id),
+    ["vivi_mixed_en_zh_ja_es_id", "bonnie_zh"]
+  )
+  assert.deepEqual(
+    filterPodcastVoicesByLanguage(voices, "en").map((voice) => voice.id),
+    ["vivi_mixed_en_zh_ja_es_id", "stokie_en"]
+  )
+})
 
 const manifest = {
   schema_version: "article_podcast_audio.v1",

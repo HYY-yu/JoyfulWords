@@ -843,6 +843,17 @@ export function EditorAIPanel({
     [articleId]
   )
 
+  const handleEChartsInserted = useCallback(() => {
+    setIsTaskDetailOpen(false)
+
+    window.setTimeout(() => {
+      const revealed = window.joyfulWordsEditorImages?.revealLastInsertedImage() ?? false
+      console.debug("[EditorAIPanel] Revealed inserted chart in editor", {
+        revealed,
+      })
+    }, 220)
+  }, [])
+
   function renderImageFeatureDialog(
     open: boolean,
     onOpenChange: (nextOpen: boolean) => void,
@@ -1107,6 +1118,7 @@ export function EditorAIPanel({
                   detail={taskDetail}
                   onContinuePresentation={handleContinuePresentationFromTask}
                   onPresentationRetried={() => pollNow()}
+                  onEChartsInserted={handleEChartsInserted}
                 />
               </div>
 
