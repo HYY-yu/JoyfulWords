@@ -49,6 +49,7 @@ export default function ArticleEditPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isManualSaving, setIsManualSaving] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [isPresentationMode, setIsPresentationMode] = useState(false)
 
   // ---- Editor state ----
   const editorState = useEditorState()
@@ -449,6 +450,7 @@ export default function ArticleEditPage() {
       }
       currentContent={editorState.content.html}
       onVersionRollback={handleVersionRollback}
+      onStartPresentation={() => setIsPresentationMode(true)}
     />
   )
 
@@ -467,6 +469,8 @@ export default function ArticleEditPage() {
         onActiveArticleEditTaskRefChange={setActiveArticleEditTaskRef}
         onArticleEditSubmitted={handleTaskSubmitted}
         onImageTaskSubmitted={handleTaskSubmitted}
+        presentationMode={isPresentationMode}
+        onExitPresentation={() => setIsPresentationMode(false)}
       />
     </div>
   )
@@ -487,6 +491,7 @@ export default function ArticleEditPage() {
       leftPanel={leftPanel}
       centerPanel={centerPanel}
       rightPanel={rightPanel}
+      presentationMode={isPresentationMode}
     />
   )
 }

@@ -274,6 +274,14 @@ export const en = {
             contentTooLarge: "Article content is too large to save",
             backToList: "Back to article list",
             themeTooltip: "Switch editor theme",
+            presentation: {
+                start: "Start presentation mode",
+                exit: "Exit presentation",
+                laserPointer: "Laser pointer",
+                laserPointerOn: "Turn off laser pointer",
+                laserPointerOff: "Turn on laser pointer",
+                keyboardHint: "Press L to toggle the laser pointer and Esc to exit",
+            },
             themes: {
                 blueWhite: "Blue & White",
                 blackGold: "Black & Gold",

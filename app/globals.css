@@ -4531,3 +4531,215 @@
     max-width: calc(100% - 48px);
   }
 }
+
+/* Article presentation mode intentionally stays inside the browser viewport. */
+.jw-editor-workspace[data-presentation-mode="true"]::before {
+  opacity: calc(var(--jw-workspace-pattern-opacity) * 0.5);
+}
+
+.jw-presentation-shell {
+  background: var(--jw-paper-bg);
+}
+
+.jw-presentation-shell.is-laser-enabled {
+  cursor: none;
+  user-select: none;
+}
+
+.jw-presentation-stage {
+  background: var(--jw-paper-bg);
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.jw-document-paper.jw-presentation-paper {
+  width: min(100%, 1080px);
+  min-height: 100%;
+  margin: 0 auto;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.jw-presentation-paper .ProseMirror {
+  min-height: auto;
+  padding: 64px 88px 120px;
+  font-size: 1.18rem;
+  line-height: 1.9;
+  caret-color: transparent;
+}
+
+.jw-presentation-paper .ProseMirror p {
+  margin-bottom: 1.35em;
+}
+
+.jw-presentation-paper .ProseMirror h1 {
+  font-size: 2.65rem;
+  line-height: 1.18;
+}
+
+.jw-presentation-paper .ProseMirror h2 {
+  margin-top: 1.8em;
+  font-size: 2rem;
+  line-height: 1.25;
+}
+
+.jw-presentation-paper .ProseMirror h3 {
+  margin-top: 1.6em;
+  font-size: 1.5rem;
+  line-height: 1.35;
+}
+
+.jw-presentation-controls {
+  position: absolute;
+  z-index: 70;
+  top: 18px;
+  right: 22px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--jw-editor-text) 12%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--jw-paper-bg) 88%, transparent);
+  box-shadow: 0 14px 40px -28px rgba(15, 23, 42, 0.7);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  backdrop-filter: blur(16px);
+  cursor: default;
+}
+
+.jw-presentation-controls.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.jw-presentation-controls button {
+  display: inline-flex;
+  height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--jw-editor-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.jw-presentation-controls button:hover,
+.jw-presentation-controls button.is-active {
+  background: var(--jw-accent-soft);
+  color: var(--jw-accent);
+}
+
+.jw-presentation-controls kbd {
+  display: inline-flex;
+  min-width: 22px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--jw-paper-bg) 70%, transparent);
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.jw-presentation-keyboard-hint {
+  max-width: 0;
+  overflow: hidden;
+  color: var(--jw-editor-muted);
+  font-size: 0.72rem;
+  opacity: 0;
+  white-space: nowrap;
+  transition: max-width 180ms ease, margin 180ms ease, opacity 180ms ease;
+}
+
+.jw-presentation-controls:hover .jw-presentation-keyboard-hint {
+  max-width: 320px;
+  margin: 0 6px 0 4px;
+  opacity: 0.8;
+}
+
+.jw-laser-pointer {
+  position: absolute;
+  z-index: 80;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.78);
+  border-radius: 999px;
+  background: #ff8a80;
+  box-shadow:
+    0 0 0 4px rgba(255, 138, 128, 0.1),
+    0 0 14px 5px rgba(255, 112, 102, 0.32),
+    0 0 26px 10px rgba(255, 138, 128, 0.12);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.jw-laser-trail {
+  position: absolute;
+  z-index: 79;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.jw-laser-trail-glow,
+.jw-laser-trail-core {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.jw-laser-trail-glow {
+  stroke: rgba(255, 138, 128, 0.36);
+  stroke-width: 15px;
+  filter: blur(4px);
+  animation: jw-laser-trail-glow-fade 1.3s cubic-bezier(0.2, 0.75, 0.35, 1) forwards;
+}
+
+.jw-laser-trail-core {
+  stroke: rgba(255, 112, 102, 0.82);
+  stroke-width: 3.5px;
+  filter: drop-shadow(0 0 4px rgba(255, 112, 102, 0.48));
+  animation: jw-laser-trail-core-fade 1.05s ease-out forwards;
+}
+
+@keyframes jw-laser-trail-glow-fade {
+  0% {
+    opacity: 0.72;
+  }
+
+  45% {
+    opacity: 0.46;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes jw-laser-trail-core-fade {
+  0% {
+    opacity: 0.88;
+  }
+
+  55% {
+    opacity: 0.58;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

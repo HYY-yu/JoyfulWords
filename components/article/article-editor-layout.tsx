@@ -10,6 +10,7 @@ interface ArticleEditorLayoutProps {
   rightPanel: ReactNode
   topBar: ReactNode
   theme?: JoyfulTheme
+  presentationMode?: boolean
 }
 
 export function ArticleEditorLayout({
@@ -18,6 +19,7 @@ export function ArticleEditorLayout({
   rightPanel,
   topBar,
   theme: themeOverride,
+  presentationMode = false,
 }: ArticleEditorLayoutProps) {
   const { theme } = useJoyfulTheme()
   const activeTheme = themeOverride ?? theme
@@ -52,20 +54,34 @@ export function ArticleEditorLayout({
   } as CSSProperties
 
   return (
-    <div className="jw-editor-workspace flex h-screen flex-col overflow-hidden" data-editor-theme={activeTheme}>
-      <div className="jw-editor-topbar-shell shrink-0 backdrop-blur-xl">
+    <div
+      className="jw-editor-workspace flex h-screen flex-col overflow-hidden"
+      data-editor-theme={activeTheme}
+      data-presentation-mode={presentationMode ? "true" : "false"}
+    >
+      <div
+        className={presentationMode ? "hidden" : "jw-editor-topbar-shell shrink-0 backdrop-blur-xl"}
+      >
         {topBar}
       </div>
 
       <div className="flex-1 overflow-hidden">
         <div
           ref={containerRef}
-          className="flex h-full min-h-0 flex-col gap-3 p-3 lg:flex-row lg:items-stretch"
+          className={
+            presentationMode
+              ? "flex h-full min-h-0"
+              : "flex h-full min-h-0 flex-col gap-3 p-3 lg:flex-row lg:items-stretch"
+          }
         >
           {!leftCollapsed && (
             <>
               <div
-                className={`min-h-0 w-full flex-1 lg:w-[var(--left-panel-width)] lg:flex-none ${panelShellClassName}`}
+                className={
+                  presentationMode
+                    ? "hidden"
+                    : `min-h-0 w-full flex-1 lg:w-[var(--left-panel-width)] lg:flex-none ${panelShellClassName}`
+                }
                 style={leftPanelStyle}
               >
                 <div className="jw-editor-panel-inner flex h-full min-h-0 flex-col overflow-hidden">
@@ -73,7 +89,11 @@ export function ArticleEditorLayout({
                 </div>
               </div>
               <div
-                className="group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
+                className={
+                  presentationMode
+                    ? "hidden"
+                    : "group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
+                }
                 onMouseDown={handleLeftDragStart}
               >
                 <div className={`h-16 w-[2px] rounded-full transition-colors duration-150 ${leftAtMin ? "bg-destructive/50" : "jw-resize-handle"}`} />
@@ -86,8 +106,20 @@ export function ArticleEditorLayout({
             </>
           )}
 
-          <div className={`min-h-0 min-w-0 w-full flex-[1.2] lg:flex-1 ${panelShellClassName}`}>
-            <div className="jw-editor-panel-inner flex h-full min-h-0 flex-col overflow-hidden">
+          <div
+            className={
+              presentationMode
+                ? "min-h-0 min-w-0 h-full w-full flex-1 overflow-hidden"
+                : `min-h-0 min-w-0 w-full flex-[1.2] lg:flex-1 ${panelShellClassName}`
+            }
+          >
+            <div
+              className={
+                presentationMode
+                  ? "flex h-full min-h-0 flex-col overflow-hidden"
+                  : "jw-editor-panel-inner flex h-full min-h-0 flex-col overflow-hidden"
+              }
+            >
               {centerPanel}
             </div>
           </div>
@@ -95,7 +127,11 @@ export function ArticleEditorLayout({
           {!rightCollapsed && (
             <>
               <div
-                className="group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
+                className={
+                  presentationMode
+                    ? "hidden"
+                    : "group relative hidden w-2 shrink-0 cursor-col-resize lg:flex lg:items-center lg:justify-center"
+                }
                 onMouseDown={handleRightDragStart}
               >
                 <div className={`h-16 w-[2px] rounded-full transition-colors duration-150 ${rightAtMin ? "bg-destructive/50" : "jw-resize-handle"}`} />
@@ -106,7 +142,11 @@ export function ArticleEditorLayout({
                 )}
               </div>
               <div
-                className={`min-h-0 w-full flex-1 lg:w-[var(--right-panel-width)] lg:flex-none ${panelShellClassName}`}
+                className={
+                  presentationMode
+                    ? "hidden"
+                    : `min-h-0 w-full flex-1 lg:w-[var(--right-panel-width)] lg:flex-none ${panelShellClassName}`
+                }
                 style={rightPanelStyle}
               >
                 <div className="jw-editor-panel-inner flex h-full min-h-0 flex-col overflow-hidden">

@@ -9,7 +9,15 @@ import { TableRow } from "@tiptap/extension-table";
 import type { EditorView } from "@tiptap/pm/view";
 import { NodeSelection } from "@tiptap/pm/state";
 import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import { CrosshairIcon, XIcon } from "lucide-react";
 import { TiptapToolbar } from "./ui/editor/tiptap-toolbar";
 import {
   CustomImage,
@@ -54,6 +62,15 @@ type EditorImageReferenceContext = {
   placement_hint?: "before" | "after" | string;
 }
 
+type LaserTrailSegment = {
+  id: number;
+  strokeId: number;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 declare global {
   interface Window {
     joyfulWordsEditorImages?: {
@@ -86,6 +103,8 @@ interface TiptapEditorProps {
   onActiveArticleEditTaskRefChange?: (taskRef: TaskCenterTaskReference | null) => void;
   onArticleEditSubmitted?: (execId: string) => void;
   onImageTaskSubmitted?: () => void;
+  presentationMode?: boolean;
+  onExitPresentation?: () => void;
 }
 
 export function TiptapEditor({
@@ -99,6 +118,8 @@ export function TiptapEditor({
   onActiveArticleEditTaskRefChange,
   onArticleEditSubmitted,
   onImageTaskSubmitted,
+  presentationMode = false,
+  onExitPresentation,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -113,6 +134,10 @@ export function TiptapEditor({
   const [loadingArticleEditTask, setLoadingArticleEditTask] = useState(false);
   const [articleEditTaskError, setArticleEditTaskError] = useState<string | null>(null);
   const [isMindMapDialogOpen, setIsMindMapDialogOpen] = useState(false);
+  const [laserPointerEnabled, setLaserPointerEnabled] = useState(true);
+  const [laserPointerPosition, setLaserPointerPosition] = useState<{ x: number; y: number } | null>(null);
+  const [laserTrailSegments, setLaserTrailSegments] = useState<LaserTrailSegment[]>([]);
+  const [presentationControlsVisible, setPresentationControlsVisible] = useState(true);
 
   // 添加国际化支持
   const { t } = useTranslation();
@@ -121,6 +146,18 @@ export function TiptapEditor({
   const { toast } = useToast();
   const editorRef = useRef<Editor | null>(null);
   const lastInsertedImagePositionRef = useRef<number | null>(null);
+  const presentationControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const documentStageRef = useRef<HTMLDivElement | null>(null);
+  const editorScrollTopBeforePresentationRef = useRef(0);
+  const wasPresentationModeRef = useRef(false);
+  const laserPointerDraggingRef = useRef(false);
+  const lastLaserTrailPointRef = useRef<{ x: number; y: number } | null>(null);
+  const nextLaserTrailSegmentIdRef = useRef(1);
+  const currentLaserTrailStrokeIdRef = useRef(0);
+  const nextLaserTrailStrokeIdRef = useRef(1);
+  const laserTrailRemovalTimersRef = useRef(
+    new Map<number, ReturnType<typeof setTimeout>>()
+  );
 
   const { tasks: liveArticleTasks } = useTaskCenterLiveTasks({
     article_id: articleId,
@@ -385,7 +422,7 @@ export function TiptapEditor({
   const editor = useEditor({
     extensions,
     content: initialContent,
-    editable,
+    editable: editable && !presentationMode,
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -501,6 +538,189 @@ export function TiptapEditor({
       onChange?.(text, html);
     },
   });
+
+  useEffect(() => {
+    editor?.setEditable(editable && !presentationMode);
+  }, [editable, editor, presentationMode]);
+
+  useEffect(() => {
+    const documentStage = documentStageRef.current;
+    if (!documentStage) return;
+
+    if (presentationMode && !wasPresentationModeRef.current) {
+      editorScrollTopBeforePresentationRef.current = documentStage.scrollTop;
+      documentStage.scrollTop = 0;
+    } else if (!presentationMode && wasPresentationModeRef.current) {
+      documentStage.scrollTop = editorScrollTopBeforePresentationRef.current;
+    }
+
+    wasPresentationModeRef.current = presentationMode;
+  }, [presentationMode]);
+
+  const schedulePresentationControlsHide = useCallback(() => {
+    if (presentationControlsTimerRef.current) {
+      clearTimeout(presentationControlsTimerRef.current);
+    }
+
+    presentationControlsTimerRef.current = setTimeout(() => {
+      setPresentationControlsVisible(false);
+    }, 2400);
+  }, []);
+
+  const clearLaserTrail = useCallback(() => {
+    laserTrailRemovalTimersRef.current.forEach((timer) => clearTimeout(timer));
+    laserTrailRemovalTimersRef.current.clear();
+    laserPointerDraggingRef.current = false;
+    lastLaserTrailPointRef.current = null;
+    currentLaserTrailStrokeIdRef.current = 0;
+    setLaserTrailSegments((current) => current.length > 0 ? [] : current);
+  }, []);
+
+  const appendLaserTrailPoint = useCallback((point: { x: number; y: number }) => {
+    const previousPoint = lastLaserTrailPointRef.current;
+    if (!previousPoint) {
+      lastLaserTrailPointRef.current = point;
+      return;
+    }
+
+    const distance = Math.hypot(point.x - previousPoint.x, point.y - previousPoint.y);
+    if (distance < 2) return;
+
+    const segmentId = nextLaserTrailSegmentIdRef.current;
+    nextLaserTrailSegmentIdRef.current += 1;
+
+    const segment: LaserTrailSegment = {
+      id: segmentId,
+      strokeId: currentLaserTrailStrokeIdRef.current,
+      x1: previousPoint.x,
+      y1: previousPoint.y,
+      x2: point.x,
+      y2: point.y,
+    };
+
+    lastLaserTrailPointRef.current = point;
+    setLaserTrailSegments((current) => [...current.slice(-119), segment]);
+
+    const removalTimer = setTimeout(() => {
+      laserTrailRemovalTimersRef.current.delete(segmentId);
+      setLaserTrailSegments((current) => current.filter((item) => item.id !== segmentId));
+    }, 1300);
+    laserTrailRemovalTimersRef.current.set(segmentId, removalTimer);
+  }, []);
+
+  const toggleLaserPointer = useCallback(() => {
+    clearLaserTrail();
+    setLaserPointerEnabled((current) => !current);
+    setPresentationControlsVisible(true);
+    schedulePresentationControlsHide();
+  }, [clearLaserTrail, schedulePresentationControlsHide]);
+
+  useEffect(() => {
+    const removalTimers = laserTrailRemovalTimersRef.current;
+
+    return () => {
+      removalTimers.forEach((timer) => clearTimeout(timer));
+      removalTimers.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!presentationMode) {
+      setLaserPointerPosition(null);
+      setPresentationControlsVisible(true);
+      clearLaserTrail();
+      if (presentationControlsTimerRef.current) {
+        clearTimeout(presentationControlsTimerRef.current);
+        presentationControlsTimerRef.current = null;
+      }
+      return;
+    }
+
+    setLaserPointerEnabled(true);
+    setPresentationControlsVisible(true);
+    schedulePresentationControlsHide();
+
+    const handlePresentationKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onExitPresentation?.();
+        return;
+      }
+
+      if (event.key.toLowerCase() === "l" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        event.preventDefault();
+        toggleLaserPointer();
+      }
+    };
+
+    window.addEventListener("keydown", handlePresentationKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handlePresentationKeyDown);
+      if (presentationControlsTimerRef.current) {
+        clearTimeout(presentationControlsTimerRef.current);
+        presentationControlsTimerRef.current = null;
+      }
+    };
+  }, [clearLaserTrail, onExitPresentation, presentationMode, schedulePresentationControlsHide, toggleLaserPointer]);
+
+  const handlePresentationPointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!presentationMode) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    setLaserPointerPosition({ x, y });
+
+    const isPrimaryButtonPressed = (event.buttons & 1) === 1;
+    if (!isPrimaryButtonPressed && laserPointerDraggingRef.current) {
+      laserPointerDraggingRef.current = false;
+      lastLaserTrailPointRef.current = null;
+    }
+
+    if (laserPointerEnabled && laserPointerDraggingRef.current && isPrimaryButtonPressed) {
+      appendLaserTrailPoint({ x, y });
+    }
+
+    if (y <= 104) {
+      setPresentationControlsVisible(true);
+      schedulePresentationControlsHide();
+    }
+  }, [appendLaserTrailPoint, laserPointerEnabled, presentationMode, schedulePresentationControlsHide]);
+
+  const handlePresentationPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!presentationMode || !laserPointerEnabled || event.button !== 0) return;
+    if (event.target instanceof Element && event.target.closest("[data-presentation-controls]")) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const point = {
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+    };
+
+    laserPointerDraggingRef.current = true;
+    currentLaserTrailStrokeIdRef.current = nextLaserTrailStrokeIdRef.current;
+    nextLaserTrailStrokeIdRef.current += 1;
+    lastLaserTrailPointRef.current = point;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setLaserPointerPosition(point);
+  }, [laserPointerEnabled, presentationMode]);
+
+  const finishLaserTrail = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    laserPointerDraggingRef.current = false;
+    lastLaserTrailPointRef.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }, []);
+
+  const handlePresentationPointerLeave = useCallback(() => {
+    if (presentationMode) {
+      setLaserPointerPosition(null);
+    }
+  }, [presentationMode]);
 
   useEffect(() => {
     editorRef.current = editor;
@@ -968,39 +1188,133 @@ export function TiptapEditor({
 
   const editorShellClassName =
     mode === "edit"
-      ? "jw-editor-shell flex h-full w-full flex-col overflow-hidden bg-transparent"
+      ? `${presentationMode ? "jw-presentation-shell relative" : "jw-editor-shell"} ${presentationMode && laserPointerEnabled ? "is-laser-enabled" : ""} flex h-full w-full flex-col overflow-hidden bg-transparent`
       : "flex h-full w-full flex-col overflow-hidden rounded-lg border bg-background";
 
+  const laserTrailPath = useMemo(() => {
+    let activeStrokeId: number | null = null;
+
+    return laserTrailSegments.map((segment) => {
+      const moveTo = segment.strokeId !== activeStrokeId
+        ? `M ${segment.x1} ${segment.y1}`
+        : "";
+      activeStrokeId = segment.strokeId;
+
+      return `${moveTo} L ${segment.x2} ${segment.y2}`;
+    }).join(" ");
+  }, [laserTrailSegments]);
+
+  const latestLaserTrailSegmentId =
+    laserTrailSegments[laserTrailSegments.length - 1]?.id ?? 0;
+
   return (
-    <div className={editorShellClassName}>
-      <TiptapToolbar
-        editor={editor}
-        onInsertImage={insertImage}
-        isUploadingImage={isUploadingImage}
-      />
+    <div
+      className={editorShellClassName}
+      onPointerMove={handlePresentationPointerMove}
+      onPointerDown={handlePresentationPointerDown}
+      onPointerUp={finishLaserTrail}
+      onPointerCancel={finishLaserTrail}
+      onPointerLeave={handlePresentationPointerLeave}
+    >
+      {!presentationMode && (
+        <TiptapToolbar
+          editor={editor}
+          onInsertImage={insertImage}
+          isUploadingImage={isUploadingImage}
+        />
+      )}
       <div
-        className={mode === "edit" ? "jw-document-stage min-h-0 flex-1 overflow-y-auto px-4" : "min-h-0 flex-1 overflow-y-auto"}
+        ref={documentStageRef}
+        className={
+          mode === "edit"
+            ? `${presentationMode ? "jw-presentation-stage" : "jw-document-stage px-4"} min-h-0 flex-1 overflow-y-auto`
+            : "min-h-0 flex-1 overflow-y-auto"
+        }
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = "copy";
         }}
       >
         {mode === "edit" ? (
-          <div className={`jw-document-paper ${isEditorEmpty ? "is-empty" : ""}`}>
+          <div className={`jw-document-paper ${presentationMode ? "jw-presentation-paper" : ""} ${isEditorEmpty ? "is-empty" : ""}`}>
             <EditorContent editor={editor} className="h-full" />
           </div>
         ) : (
           <EditorContent editor={editor} className="h-full" />
         )}
       </div>
-      {editor && (
+      {editor && !presentationMode && (
         <ImageMenu
           editor={editor}
           articleId={articleId}
           onImageTaskSubmitted={onImageTaskSubmitted}
         />
       )}
-      {editor && <LinkMenu editor={editor} />}
+      {editor && !presentationMode && <LinkMenu editor={editor} />}
+      {presentationMode && (
+        <>
+          <div
+            className={`jw-presentation-controls ${presentationControlsVisible ? "is-visible" : ""}`}
+            data-presentation-controls
+            onPointerEnter={() => {
+              setPresentationControlsVisible(true);
+              if (presentationControlsTimerRef.current) {
+                clearTimeout(presentationControlsTimerRef.current);
+              }
+            }}
+            onPointerLeave={schedulePresentationControlsHide}
+          >
+            <span className="jw-presentation-keyboard-hint">
+              {t("contentWriting.editorHeader.presentation.keyboardHint")}
+            </span>
+            <button
+              type="button"
+              className={laserPointerEnabled ? "is-active" : ""}
+              onClick={toggleLaserPointer}
+              aria-pressed={laserPointerEnabled}
+              aria-label={t(
+                laserPointerEnabled
+                  ? "contentWriting.editorHeader.presentation.laserPointerOn"
+                  : "contentWriting.editorHeader.presentation.laserPointerOff"
+              )}
+            >
+              <CrosshairIcon className="h-4 w-4" />
+              <span>{t("contentWriting.editorHeader.presentation.laserPointer")}</span>
+              <kbd>L</kbd>
+            </button>
+            <button
+              type="button"
+              onClick={onExitPresentation}
+              aria-label={t("contentWriting.editorHeader.presentation.exit")}
+            >
+              <XIcon className="h-4 w-4" />
+              <span>{t("contentWriting.editorHeader.presentation.exit")}</span>
+              <kbd>Esc</kbd>
+            </button>
+          </div>
+          {laserPointerEnabled && laserPointerPosition && (
+            <span
+              className="jw-laser-pointer"
+              style={{ left: laserPointerPosition.x, top: laserPointerPosition.y }}
+              aria-hidden="true"
+            />
+          )}
+          {laserTrailSegments.length > 0 && (
+            <svg className="jw-laser-trail" aria-hidden="true">
+              <path
+                key={`glow-${latestLaserTrailSegmentId}`}
+                className="jw-laser-trail-glow"
+                d={laserTrailPath}
+              />
+              <path
+                key={`core-${latestLaserTrailSegmentId}`}
+                className="jw-laser-trail-core"
+                d={laserTrailPath}
+              />
+            </svg>
+          )}
+        </>
+      )}
       <AIRewriteDialog
         open={isAIDialogOpen}
         onOpenChange={(open) => {

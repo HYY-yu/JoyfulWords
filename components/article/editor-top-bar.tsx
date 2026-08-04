@@ -27,6 +27,7 @@ import {
   AlertTriangleIcon,
   GitBranchIcon,
   SendIcon,
+  PresentationIcon,
 } from "lucide-react"
 import type { Article } from "@/lib/api/articles/types"
 import { useToast } from "@/hooks/use-toast"
@@ -49,6 +50,7 @@ interface EditorTopBarProps {
   saveState?: SaveState
   currentContent?: string
   onVersionRollback?: (versionData: { content: string }) => void
+  onStartPresentation?: () => void
 }
 
 export function EditorTopBar({
@@ -63,6 +65,7 @@ export function EditorTopBar({
   saveState = "idle",
   currentContent = "",
   onVersionRollback,
+  onStartPresentation,
 }: EditorTopBarProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -298,6 +301,26 @@ export function EditorTopBar({
 
         {/* Theme Dropdown */}
         <JoyfulThemeSwitcher variant="compact" />
+
+        {onStartPresentation && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-md text-[var(--jw-editor-muted)] hover:bg-[var(--jw-accent-soft)] hover:text-[var(--jw-accent)]"
+                onClick={onStartPresentation}
+                aria-label={t("contentWriting.editorHeader.presentation.start")}
+              >
+                <PresentationIcon className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <span>{t("contentWriting.editorHeader.presentation.start")}</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
 
         {/* Export Dropdown */}
         <Tooltip>

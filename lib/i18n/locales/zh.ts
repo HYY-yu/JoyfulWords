@@ -274,6 +274,14 @@ export const zh = {
             contentTooLarge: "文章内容过大，无法保存",
             backToList: "返回文章列表",
             themeTooltip: "切换编辑器主题",
+            presentation: {
+                start: "进入演示模式",
+                exit: "退出演示",
+                laserPointer: "激光笔",
+                laserPointerOn: "关闭激光笔",
+                laserPointerOff: "打开激光笔",
+                keyboardHint: "按 L 切换激光笔，按 Esc 退出",
+            },
             themes: {
                 blueWhite: "蓝白",
                 blackGold: "黑金",
