@@ -120,6 +120,18 @@ export interface GetArticlesRequest {
   page_size?: number  // 每页数量，默认 20，最大 100
   title?: string  // 标题筛选（模糊搜索）
   status?: ArticleStatus  // 状态过滤
+  category?: string  // 分类精确筛选
+  tag?: string  // 标签精确筛选
+}
+
+export interface ArticleFacet {
+  value: string
+  count: number
+}
+
+export interface ArticleFacetsResponse {
+  categories: ArticleFacet[]
+  tags: ArticleFacet[]
 }
 
 /**

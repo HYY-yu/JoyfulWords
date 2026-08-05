@@ -23,9 +23,11 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckIcon,
-  LoaderIcon
+  LoaderIcon,
+  XIcon
 } from "lucide-react"
-import { Article, ArticleImage, ReferenceLink, parseTags } from "./article-types"
+import { Article, ArticleImage, ReferenceLink, mergeTags, parseTags, stringifyTags } from "./article-types"
+import type { UpdateArticleMetadataRequest } from "@/lib/api/articles/types"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
@@ -303,69 +305,180 @@ export function DeleteConfirmDialog({ article, open, onOpenChange, onConfirm }: 
   )
 }
 
-interface EditTitleDialogProps {
+interface EditArticleMetadataDialogProps {
   article: Article | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (articleId: number, newTitle: string) => Promise<void>
+  onSave: (articleId: number, metadata: UpdateArticleMetadataRequest) => Promise<void>
+  categorySuggestions?: string[]
+  tagSuggestions?: string[]
 }
 
-export function EditTitleDialog({ article, open, onOpenChange, onSave }: EditTitleDialogProps) {
+export function EditArticleMetadataDialog({
+  article,
+  open,
+  onOpenChange,
+  onSave,
+  categorySuggestions = [],
+  tagSuggestions = [],
+}: EditArticleMetadataDialogProps) {
   const { t } = useTranslation()
   const [title, setTitle] = useState("")
+  const [category, setCategory] = useState("")
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState("")
   const [isSaving, setIsSaving] = useState(false)
 
-  // 当弹窗打开或文章变化时，重置标题
+  // 当弹窗打开或文章变化时，重置文章元数据。
   useEffect(() => {
     if (article) {
       setTitle(article.title)
+      setCategory(article.category ?? "")
+      setTags(parseTags(article.tags))
+      setTagInput("")
     }
   }, [article, open])
 
   const handleSave = async () => {
     if (!article || !title.trim()) return
 
+    const nextTags = mergeTags(tags, tagInput)
+    const serializedTags = stringifyTags(nextTags)
+    if (serializedTags.length > 500) return
+
     setIsSaving(true)
     try {
-      await onSave(article.id, title.trim())
+      await onSave(article.id, {
+        title: title.trim(),
+        category: category.trim(),
+        tags: serializedTags,
+      })
       onOpenChange(false)
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const addPendingTags = () => {
+    setTags((currentTags) => mergeTags(currentTags, tagInput))
+    setTagInput("")
+  }
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault()
-      handleSave()
-    } else if (e.key === 'Escape') {
+      addPendingTags()
+    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags((currentTags) => currentTags.slice(0, -1))
+    } else if (e.key === "Escape") {
       onOpenChange(false)
     }
   }
 
+  const removeTag = (tagToRemove: string) => {
+    setTags((currentTags) => currentTags.filter((tag) => tag !== tagToRemove))
+  }
+
+  const serializedTagLength = stringifyTags(mergeTags(tags, tagInput)).length
+  const visibleTagSuggestions = tagSuggestions.filter(
+    (suggestion) => !tags.some((tag) => tag.toLocaleLowerCase() === suggestion.toLocaleLowerCase())
+  ).slice(0, 8)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t("contentWriting.articleDialogs.editTitle.title")}</DialogTitle>
+          <DialogTitle>{t("contentWriting.articleDialogs.editMetadata.title")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <label htmlFor="title-input" className="text-sm font-medium">
-              {t("contentWriting.articleDialogs.editTitle.label")}
+              {t("contentWriting.articleDialogs.editMetadata.titleLabel")}
             </label>
             <Input
               id="title-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t("contentWriting.articleDialogs.editTitle.placeholder")}
+              placeholder={t("contentWriting.articleDialogs.editMetadata.titlePlaceholder")}
+              maxLength={200}
               autoFocus
               disabled={isSaving}
             />
-            <p className="text-xs text-muted-foreground">
-              {t("contentWriting.articleDialogs.editTitle.hint")}
-            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="category-input" className="text-sm font-medium">
+              {t("contentWriting.articleDialogs.editMetadata.categoryLabel")}
+            </label>
+            <Input
+              id="category-input"
+              list="article-category-suggestions"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+              placeholder={t("contentWriting.articleDialogs.editMetadata.categoryPlaceholder")}
+              maxLength={100}
+              disabled={isSaving}
+            />
+            <datalist id="article-category-suggestions">
+              {categorySuggestions.map((suggestion) => (
+                <option key={suggestion} value={suggestion} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="tags-input" className="text-sm font-medium">
+              {t("contentWriting.articleDialogs.editMetadata.tagsLabel")}
+            </label>
+            <div className="min-h-11 rounded-md border border-input bg-background px-2 py-2 focus-within:ring-2 focus-within:ring-ring">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {tags.map((tag) => (
+                  <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                    {tag}
+                    <button
+                      type="button"
+                      className="rounded-full p-0.5 hover:bg-background/80"
+                      onClick={() => removeTag(tag)}
+                      aria-label={t("contentWriting.articleDialogs.editMetadata.removeTag", { tag })}
+                      disabled={isSaving}
+                    >
+                      <XIcon className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+                <input
+                  id="tags-input"
+                  value={tagInput}
+                  onChange={(event) => setTagInput(event.target.value)}
+                  onKeyDown={handleTagKeyDown}
+                  onBlur={addPendingTags}
+                  placeholder={tags.length === 0 ? t("contentWriting.articleDialogs.editMetadata.tagsPlaceholder") : ""}
+                  className="h-6 min-w-[150px] flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
+                  disabled={isSaving}
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+              <span>{t("contentWriting.articleDialogs.editMetadata.tagsHint")}</span>
+              <span className={serializedTagLength > 500 ? "text-destructive" : undefined}>
+                {serializedTagLength}/500
+              </span>
+            </div>
+            {visibleTagSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {visibleTagSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    className="rounded-full border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                    onClick={() => setTags((currentTags) => mergeTags(currentTags, suggestion))}
+                    disabled={isSaving}
+                  >
+                    + {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>
@@ -378,7 +491,7 @@ export function EditTitleDialog({ article, open, onOpenChange, onSave }: EditTit
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!title.trim() || isSaving}
+            disabled={!title.trim() || serializedTagLength > 500 || isSaving}
           >
             {isSaving ? (
               <>

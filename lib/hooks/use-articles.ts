@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { articlesClient } from "@/lib/api/articles/client"
@@ -12,6 +12,7 @@ import type {
   UpdateArticleMetadataRequest,
   UpdateArticleStatusRequest,
   AIWriteRequest,
+  ArticleFacetsResponse,
 } from "@/lib/api/articles/types"
 
 // Re-export types for use in other modules
@@ -42,6 +43,8 @@ interface UseArticlesOptions {
   enabled?: boolean
 }
 
+export const ALL_ARTICLE_FACETS = "__joyfulwords_all__"
+
 /**
  * Articles Hook
  * 管理文章列表的 CRUD 操作和状态管理
@@ -54,6 +57,10 @@ export function useArticles(options: UseArticlesOptions = {}) {
   // ==================== 状态管理 ====================
 
   const [articles, setArticles] = useState<Article[]>([])
+  const [facets, setFacets] = useState<ArticleFacetsResponse>({
+    categories: [],
+    tags: [],
+  })
   const [loading, setLoading] = useState(false)
   const [pagination, setPagination] = useState<PaginationState>({
     page: 1,
@@ -62,8 +69,12 @@ export function useArticles(options: UseArticlesOptions = {}) {
   })
 
   // 过滤器状态
-  const [titleFilter, setTitleFilter] = useState("")
-  const [statusFilter, setStatusFilter] = useState<ArticleStatus | "all">("all")
+  const [titleFilter, setTitleFilterState] = useState("")
+  const [debouncedTitleFilter, setDebouncedTitleFilter] = useState("")
+  const [statusFilter, setStatusFilterState] = useState<ArticleStatus | "all">("all")
+  const [categoryFilter, setCategoryFilterState] = useState(ALL_ARTICLE_FACETS)
+  const [tagFilter, setTagFilterState] = useState(ALL_ARTICLE_FACETS)
+  const fetchRequestIdRef = useRef(0)
 
   // 编辑和删除状态
   const [editingArticle, setEditingArticle] = useState<Article | null>(null)
@@ -73,25 +84,28 @@ export function useArticles(options: UseArticlesOptions = {}) {
   // ==================== 数据获取 ====================
 
   const fetchArticles = useCallback(
-    async (filters?: {
-      title?: string
-      status?: ArticleStatus | "all"
-    }) => {
+    async () => {
       if (!enabled) {
+        fetchRequestIdRef.current += 1
         setLoading(false)
         return false
       }
 
+      const requestId = ++fetchRequestIdRef.current
       setLoading(true)
-      const requestTitle = filters && "title" in filters ? filters.title : undefined
-      const requestStatus = filters && "status" in filters ? filters.status : statusFilter
-
       const result = await articlesClient.getArticles({
         page: pagination.page,
         page_size: pagination.pageSize,
-        title: requestTitle?.trim() || undefined,
-        status: requestStatus && requestStatus !== "all" ? requestStatus : undefined,
+        title: debouncedTitleFilter.trim() || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        category: categoryFilter !== ALL_ARTICLE_FACETS ? categoryFilter : undefined,
+        tag: tagFilter !== ALL_ARTICLE_FACETS ? tagFilter : undefined,
       })
+
+      if (requestId !== fetchRequestIdRef.current) {
+        console.debug("[Articles] Ignoring stale list response", { requestId })
+        return false
+      }
 
       setLoading(false)
 
@@ -111,14 +125,50 @@ export function useArticles(options: UseArticlesOptions = {}) {
         return true
       }
     },
-    [enabled, pagination.page, pagination.pageSize, statusFilter, toast, t]
+    [
+      categoryFilter,
+      debouncedTitleFilter,
+      enabled,
+      pagination.page,
+      pagination.pageSize,
+      statusFilter,
+      tagFilter,
+      toast,
+      t,
+    ]
   )
+
+  const fetchFacets = useCallback(async () => {
+    if (!enabled) return false
+
+    const result = await articlesClient.getArticleFacets()
+    if ("error" in result) {
+      console.warn(`[Articles] Failed to load category and tag facets: ${result.error}`)
+      return false
+    }
+
+    setFacets(result)
+    return true
+  }, [enabled])
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedTitleFilter(titleFilter)
+    }, 300)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [titleFilter])
 
   // 初始加载
   useEffect(() => {
     if (!enabled) return
     fetchArticles()
   }, [enabled, pagination.page, pagination.pageSize, fetchArticles])
+
+  useEffect(() => {
+    if (!enabled) return
+    void fetchFacets()
+  }, [enabled, fetchFacets])
 
   // ==================== 分页操作 ====================
 
@@ -131,6 +181,30 @@ export function useArticles(options: UseArticlesOptions = {}) {
     },
     []
   )
+
+  const resetToFirstPage = useCallback(() => {
+    setPagination((prev) => prev.page === 1 ? prev : { ...prev, page: 1 })
+  }, [])
+
+  const setTitleFilter = useCallback((value: string) => {
+    setTitleFilterState(value)
+    resetToFirstPage()
+  }, [resetToFirstPage])
+
+  const setStatusFilter = useCallback((value: ArticleStatus | "all") => {
+    setStatusFilterState(value)
+    resetToFirstPage()
+  }, [resetToFirstPage])
+
+  const setCategoryFilter = useCallback((value: string) => {
+    setCategoryFilterState(value)
+    resetToFirstPage()
+  }, [resetToFirstPage])
+
+  const setTagFilter = useCallback((value: string) => {
+    setTagFilterState(value)
+    resetToFirstPage()
+  }, [resetToFirstPage])
 
   const handlePageChange = useCallback((page: number) => {
     updatePagination({ page })
@@ -168,9 +242,10 @@ export function useArticles(options: UseArticlesOptions = {}) {
       ...prev,
       total: Math.max(0, prev.total - 1),
     }))
+    void fetchFacets()
 
     return true
-  }, [toast, t])
+  }, [fetchFacets, toast, t])
 
   const handleEdit = useCallback((article: Article) => {
     setEditingArticle(article)
@@ -206,10 +281,10 @@ export function useArticles(options: UseArticlesOptions = {}) {
     setEditingArticle(null)
 
     // 刷新列表
-    await fetchArticles()
+    await Promise.all([fetchArticles(), fetchFacets()])
 
     return true
-  }, [editingArticle, toast, fetchArticles, t])
+  }, [editingArticle, toast, fetchArticles, fetchFacets, t])
 
   // ==================== 状态更新 ====================
 
@@ -286,12 +361,14 @@ export function useArticles(options: UseArticlesOptions = {}) {
   // ==================== 手动刷新（用于 AI 生成完成） ====================
 
   const handleRefresh = useCallback(async () => {
-    return await fetchArticles()
-  }, [fetchArticles])
+    const [articlesLoaded] = await Promise.all([fetchArticles(), fetchFacets()])
+    return articlesLoaded
+  }, [fetchArticles, fetchFacets])
 
   return {
     // 状态
     articles,
+    facets,
     loading,
     pagination,
     editingArticle,
@@ -299,15 +376,20 @@ export function useArticles(options: UseArticlesOptions = {}) {
     statusUpdatingId,
     titleFilter,
     statusFilter,
+    categoryFilter,
+    tagFilter,
 
     // Setters
     setEditingArticle,
     setDeletingId,
     setTitleFilter,
     setStatusFilter,
+    setCategoryFilter,
+    setTagFilter,
 
     // 数据获取
     fetchArticles,
+    fetchFacets,
     handleRefresh,
 
     // CRUD

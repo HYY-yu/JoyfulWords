@@ -8,6 +8,7 @@ import type {
   UpdateArticleStatusRequest,
   ArticleEditRequest,
   ArticleListResponse,
+  ArticleFacetsResponse,
   CreateArticleResponse,
   ArticleEditResponse,
   EditStatusResponse,
@@ -74,11 +75,18 @@ export const articlesClient = {
     if (params?.page_size) searchParams.append('page_size', String(params.page_size))
     if (params?.title) searchParams.append('title', params.title)
     if (params?.status) searchParams.append('status', params.status)
+    if (params?.category) searchParams.append('category', params.category)
+    if (params?.tag) searchParams.append('tag', params.tag)
 
     const queryString = searchParams.toString()
     const url = queryString ? `/article?${queryString}` : '/article'
 
     return authenticatedApiRequest<ArticleListResponse>(url)
+  },
+
+  /** 获取当前用户文章的分类与标签筛选项。 */
+  async getArticleFacets(): Promise<ArticleFacetsResponse | ErrorResponse> {
+    return authenticatedApiRequest<ArticleFacetsResponse>('/article/facets')
   },
 
   /**

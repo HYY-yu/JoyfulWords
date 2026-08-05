@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { useAuth } from "@/lib/auth/auth-context"
-import { useArticles } from "@/lib/hooks/use-articles"
+import { ALL_ARTICLE_FACETS, useArticles } from "@/lib/hooks/use-articles"
 import { Input } from "@/components/ui/base/input"
 import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
@@ -43,15 +43,17 @@ import {
   SearchIcon,
   SparklesIcon,
   SendIcon,
+  FolderIcon,
+  TagIcon,
 } from "lucide-react"
 import { TallyFeedbackButton, FeedbackErrorBoundary } from "@/components/feedback"
 import { ProfileDialog } from "@/components/auth/profile-dialog"
 import { BrandLogo } from "@/components/brand/brand-logo"
 import { getStatusVariant, formatShortDate } from "@/components/article/article-types"
-import type { Article } from "@/lib/api/articles/types"
+import type { Article, UpdateArticleMetadataRequest } from "@/lib/api/articles/types"
 import {
   DeleteConfirmDialog,
-  EditTitleDialog,
+  EditArticleMetadataDialog,
 } from "@/components/article/article-dialogs"
 import { articlesClient } from "@/lib/api/articles/client"
 import { useToast } from "@/hooks/use-toast"
@@ -192,12 +194,17 @@ export default function ArticlesPage() {
 
   const {
     articles,
+    facets,
     loading,
     pagination,
     titleFilter,
     statusFilter,
+    categoryFilter,
+    tagFilter,
     setTitleFilter,
     setStatusFilter,
+    setCategoryFilter,
+    setTagFilter,
     handleDelete,
     handleStatusChange,
     handleRefresh,
@@ -220,7 +227,7 @@ export default function ArticlesPage() {
   // Dialog states
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [editTitleOpen, setEditTitleOpen] = useState(false)
+  const [editMetadataOpen, setEditMetadataOpen] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -270,16 +277,17 @@ export default function ArticlesPage() {
     await handleStatusChange(article.id, "published")
   }
 
-  const saveTitle = async (articleId: number, newTitle: string) => {
-    const result = await articlesClient.updateArticleMetadata(articleId, {
-      title: newTitle,
-    })
+  const saveArticleMetadata = async (
+    articleId: number,
+    metadata: UpdateArticleMetadataRequest
+  ) => {
+    const result = await articlesClient.updateArticleMetadata(articleId, metadata)
 
     if ("message" in result) {
       toast({
-        description: t("contentWriting.manager.titleUpdated"),
+        description: t("contentWriting.manager.metadataUpdated"),
       })
-      handleRefresh()
+      await handleRefresh()
     } else {
       toast({
         variant: "destructive",
@@ -420,20 +428,8 @@ export default function ArticlesPage() {
     return null
   }
 
-  const normalizedTitleFilter = titleFilter.trim().toLocaleLowerCase(
-    locale === "zh" ? "zh-CN" : "en-US"
-  )
-  const visibleArticles = normalizedTitleFilter
-    ? articles.filter((article) =>
-        article.title
-          .toLocaleLowerCase(locale === "zh" ? "zh-CN" : "en-US")
-          .includes(normalizedTitleFilter)
-      )
-    : articles
-  const displayedTotal = normalizedTitleFilter ? visibleArticles.length : pagination.total
-  const totalPages = normalizedTitleFilter
-    ? 1
-    : Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
+  const displayedTotal = pagination.total
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
   const draftCount = articles.filter((article) => article.status === "draft").length
   const publishedCount = articles.filter((article) => article.status === "published").length
   const latestArticle = articles[0]
@@ -589,9 +585,9 @@ export default function ArticlesPage() {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-col gap-3 pb-2 md:mb-3 md:border-b md:border-[var(--jw-border-subtle)] md:pb-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
-              <div className="relative min-w-0 flex-1 lg:max-w-md">
+          <div className="mb-4 overflow-x-auto pb-2 md:mb-3 md:border-b md:border-[var(--jw-border-subtle)] md:pb-4">
+            <div className="grid min-w-[900px] grid-cols-[minmax(220px,1fr)_140px_170px_170px_40px_auto] items-center gap-2">
+              <div className="relative min-w-0">
                 <SearchIcon className="jw-muted-text absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
                 <Input
                   value={titleFilter}
@@ -606,7 +602,7 @@ export default function ArticlesPage() {
                   setStatusFilter(value as any)
                 }}
               >
-                <SelectTrigger className="jw-themed-input h-11 w-full rounded-lg md:h-10 md:w-[150px]">
+                <SelectTrigger className="jw-themed-input h-11 w-full rounded-lg md:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -617,9 +613,34 @@ export default function ArticlesPage() {
                   <SelectItem value="archived">{t("contentWriting.manager.status.archived")}</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="grid grid-cols-[44px_1fr] items-center gap-2 md:flex">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="jw-themed-input h-11 w-full rounded-lg md:h-10">
+                  <FolderIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_ARTICLE_FACETS}>{t("contentWriting.manager.category.all")}</SelectItem>
+                  {facets.categories.map((facet) => (
+                    <SelectItem key={facet.value} value={facet.value}>
+                      {facet.value} ({facet.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={tagFilter} onValueChange={setTagFilter}>
+                <SelectTrigger className="jw-themed-input h-11 w-full rounded-lg md:h-10">
+                  <TagIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_ARTICLE_FACETS}>{t("contentWriting.manager.tags.all")}</SelectItem>
+                  {facets.tags.map((facet) => (
+                    <SelectItem key={facet.value} value={facet.value}>
+                      {facet.value} ({facet.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 onClick={handleRefresh}
                 variant="outline"
@@ -648,18 +669,18 @@ export default function ArticlesPage() {
                   <span>{t("contentWriting.manager.loading")}</span>
                 </div>
               </div>
-            ) : visibleArticles.length === 0 ? (
+            ) : articles.length === 0 ? (
               <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-[#d8cdbb] text-muted-foreground">
                 <BookOpenTextIcon className="mb-3 h-10 w-10 text-[var(--jw-accent)] opacity-55" />
                 <p className="text-lg">
-                  {normalizedTitleFilter
-                    ? t("contentWriting.manager.emptySearchTitle")
+                  {titleFilter.trim() || categoryFilter !== ALL_ARTICLE_FACETS || tagFilter !== ALL_ARTICLE_FACETS || statusFilter !== "all"
+                    ? t("contentWriting.manager.emptyFilteredTitle")
                     : t("contentWriting.manager.emptyTitle")}
                 </p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {visibleArticles.map((article) => {
+                {articles.map((article) => {
                   const thumbnailUrl = getArticleThumbnail(article, theme)
                   const isDefaultThumbnail = isDefaultArticleThumbnail(thumbnailUrl)
                   const isDeleting = deletingId === article.id
@@ -694,6 +715,19 @@ export default function ArticlesPage() {
                           <Badge variant={getStatusVariant(article.status)} className="text-xs">
                             {t(`contentWriting.manager.status.${article.status}`)}
                           </Badge>
+                          {article.category && (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                setCategoryFilter(article.category ?? ALL_ARTICLE_FACETS)
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full bg-[var(--jw-accent-soft)] px-2.5 py-1 text-xs font-medium text-[var(--jw-accent)] hover:opacity-80"
+                            >
+                              <FolderIcon className="h-3 w-3" />
+                              {article.category}
+                            </button>
+                          )}
                           <span className="jw-muted-text text-xs">
                             {formatShortDate(article.updated_at)}
                           </span>
@@ -707,11 +741,11 @@ export default function ArticlesPage() {
                             variant="outline"
                             size="icon-sm"
                             className="jw-secondary-button h-7 w-7 shrink-0 rounded-md md:h-8 md:w-8"
-                            title={t("contentWriting.manager.editTitleAction")}
+                            title={t("contentWriting.manager.editMetadataAction")}
                             onClick={(e) => {
                               e.stopPropagation()
                               setSelectedArticle(article)
-                              setEditTitleOpen(true)
+                              setEditMetadataOpen(true)
                             }}
                           >
                             <PencilLineIcon className="w-3.5 h-3.5" />
@@ -730,12 +764,17 @@ export default function ArticlesPage() {
                             .filter(Boolean)
                             .slice(0, 3)
                             .map((tag) => (
-                              <span
+                              <button
+                                type="button"
                                 key={tag}
                                 className="rounded-full bg-[var(--jw-surface-muted)] px-2.5 py-1 text-xs text-[var(--jw-muted)]"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  setTagFilter(tag)
+                                }}
                               >
                                 {tag}
-                              </span>
+                              </button>
                             ))}
                         </div>
                       </div>
@@ -839,7 +878,7 @@ export default function ArticlesPage() {
                 size="icon"
                 className="jw-secondary-button h-9 w-9 rounded-lg"
                 onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={normalizedTitleFilter.length > 0 || pagination.page <= 1 || loading}
+                disabled={pagination.page <= 1 || loading}
               >
                 <ChevronLeftIcon className="w-4 h-4" />
               </Button>
@@ -851,7 +890,7 @@ export default function ArticlesPage() {
                 size="icon"
                 className="jw-secondary-button h-9 w-9 rounded-lg"
                 onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={normalizedTitleFilter.length > 0 || pagination.page >= totalPages || loading}
+                disabled={pagination.page >= totalPages || loading}
               >
                 <ChevronRightIcon className="w-4 h-4" />
               </Button>
@@ -863,11 +902,13 @@ export default function ArticlesPage() {
       {/* Dialogs */}
       {selectedArticle && (
         <>
-          <EditTitleDialog
+          <EditArticleMetadataDialog
             article={selectedArticle}
-            open={editTitleOpen}
-            onOpenChange={setEditTitleOpen}
-            onSave={saveTitle}
+            open={editMetadataOpen}
+            onOpenChange={setEditMetadataOpen}
+            onSave={saveArticleMetadata}
+            categorySuggestions={facets.categories.map((facet) => facet.value)}
+            tagSuggestions={facets.tags.map((facet) => facet.value)}
           />
           <DeleteConfirmDialog
             article={selectedArticle}

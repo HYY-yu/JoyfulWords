@@ -336,6 +336,12 @@ export const en = {
                 draft: "Draft",
                 archived: "Archived",
             },
+            category: {
+                all: "All Categories",
+            },
+            tags: {
+                all: "All Tags",
+            },
             table: {
                 title: "Title",
                 content: "Content",
@@ -351,6 +357,7 @@ export const en = {
             clickForEdit: "Click to edit",
             openEditor: "Edit Content",
             editTitleAction: "Edit Title",
+            editMetadataAction: "Edit Article Details",
             desktopEditOnly: "Article editing is available on desktop. Please switch to a desktop browser to continue.",
             workspaceSubtitle: "Manage drafts, article content, and creation tasks. Click a document to open the editor.",
             searchAndFilter: "Search & Filter",
@@ -358,10 +365,12 @@ export const en = {
             recentlyUpdated: "Recently updated",
             emptyTitle: "No Articles",
             emptySearchTitle: "No articles match this title",
+            emptyFilteredTitle: "No articles match the current filters",
             perPage: "Per page",
             items: "items",
             materialsCount: "{count} materials",
             titleUpdated: "Title updated",
+            metadataUpdated: "Article details updated",
         },
         taskProgress: {
             statusCompleted: "Completed",
@@ -626,6 +635,17 @@ export const en = {
             favoriteDeleteFailed: "Failed to delete favorite",
         },
         articleDialogs: {
+            editMetadata: {
+                title: "Edit Article Details",
+                titleLabel: "Title",
+                titlePlaceholder: "Enter article title",
+                categoryLabel: "Category",
+                categoryPlaceholder: "Enter a category or choose an existing one",
+                tagsLabel: "Tags",
+                tagsPlaceholder: "Type a tag, then press Enter or comma",
+                tagsHint: "Tags are trimmed and deduplicated automatically",
+                removeTag: "Remove tag {tag}",
+            },
             editTitle: {
                 title: "Edit Article Title",
                 label: "Title",

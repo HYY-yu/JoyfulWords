@@ -336,6 +336,12 @@ export const zh = {
                 draft: "草稿",
                 archived: "已归档",
             },
+            category: {
+                all: "全部分类",
+            },
+            tags: {
+                all: "全部标签",
+            },
             table: {
                 title: "文章标题",
                 content: "文章内容",
@@ -351,6 +357,7 @@ export const zh = {
             clickForEdit: "点击编辑",
             openEditor: "编辑正文",
             editTitleAction: "编辑标题",
+            editMetadataAction: "编辑文章信息",
             desktopEditOnly: "正文编辑需要在电脑端操作，请切换到桌面浏览器继续。",
             workspaceSubtitle: "集中管理草稿、正文和创作任务，点击文稿即可进入编辑器。",
             searchAndFilter: "搜索与筛选",
@@ -358,10 +365,12 @@ export const zh = {
             recentlyUpdated: "最近更新",
             emptyTitle: "暂无文章",
             emptySearchTitle: "没有找到匹配标题的文章",
+            emptyFilteredTitle: "没有找到符合当前筛选条件的文章",
             perPage: "每页",
             items: "条",
             materialsCount: "{count} 个素材",
             titleUpdated: "标题已更新",
+            metadataUpdated: "文章信息已更新",
         },
         taskProgress: {
             statusCompleted: "已完成",
@@ -626,6 +635,17 @@ export const zh = {
             favoriteDeleteFailed: "删除收藏失败",
         },
         articleDialogs: {
+            editMetadata: {
+                title: "编辑文章信息",
+                titleLabel: "标题",
+                titlePlaceholder: "请输入文章标题",
+                categoryLabel: "分类",
+                categoryPlaceholder: "输入分类或选择已有分类",
+                tagsLabel: "标签",
+                tagsPlaceholder: "输入标签后按 Enter 或逗号添加",
+                tagsHint: "标签会自动去空格并去重",
+                removeTag: "移除标签 {tag}",
+            },
             editTitle: {
                 title: "编辑文章标题",
                 label: "标题",

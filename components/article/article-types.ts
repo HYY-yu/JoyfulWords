@@ -60,6 +60,24 @@ export const stringifyTags = (tagsArray: string[]): string => {
 }
 
 /**
+ * 合并已有标签和用户输入，保持首次出现的大小写并按大小写不敏感方式去重。
+ */
+export const mergeTags = (currentTags: string[], rawTags: string): string[] => {
+  const seen = new Set(currentTags.map((tag) => tag.toLocaleLowerCase()))
+  const nextTags = [...currentTags]
+
+  rawTags.split(',').forEach((rawTag) => {
+    const tag = rawTag.trim()
+    const key = tag.toLocaleLowerCase()
+    if (!tag || seen.has(key)) return
+    seen.add(key)
+    nextTags.push(tag)
+  })
+
+  return nextTags
+}
+
+/**
  * 格式化 ISO 8601 时间为本地时间字符串
  * @param isoString - ISO 8601 格式的时间字符串
  * @returns 格式化后的时间字符串
