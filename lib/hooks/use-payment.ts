@@ -3,6 +3,10 @@ import { useToast } from '@/hooks/use-toast'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import { paymentClient } from '@/lib/api/payment/client'
 import { getValidAccessToken } from '@/lib/tokens/refresh'
+import {
+  clearPendingPaymentCreateIntent,
+  getOrCreatePaymentRequestID,
+} from '@/lib/payment/create-intent'
 import type {
   CreateOrderRequest,
   CreateOrderResponse,
@@ -33,7 +37,8 @@ export function usePayment() {
   const createOrder = useCallback(
     async (
       provider: PaymentProvider,
-      credits: number
+      credits: number,
+      options: { forceNewRequest?: boolean } = {}
     ): Promise<CreateOrderResponse | null> => {
       setLoading(true)
 
@@ -53,19 +58,32 @@ export function usePayment() {
         const returnUrl = `${baseUrl}/payment/success`
         const cancelUrl = `${baseUrl}/payment/cancel`
 
+        const requestId = getOrCreatePaymentRequestID(
+          {
+            provider,
+            credits,
+            returnUrl,
+            cancelUrl,
+          },
+          options.forceNewRequest === true
+        )
+
         // 构建请求参数
         const request: CreateOrderRequest = {
           credits,
           provider,
           return_url: returnUrl,
           cancel_url: cancelUrl,
-          timestamp: Math.floor(Date.now() / 1000),
+          request_id: requestId,
         }
 
         // 调用 API 创建订单
         const result = await paymentClient.createOrder(request)
 
         if ('error' in result) {
+          if (result.status === 400 || result.status === 409) {
+            clearPendingPaymentCreateIntent(requestId)
+          }
           toast({
             variant: 'destructive',
             title: t('payment.error.createFailed'),
@@ -73,6 +91,8 @@ export function usePayment() {
           })
           return null
         }
+
+        clearPendingPaymentCreateIntent(requestId)
 
         // 保存订单号到 localStorage（用于支付成功页回退查询）
         if (result.order_no) {

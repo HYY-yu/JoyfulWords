@@ -510,7 +510,15 @@ return_url: '/payment/success'
 // 可能导致跳转失败
 ```
 
-### 3. 支付跳转
+### 3. 创单幂等与失败重试
+
+- 前端在发起请求前生成 `request_id`，并先保存到 localStorage。
+- 网络错误、服务端 5xx 或用户再次点击相同支付参数时复用该 ID。
+- 收到订单 DTO 后保存 `order_no` 并清除待处理 ID；`202` 表示继续按订单号查询。
+- `create_failed` 跳转 `/payment/failed?order_no=...`。只有用户点击“创建新订单”时
+  才生成新的 `request_id`；系统不自动重复调用创单接口。
+
+### 4. 支付跳转
 
 **重要**: 使用 `window.location.href` 确保完整页面跳转。
 
@@ -525,7 +533,7 @@ router.push(result.approval_url)
 // 可能导致跨域问题
 ```
 
-### 4. 轮询超时
+### 5. 轮询超时
 
 **重要**: 必须设置轮询超时，避免无限轮询。
 

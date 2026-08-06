@@ -104,6 +104,13 @@ export function PaymentSuccessContent() {
 
     const paymentReturnStatus = getPaymentReturnStatus(result.status)
 
+    if (result.status === 'create_failed') {
+      console.warn('[PaymentSuccess] Provider 订单创建失败，进入手动重试页', { orderNo })
+      router.replace(`/payment/failed?order_no=${encodeURIComponent(orderNo)}`)
+      clearLastOrderNo()
+      return "stop"
+    }
+
     if (paymentReturnStatus === 'success') {
         console.info('[PaymentSuccess] 订单已完成', { orderNo, credits: result.credits })
       trackProductEvent(PRODUCT_ANALYTICS_EVENTS.PAYMENT_COMPLETED, {

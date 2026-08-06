@@ -3555,6 +3555,18 @@ export const en = {
                 submitting: "Processing...",
             },
             processing: "Processing order...",
+            createFailed: {
+                eyebrow: "Order creation incomplete",
+                title: "We couldn't prepare the payment page",
+                description: "The payment provider did not return a usable checkout. This order was not created again automatically.",
+                loadFailed: "We couldn't load this order. Return to Billing to start a new payment.",
+                loading: "Loading order details...",
+                credits: "Recharge credits",
+                creditsValue: "{credits} credits",
+                retryNotice: "Trying again creates a new order and payment page. The original order will not be sent again automatically.",
+                retry: "Create New Order",
+                retrying: "Creating New Order...",
+            },
             success: {
                 title: "Recharge Successful!",
                 desc: "{credits} credits have been added",

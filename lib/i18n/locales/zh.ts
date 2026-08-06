@@ -3555,6 +3555,18 @@ export const zh = {
                 submitting: "处理中...",
             },
             processing: "正在处理订单...",
+            createFailed: {
+                eyebrow: "订单创建未完成",
+                title: "未能准备支付页面",
+                description: "支付渠道没有返回可用的支付页面。系统没有自动重复创建此订单。",
+                loadFailed: "无法读取这笔订单，请返回计费页面重新发起支付。",
+                loading: "正在读取订单信息...",
+                credits: "充值积分",
+                creditsValue: "{credits} 积分",
+                retryNotice: "重新尝试会创建一个新订单和新的支付页面；原订单不会再次自动发起。",
+                retry: "创建新订单",
+                retrying: "正在创建新订单...",
+            },
             success: {
                 title: "充值成功！",
                 desc: "已充值 {credits} 积分",

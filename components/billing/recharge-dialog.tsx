@@ -51,7 +51,9 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
         data.credits
       )
 
-      if (result && result.approval_url) {
+      if (result?.status === 'create_failed') {
+        window.location.href = `/payment/failed?order_no=${encodeURIComponent(result.order_no)}`
+      } else if (result && result.approval_url) {
         // 跳转到支付页面
         window.location.href = result.approval_url
       } else if (result) {

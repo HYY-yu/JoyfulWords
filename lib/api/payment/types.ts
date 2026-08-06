@@ -37,7 +37,7 @@ export interface CreateOrderRequest {
   provider: PaymentProvider // 支付提供商
   return_url: string // 支付成功后返回的 URL
   cancel_url: string // 支付取消后返回的 URL
-  timestamp: number // 请求时间戳（Unix 秒）
+  request_id: string // 一次支付意图的前端幂等键；自动重试必须复用
   metadata?: Record<string, any>
 }
 
@@ -91,4 +91,8 @@ export interface OrderListResponse {
  */
 export interface ErrorResponse {
   error: string
+  code?: string
+  status?: number
+  reason?: string
+  error_description?: string
 }
