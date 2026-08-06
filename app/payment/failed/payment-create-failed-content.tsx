@@ -10,8 +10,14 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/base/button'
 import { usePayment } from '@/lib/hooks/use-payment'
+import { useAdaptivePolling } from '@/lib/hooks/use-adaptive-polling'
 import { useTranslation } from '@/lib/i18n/i18n-context'
 import type { OrderDetail } from '@/lib/api/payment/types'
+import {
+  clearPendingPaymentCreateIntent,
+  getCheckoutCreationAction,
+  getPendingPaymentCreateIntent,
+} from '@/lib/payment'
 
 export function PaymentCreateFailedContent() {
   const { t } = useTranslation()
@@ -23,6 +29,50 @@ export function PaymentCreateFailedContent() {
   const [loading, setLoading] = useState(true)
   const [retrying, setRetrying] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [pendingRetryOrderNo, setPendingRetryOrderNo] = useState<string | null>(null)
+
+  const {
+    startPolling: startRetryPolling,
+    stopPolling: stopRetryPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!pendingRetryOrderNo) return 'stop'
+      const result = await getOrderDetail(pendingRetryOrderNo, { signal, silent: true })
+      if (!result) throw new Error('Payment order detail is unavailable')
+
+      const action = getCheckoutCreationAction(result)
+      if (action.kind === 'show_create_failed') {
+        clearPendingPaymentCreateIntent()
+        setPendingRetryOrderNo(null)
+        setOrder(result)
+        setRetrying(false)
+        router.replace(`/payment/failed?order_no=${encodeURIComponent(result.order_no)}`)
+        return 'stop'
+      }
+      if (action.kind === 'open_provider') {
+        clearPendingPaymentCreateIntent()
+        window.location.replace(action.approvalUrl)
+        return 'stop'
+      }
+      if (action.kind === 'show_payment_result') {
+        clearPendingPaymentCreateIntent()
+        router.replace(`/payment/success?order_no=${encodeURIComponent(result.order_no)}`)
+        return 'stop'
+      }
+      return { action: 'continue', delayMs: 3_000 }
+    },
+    policy: {
+      fastIntervalMs: 3_000,
+      fastWindowMs: 30_000,
+      standardIntervalMs: 5_000,
+      standardWindowMs: 2 * 60_000,
+      slowIntervalMs: 10_000,
+      maxErrorIntervalMs: 30_000,
+      timeoutMs: 24 * 60 * 60_000,
+      jitterRatio: 0.1,
+    },
+    debugLabel: 'payment-checkout-retry',
+  })
 
   useEffect(() => {
     let active = true
@@ -46,27 +96,43 @@ export function PaymentCreateFailedContent() {
     }
   }, [getOrderDetail, orderNo])
 
+  useEffect(() => {
+    if (!pendingRetryOrderNo) {
+      stopRetryPolling()
+      return
+    }
+    startRetryPolling()
+    return stopRetryPolling
+  }, [pendingRetryOrderNo, startRetryPolling, stopRetryPolling])
+
   const handleRetry = async () => {
-    if (!order || retrying) return
+    if (!order || order.status !== 'create_failed' || retrying) return
     setRetrying(true)
+    let keepWaiting = false
     try {
       const result = await createOrder(order.provider, order.credits, {
-        forceNewRequest: true,
+        forceNewRequest: getPendingPaymentCreateIntent() === null,
       })
       if (!result) return
 
-      if (result.status === 'create_failed') {
+      const action = getCheckoutCreationAction(result)
+      if (action.kind === 'show_create_failed') {
         setOrder(result)
         router.replace(`/payment/failed?order_no=${encodeURIComponent(result.order_no)}`)
         return
       }
-      if (result.approval_url) {
-        window.location.href = result.approval_url
+      if (action.kind === 'open_provider') {
+        window.location.replace(action.approvalUrl)
         return
       }
-      router.replace(`/payment/success?order_no=${encodeURIComponent(result.order_no)}`)
+      if (action.kind === 'show_payment_result') {
+        router.replace(`/payment/success?order_no=${encodeURIComponent(result.order_no)}`)
+        return
+      }
+      keepWaiting = true
+      setPendingRetryOrderNo(result.order_no)
     } finally {
-      setRetrying(false)
+      if (!keepWaiting) setRetrying(false)
     }
   }
 
@@ -127,7 +193,7 @@ export function PaymentCreateFailedContent() {
           </dl>
         )}
 
-        {order && (
+        {order?.status === 'create_failed' && (
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
             {t('billing.payment.createFailed.retryNotice')}
           </p>
@@ -142,7 +208,7 @@ export function PaymentCreateFailedContent() {
             <ArrowLeftIcon className="size-4" />
             {t('billing.payment.success.backToBilling')}
           </Button>
-          {order && (
+          {order?.status === 'create_failed' && (
             <Button className="sm:flex-1" onClick={handleRetry} disabled={retrying}>
               {retrying ? (
                 <Loader2Icon className="size-4 animate-spin" />

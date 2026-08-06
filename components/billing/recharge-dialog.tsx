@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,14 @@ import { useTranslation } from '@/lib/i18n/i18n-context'
 import { getEnabledPaymentProviders } from '@/lib/config/payment-providers'
 import { trackProductEventAndFlush } from '@/lib/analytics/client'
 import { PRODUCT_ANALYTICS_EVENTS } from '@/lib/analytics/events'
+import { Button } from '@/components/ui/base/button'
+import { useAdaptivePolling } from '@/lib/hooks/use-adaptive-polling'
+import {
+  clearLastOrderNo,
+  clearPendingPaymentCreateIntent,
+  getCheckoutCreationAction,
+  getPendingPaymentCreateIntent,
+} from '@/lib/payment'
 
 interface RechargeDialogProps {
   open: boolean
@@ -28,7 +36,7 @@ interface RechargeDialogProps {
 
 export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeDialogProps) {
   const { t } = useTranslation()
-  const { createOrder } = usePayment()
+  const { createOrder, getOrderDetail } = usePayment()
 
   // 获取启用的支付渠道，默认选择第一个
   const enabledProviders = getEnabledPaymentProviders()
@@ -36,9 +44,103 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
 
   const [selectedProvider, setSelectedProvider] = useState<PaymentProvider>(defaultProvider)
   const [submitting, setSubmitting] = useState(false)
+  const [pendingOrderNo, setPendingOrderNo] = useState<string | null>(null)
+  const [waitingLong, setWaitingLong] = useState(false)
+  const createRequestControllerRef = useRef<AbortController | null>(null)
+
+  const {
+    startPolling: startOrderPolling,
+    stopPolling: stopOrderPolling,
+  } = useAdaptivePolling({
+    poll: async ({ signal }) => {
+      if (!pendingOrderNo) return 'stop'
+
+      const order = await getOrderDetail(pendingOrderNo, { signal, silent: true })
+      if (!order) {
+        throw new Error('Payment order detail is unavailable')
+      }
+      const action = getCheckoutCreationAction(order)
+      if (action.kind === 'show_create_failed') {
+        clearPendingPaymentCreateIntent()
+        setPendingOrderNo(null)
+        setSubmitting(false)
+        window.location.href = `/payment/failed?order_no=${encodeURIComponent(order.order_no)}`
+        return 'stop'
+      }
+      if (action.kind === 'open_provider') {
+        clearPendingPaymentCreateIntent()
+        window.location.replace(action.approvalUrl)
+        return 'stop'
+      }
+      if (action.kind === 'show_payment_result') {
+        clearPendingPaymentCreateIntent()
+        window.location.href = `/payment/success?order_no=${encodeURIComponent(order.order_no)}`
+        return 'stop'
+      }
+      return { action: 'continue', delayMs: 3_000 }
+    },
+    policy: {
+      fastIntervalMs: 3_000,
+      fastWindowMs: 30_000,
+      standardIntervalMs: 5_000,
+      standardWindowMs: 2 * 60_000,
+      slowIntervalMs: 10_000,
+      maxErrorIntervalMs: 30_000,
+      timeoutMs: 24 * 60 * 60_000,
+      jitterRatio: 0.1,
+    },
+    debugLabel: 'payment-checkout-create',
+  })
+
+  const cancelPendingRequest = useCallback(() => {
+    createRequestControllerRef.current?.abort()
+    createRequestControllerRef.current = null
+    stopOrderPolling()
+    clearPendingPaymentCreateIntent()
+    clearLastOrderNo()
+    setPendingOrderNo(null)
+    setSubmitting(false)
+    setWaitingLong(false)
+  }, [stopOrderPolling])
+
+  const handleOpenChange = useCallback((nextOpen: boolean) => {
+    if (!nextOpen) {
+      cancelPendingRequest()
+    }
+    onOpenChange(nextOpen)
+  }, [cancelPendingRequest, onOpenChange])
+
+  useEffect(() => {
+    if (!open) return
+    const pendingIntent = getPendingPaymentCreateIntent()
+    if (!pendingIntent?.orderNo) return
+
+    setSelectedProvider(pendingIntent.provider)
+    setPendingOrderNo(pendingIntent.orderNo)
+    setSubmitting(true)
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !pendingOrderNo) {
+      stopOrderPolling()
+      return
+    }
+
+    setWaitingLong(false)
+    startOrderPolling()
+    const longWaitTimer = window.setTimeout(() => setWaitingLong(true), 30_000)
+    return () => {
+      window.clearTimeout(longWaitTimer)
+      stopOrderPolling()
+    }
+  }, [open, pendingOrderNo, startOrderPolling, stopOrderPolling])
 
   const handleSubmit = async (data: { credits: number }) => {
     setSubmitting(true)
+    setWaitingLong(false)
+    createRequestControllerRef.current?.abort()
+    const controller = new AbortController()
+    createRequestControllerRef.current = controller
 
     try {
       await trackProductEventAndFlush(PRODUCT_ANALYTICS_EVENTS.CHECKOUT_STARTED, {
@@ -48,27 +150,39 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
 
       const result = await createOrder(
         selectedProvider,
-        data.credits
+        data.credits,
+        { signal: controller.signal }
       )
 
-      if (result?.status === 'create_failed') {
+      if (controller.signal.aborted) return
+
+      if (!result) return
+
+      const action = getCheckoutCreationAction(result)
+      if (action.kind === 'show_create_failed') {
         window.location.href = `/payment/failed?order_no=${encodeURIComponent(result.order_no)}`
-      } else if (result && result.approval_url) {
-        // 跳转到支付页面
-        window.location.href = result.approval_url
-      } else if (result) {
-        // 幂等重试可能直接返回处理中或已完成订单，此时进入统一的订单状态确认页
+      } else if (action.kind === 'open_provider') {
+        window.location.replace(action.approvalUrl)
+      } else if (action.kind === 'show_payment_result') {
         window.location.href = `/payment/success?order_no=${encodeURIComponent(result.order_no)}`
+      } else {
+        setPendingOrderNo(result.order_no)
+        return
       }
     } catch (error) {
       console.error('Failed to create order:', error)
     } finally {
-      setSubmitting(false)
+      if (createRequestControllerRef.current === controller) {
+        createRequestControllerRef.current = null
+      }
+      if (!pendingOrderNo && !getPendingPaymentCreateIntent()?.orderNo) {
+        setSubmitting(false)
+      }
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('billing.payment.dialog.title')}</DialogTitle>
@@ -88,8 +202,26 @@ export function RechargeDialog({ open, onOpenChange, initialCredits }: RechargeD
               <div className="flex flex-col items-center justify-center py-12">
                 <Loader2Icon className="w-8 h-8 animate-spin text-primary mb-4" />
                 <p className="text-sm text-muted-foreground">
-                  {t('billing.payment.processing')}
+                  {waitingLong
+                    ? t('billing.payment.checkoutWaiting.stillCreating')
+                    : t('billing.payment.processing')}
                 </p>
+                {waitingLong && (
+                  <>
+                    <p className="mt-2 max-w-xs text-center text-xs leading-5 text-muted-foreground">
+                      {t('billing.payment.checkoutWaiting.cancelNotice')}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="mt-4 text-muted-foreground"
+                      onClick={() => handleOpenChange(false)}
+                    >
+                      {t('billing.payment.checkoutWaiting.cancel')}
+                    </Button>
+                  </>
+                )}
               </div>
             ) : (
               <>

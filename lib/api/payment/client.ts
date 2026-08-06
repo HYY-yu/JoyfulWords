@@ -19,10 +19,14 @@ export const paymentClient = {
    * @param data - 创建订单请求参数
    * @returns Promise<CreateOrderResponse | ErrorResponse>
    */
-  async createOrder(data: CreateOrderRequest): Promise<CreateOrderResponse | ErrorResponse> {
+  async createOrder(
+    data: CreateOrderRequest,
+    signal?: AbortSignal
+  ): Promise<CreateOrderResponse | ErrorResponse> {
     return authenticatedApiRequest<CreateOrderResponse>('/payment/orders/create', {
       method: 'POST',
       body: JSON.stringify(data),
+      signal,
     })
   },
 
@@ -33,8 +37,11 @@ export const paymentClient = {
    * @param orderNo - 订单号
    * @returns Promise<OrderDetail | ErrorResponse>
    */
-  async getOrderDetail(orderNo: string): Promise<OrderDetail | ErrorResponse> {
-    return authenticatedApiRequest<OrderDetail>(`/payment/orders/${orderNo}`)
+  async getOrderDetail(
+    orderNo: string,
+    signal?: AbortSignal
+  ): Promise<OrderDetail | ErrorResponse> {
+    return authenticatedApiRequest<OrderDetail>(`/payment/orders/${orderNo}`, { signal })
   },
 
   /**

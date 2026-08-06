@@ -9,8 +9,9 @@ export interface PaymentCreateIntentInput {
   cancelUrl: string
 }
 
-interface StoredPaymentCreateIntent extends PaymentCreateIntentInput {
+export interface StoredPaymentCreateIntent extends PaymentCreateIntentInput {
   requestId: string
+  orderNo?: string
 }
 
 function matchesIntent(
@@ -25,7 +26,7 @@ function matchesIntent(
   )
 }
 
-function readStoredIntent(): StoredPaymentCreateIntent | null {
+export function getPendingPaymentCreateIntent(): StoredPaymentCreateIntent | null {
   if (typeof window === 'undefined') return null
 
   try {
@@ -38,7 +39,8 @@ function readStoredIntent(): StoredPaymentCreateIntent | null {
       typeof value.provider !== 'string' ||
       typeof value.credits !== 'number' ||
       typeof value.returnUrl !== 'string' ||
-      typeof value.cancelUrl !== 'string'
+      typeof value.cancelUrl !== 'string' ||
+      (value.orderNo !== undefined && typeof value.orderNo !== 'string')
     ) {
       localStorage.removeItem(PENDING_PAYMENT_INTENT_KEY)
       return null
@@ -55,7 +57,7 @@ export function getOrCreatePaymentRequestID(
   forceNew: boolean
 ): string {
   if (!forceNew) {
-    const stored = readStoredIntent()
+    const stored = getPendingPaymentCreateIntent()
     if (stored && matchesIntent(stored, input)) {
       console.debug('[PaymentCreateIntent] 复用支付 request_id', {
         requestId: stored.requestId,
@@ -78,12 +80,27 @@ export function getOrCreatePaymentRequestID(
   return requestId
 }
 
+export function savePendingPaymentOrder(requestId: string, orderNo: string): void {
+  if (typeof window === 'undefined') return
+
+  try {
+    const stored = getPendingPaymentCreateIntent()
+    if (!stored || stored.requestId !== requestId) return
+    localStorage.setItem(
+      PENDING_PAYMENT_INTENT_KEY,
+      JSON.stringify({ ...stored, orderNo } satisfies StoredPaymentCreateIntent)
+    )
+  } catch (error) {
+    console.warn('[PaymentCreateIntent] 保存待处理订单号失败', error)
+  }
+}
+
 export function clearPendingPaymentCreateIntent(requestId?: string): void {
   if (typeof window === 'undefined') return
 
   try {
     if (requestId) {
-      const stored = readStoredIntent()
+      const stored = getPendingPaymentCreateIntent()
       if (stored && stored.requestId !== requestId) return
     }
     localStorage.removeItem(PENDING_PAYMENT_INTENT_KEY)

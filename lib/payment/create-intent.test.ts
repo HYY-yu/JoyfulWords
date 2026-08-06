@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 
 import {
   clearPendingPaymentCreateIntent,
+  getPendingPaymentCreateIntent,
   getOrCreatePaymentRequestID,
+  savePendingPaymentOrder,
 } from './create-intent'
 
 class MemoryStorage implements Storage {
@@ -49,6 +51,10 @@ test('reuses request_id for the same unresolved payment intent', () => {
 
   const first = getOrCreatePaymentRequestID(input, false)
   const automaticRetry = getOrCreatePaymentRequestID(input, false)
+
+  savePendingPaymentOrder(first, 'ORD20260806TEST')
+  assert.equal(getPendingPaymentCreateIntent()?.orderNo, 'ORD20260806TEST')
+
   const manualRetry = getOrCreatePaymentRequestID(input, true)
 
   assert.equal(automaticRetry, first)

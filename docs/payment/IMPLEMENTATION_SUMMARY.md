@@ -514,18 +514,22 @@ return_url: '/payment/success'
 
 - 前端在发起请求前生成 `request_id`，并先保存到 localStorage。
 - 网络错误、服务端 5xx 或用户再次点击相同支付参数时复用该 ID。
-- 收到订单 DTO 后保存 `order_no` 并清除待处理 ID；`202` 表示继续按订单号查询。
+- `202/creating` 时把 `order_no` 写入同一条 pending intent，不清除 `request_id`。
+- 充值弹窗保持 loading，并轮询订单详情；拿到 `approval_url` 后才清除 pending intent
+  并跳转 Provider。刷新或重新打开弹窗会恢复原订单轮询。
+- 关闭弹窗或点击取消会停止本地轮询并清理本地 pending intent。
 - `create_failed` 跳转 `/payment/failed?order_no=...`。只有用户点击“创建新订单”时
   才生成新的 `request_id`；系统不自动重复调用创单接口。
 
 ### 4. 支付跳转
 
-**重要**: 使用 `window.location.href` 确保完整页面跳转。
+**重要**: 只有拿到 `approval_url` 才执行完整页面跳转；缺少地址时不能进入
+`/payment/success`。
 
 ```typescript
 // ✅ 正确
 if (result.approval_url) {
-  window.location.href = result.approval_url
+  window.location.replace(result.approval_url)
 }
 
 // ❌ 错误

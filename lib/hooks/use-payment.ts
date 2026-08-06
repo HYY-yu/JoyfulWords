@@ -6,6 +6,7 @@ import { getValidAccessToken } from '@/lib/tokens/refresh'
 import {
   clearPendingPaymentCreateIntent,
   getOrCreatePaymentRequestID,
+  savePendingPaymentOrder,
 } from '@/lib/payment/create-intent'
 import type {
   CreateOrderRequest,
@@ -38,7 +39,7 @@ export function usePayment() {
     async (
       provider: PaymentProvider,
       credits: number,
-      options: { forceNewRequest?: boolean } = {}
+      options: { forceNewRequest?: boolean; signal?: AbortSignal } = {}
     ): Promise<CreateOrderResponse | null> => {
       setLoading(true)
 
@@ -78,7 +79,9 @@ export function usePayment() {
         }
 
         // 调用 API 创建订单
-        const result = await paymentClient.createOrder(request)
+        const result = await paymentClient.createOrder(request, options.signal)
+
+        if (options.signal?.aborted) return null
 
         if ('error' in result) {
           if (result.status === 400 || result.status === 409) {
@@ -92,7 +95,11 @@ export function usePayment() {
           return null
         }
 
-        clearPendingPaymentCreateIntent(requestId)
+        if (!result.approval_url && result.status === 'creating') {
+          savePendingPaymentOrder(requestId, result.order_no)
+        } else {
+          clearPendingPaymentCreateIntent(requestId)
+        }
 
         // 保存订单号到 localStorage（用于支付成功页回退查询）
         if (result.order_no) {
@@ -122,40 +129,51 @@ export function usePayment() {
    * @param orderNo - 订单号
    * @returns Promise<OrderDetail | null> 成功返回订单详情，失败返回 null
    */
-  const getOrderDetail = useCallback(async (orderNo: string): Promise<OrderDetail | null> => {
-    setLoading(true)
+  const getOrderDetail = useCallback(async (
+    orderNo: string,
+    options: { signal?: AbortSignal; silent?: boolean } = {}
+  ): Promise<OrderDetail | null> => {
+    if (!options.silent) setLoading(true)
 
     try {
       const token = await getValidAccessToken()
       if (!token) {
-        toast({
-          variant: 'destructive',
-          title: t('payment.error.unauthorized'),
-        })
+        if (!options.silent) {
+          toast({
+            variant: 'destructive',
+            title: t('payment.error.unauthorized'),
+          })
+        }
         return null
       }
 
-      const result = await paymentClient.getOrderDetail(orderNo)
+      const result = await paymentClient.getOrderDetail(orderNo, options.signal)
+
+      if (options.signal?.aborted) return null
 
       if ('error' in result) {
-        toast({
-          variant: 'destructive',
-          title: t('payment.error.queryFailed'),
-          description: result.error,
-        })
+        if (!options.silent) {
+          toast({
+            variant: 'destructive',
+            title: t('payment.error.queryFailed'),
+            description: result.error,
+          })
+        }
         return null
       }
 
       return result
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('payment.error.queryFailed'),
-        description: error instanceof Error ? error.message : t('payment.error.unknown'),
-      })
+      if (!options.silent && !options.signal?.aborted) {
+        toast({
+          variant: 'destructive',
+          title: t('payment.error.queryFailed'),
+          description: error instanceof Error ? error.message : t('payment.error.unknown'),
+        })
+      }
       return null
     } finally {
-      setLoading(false)
+      if (!options.silent) setLoading(false)
     }
   }, [toast, t])
 
