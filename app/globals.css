@@ -867,34 +867,38 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
   min-width: 0;
 }
 
-.tools-metric {
+.tools-hero-metrics .tools-metric {
   display: grid;
-  gap: 0.15rem;
+  align-content: center;
+  gap: 0.35rem;
+  min-height: 7.5rem;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--jw-border-subtle) 58%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--jw-surface-strong) 58%, transparent);
   box-shadow: 0 12px 30px -28px color-mix(in srgb, var(--jw-accent) 30%, transparent);
-  padding: 0.65rem 0.8rem;
+  padding: 1.15rem 1.3rem;
 }
 
 .tools-metric-value {
   color: var(--jw-heading);
-  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  font-size: clamp(2rem, 3vw, 2.5rem);
   font-weight: 880;
-  line-height: 0.95;
+  letter-spacing: -0.025em;
+  line-height: 0.9;
 }
 
 .tools-metric-label {
   overflow: hidden;
   color: var(--jw-muted);
-  font-size: 0.72rem;
-  line-height: 1.1rem;
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.25rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1705,13 +1709,13 @@
 @media (min-width: 768px) {
   .tools-hero {
     align-items: center;
-    grid-template-columns: minmax(0, 1fr) minmax(12rem, 15rem);
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 18rem);
   }
 
   .tools-hero-metrics {
     align-self: center;
     justify-self: end;
-    width: min(100%, 15rem);
+    width: min(100%, 18rem);
     grid-template-columns: 1fr;
   }
 
@@ -1731,6 +1735,14 @@
 }
 
 @media (min-width: 1280px) {
+  .tools-page-shell .tools-hero {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+  }
+
+  .tools-page-shell .tools-hero-metrics {
+    width: 22rem;
+  }
+
   .tools-layout-grid {
     grid-template-columns: minmax(0, 1fr) 22rem;
     align-items: start;

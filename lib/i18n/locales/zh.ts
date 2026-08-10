@@ -3236,12 +3236,8 @@ export const zh = {
         metrics: {
             label: "工具箱概览",
             tools: {
-                value: "10",
+                value: "6",
                 label: "创作工具",
-            },
-            workflow: {
-                value: "3步",
-                label: "推荐工具",
             },
         },
         sections: {
@@ -3250,7 +3246,7 @@ export const zh = {
         categories: {
             visual: {
                 title: "视觉生成",
-                description: "配图、信息图和表情素材集中处理。",
+                description: "配图和信息图集中处理。",
             },
             data: {
                 title: "数据可视化",
@@ -3325,24 +3321,6 @@ export const zh = {
                 description: "根据段落语气和上下文，推荐适合插入文章或社媒内容的表情包。",
                 category: "视觉资产",
                 meta: "情绪增强",
-            },
-        },
-        workflow: {
-            title: "推荐流程",
-            recommendedTools: "推荐工具",
-            steps: {
-                visual: {
-                    title: "需要配图",
-                    description: "推荐工具：创作图片、信息图、AI 图表工具。",
-                },
-                data: {
-                    title: "数据可视化",
-                    description: "推荐工具：AI 图表。",
-                },
-                freewrite: {
-                    title: "随便写点",
-                    description: "没有明确目标时，先用 AI 写作把内容起出来。",
-                },
             },
         },
         activities: {

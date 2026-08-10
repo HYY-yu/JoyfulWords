@@ -3236,12 +3236,8 @@ export const en = {
         metrics: {
             label: "Toolbox overview",
             tools: {
-                value: "10",
+                value: "6",
                 label: "Creator tools",
-            },
-            workflow: {
-                value: "3 steps",
-                label: "Recommended tools",
             },
         },
         sections: {
@@ -3250,7 +3246,7 @@ export const en = {
         categories: {
             visual: {
                 title: "Visual Generation",
-                description: "Images, infographics, charts, and expressive inserts in one place.",
+                description: "Create images and infographics in one place.",
             },
             data: {
                 title: "Data Visualization",
@@ -3325,24 +3321,6 @@ export const en = {
                 description: "Suggest memes that match the paragraph tone and context for articles or social posts.",
                 category: "Visual assets",
                 meta: "Tone boost",
-            },
-        },
-        workflow: {
-            title: "Suggested Flow",
-            recommendedTools: "Recommended tools",
-            steps: {
-                visual: {
-                    title: "Need visuals",
-                    description: "Recommended tools: Create Image, Infographic, and AI Charts.",
-                },
-                data: {
-                    title: "Data visualization",
-                    description: "Recommended tool: AI Charts.",
-                },
-                freewrite: {
-                    title: "Write anything",
-                    description: "When the goal is loose, start with AI Writer and shape it later.",
-                },
             },
         },
         activities: {

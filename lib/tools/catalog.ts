@@ -13,6 +13,15 @@ export const TOOL_SLUGS = [
 
 export type ToolSlug = (typeof TOOL_SLUGS)[number]
 
+export const TOOL_INDEX_SLUGS = [
+  "image-generator",
+  "infographic",
+  "ai-charts",
+  "ppt-generator",
+  "markdown-to-word",
+  "ppt-to-word",
+] as const satisfies readonly ToolSlug[]
+
 export function isToolSlug(value: string): value is ToolSlug {
   return (TOOL_SLUGS as readonly string[]).includes(value)
 }

@@ -14,7 +14,6 @@ import {
   GlobeIcon,
   ImageIcon,
   Layers3Icon,
-  ListChecksIcon,
   MapIcon,
   MegaphoneIcon,
   MenuIcon,
@@ -43,7 +42,7 @@ import { ToolboxInfographic } from "@/components/tools/toolbox-infographic"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import type { Locale } from "@/lib/i18n/shared"
-import { TOOL_SLUGS, type ToolSlug } from "@/lib/tools/catalog"
+import { TOOL_INDEX_SLUGS, TOOL_SLUGS, type ToolSlug } from "@/lib/tools/catalog"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
@@ -73,7 +72,7 @@ const toolCategoryMap = {
   "word-to-ppt": "documents",
 } satisfies Record<ToolSlug, "visual" | "data" | "writing" | "documents">
 
-const toolCategoryOrder = ["visual", "data", "documents", "writing"] as const
+const toolCategoryOrder = ["documents", "visual", "data"] as const
 
 const activityIconMap = {
   checkIn: CalendarCheckIcon,
@@ -81,18 +80,14 @@ const activityIconMap = {
   campaign: MegaphoneIcon,
 } satisfies Record<string, typeof CalendarCheckIcon>
 
-const workflowIconMap = {
-  visual: Layers3Icon,
-  data: BarChart3Icon,
-  freewrite: SparklesIcon,
-} satisfies Record<string, typeof SparklesIcon>
+type ToolCategoryId = "visual" | "data" | "writing" | "documents"
 
 type ToolSummary = {
   slug: ToolSlug
   Icon: typeof PenLineIcon
   title: string
   description: string
-  categoryId: (typeof toolCategoryOrder)[number]
+  categoryId: ToolCategoryId
   category: string
   meta: string
   href: string
@@ -326,31 +321,15 @@ function ToolsIndex({
 }) {
   const { t } = useTranslation()
   const workspaceHref = "/articles"
+  const indexTools = TOOL_INDEX_SLUGS.map((slug) =>
+    tools.find((tool) => tool.slug === slug)
+  ).filter((tool): tool is ToolSummary => Boolean(tool))
   const groupedTools = toolCategoryOrder.map((categoryId) => ({
     categoryId,
     title: t(`toolsPage.categories.${categoryId}.title`),
     description: t(`toolsPage.categories.${categoryId}.description`),
-    tools: tools.filter((tool) => tool.categoryId === categoryId),
+    tools: indexTools.filter((tool) => tool.categoryId === categoryId),
   }))
-  const workflowSteps = (["visual", "data", "freewrite"] as const).map((key) => {
-    const Icon = workflowIconMap[key]
-    const recommendedSlugs = {
-      visual: ["image-generator", "infographic", "ai-charts"],
-      data: ["ai-charts"],
-      freewrite: ["ai-writer"],
-    }[key] as ToolSlug[]
-
-    return {
-      key,
-      Icon,
-      title: t(`toolsPage.workflow.steps.${key}.title`),
-      description: t(`toolsPage.workflow.steps.${key}.description`),
-      tools: recommendedSlugs
-        .map((slug) => tools.find((tool) => tool.slug === slug))
-        .filter((tool): tool is ToolSummary => Boolean(tool)),
-    }
-  })
-
   return (
     <div className="tools-composition">
       <section className="tools-hero" aria-labelledby="tools-page-title">
@@ -370,10 +349,6 @@ function ToolsIndex({
           <div className="tools-metric">
             <span className="tools-metric-value">{t("toolsPage.metrics.tools.value")}</span>
             <span className="tools-metric-label">{t("toolsPage.metrics.tools.label")}</span>
-          </div>
-          <div className="tools-metric">
-            <span className="tools-metric-value">{t("toolsPage.metrics.workflow.value")}</span>
-            <span className="tools-metric-label">{t("toolsPage.metrics.workflow.label")}</span>
           </div>
         </div>
       </section>
@@ -432,38 +407,6 @@ function ToolsIndex({
         </section>
 
         <aside className="tools-side-rail min-w-0">
-          <section className="tools-workflow-rail">
-            <div className="tools-rail-heading">
-              <span>{t("toolsPage.workflow.title")}</span>
-              <ListChecksIcon className="size-4" />
-            </div>
-            <div className="tools-workflow-list">
-              {workflowSteps.map((step, index) => {
-                const Icon = step.Icon
-
-                return (
-                  <div key={step.key} className="tools-workflow-step">
-                    <span className="tools-workflow-number">{String(index + 1).padStart(2, "0")}</span>
-                    <span className="tools-workflow-icon">
-                      <Icon className="size-4" />
-                    </span>
-                    <span className="tools-workflow-copy">
-                      <span>{step.title}</span>
-                      <small>{step.description}</small>
-                      <span className="tools-workflow-tools" aria-label={t("toolsPage.workflow.recommendedTools")}>
-                        {step.tools.map((tool) => (
-                          <Link key={tool.slug} href={tool.href}>
-                            {tool.title}
-                          </Link>
-                        ))}
-                      </span>
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </section>
-
           <div className="tools-activity-rail">
             <div className="tools-rail-heading">
               <span>{t("toolsPage.activities.title")}</span>
