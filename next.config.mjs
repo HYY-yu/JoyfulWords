@@ -5,9 +5,6 @@ const PRIVATE_CACHE_CONTROL = 'private, no-store'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     unoptimized: true,
   },
