@@ -1423,6 +1423,7 @@ export const en = {
         noAccount: "Don\'t have an account?",
         hasAccount: "Already have an account?",
         continueWith: "Or continue with",
+        continueAsGuest: "Continue as guest",
         continueWithGoogle: "Continue with Google",
         welcomeBack: "Welcome Back",
         loginSubtitle: "Sign in to your account to continue",

@@ -7,6 +7,7 @@ import { waitForProxySessionBeforeRedirect } from "@/lib/auth/post-login-redirec
 import { normalizeAuthRedirect } from "@/lib/auth/redirect"
 import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 import { Button } from "@/components/ui/base/button"
 import { Input } from "@/components/ui/base/input"
 import { Label } from "@/components/ui/base/label"
@@ -21,7 +22,7 @@ export function LoginForm() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const { signInWithEmail, signInWithGoogle } = useAuth()
   const { toast } = useToast()
-  const { t } = useTranslation()
+  const { locale, t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTarget = normalizeAuthRedirect(searchParams?.get("redirect"))
@@ -171,6 +172,15 @@ export function LoginForm() {
       <Button type="submit" className="w-full" disabled={loading || googleLoading}>
         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
         {t("auth.login")}
+      </Button>
+
+      {/* Guest Toolbox Entry */}
+      <Button
+        variant="outline"
+        className="w-full"
+        asChild
+      >
+        <Link href={buildLocalizedPath(locale, "/tools")}>{t("auth.continueAsGuest")}</Link>
       </Button>
 
       {/* Divider */}
