@@ -56,6 +56,7 @@ type ExportFormat = "png" | "jpeg" | "webp"
 type GradientDirection = "135" | "90" | "180" | "45"
 type TitleResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "center"
 type TitleTransformMode = "move" | "resize"
+type CoverResourceLoadState = "idle" | "loading" | "ready" | "failed"
 
 interface TitleBounds {
   x: number
@@ -312,7 +313,11 @@ export function ArticleCoverDialog({
   const [gradientDirection, setGradientDirection] = useState<GradientDirection>("135")
   const [backgroundImageUrl, setBackgroundImageUrl] = useState("")
   const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null)
+  const [backgroundImageLoadState, setBackgroundImageLoadState] =
+    useState<CoverResourceLoadState>("idle")
   const [customFontImage, setCustomFontImage] = useState<HTMLImageElement | null>(null)
+  const [customFontImageLoadState, setCustomFontImageLoadState] =
+    useState<CoverResourceLoadState>("idle")
 
   const [width, setWidth] = useState(1200)
   const [height, setHeight] = useState(630)
@@ -473,17 +478,24 @@ export function ArticleCoverDialog({
   useEffect(() => {
     if (!backgroundImageUrl) {
       setBackgroundImage(null)
+      setBackgroundImageLoadState("idle")
       return
     }
 
     let cancelled = false
+    setBackgroundImage(null)
+    setBackgroundImageLoadState("loading")
     loadCrossOriginImage(backgroundImageUrl)
       .then((image) => {
-        if (!cancelled) setBackgroundImage(image)
+        if (!cancelled) {
+          setBackgroundImage(image)
+          setBackgroundImageLoadState("ready")
+        }
       })
       .catch(() => {
         if (!cancelled) {
           setBackgroundImage(null)
+          setBackgroundImageLoadState("failed")
           toast({ variant: "destructive", title: t("imageGeneration.cover.toast.backgroundLoadFailed") })
         }
       })
@@ -497,23 +509,27 @@ export function ArticleCoverDialog({
     if (!customFontUrl) {
       setCustomFontImage(null)
       setCustomFontImageUrl("")
+      setCustomFontImageLoadState("idle")
       return
     }
 
     let cancelled = false
     setCustomFontImage(null)
     setCustomFontImageUrl("")
+    setCustomFontImageLoadState("loading")
     loadCrossOriginImage(customFontUrl, String(customFontImageVersion))
       .then((image) => {
         if (!cancelled) {
           setCustomFontImage(image)
           setCustomFontImageUrl(customFontUrl)
+          setCustomFontImageLoadState("ready")
         }
       })
       .catch(() => {
         if (!cancelled) {
           setCustomFontImage(null)
           setCustomFontImageUrl("")
+          setCustomFontImageLoadState("failed")
           toast({ variant: "destructive", title: t("imageGeneration.cover.toast.fontLoadFailed") })
         }
       })
@@ -1121,6 +1137,22 @@ export function ArticleCoverDialog({
     }
   }
 
+  const requiresBackgroundImage =
+    (backgroundMode === "unsplash" || backgroundMode === "material") &&
+    Boolean(backgroundImageUrl)
+  const requiresCustomFontImage =
+    fontMode !== "preset" && customFontSource === fontMode && Boolean(customFontUrl)
+  const areCoverResourcesReady =
+    (!requiresBackgroundImage || backgroundImageLoadState === "ready") &&
+    (!requiresCustomFontImage || customFontImageLoadState === "ready")
+  const isCoverResourceLoading =
+    (requiresBackgroundImage && backgroundImageLoadState === "loading") ||
+    (requiresCustomFontImage && customFontImageLoadState === "loading") ||
+    isGeneratingFont ||
+    isGeneratingTitle
+  const canExportCover =
+    isCanvasReady && areCoverResourcesReady && !isCoverResourceLoading && !isExportingCover
+
   const exportCover = async () => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -1131,6 +1163,10 @@ export function ArticleCoverDialog({
     let coverTitle = title.trim()
     if (!coverTitle) {
       toast({ variant: "destructive", title: t("imageGeneration.cover.toast.titleRequired") })
+      return
+    }
+    if (!areCoverResourcesReady || isCoverResourceLoading) {
+      toast({ variant: "destructive", title: t("imageGeneration.cover.toast.resourcesNotReady") })
       return
     }
 
@@ -1243,7 +1279,7 @@ export function ArticleCoverDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className={cn(subtleButtonClass, "h-10 px-5")}>
                 {t("common.cancel")}
               </Button>
-              <Button type="button" onClick={exportCover} disabled={isExportingCover} className="h-10 rounded-xl bg-[var(--jw-accent)] px-5 text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:bg-[var(--jw-accent-hover)]">
+              <Button type="button" onClick={exportCover} disabled={!canExportCover} className="h-10 rounded-xl bg-[var(--jw-accent)] px-5 text-[var(--jw-accent-foreground)] shadow-[var(--jw-soft-shadow)] hover:bg-[var(--jw-accent-hover)]">
                 {isExportingCover ? (
                   <LoaderIcon className="h-4 w-4 animate-spin" />
                 ) : (
@@ -1413,6 +1449,20 @@ export function ArticleCoverDialog({
                   onPointerUp={handleTitleTransformPointerUp}
                   onPointerCancel={handleTitleTransformPointerUp}
                 />
+                {isCoverResourceLoading ? (
+                  <div
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl bg-slate-700/55 text-white backdrop-blur-[2px]"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/25 shadow-lg">
+                      <LoaderIcon className="h-5 w-5 animate-spin" />
+                    </span>
+                    <span className="text-sm font-semibold tracking-wide">
+                      {t("imageGeneration.cover.resourcesLoading")}
+                    </span>
+                  </div>
+                ) : null}
                 {titleSelectionStyle ? (
                   <div
                     className="pointer-events-none absolute rounded-[6px] border border-[var(--jw-accent)] shadow-[0_0_0_1px_rgba(255,255,255,0.88),0_0_0_4px_color-mix(in_srgb,var(--jw-accent)_18%,transparent)]"

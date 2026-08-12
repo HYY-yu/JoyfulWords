@@ -8,7 +8,10 @@ import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableRow } from "@tiptap/extension-table";
 import type { EditorView } from "@tiptap/pm/view";
 import { NodeSelection } from "@tiptap/pm/state";
-import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
+import {
+  DOMParser as ProseMirrorDOMParser,
+  DOMSerializer as ProseMirrorDOMSerializer,
+} from "@tiptap/pm/model";
 import {
   useCallback,
   useEffect,
@@ -54,8 +57,7 @@ import type {
 } from "@/lib/api/taskcenter/types";
 import { isTaskCenterArticleWriterDetails } from "@/lib/api/taskcenter/types";
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks";
-
-const NON_TEXT_EDITOR_CONTENT_PATTERN = /<(img|video|table|hr|ul|ol|blockquote|pre)\b/i;
+import { hasMeaningfulArticleContent } from "@/lib/article-content";
 
 type EditorImageReferenceContext = {
   anchor_text?: string;
@@ -69,6 +71,17 @@ type LaserTrailSegment = {
   y1: number;
   x2: number;
   y2: number;
+}
+
+function serializeEditorRangeToHTML(editor: Editor, from: number, to: number) {
+  const container = document.createElement("div");
+  const fragment = editor.state.doc.slice(from, to).content;
+  const serializedFragment = ProseMirrorDOMSerializer
+    .fromSchema(editor.state.schema)
+    .serializeFragment(fragment);
+
+  container.appendChild(serializedFragment);
+  return container.innerHTML;
 }
 
 declare global {
@@ -86,12 +99,6 @@ declare global {
   }
 }
 
-function isContentEffectivelyEmpty(value: string) {
-  const text = value.replace(/<[^>]*>/g, "").trim();
-
-  return !text && !NON_TEXT_EDITOR_CONTENT_PATTERN.test(value);
-}
-
 interface TiptapEditorProps {
   content?: string;
   onChange?: (content: string, html: string) => void;
@@ -103,6 +110,7 @@ interface TiptapEditorProps {
   onActiveArticleEditTaskRefChange?: (taskRef: TaskCenterTaskReference | null) => void;
   onArticleEditSubmitted?: (execId: string) => void;
   onImageTaskSubmitted?: () => void;
+  onFirstUserTextInput?: () => void;
   presentationMode?: boolean;
   onExitPresentation?: () => void;
 }
@@ -118,17 +126,21 @@ export function TiptapEditor({
   onActiveArticleEditTaskRefChange,
   onArticleEditSubmitted,
   onImageTaskSubmitted,
+  onFirstUserTextInput,
   presentationMode = false,
   onExitPresentation,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isEditorEmpty, setIsEditorEmpty] = useState(() => isContentEffectivelyEmpty(content));
+  const [isEditorEmpty, setIsEditorEmpty] = useState(
+    () => !hasMeaningfulArticleContent({ html: content })
+  );
 
   // AI 改写对话框状态
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [aiDialogMode, setAIDialogMode] = useState<"create" | "task">("create");
   const [selectedTextForAI, setSelectedTextForAI] = useState("");
+  const [selectedHTMLForAI, setSelectedHTMLForAI] = useState("");
   const [activeArticleEditTask, setActiveArticleEditTask] =
     useState<TaskCenterArticleTaskDetail | null>(null);
   const [loadingArticleEditTask, setLoadingArticleEditTask] = useState(false);
@@ -145,6 +157,11 @@ export function TiptapEditor({
   // 添加toast提示
   const { toast } = useToast();
   const editorRef = useRef<Editor | null>(null);
+  const onFirstUserTextInputRef = useRef(onFirstUserTextInput);
+
+  useEffect(() => {
+    onFirstUserTextInputRef.current = onFirstUserTextInput;
+  }, [onFirstUserTextInput]);
   const lastInsertedImagePositionRef = useRef<number | null>(null);
   const presentationControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentStageRef = useRef<HTMLDivElement | null>(null);
@@ -200,6 +217,7 @@ export function TiptapEditor({
 
       setActiveArticleEditTask(articleTask);
       setSelectedTextForAI(articleTask.req_text || "");
+      setSelectedHTMLForAI("");
     } catch (error) {
       console.error("[TiptapEditor] Failed to fetch article edit task", {
         taskRef,
@@ -351,7 +369,7 @@ export function TiptapEditor({
   const syncEditorEmptyState = useCallback((nextEditor: Editor) => {
     const text = nextEditor.getText().trim();
     const html = nextEditor.getHTML();
-    setIsEditorEmpty(!text && !NON_TEXT_EDITOR_CONTENT_PATTERN.test(html));
+    setIsEditorEmpty(!hasMeaningfulArticleContent({ html, text }));
   }, []);
 
   const uploadAndInsertEditorImage = useCallback(
@@ -430,6 +448,10 @@ export function TiptapEditor({
         placeholder,
       },
       handleTextInput(view, from, to, text) {
+        if (text.length > 0) {
+          onFirstUserTextInputRef.current?.();
+        }
+
         if (
           view.state.selection.$from.sameParent(view.state.selection.$to) &&
           shouldInsertPlainTextIntoCodeBlock(
@@ -795,6 +817,7 @@ export function TiptapEditor({
     setIsAIDialogOpen(false);
     setAIDialogMode("create");
     setSelectedTextForAI("");
+    setSelectedHTMLForAI("");
     setActiveArticleEditTask(null);
     setArticleEditTaskError(null);
     setLoadingArticleEditTask(false);
@@ -843,6 +866,17 @@ export function TiptapEditor({
 
     return { from, to };
   }, [editor]);
+
+  useEffect(() => {
+    if (!isAIDialogOpen || aiDialogMode !== "task" || !activeArticleEditTask?.req_text || !editor) {
+      return;
+    }
+
+    const taskRange = findEditorRangeForText(activeArticleEditTask.req_text);
+    setSelectedHTMLForAI(
+      taskRange ? serializeEditorRangeToHTML(editor, taskRange.from, taskRange.to) : ""
+    );
+  }, [activeArticleEditTask, aiDialogMode, editor, findEditorRangeForText, isAIDialogOpen]);
 
   const insertEditorImage = useCallback((imageUrl: string, altText = "", insertPos?: number) => {
     if (!editor) return false;
@@ -980,6 +1014,7 @@ export function TiptapEditor({
     }
 
     setSelectedTextForAI(text);
+    setSelectedHTMLForAI(serializeEditorRangeToHTML(editor, from, to));
     setAIDialogMode("create");
     setActiveArticleEditTask(null);
     setArticleEditTaskError(null);
@@ -1327,6 +1362,7 @@ export function TiptapEditor({
         mode={aiDialogMode}
         articleId={articleId || 0}
         selectedText={selectedTextForAI}
+        selectedHtml={selectedHTMLForAI}
         articleContent={editor?.getHTML() || ''}
         onRewrite={applyAIRewrite}
         onTaskSubmitted={(execId) => {

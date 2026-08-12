@@ -78,7 +78,15 @@ Article creation:
 
 - `article_create_started`
 - `article_created`
+- `article_first_keystroke`
+- `ai_write_submitted`
 - `article_saved`
+
+Editor AI guidance:
+
+- `editor_ai_guide_shown`
+- `editor_ai_guide_click`
+- `editor_ai_guide_dismiss`
 
 Billing:
 
@@ -108,7 +116,8 @@ Content creation:
 
 1. `page_viewed`
 2. `article_create_started`
-3. `article_created` or `article_saved`
+3. `article_created`
+4. `article_first_keystroke`, `ai_write_submitted`, or `article_saved`
 
 Payment conversion:
 

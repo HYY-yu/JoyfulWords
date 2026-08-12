@@ -15,6 +15,8 @@ export interface UseInfiniteMaterialPickerOptions {
   enabled?: boolean
 }
 
+export type ArticleMaterialAvailability = "idle" | "loading" | "available" | "empty" | "error"
+
 const getMaterialKey = (material: Material) => material.id
 
 function favoriteToMaterial(favorite: MaterialFavorite): Material {
@@ -126,4 +128,45 @@ export function useInfiniteMaterialPicker(options: UseInfiniteMaterialPickerOpti
     ...infiniteScroll,
     materials: infiniteScroll.items,
   }
+}
+
+export function useArticleMaterialAvailability({
+  articleId,
+  enabled = true,
+}: {
+  articleId?: number
+  enabled?: boolean
+}) {
+  const [status, setStatus] = useState<ArticleMaterialAvailability>("idle")
+
+  useEffect(() => {
+    if (!enabled || !articleId) {
+      setStatus("idle")
+      return
+    }
+
+    let cancelled = false
+    setStatus("loading")
+
+    void materialsClient
+      .getMaterials({ page: 1, page_size: 1, article_id: articleId })
+      .then((result) => {
+        if (cancelled) return
+        if ("error" in result) {
+          setStatus("error")
+          return
+        }
+
+        setStatus(result.total > 0 || result.list.length > 0 ? "available" : "empty")
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error")
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [articleId, enabled])
+
+  return status
 }

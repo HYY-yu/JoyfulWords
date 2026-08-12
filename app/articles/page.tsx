@@ -57,8 +57,6 @@ import {
 } from "@/components/article/article-dialogs"
 import { articlesClient } from "@/lib/api/articles/client"
 import { useToast } from "@/hooks/use-toast"
-import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
-import { ArticleCreateModeDialog } from "@/components/article/article-create-mode-dialog"
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
 import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
@@ -183,8 +181,6 @@ export default function ArticlesPage() {
   const { toast } = useToast()
   const router = useRouter()
   const [profileOpen, setProfileOpen] = useState(false)
-  const [createModeDialogOpen, setCreateModeDialogOpen] = useState(false)
-  const [aiHelpDialogOpen, setAiHelpDialogOpen] = useState(false)
   const [billingDialogOpen, setBillingDialogOpen] = useState(false)
   const [taskCenterOpen, setTaskCenterOpen] = useState(false)
   const [taskCenterDeepLink, setTaskCenterDeepLink] =
@@ -297,10 +293,6 @@ export default function ArticlesPage() {
     }
   }
 
-  const handleAIArticleCreated = () => {
-    handleRefresh()
-  }
-
   useEffect(() => {
     if (liveArticleTasksLoading) return
 
@@ -345,7 +337,7 @@ export default function ArticlesPage() {
     console.info("[ArticlesPage] Creating manual article from article manager")
     trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_CREATE_STARTED, {
       source: "article_manager",
-      mode: "manual",
+      mode: "direct",
     })
 
     try {
@@ -364,7 +356,7 @@ export default function ArticlesPage() {
       })
       trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_CREATED, {
         source: "article_manager",
-        mode: "manual",
+        mode: "direct",
         article_id: result.id,
       })
 
@@ -372,7 +364,6 @@ export default function ArticlesPage() {
         description: t("contentWriting.createModeDialog.manual.success"),
       })
 
-      setCreateModeDialogOpen(false)
       router.push(`/articles/${result.id}/edit`)
     } catch (error) {
       const errorMessage =
@@ -388,13 +379,6 @@ export default function ArticlesPage() {
     } finally {
       setIsCreatingArticle(false)
     }
-  }
-
-  const handleOpenAIHelpDialog = () => {
-    setCreateModeDialogOpen(false)
-    window.setTimeout(() => {
-      setAiHelpDialogOpen(true)
-    }, 0)
   }
 
   const handleOpenBillingDialog = useCallback(() => {
@@ -651,10 +635,11 @@ export default function ArticlesPage() {
                 <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
               <Button
-                onClick={() => setCreateModeDialogOpen(true)}
+                onClick={handleCreateManualArticle}
+                disabled={isCreatingArticle}
                 className="jw-primary-button h-11 gap-2 rounded-lg md:h-10"
               >
-                <PlusIcon className="w-4 h-4" />
+                <PlusIcon className={`w-4 h-4 ${isCreatingArticle ? "animate-pulse" : ""}`} />
                 {t("contentWriting.editorHeader.newArticle")}
               </Button>
             </div>
@@ -921,21 +906,6 @@ export default function ArticlesPage() {
 
       {/* Profile Dialog */}
       <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
-
-      <ArticleCreateModeDialog
-        open={createModeDialogOpen}
-        onOpenChange={setCreateModeDialogOpen}
-        onSelectManual={handleCreateManualArticle}
-        onSelectAI={handleOpenAIHelpDialog}
-        isCreatingManual={isCreatingArticle}
-      />
-
-      <ArticleAIHelpDialog
-        open={aiHelpDialogOpen}
-        onOpenChange={setAiHelpDialogOpen}
-        onArticleCreated={handleAIArticleCreated}
-        variant="feature-compact"
-      />
 
       <BillingFullscreenDialog
         open={billingDialogOpen}
