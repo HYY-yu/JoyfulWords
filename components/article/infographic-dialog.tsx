@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useAsyncTaskToast } from "@/hooks/use-async-task-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { infographicsClient } from "@/lib/api/infographics/client"
+import { taskCenterClient } from "@/lib/api/taskcenter/client"
 import {
   parseInfographicImageUrls,
   type GenerateInfographicFromArticleRequest,
@@ -71,6 +72,7 @@ const LANGUAGE_OPTIONS: InfographicLanguage[] = ["zh", "en"]
 const DECORATION_OPTIONS: InfographicDecorationLevel[] = ["simple", "moderate", "rich"]
 const SELECTION_TEXT_LIMIT = 500
 const MAX_IMAGE_OPTIONS = [1, 2, 3, 4, 5] as const
+const INFOGRAPHIC_HISTORY_DETAIL_LIMIT = 10
 const SOFT_NATIVE_SCROLLBAR_CLASS =
   "[scrollbar-color:color-mix(in_oklch,var(--primary)_18%,transparent)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-0.5 [&::-webkit-scrollbar]:w-0.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-0 [&::-webkit-scrollbar-thumb]:bg-primary/12 hover:[&::-webkit-scrollbar-thumb]:bg-primary/28"
 const SOFT_RADIX_SCROLLBAR_CLASS =
@@ -127,6 +129,7 @@ export function InfographicDialog({
     errorMessage: pollingErrorMessage,
     state: pollingState,
     markSubmitting,
+    restoreResult,
     startPolling,
     reset,
   } = useInfographicPolling()
@@ -138,6 +141,7 @@ export function InfographicDialog({
     progress: batchProgress,
     state: batchPollingState,
     markSubmitting: markBatchSubmitting,
+    restoreResults: restoreBatchResults,
     startPolling: startBatchPolling,
     reset: resetBatch,
   } = useInfographicBatchPolling()
@@ -149,11 +153,13 @@ export function InfographicDialog({
   const [resultMode, setResultMode] = useState<InfographicSourceMode>("article")
   const [selectionTextDraft, setSelectionTextDraft] = useState("")
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
-  const [activeImageIndex, setActiveImageIndex] = useState(0)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
+  const [isRestoringPreviousResult, setIsRestoringPreviousResult] = useState(false)
+  const [hasRestoredPreviousResult, setHasRestoredPreviousResult] = useState(false)
   const lastAnnouncedPollingStateRef = useRef<InfographicPollingState>("idle")
   const announcedBatchLogIdsRef = useRef<Set<number>>(new Set())
+  const previousResultRestoreControllerRef = useRef<AbortController | null>(null)
   const styleListRef = useRef<HTMLDivElement | null>(null)
   const styleButtonRefs = useRef<Partial<Record<InfographicCardStyle, HTMLButtonElement | null>>>({})
   const taskLabel = t("tiptapEditor.aiPanel.infographic")
@@ -164,13 +170,16 @@ export function InfographicDialog({
 
   useEffect(() => {
     if (!open) {
+      previousResultRestoreControllerRef.current?.abort()
+      previousResultRestoreControllerRef.current = null
       reset()
       resetBatch()
       setSelectionTextDraft("")
       setCopyingToMaterials(false)
-      setActiveImageIndex(0)
       setPreviewImageUrl(null)
       setRequestErrorMessage(null)
+      setIsRestoringPreviousResult(false)
+      setHasRestoredPreviousResult(false)
       lastAnnouncedPollingStateRef.current = "idle"
       announcedBatchLogIdsRef.current.clear()
       return
@@ -182,14 +191,137 @@ export function InfographicDialog({
     setSourceMode(nextSelectedText ? "selection" : "article")
     setResultMode(nextSelectedText ? "selection" : "article")
     setCopyingToMaterials(false)
-    setActiveImageIndex(0)
     setPreviewImageUrl(null)
     setRequestErrorMessage(null)
+    setIsRestoringPreviousResult(false)
+    setHasRestoredPreviousResult(false)
     lastAnnouncedPollingStateRef.current = "idle"
     announcedBatchLogIdsRef.current.clear()
     reset()
     resetBatch()
   }, [locale, open, reset, resetBatch, selectedText])
+
+  useEffect(() => {
+    if (!open || typeof articleId !== "number") return
+
+    const controller = new AbortController()
+    previousResultRestoreControllerRef.current?.abort()
+    previousResultRestoreControllerRef.current = controller
+
+    const restoreLatestResult = async () => {
+      setIsRestoringPreviousResult(true)
+
+      try {
+        const taskPage = await taskCenterClient.getTasks({
+          type: "infographic",
+          article_id: articleId,
+          status: "success",
+          sort: "recent",
+          page_size: 20,
+          signal: controller.signal,
+        })
+        if (controller.signal.aborted || "error" in taskPage) return
+
+        const successfulTasks = taskPage.items.filter(
+          (task) => task.type === "infographic" && task.status === "success"
+        )
+        const latestTask = successfulTasks[0]
+        if (!latestTask) return
+
+        const latestResult = await infographicsClient.getLogDetail(
+          latestTask.id,
+          controller.signal
+        )
+        if (controller.signal.aborted || "error" in latestResult) return
+        if (latestResult.status !== "success" || parseInfographicImageUrls(latestResult.image_urls).length === 0) {
+          return
+        }
+
+        const isArticleBatch =
+          latestResult.generation_mode === "article_batch" ||
+          Boolean(latestResult.batch_id) ||
+          (latestResult.batch_total ?? 0) > 1
+
+        let restoredDetails = [latestResult]
+        if (isArticleBatch && latestResult.batch_id) {
+          const siblingResults = await Promise.all(
+            successfulTasks
+              .slice(1, INFOGRAPHIC_HISTORY_DETAIL_LIMIT)
+              .map((task) => infographicsClient.getLogDetail(task.id, controller.signal))
+          )
+          if (controller.signal.aborted) return
+
+          restoredDetails = [latestResult, ...siblingResults]
+            .filter(
+              (result): result is InfographicLogDetailResponse =>
+                !("error" in result) &&
+                result.status === "success" &&
+                result.batch_id === latestResult.batch_id &&
+                parseInfographicImageUrls(result.image_urls).length > 0
+            )
+            .filter(
+              (result, index, results) =>
+                results.findIndex((candidate) => candidate.id === result.id) === index
+            )
+        }
+
+        lastAnnouncedPollingStateRef.current = "success"
+        if (isArticleBatch) {
+          reset()
+          restoreBatchResults(restoredDetails)
+          setSourceMode("article")
+          setResultMode("article")
+        } else {
+          resetBatch()
+          restoreResult(latestResult)
+          setSourceMode("selection")
+          setResultMode("selection")
+          setSelectionTextDraft(latestResult.source_text || selectedText.trim())
+        }
+
+        setFormState({
+          cardStyle: latestResult.card_style,
+          screenOrientation: latestResult.screen_orientation,
+          language: latestResult.language,
+          decorationLevel: latestResult.decoration_level,
+          maxImages: isArticleBatch
+            ? Math.min(5, Math.max(1, latestResult.batch_total ?? restoredDetails.length))
+            : DEFAULT_FORM_STATE_BY_LOCALE[latestResult.language].maxImages,
+          userCustom: latestResult.user_custom || "",
+        })
+        setHasRestoredPreviousResult(true)
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn("[InfographicDialog] Failed to restore previous result", {
+            articleId,
+            error,
+          })
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsRestoringPreviousResult(false)
+          previousResultRestoreControllerRef.current = null
+        }
+      }
+    }
+
+    void restoreLatestResult()
+
+    return () => {
+      controller.abort()
+      if (previousResultRestoreControllerRef.current === controller) {
+        previousResultRestoreControllerRef.current = null
+      }
+    }
+  }, [
+    articleId,
+    open,
+    reset,
+    resetBatch,
+    restoreBatchResults,
+    restoreResult,
+    selectedText,
+  ])
 
   const singleImageUrls = useMemo(() => {
     return parseInfographicImageUrls(detail?.image_urls)
@@ -218,12 +350,6 @@ export function InfographicDialog({
   const resultPollingErrorMessage =
     resultMode === "article" ? batchPollingErrorMessage : pollingErrorMessage
 
-  useEffect(() => {
-    if (activeImageIndex >= resultImageItems.length) {
-      setActiveImageIndex(0)
-    }
-  }, [activeImageIndex, resultImageItems.length])
-
   const isSelectionGenerating =
     pollingState === "submitting" || pollingState === "pending" || pollingState === "processing"
   const isArticleGenerating =
@@ -236,19 +362,31 @@ export function InfographicDialog({
         !copyingToMaterials
       : pollingState === "success" && currentLogId !== null && singleImageUrls.length > 0 && !copyingToMaterials
 
-  const activeImageItem = resultImageItems[activeImageIndex] ?? null
   const selectedTextPreview = selectionTextDraft.trim()
   const selectedTextLength = selectedTextPreview.length
   const hasSelectedText = selectedTextLength > 0
   const isSelectionTooLong = selectedTextLength > SELECTION_TEXT_LIMIT
   const isArticleMode = sourceMode === "article"
   const canGenerateSelection =
-    sourceMode === "selection" && hasSelectedText && !isSelectionTooLong && !isGenerating
+    sourceMode === "selection" &&
+    hasSelectedText &&
+    !isSelectionTooLong &&
+    !isGenerating &&
+    !isRestoringPreviousResult
   const canSubmitArticleAnalysis =
-    sourceMode === "article" && typeof articleId === "number" && !isGenerating
+    sourceMode === "article" &&
+    typeof articleId === "number" &&
+    !isGenerating &&
+    !isRestoringPreviousResult
   const selectedStyle = STYLE_PREVIEWS.find((style) => style.value === formState.cardStyle) ?? STYLE_PREVIEWS[0]
 
   const statusText = (() => {
+    if (isRestoringPreviousResult) {
+      return t("infographicDialog.restoringPreviousResult")
+    }
+    if (hasRestoredPreviousResult && resultImageItems.length > 0) {
+      return t("infographicDialog.restoredPreviousResult")
+    }
     if (
       resultMode === "article" &&
       (batchPollingState === "pending" || batchPollingState === "processing") &&
@@ -363,6 +501,11 @@ export function InfographicDialog({
   }, [articleId, batchLogIds])
 
   const handleGenerate = async () => {
+    previousResultRestoreControllerRef.current?.abort()
+    previousResultRestoreControllerRef.current = null
+    setIsRestoringPreviousResult(false)
+    setHasRestoredPreviousResult(false)
+
     if (sourceMode === "article") {
       if (typeof articleId !== "number") {
         toast({
@@ -1103,17 +1246,29 @@ export function InfographicDialog({
                   onClick={handleGenerate}
                   disabled={sourceMode === "selection" ? !canGenerateSelection : !canSubmitArticleAnalysis}
                 >
-                  {isGenerating ? (
+                  {isGenerating || isRestoringPreviousResult ? (
                     <>
                       <Loader2Icon className="h-4 w-4 animate-spin" />
-                      {t("infographicDialog.generating")}
+                      {t(
+                        isRestoringPreviousResult
+                          ? "infographicDialog.restoringPreviousResultTitle"
+                          : "infographicDialog.generating"
+                      )}
                     </>
                   ) : (
                     <>
                       <WandSparklesIcon className="h-4 w-4" />
                       {sourceMode === "article"
-                        ? t("infographicDialog.generateFromArticle")
-                        : t("infographicDialog.generate")}
+                        ? t(
+                            resultImageItems.length > 0
+                              ? "infographicDialog.regenerateFromArticle"
+                              : "infographicDialog.generateFromArticle"
+                          )
+                        : t(
+                            resultImageItems.length > 0
+                              ? "infographicDialog.regenerate"
+                              : "infographicDialog.generate"
+                          )}
                     </>
                   )}
                 </Button>
@@ -1176,75 +1331,70 @@ export function InfographicDialog({
               </Alert>
             ) : null}
 
-            {activeImageItem ? (
-              <div className="flex h-full min-h-0 flex-col gap-4">
-                <button
-                  type="button"
-                  onClick={() => setPreviewImageUrl(activeImageItem.url)}
-                  className="group relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-background shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={t("infographicDialog.previewImage")}
+            {resultImageItems.length > 0 ? (
+              <ScrollArea className={cn("h-full pr-1", SOFT_RADIX_SCROLLBAR_CLASS)}>
+                <div
+                  className={cn(
+                    "grid gap-4 pb-1",
+                    resultImageItems.length === 1
+                      ? "mx-auto max-w-md grid-cols-1"
+                      : "grid-cols-2 2xl:grid-cols-3"
+                  )}
                 >
-                  <img
-                    src={activeImageItem.url}
-                    alt={t("infographicDialog.resultImageAlt")}
-                    className="max-h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
-                  />
-                  <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-black/65 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                    <Maximize2Icon className="h-3.5 w-3.5" />
-                    {t("infographicDialog.previewImage")}
-                  </span>
-                </button>
-
-                {activeImageItem.detail?.article_excerpt || activeImageItem.detail?.selection_reason ? (
-                  <div className="shrink-0 rounded-lg border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">
-                    {activeImageItem.detail.article_excerpt ? (
-                      <p className="line-clamp-2">
-                        <span className="font-medium text-foreground">
-                          {t("infographicDialog.articleExcerptLabel")}
-                        </span>
-                        {activeImageItem.detail.article_excerpt}
-                      </p>
-                    ) : null}
-                    {activeImageItem.detail.selection_reason ? (
-                      <p className="mt-1 line-clamp-2">
-                        <span className="font-medium text-foreground">
-                          {t("infographicDialog.selectionReasonLabel")}
-                        </span>
-                        {activeImageItem.detail.selection_reason}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {resultImageItems.length > 1 ? (
-                  <div className="grid shrink-0 grid-cols-3 gap-2">
-                    {resultImageItems.map((imageItem, index) => (
-                      <button
-                        key={imageItem.key}
-                        type="button"
-                        onClick={() => setActiveImageIndex(index)}
-                        className={cn(
-                          "overflow-hidden rounded-lg border bg-background transition-all",
-                          activeImageIndex === index
-                            ? "border-primary ring-2 ring-primary/15"
-                            : "border-border hover:border-primary/40"
-                        )}
-                      >
+                  {resultImageItems.map((imageItem, index) => (
+                    <button
+                      key={imageItem.key}
+                      type="button"
+                      onClick={() => setPreviewImageUrl(imageItem.url)}
+                      className="group flex h-full flex-col overflow-hidden rounded-xl border bg-background p-2 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={`${t("infographicDialog.previewImage")} ${index + 1}`}
+                    >
+                      <span className="relative flex min-h-52 w-full flex-1 items-center justify-center overflow-hidden rounded-lg bg-muted/30 xl:min-h-60">
                         <img
                           src={imageItem.url}
                           alt={`${t("infographicDialog.resultImageAlt")} ${index + 1}`}
-                          className="aspect-video h-full w-full object-cover"
+                          className="max-h-[42vh] w-full object-contain transition-transform duration-200 group-hover:scale-[1.015]"
                         />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+                        {resultImageItems.length > 1 ? (
+                          <span className="absolute left-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-background/90 px-1.5 text-[11px] font-semibold text-foreground shadow-sm backdrop-blur">
+                            {index + 1}
+                          </span>
+                        ) : null}
+                        <span className="absolute bottom-2 right-2 flex items-center gap-1.5 rounded-full bg-black/65 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                          <Maximize2Icon className="h-3.5 w-3.5" />
+                          {t("infographicDialog.previewImage")}
+                        </span>
+                      </span>
+
+                      {imageItem.detail?.article_excerpt || imageItem.detail?.selection_reason ? (
+                        <span className="mt-2 block w-full px-1 pb-1 text-xs leading-5 text-muted-foreground">
+                          {imageItem.detail.article_excerpt ? (
+                            <span className="line-clamp-2 block">
+                              <span className="font-medium text-foreground">
+                                {t("infographicDialog.articleExcerptLabel")}
+                              </span>
+                              {imageItem.detail.article_excerpt}
+                            </span>
+                          ) : null}
+                          {imageItem.detail.selection_reason ? (
+                            <span className="mt-1 line-clamp-2 block">
+                              <span className="font-medium text-foreground">
+                                {t("infographicDialog.selectionReasonLabel")}
+                              </span>
+                              {imageItem.detail.selection_reason}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
             ) : (
               <div className="flex h-full min-h-72 items-center justify-center rounded-lg border border-dashed border-primary/20 bg-background/75 px-6 text-center">
                 <div className="max-w-sm space-y-3">
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    {isGenerating ? (
+                    {isGenerating || isRestoringPreviousResult ? (
                       <Loader2Icon className="h-5 w-5 animate-spin" />
                     ) : (
                       <SparklesIcon className="h-5 w-5" />
@@ -1252,21 +1402,25 @@ export function InfographicDialog({
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-semibold">
-                      {isGenerating
-                        ? t("infographicDialog.generating")
+                      {isRestoringPreviousResult
+                        ? t("infographicDialog.restoringPreviousResultTitle")
+                        : isGenerating
+                          ? t("infographicDialog.generating")
                         : sourceMode === "article"
                           ? t("infographicDialog.articleResultEmptyTitle")
                           : t("infographicDialog.resultEmptyTitle")}
                     </p>
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      {isGenerating
-                        ? t("infographicDialog.generatingHint")
+                      {isRestoringPreviousResult
+                        ? t("infographicDialog.restoringPreviousResultDesc")
+                        : isGenerating
+                          ? t("infographicDialog.generatingHint")
                         : sourceMode === "article"
                           ? t("infographicDialog.articleResultEmptyDesc")
                           : t("infographicDialog.resultEmptyDesc")}
                     </p>
                   </div>
-                  {sourceMode === "article" && !isGenerating ? (
+                  {sourceMode === "article" && !isGenerating && !isRestoringPreviousResult ? (
                     <div className="grid grid-cols-3 gap-2 pt-2">
                       {[0, 1, 2].map((index) => (
                         <div

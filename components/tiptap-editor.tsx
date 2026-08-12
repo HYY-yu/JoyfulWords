@@ -8,7 +8,10 @@ import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TableRow } from "@tiptap/extension-table";
 import type { EditorView } from "@tiptap/pm/view";
 import { NodeSelection } from "@tiptap/pm/state";
-import { DOMParser as ProseMirrorDOMParser } from "@tiptap/pm/model";
+import {
+  DOMParser as ProseMirrorDOMParser,
+  DOMSerializer as ProseMirrorDOMSerializer,
+} from "@tiptap/pm/model";
 import {
   useCallback,
   useEffect,
@@ -70,6 +73,17 @@ type LaserTrailSegment = {
   y2: number;
 }
 
+function serializeEditorRangeToHTML(editor: Editor, from: number, to: number) {
+  const container = document.createElement("div");
+  const fragment = editor.state.doc.slice(from, to).content;
+  const serializedFragment = ProseMirrorDOMSerializer
+    .fromSchema(editor.state.schema)
+    .serializeFragment(fragment);
+
+  container.appendChild(serializedFragment);
+  return container.innerHTML;
+}
+
 declare global {
   interface Window {
     joyfulWordsEditorImages?: {
@@ -126,6 +140,7 @@ export function TiptapEditor({
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
   const [aiDialogMode, setAIDialogMode] = useState<"create" | "task">("create");
   const [selectedTextForAI, setSelectedTextForAI] = useState("");
+  const [selectedHTMLForAI, setSelectedHTMLForAI] = useState("");
   const [activeArticleEditTask, setActiveArticleEditTask] =
     useState<TaskCenterArticleTaskDetail | null>(null);
   const [loadingArticleEditTask, setLoadingArticleEditTask] = useState(false);
@@ -202,6 +217,7 @@ export function TiptapEditor({
 
       setActiveArticleEditTask(articleTask);
       setSelectedTextForAI(articleTask.req_text || "");
+      setSelectedHTMLForAI("");
     } catch (error) {
       console.error("[TiptapEditor] Failed to fetch article edit task", {
         taskRef,
@@ -801,6 +817,7 @@ export function TiptapEditor({
     setIsAIDialogOpen(false);
     setAIDialogMode("create");
     setSelectedTextForAI("");
+    setSelectedHTMLForAI("");
     setActiveArticleEditTask(null);
     setArticleEditTaskError(null);
     setLoadingArticleEditTask(false);
@@ -849,6 +866,17 @@ export function TiptapEditor({
 
     return { from, to };
   }, [editor]);
+
+  useEffect(() => {
+    if (!isAIDialogOpen || aiDialogMode !== "task" || !activeArticleEditTask?.req_text || !editor) {
+      return;
+    }
+
+    const taskRange = findEditorRangeForText(activeArticleEditTask.req_text);
+    setSelectedHTMLForAI(
+      taskRange ? serializeEditorRangeToHTML(editor, taskRange.from, taskRange.to) : ""
+    );
+  }, [activeArticleEditTask, aiDialogMode, editor, findEditorRangeForText, isAIDialogOpen]);
 
   const insertEditorImage = useCallback((imageUrl: string, altText = "", insertPos?: number) => {
     if (!editor) return false;
@@ -986,6 +1014,7 @@ export function TiptapEditor({
     }
 
     setSelectedTextForAI(text);
+    setSelectedHTMLForAI(serializeEditorRangeToHTML(editor, from, to));
     setAIDialogMode("create");
     setActiveArticleEditTask(null);
     setArticleEditTaskError(null);
@@ -1333,6 +1362,7 @@ export function TiptapEditor({
         mode={aiDialogMode}
         articleId={articleId || 0}
         selectedText={selectedTextForAI}
+        selectedHtml={selectedHTMLForAI}
         articleContent={editor?.getHTML() || ''}
         onRewrite={applyAIRewrite}
         onTaskSubmitted={(execId) => {

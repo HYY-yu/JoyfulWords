@@ -36,26 +36,6 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   URL.revokeObjectURL(url)
 }
 
-// ==================== AI 写作引导（空稿悬浮指引） ====================
-
-const AI_WRITE_GUIDE_DISMISS_KEY = "jw-ai-write-guide-dismissed"
-
-function isAiWriteGuideDismissed(): boolean {
-  try {
-    return window.sessionStorage.getItem(AI_WRITE_GUIDE_DISMISS_KEY) === "1"
-  } catch {
-    return false
-  }
-}
-
-function dismissAiWriteGuideForSession() {
-  try {
-    window.sessionStorage.setItem(AI_WRITE_GUIDE_DISMISS_KEY, "1")
-  } catch {
-    // sessionStorage 不可用时静默降级为仅本次渲染内隐藏
-  }
-}
-
 // ==================== Page Component ====================
 
 export default function ArticleEditPage() {
@@ -81,16 +61,6 @@ export default function ArticleEditPage() {
   const editorState = useEditorState()
   const articleStartedEmptyRef = useRef(false)
   const hasTrackedFirstKeystrokeRef = useRef(false)
-
-  // ---- 空稿 AI 写作引导 ----
-  const [aiWriteGuideDismissed, setAiWriteGuideDismissed] = useState(true)
-  useEffect(() => {
-    setAiWriteGuideDismissed(isAiWriteGuideDismissed())
-  }, [])
-  const handleAiWriteGuideDismiss = useCallback(() => {
-    dismissAiWriteGuideForSession()
-    setAiWriteGuideDismissed(true)
-  }, [])
 
   // ---- Auto-save (edit mode only) ----
   const autoSave = useAutoSave({
@@ -550,8 +520,7 @@ export default function ArticleEditPage() {
       onOpenArticleEditTask={handleOpenArticleEditTask}
       onArticleTitleUpdated={handleCoverTitleUpdated}
       articleHasContent={articleHasContent}
-      aiWriteGuideVisible={!articleHasContent && !aiWriteGuideDismissed}
-      onAiWriteGuideDismiss={handleAiWriteGuideDismiss}
+      aiWriteGuideVisible={!articleHasContent}
     />
   )
 

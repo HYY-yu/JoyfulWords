@@ -32,6 +32,7 @@ interface UseInfographicPollingReturn {
   errorMessage: string | null
   state: InfographicPollingState
   markSubmitting: () => void
+  restoreResult: (detail: InfographicLogDetailResponse) => void
   startPolling: (logId: number, pollUrl?: string) => Promise<void>
   stopPolling: () => void
   reset: () => void
@@ -54,6 +55,7 @@ interface UseInfographicBatchPollingReturn {
   progress: UseInfographicBatchPollingProgress
   state: InfographicPollingState
   markSubmitting: () => void
+  restoreResults: (details: InfographicLogDetailResponse[]) => void
   startPolling: (requestId: number, pollUrl: string, batchId?: string) => Promise<void>
   stopPolling: () => void
   reset: () => void
@@ -191,6 +193,16 @@ export function useInfographicPolling(
     setDetail(null)
   }, [])
 
+  const restoreResult = useCallback((nextDetail: InfographicLogDetailResponse) => {
+    stopAdaptivePolling()
+    currentLogIdRef.current = nextDetail.id
+    currentPollUrlRef.current = null
+    setCurrentLogId(nextDetail.id)
+    setDetail(nextDetail)
+    setErrorMessage(nextDetail.status === "failed" ? nextDetail.error_message || null : null)
+    setState(nextDetail.status)
+  }, [stopAdaptivePolling])
+
   const reset = useCallback(() => {
     stopAdaptivePolling()
     currentLogIdRef.current = null
@@ -207,6 +219,7 @@ export function useInfographicPolling(
     errorMessage,
     state,
     markSubmitting,
+    restoreResult,
     startPolling,
     stopPolling,
     reset,
@@ -434,6 +447,36 @@ export function useInfographicBatchPolling(
     setDetails([])
   }, [stopAdaptivePolling])
 
+  const restoreResults = useCallback((nextDetails: InfographicLogDetailResponse[]) => {
+    stopAdaptivePolling()
+    const sortedDetails = [...nextDetails].sort((first, second) => {
+      const firstIndex = first.batch_index ?? 0
+      const secondIndex = second.batch_index ?? 0
+      return firstIndex - secondIndex
+    })
+    const nextLogIds = sortedDetails.map((detail) => detail.id)
+    const firstDetail = sortedDetails[0] ?? null
+    const nextState = getBatchPollingState(nextLogIds, sortedDetails)
+
+    requestIdRef.current = firstDetail?.request_id ?? null
+    requestPollUrlRef.current = null
+    requestResolvedRef.current = true
+    logIdsRef.current = nextLogIds
+    logPollUrlsRef.current = new Map()
+    batchIdRef.current = firstDetail?.batch_id ?? null
+    setRequestId(firstDetail?.request_id ?? null)
+    setRequestDetail(null)
+    setBatchId(firstDetail?.batch_id ?? null)
+    setLogIds(nextLogIds)
+    setDetails(sortedDetails)
+    setErrorMessage(
+      nextState === "failed"
+        ? sortedDetails.find((detail) => detail.error_message)?.error_message || null
+        : null
+    )
+    setState(nextState)
+  }, [stopAdaptivePolling])
+
   const reset = useCallback(() => {
     stopAdaptivePolling()
     requestIdRef.current = null
@@ -461,6 +504,7 @@ export function useInfographicBatchPolling(
     progress: getBatchProgress(logIds, details),
     state,
     markSubmitting,
+    restoreResults,
     startPolling,
     stopPolling,
     reset,

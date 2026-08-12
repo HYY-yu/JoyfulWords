@@ -72,7 +72,6 @@ import {
   PenLineIcon,
   SparklesIcon,
   WandSparklesIcon,
-  XIcon
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react"
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
@@ -122,17 +121,17 @@ const FEATURE_GROUPS = [
 
 const FEATURE_BUTTONS: FeatureButton[] = [
   {
-    id: "ai-edit",
-    labelKey: "tiptapEditor.aiPanel.aiEdit",
-    icon: WandSparklesIcon,
+    id: "ai-write",
+    labelKey: "tiptapEditor.aiPanel.aiWrite",
+    icon: PenLineIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "writing",
   },
   {
-    id: "ai-write",
-    labelKey: "tiptapEditor.aiPanel.aiWrite",
-    icon: PenLineIcon,
+    id: "ai-edit",
+    labelKey: "tiptapEditor.aiPanel.aiEdit",
+    icon: WandSparklesIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
     groupKey: "writing",
@@ -263,7 +262,6 @@ interface EditorAIPanelProps {
   articleHasContent?: boolean
   /** 空稿引导：为 true 时在「AI 写作」按钮旁显示悬浮指引 */
   aiWriteGuideVisible?: boolean
-  onAiWriteGuideDismiss?: () => void
 }
 
 function mapTaskCenterTaskToProgressItem(
@@ -361,7 +359,6 @@ export function EditorAIPanel({
   onArticleTitleUpdated,
   articleHasContent = true,
   aiWriteGuideVisible = false,
-  onAiWriteGuideDismiss,
 }: EditorAIPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -496,13 +493,6 @@ export function EditorAIPanel({
       window.removeEventListener("resize", measure)
     }
   }, [aiWriteGuideVisible])
-
-  const handleAiWriteGuideDismiss = useCallback(() => {
-    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.EDITOR_AI_GUIDE_DISMISSED, {
-      article_id: articleId ?? undefined,
-    })
-    onAiWriteGuideDismiss?.()
-  }, [articleId, onAiWriteGuideDismiss])
 
   useEffect(() => {
     if (typeof articleId !== "number") {
@@ -868,7 +858,6 @@ export function EditorAIPanel({
         trackProductEvent(PRODUCT_ANALYTICS_EVENTS.EDITOR_AI_GUIDE_CLICKED, {
           article_id: articleId ?? undefined,
         })
-        onAiWriteGuideDismiss?.()
       }
       setIsAiWriteOpen(true)
     } else if (id === "mindmap") {
@@ -961,7 +950,7 @@ export function EditorAIPanel({
       <div className="flex min-h-0 flex-1 flex-col px-2 pb-3">
         {/* 功能区按内容自适应，最多占 62% 高度；剩余空间留给任务进度，避免 50/50 均分把卡片切半 */}
         <div className="relative min-h-0 max-h-[62%] flex-none overflow-hidden px-2 py-3">
-          <div className="max-h-full overflow-y-auto pb-3">
+          <div className="max-h-full overflow-y-auto px-5 pb-3">
             <div className="space-y-4">
               {FEATURE_GROUPS.map((group) => {
                 const groupButtons = FEATURE_BUTTONS.filter((btn) => btn.groupKey === group.id)
@@ -1066,14 +1055,6 @@ export function EditorAIPanel({
                                     </p>
                                   </div>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={handleAiWriteGuideDismiss}
-                                  aria-label={t("contentWriting.emptyDraftGuide.dismiss")}
-                                  className="absolute right-2 top-2 rounded p-0.5 text-[var(--jw-muted)] transition-colors hover:text-[var(--jw-heading)]"
-                                >
-                                  <XIcon className="h-3.5 w-3.5" />
-                                </button>
                               </PopoverContent>
                             </Popover>
                           )
