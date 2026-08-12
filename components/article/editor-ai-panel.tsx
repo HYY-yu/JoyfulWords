@@ -22,10 +22,17 @@ import {
   DialogTitle,
 } from "@/components/ui/base/dialog"
 import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/base/popover"
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/base/tooltip"
+import { trackProductEvent } from "@/lib/analytics/client"
+import { PRODUCT_ANALYTICS_EVENTS } from "@/lib/analytics/events"
 import { useToast } from "@/hooks/use-toast"
 import { imageGenerationClient } from "@/lib/api/image-generation/client"
 import { infographicsClient } from "@/lib/api/infographics/client"
@@ -63,7 +70,8 @@ import {
   PresentationIcon,
   PenLineIcon,
   SparklesIcon,
-  WandSparklesIcon
+  WandSparklesIcon,
+  XIcon
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react"
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
@@ -250,6 +258,9 @@ interface EditorAIPanelProps {
   submissionTick?: number
   onOpenArticleEditTask: (taskRef: TaskCenterTaskReference) => void
   onArticleTitleUpdated?: (title: string) => void
+  /** 空稿引导：为 true 时在「AI 写作」按钮旁显示悬浮指引 */
+  aiWriteGuideVisible?: boolean
+  onAiWriteGuideDismiss?: () => void
 }
 
 function mapTaskCenterTaskToProgressItem(
@@ -345,6 +356,8 @@ export function EditorAIPanel({
   submissionTick = 0,
   onOpenArticleEditTask,
   onArticleTitleUpdated,
+  aiWriteGuideVisible = false,
+  onAiWriteGuideDismiss,
 }: EditorAIPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
@@ -442,6 +455,50 @@ export function EditorAIPanel({
       window.removeEventListener("joyfulwords-open-create-image", handleOpenCreateImage)
     }
   }, [])
+
+  const hasTrackedAiWriteGuideShownRef = useRef(false)
+  useEffect(() => {
+    if (aiWriteGuideVisible && !hasTrackedAiWriteGuideShownRef.current) {
+      hasTrackedAiWriteGuideShownRef.current = true
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.EDITOR_AI_GUIDE_SHOWN, {
+        article_id: articleId ?? undefined,
+      })
+    }
+  }, [aiWriteGuideVisible, articleId])
+
+  // 引导卡浮在面板左侧的编辑区留白上（不遮挡面板内任何功能卡），
+  // 偏移量 = 按钮左缘到面板左缘的距离 + 间隙，面板宽度可拖拽调节所以动态测量
+  const panelRootRef = useRef<HTMLDivElement | null>(null)
+  const [aiGuideSideOffset, setAiGuideSideOffset] = useState(16)
+  useEffect(() => {
+    if (!aiWriteGuideVisible) return
+
+    const panelRoot = panelRootRef.current
+    if (!panelRoot) return
+
+    const measure = () => {
+      const target = panelRoot.querySelector('[data-guide-target="ai-write"]')
+      if (!target) return
+      const gap = target.getBoundingClientRect().left - panelRoot.getBoundingClientRect().left
+      setAiGuideSideOffset(Math.max(16, Math.round(gap + 16)))
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(panelRoot)
+    window.addEventListener("resize", measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener("resize", measure)
+    }
+  }, [aiWriteGuideVisible])
+
+  const handleAiWriteGuideDismiss = useCallback(() => {
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.EDITOR_AI_GUIDE_DISMISSED, {
+      article_id: articleId ?? undefined,
+    })
+    onAiWriteGuideDismiss?.()
+  }, [articleId, onAiWriteGuideDismiss])
 
   useEffect(() => {
     if (typeof articleId !== "number") {
@@ -796,6 +853,12 @@ export function EditorAIPanel({
     if (id === "ai-edit") {
       window.dispatchEvent(new CustomEvent("joyfulwords-open-ai-edit"))
     } else if (id === "ai-write") {
+      if (aiWriteGuideVisible) {
+        trackProductEvent(PRODUCT_ANALYTICS_EVENTS.EDITOR_AI_GUIDE_CLICKED, {
+          article_id: articleId ?? undefined,
+        })
+        onAiWriteGuideDismiss?.()
+      }
       setIsAiWriteOpen(true)
     } else if (id === "mindmap") {
       window.dispatchEvent(new CustomEvent("joyfulwords-open-ai-mindmap"))
@@ -873,7 +936,7 @@ export function EditorAIPanel({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div ref={panelRootRef} className="flex h-full flex-col overflow-hidden">
       <div className="jw-panel-header shrink-0 px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="min-w-0">
@@ -913,14 +976,17 @@ export function EditorAIPanel({
                           : isMissingSavedArticle
                             ? "tiptapEditor.aiPanel.saveArticleFirst"
                             : undefined
+                        const isAiGuideTarget = btn.id === "ai-write" && aiWriteGuideVisible && !isDisabled
                         const featureButton = (
                           <button
                             key={btn.id}
                             type="button"
                             onClick={() => handleOpenDialog(btn.id)}
                             disabled={isDisabled}
+                            data-guide-target={isAiGuideTarget ? "ai-write" : undefined}
                             className={cn(
                               "jw-action-card group flex min-h-20 w-full flex-col items-start justify-between rounded-lg p-3 text-left transition-all duration-150",
+                              isAiGuideTarget && "jw-ai-guide-target",
                               isDisabled
                                 ? "cursor-not-allowed opacity-55"
                                 : "cursor-pointer hover:-translate-y-0.5 hover:border-[var(--jw-action-hover-border)]"
@@ -956,6 +1022,51 @@ export function EditorAIPanel({
                             </span>
                           </button>
                         )
+
+                        // 空稿引导：悬浮在面板左侧编辑区留白上、箭头指向「AI 写作」按钮；
+                        // 锚点滚出面板可视区时自动隐藏（hideWhenDetached）
+                        if (isAiGuideTarget) {
+                          return (
+                            <Popover key={btn.id} open>
+                              <PopoverAnchor asChild>{featureButton}</PopoverAnchor>
+                              <PopoverContent
+                                side="left"
+                                align="center"
+                                sideOffset={aiGuideSideOffset}
+                                hideWhenDetached
+                                collisionPadding={12}
+                                onOpenAutoFocus={(event) => event.preventDefault()}
+                                className="jw-ai-guide-card relative w-60 rounded-xl border-[var(--jw-border)] bg-[var(--jw-surface-strong)] p-3.5 shadow-[var(--jw-card-shadow)]"
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute -right-[7px] top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border-r border-t border-[var(--jw-border)] bg-[var(--jw-surface-strong)]"
+                                />
+                                <div className="flex items-start gap-2.5">
+                                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--jw-accent)] text-[var(--jw-accent-foreground)]">
+                                    <SparklesIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                                  </span>
+                                  <div className="min-w-0">
+                                    <p className="text-[13px] font-semibold leading-5 text-[var(--jw-heading)]">
+                                      {t("contentWriting.emptyDraftGuide.title")}
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-[var(--jw-muted)]">
+                                      {t("contentWriting.emptyDraftGuide.description")}
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={handleAiWriteGuideDismiss}
+                                  aria-label={t("contentWriting.emptyDraftGuide.dismiss")}
+                                  className="absolute right-2 top-2 rounded p-0.5 text-[var(--jw-muted)] transition-colors hover:text-[var(--jw-heading)]"
+                                >
+                                  <XIcon className="h-3.5 w-3.5" />
+                                </button>
+                              </PopoverContent>
+                            </Popover>
+                          )
+                        }
 
                         if (!isDisabled) {
                           return featureButton
@@ -1164,6 +1275,7 @@ export function EditorAIPanel({
           pollNow()
         }}
         articleId={articleId ?? undefined}
+        getArticleHasContent={() => getCurrentArticleMarkdown().trim().length > 0}
         variant="feature-compact"
       />
 

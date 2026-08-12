@@ -4543,7 +4543,6 @@
     max-width: calc(100% - 48px);
   }
 }
-
 /* Article presentation mode intentionally stays inside the browser viewport. */
 .jw-editor-workspace[data-presentation-mode="true"]::before {
   opacity: calc(var(--jw-workspace-pattern-opacity) * 0.5);
@@ -4753,5 +4752,55 @@
 
   100% {
     opacity: 0;
+  }
+}
+/* ==================== 空稿 AI 写作引导动效 ==================== */
+
+@keyframes jw-guide-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes jw-guide-pulse {
+  0% {
+    opacity: 0.65;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+/* 引导卡朝目标按钮方向轻推的呼吸动效 */
+.jw-ai-guide-card {
+  animation: jw-guide-nudge 1.8s ease-in-out infinite;
+}
+
+/* 目标按钮外圈脉冲光环 */
+.jw-ai-guide-target {
+  position: relative;
+}
+
+.jw-ai-guide-target::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 11px;
+  border: 2px solid var(--jw-accent);
+  animation: jw-guide-pulse 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jw-ai-guide-card,
+  .jw-ai-guide-target::after {
+    animation: none;
   }
 }

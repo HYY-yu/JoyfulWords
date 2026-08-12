@@ -40,6 +40,8 @@ interface ArticleAIHelpDialogProps {
   onOpenChange: (open: boolean) => void
   onArticleCreated: (article: Article) => void  // 接收后端返回的 Article 对象
   articleId?: number | null
+  /** 提交时正文是否非空；空稿覆盖没有实际损失，跳过覆盖确认。缺省视为有内容（保守确认）。 */
+  getArticleHasContent?: () => boolean
   variant?: "default" | "feature" | "feature-compact"
 }
 
@@ -116,6 +118,7 @@ export function ArticleAIHelpDialog({
   onOpenChange,
   onArticleCreated,
   articleId,
+  getArticleHasContent,
   variant = "default",
 }: ArticleAIHelpDialogProps) {
   const { t } = useTranslation()
@@ -330,8 +333,9 @@ export function ArticleAIHelpDialog({
   }
 
   const handleGenerate = async () => {
-    // 覆盖保护：已有文章时生成会覆盖当前正文，必须经用户确认
-    if (articleIdFilter && !window.confirm(t("contentWriting.aiHelp.overwriteConfirm"))) {
+    // 覆盖保护：已有文章且正文非空时生成会覆盖当前正文，必须经用户确认；空稿无可覆盖内容，直接放行
+    const articleHasContent = getArticleHasContent ? getArticleHasContent() : true
+    if (articleIdFilter && articleHasContent && !window.confirm(t("contentWriting.aiHelp.overwriteConfirm"))) {
       return
     }
 
