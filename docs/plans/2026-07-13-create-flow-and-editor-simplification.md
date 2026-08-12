@@ -44,7 +44,7 @@
 ```
 
 - 点主按钮 → 打开现有 `ArticleAIHelpDialog`（带当前 articleId）；
-- 用户开始输入正文/点「直接开始写」→ 卡片消失；本次会话不再出现；
+- 正文出现有效内容后卡片自动隐藏；点「AI 写作」或关闭按钮后，本次会话不再出现；
 - 出现条件：`content` 为空（不做"仅首次"限制——空稿场景本来就该有引导，成本为零）。
 
 **第二期（可选）：引导卡内嵌 15s Hyperframes 演示视频**
@@ -63,7 +63,7 @@
 | 4 | 新建 `EmptyDraftAIGuide` 引导卡组件，编辑页正文为空时渲染 | components/article/ 新文件 + tiptap-editor 或 layout 接入 |
 | 5 | 覆盖确认加"正文非空"前置条件 | article-ai-help-dialog.tsx |
 | 6 | i18n：引导卡文案 zh/en 同批 | locales |
-| 7 | 埋点：`article_create_started` 移除 mode 维度或恒为 direct；新增 `editor_ai_guide_shown / clicked / dismissed` | lib/analytics/events.ts |
+| 7 | 埋点：`article_create_started` 移除 mode 维度或恒为 direct；新增 `editor_ai_guide_shown / click / dismiss`、`article_first_keystroke` 与 `ai_write_submitted` | lib/analytics/events.ts |
 | 8 | 创建方式弹窗相关 i18n（createModeDialog.*）确认无引用后清理；「AI 帮写」演示视频（feature-article）脚本中的"选择创建方式"场景后续重渲染更新 | locales、视频工程 |
 
 ---
@@ -103,7 +103,7 @@
 - 「新文章」直调建稿并跳编辑器，`ArticleCreateModeDialog` 组件删除，列表页 AI 帮写弹窗一并收敛（编辑器内唯一入口）
 - ~~横幅引导卡~~ → **悬浮指引（2026-07-13 两轮迭代定稿）**：正文为空时，引导卡浮在**面板左侧的编辑区留白**上（动态测量按钮到面板左缘的距离作偏移，不遮挡任何功能卡），箭头指向「AI 写作」按钮；带两个动效——卡片朝按钮方向轻推呼吸（jw-guide-nudge）+ 按钮外圈脉冲光环（jw-guide-pulse），reduced-motion 下自动关闭；锚点滚出面板可视区时 `hideWhenDetached` 自动隐藏（修复滑动后悬浮卡漂到顶栏的 bug）；点按钮/关闭后 sessionStorage 记忆本会话不再出现（editor-ai-panel.tsx + edit/page.tsx + globals.css）
 - 覆盖确认增加 `getArticleHasContent` 前置：空稿直接放行，非空才确认
-- 埋点：`editor_ai_guide_shown / click / dismiss`；创建事件 mode 改为 "direct"
+- 埋点：`editor_ai_guide_shown / click / dismiss`、`article_first_keystroke`、`ai_write_submitted`；创建事件 mode 改为 "direct"
 - i18n：`contentWriting.emptyDraftGuide.*` 中英同批；`createModeDialog` 仅保留仍被建稿流程引用的 3 个 key
 **批次 B（文案与命名，~0.5 天）**：Top10 #1/#3/#8/#9 的命名与文案修正（纯 i18n + 图标替换，风险低）
 **批次 C（编辑器体验，~1-2 天）**：#4 选中浮层 AI 改写、#5 保存状态显性化、#6 字数统计、⌘S 快捷键修正
@@ -112,6 +112,6 @@
 
 ## 四、验收指标
 
-- 新建到开始输入的时间（埋点 `article_created → 首次 keystroke`）应显著缩短；
-- `editor_ai_guide_clicked / article_created` 转化率 ≥ 原弹窗里 AI 帮写的选择率（弹窗时代的基线可从 `article_create_started{mode}` 历史数据取）；
+- 新建到开始输入的时间（埋点 `article_created → article_first_keystroke`）应显著缩短；
+- `editor_ai_guide_click / article_created` 转化率 ≥ 原弹窗里 AI 帮写的选择率（弹窗时代的基线可从 `article_create_started{mode}` 历史数据取）；
 - 引导卡 dismiss 后不再打扰（会话内不复现）。

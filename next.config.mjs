@@ -8,6 +8,13 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  compiler: {
+    // Keep actionable warnings/errors, but strip verbose browser diagnostics from production bundles.
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? { exclude: ['error', 'warn'] }
+        : false,
+  },
   images: {
     unoptimized: true,
   },

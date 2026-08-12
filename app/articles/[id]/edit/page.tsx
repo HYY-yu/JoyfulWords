@@ -17,6 +17,12 @@ import { EditorTopBar } from "@/components/article/editor-top-bar"
 import { EditorMaterialPanel } from "@/components/article/editor-material-panel"
 import { EditorAIPanel } from "@/components/article/editor-ai-panel"
 import { TiptapEditor } from "@/components/tiptap-editor"
+import {
+  hasMeaningfulArticleContent,
+  shouldTrackFirstArticleKeystroke,
+} from "@/lib/article-content"
+import { trackProductEvent } from "@/lib/analytics/client"
+import { PRODUCT_ANALYTICS_EVENTS } from "@/lib/analytics/events"
 
 // ==================== Download helper ====================
 
@@ -73,6 +79,8 @@ export default function ArticleEditPage() {
 
   // ---- Editor state ----
   const editorState = useEditorState()
+  const articleStartedEmptyRef = useRef(false)
+  const hasTrackedFirstKeystrokeRef = useRef(false)
 
   // ---- 空稿 AI 写作引导 ----
   const [aiWriteGuideDismissed, setAiWriteGuideDismissed] = useState(true)
@@ -162,6 +170,9 @@ export default function ArticleEditPage() {
         // Convert content to HTML (it may be stored as Markdown or plain text)
         const format = detectContentFormat(found.content)
         const html = await normalizeContentToHTML(found.content, format)
+
+        articleStartedEmptyRef.current = !hasMeaningfulArticleContent({ html })
+        hasTrackedFirstKeystrokeRef.current = false
 
         editorState.setContent({
           html,
@@ -271,6 +282,26 @@ export default function ArticleEditPage() {
     },
     [editorState, article, autoSave]
   )
+
+  const handleFirstUserTextInput = useCallback(() => {
+    const currentArticleId = article?.id
+
+    if (!shouldTrackFirstArticleKeystroke({
+      articleId: currentArticleId,
+      articleStartedEmpty: articleStartedEmptyRef.current,
+      alreadyTracked: hasTrackedFirstKeystrokeRef.current,
+    })) {
+      return
+    }
+
+    if (typeof currentArticleId !== "number") return
+
+    hasTrackedFirstKeystrokeRef.current = true
+    trackProductEvent(PRODUCT_ANALYTICS_EVENTS.ARTICLE_FIRST_KEYSTROKE, {
+      article_id: currentArticleId,
+      source: "article_editor",
+    })
+  }, [article?.id])
 
   // ==================== Article metadata update ====================
 
@@ -486,6 +517,11 @@ export default function ArticleEditPage() {
 
   const leftPanel = <EditorMaterialPanel articleId={article.id} userId={user.id} />
 
+  const articleHasContent = hasMeaningfulArticleContent({
+    html: editorState.content.html,
+    text: editorState.content.text,
+  })
+
   const centerPanel = (
     <div className="flex flex-col flex-1 overflow-hidden">
       <TiptapEditor
@@ -499,6 +535,7 @@ export default function ArticleEditPage() {
         onActiveArticleEditTaskRefChange={setActiveArticleEditTaskRef}
         onArticleEditSubmitted={handleTaskSubmitted}
         onImageTaskSubmitted={handleTaskSubmitted}
+        onFirstUserTextInput={handleFirstUserTextInput}
         presentationMode={isPresentationMode}
         onExitPresentation={() => setIsPresentationMode(false)}
       />
@@ -512,7 +549,8 @@ export default function ArticleEditPage() {
       submissionTick={taskSubmissionTick}
       onOpenArticleEditTask={handleOpenArticleEditTask}
       onArticleTitleUpdated={handleCoverTitleUpdated}
-      aiWriteGuideVisible={!editorState.content.text.trim() && !aiWriteGuideDismissed}
+      articleHasContent={articleHasContent}
+      aiWriteGuideVisible={!articleHasContent && !aiWriteGuideDismissed}
       onAiWriteGuideDismiss={handleAiWriteGuideDismiss}
     />
   )

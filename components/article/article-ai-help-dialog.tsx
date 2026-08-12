@@ -19,6 +19,16 @@ import { Textarea } from "@/components/ui/base/textarea"
 import { Checkbox } from "@/components/ui/base/checkbox"
 import { Badge } from "@/components/ui/base/badge"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/base/toggle-group"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/base/alert-dialog"
 import { SparklesIcon, FileTextIcon, PenToolIcon, XIcon, LoaderIcon, UploadIcon, CheckIcon, CheckCircle2Icon } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { articlesClient } from "@/lib/api/articles/client"
@@ -26,11 +36,15 @@ import { AI_WRITE_STYLE_OPTIONS } from "@/lib/api/articles/enums"
 import { materialsClient } from "@/lib/api/materials/client"
 import {
   useInfiniteMaterialPicker,
+  useArticleMaterialAvailability,
   type MaterialPickerScope,
 } from "@/lib/hooks/use-infinite-material-picker"
 import type { AIWriteStyleId, Article } from "@/lib/api/articles/types"
 import type { Material } from "@/lib/api/materials/types"
 import { cn } from "@/lib/utils"
+import { shouldConfirmAIWriteOverwrite } from "@/lib/article-content"
+import { trackProductEvent } from "@/lib/analytics/client"
+import { PRODUCT_ANALYTICS_EVENTS } from "@/lib/analytics/events"
 import { getFileExtension } from "@/lib/upload-file"
 import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 
@@ -129,9 +143,12 @@ export function ArticleAIHelpDialog({
   const [selectedMaterials, setSelectedMaterials] = useState<number[]>([])
   const [selectedStyleId, setSelectedStyleId] = useState<AIWriteStyleId | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [materialScope, setMaterialScope] = useState<MaterialPickerScope>("article")
+  const [materialScope, setMaterialScope] = useState<MaterialPickerScope>(
+    articleIdFilter ? "article" : "all"
+  )
   const [materialSearch, setMaterialSearch] = useState("")
   const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null)
+  const [overwriteConfirmOpen, setOverwriteConfirmOpen] = useState(false)
 
   // 文件上传状态
   const [uploadedFile, setUploadedFile] = useState<{
@@ -160,6 +177,13 @@ export function ArticleAIHelpDialog({
     articleId: articleIdFilter,
     scope: materialScope,
   })
+  const articleMaterialAvailability = useArticleMaterialAvailability({
+    articleId: articleIdFilter,
+    enabled: open,
+  })
+  const showArticleMaterialScope =
+    Boolean(articleIdFilter) &&
+    (articleMaterialAvailability === "available" || articleMaterialAvailability === "error")
 
   const dialogDescription = articleIdFilter
     ? t("contentWriting.aiHelp.overwriteHint")
@@ -169,8 +193,9 @@ export function ArticleAIHelpDialog({
   useEffect(() => {
     if (!open) {
       resetMaterials()
-      setMaterialScope("article")
+      setMaterialScope(articleIdFilter ? "article" : "all")
       setMaterialSearch("")
+      setOverwriteConfirmOpen(false)
       materialsScrollPositionRef.current = 0
       setPrompt("")
       setSelectedStyleId(null)
@@ -180,7 +205,14 @@ export function ArticleAIHelpDialog({
         fileInputRef.current.value = ""
       }
     }
-  }, [open, resetMaterials])
+  }, [articleIdFilter, open, resetMaterials])
+
+  useEffect(() => {
+    if (!showArticleMaterialScope && materialScope === "article") {
+      setMaterialScope("all")
+      materialsScrollPositionRef.current = 0
+    }
+  }, [materialScope, showArticleMaterialScope])
 
   // 保持素材列表滚动位置（只在对话框打开时恢复）
   useEffect(() => {
@@ -332,20 +364,14 @@ export function ArticleAIHelpDialog({
     setSelectedMaterials(prev => prev.filter(i => i !== id))
   }
 
-  const handleGenerate = async () => {
-    // 覆盖保护：已有文章且正文非空时生成会覆盖当前正文，必须经用户确认；空稿无可覆盖内容，直接放行
-    const articleHasContent = getArticleHasContent ? getArticleHasContent() : true
-    if (articleIdFilter && articleHasContent && !window.confirm(t("contentWriting.aiHelp.overwriteConfirm"))) {
-      return
-    }
-
+  const validateGenerate = () => {
     // Validation: style 和上传参考文章二选一
     if (!selectedStyleId && !uploadedFile) {
       toast({
         variant: "destructive",
         description: t("contentWriting.aiHelp.styleRequired"),
       })
-      return
+      return false
     }
 
     // Validation: At least one selection or prompt required
@@ -354,9 +380,13 @@ export function ArticleAIHelpDialog({
         variant: "destructive",
         description: t("contentWriting.aiHelp.promptRequired"),
       })
-      return
+      return false
     }
 
+    return true
+  }
+
+  const submitGeneration = async () => {
     setIsGenerating(true)
 
     // Add Info log for critical path
@@ -386,6 +416,11 @@ export function ArticleAIHelpDialog({
       console.info('[AI Help] AI write submitted successfully:', {
         articleId: result.id,
         isOverwrite: Boolean(articleIdFilter),
+      })
+      trackProductEvent(PRODUCT_ANALYTICS_EVENTS.AI_WRITE_SUBMITTED, {
+        article_id: result.id,
+        is_overwrite: Boolean(articleIdFilter),
+        source: "article_ai_help",
       })
       notifyTaskCenterTaskSubmitted({
         type: "article",
@@ -425,6 +460,19 @@ export function ArticleAIHelpDialog({
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const handleGenerate = () => {
+    if (!validateGenerate()) return
+
+    // 已有非空正文时使用站内确认弹窗保护覆盖；空稿无需二次确认。
+    const articleHasContent = getArticleHasContent ? getArticleHasContent() : true
+    if (shouldConfirmAIWriteOverwrite(articleIdFilter, articleHasContent)) {
+      setOverwriteConfirmOpen(true)
+      return
+    }
+
+    void submitGeneration()
   }
 
   return (
@@ -603,9 +651,11 @@ export function ArticleAIHelpDialog({
                         <ToggleGroupItem value="all" className="px-3 text-xs">
                           {t("contentWriting.aiHelp.materialScopeAll")}
                         </ToggleGroupItem>
-                        <ToggleGroupItem value="article" className="px-3 text-xs">
-                          {t("contentWriting.aiHelp.materialScopeArticle")}
-                        </ToggleGroupItem>
+                        {showArticleMaterialScope ? (
+                          <ToggleGroupItem value="article" className="px-3 text-xs">
+                            {t("contentWriting.aiHelp.materialScopeArticle")}
+                          </ToggleGroupItem>
+                        ) : null}
                         <ToggleGroupItem value="favorites" className="px-3 text-xs">
                           {t("contentWriting.aiHelp.materialScopeFavorites")}
                         </ToggleGroupItem>
@@ -850,9 +900,11 @@ export function ArticleAIHelpDialog({
                   <ToggleGroupItem value="all" className="px-3 text-xs">
                     {t("contentWriting.aiHelp.materialScopeAll")}
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="article" className="px-3 text-xs">
-                    {t("contentWriting.aiHelp.materialScopeArticle")}
-                  </ToggleGroupItem>
+                  {showArticleMaterialScope ? (
+                    <ToggleGroupItem value="article" className="px-3 text-xs">
+                      {t("contentWriting.aiHelp.materialScopeArticle")}
+                    </ToggleGroupItem>
+                  ) : null}
                   <ToggleGroupItem value="favorites" className="px-3 text-xs">
                     {t("contentWriting.aiHelp.materialScopeFavorites")}
                   </ToggleGroupItem>
@@ -949,6 +1001,26 @@ export function ArticleAIHelpDialog({
         )}
       </DialogContent>
     </Dialog>
+    <AlertDialog open={overwriteConfirmOpen} onOpenChange={setOverwriteConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("contentWriting.aiHelp.overwriteConfirmTitle")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t("contentWriting.aiHelp.overwriteConfirm")}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{t("contentWriting.aiHelp.cancelBtn")}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              void submitGeneration()
+            }}
+          >
+            {t("contentWriting.aiHelp.overwriteConfirmAction")}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Dialog open={previewMaterial !== null} onOpenChange={(open) => !open && setPreviewMaterial(null)}>
       {previewMaterial?.material_type === "image" && previewMaterial.content ? (
         <DialogContent className="max-w-[min(96vw,1400px)] border-none bg-transparent p-2 shadow-none [&>button]:hidden">

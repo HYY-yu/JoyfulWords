@@ -48,6 +48,7 @@ import {
   isTaskCenterArticleWriterDetails,
   isTaskCenterSucceededTask,
   isTaskCenterTerminalTask,
+  parseTaskCenterImageUrls,
 } from "@/lib/api/taskcenter/types"
 import {
   clearEChartsArticleAnalysisSession,
@@ -258,6 +259,8 @@ interface EditorAIPanelProps {
   submissionTick?: number
   onOpenArticleEditTask: (taskRef: TaskCenterTaskReference) => void
   onArticleTitleUpdated?: (title: string) => void
+  /** 当前正文是否包含文字、图片、表格等有效内容；缺省按非空处理以保守保护覆盖。 */
+  articleHasContent?: boolean
   /** 空稿引导：为 true 时在「AI 写作」按钮旁显示悬浮指引 */
   aiWriteGuideVisible?: boolean
   onAiWriteGuideDismiss?: () => void
@@ -356,6 +359,7 @@ export function EditorAIPanel({
   submissionTick = 0,
   onOpenArticleEditTask,
   onArticleTitleUpdated,
+  articleHasContent = true,
   aiWriteGuideVisible = false,
   onAiWriteGuideDismiss,
 }: EditorAIPanelProps) {
@@ -783,6 +787,13 @@ export function EditorAIPanel({
     [taskCenterTasks]
   )
   const finishedRemovableTaskCount = finishedRemovableTasks.length
+  const canCopySelectedTaskToMaterials = useMemo(() => {
+    if (!selectedTaskRef || !taskDetail) return false
+    if (selectedTaskRef.type !== "image" && selectedTaskRef.type !== "infographic") return false
+    if (!("image_urls" in taskDetail) || taskDetail.status !== "success") return false
+
+    return parseTaskCenterImageUrls(taskDetail.image_urls).length > 0
+  }, [selectedTaskRef, taskDetail])
 
   const handleClearFinishedTasks = useCallback(async () => {
     if (finishedRemovableTasks.length === 0 || isClearingFinishedTasks) return
@@ -1233,7 +1244,7 @@ export function EditorAIPanel({
                 />
               </div>
 
-              {selectedTaskRef.type === "image" || selectedTaskRef.type === "infographic" ? (
+              {canCopySelectedTaskToMaterials ? (
                 <div className="border-t pt-4">
                   {copyToMaterialsSuccess ? (
                     <div className="mb-3 rounded-lg border border-green-200 bg-green-50 p-3">
@@ -1275,7 +1286,7 @@ export function EditorAIPanel({
           pollNow()
         }}
         articleId={articleId ?? undefined}
-        getArticleHasContent={() => getCurrentArticleMarkdown().trim().length > 0}
+        getArticleHasContent={() => articleHasContent}
         variant="feature-compact"
       />
 

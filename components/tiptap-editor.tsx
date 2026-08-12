@@ -54,8 +54,7 @@ import type {
 } from "@/lib/api/taskcenter/types";
 import { isTaskCenterArticleWriterDetails } from "@/lib/api/taskcenter/types";
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks";
-
-const NON_TEXT_EDITOR_CONTENT_PATTERN = /<(img|video|table|hr|ul|ol|blockquote|pre)\b/i;
+import { hasMeaningfulArticleContent } from "@/lib/article-content";
 
 type EditorImageReferenceContext = {
   anchor_text?: string;
@@ -86,12 +85,6 @@ declare global {
   }
 }
 
-function isContentEffectivelyEmpty(value: string) {
-  const text = value.replace(/<[^>]*>/g, "").trim();
-
-  return !text && !NON_TEXT_EDITOR_CONTENT_PATTERN.test(value);
-}
-
 interface TiptapEditorProps {
   content?: string;
   onChange?: (content: string, html: string) => void;
@@ -103,6 +96,7 @@ interface TiptapEditorProps {
   onActiveArticleEditTaskRefChange?: (taskRef: TaskCenterTaskReference | null) => void;
   onArticleEditSubmitted?: (execId: string) => void;
   onImageTaskSubmitted?: () => void;
+  onFirstUserTextInput?: () => void;
   presentationMode?: boolean;
   onExitPresentation?: () => void;
 }
@@ -118,12 +112,15 @@ export function TiptapEditor({
   onActiveArticleEditTaskRefChange,
   onArticleEditSubmitted,
   onImageTaskSubmitted,
+  onFirstUserTextInput,
   presentationMode = false,
   onExitPresentation,
 }: TiptapEditorProps) {
   // 添加图片上传状态
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isEditorEmpty, setIsEditorEmpty] = useState(() => isContentEffectivelyEmpty(content));
+  const [isEditorEmpty, setIsEditorEmpty] = useState(
+    () => !hasMeaningfulArticleContent({ html: content })
+  );
 
   // AI 改写对话框状态
   const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
@@ -145,6 +142,11 @@ export function TiptapEditor({
   // 添加toast提示
   const { toast } = useToast();
   const editorRef = useRef<Editor | null>(null);
+  const onFirstUserTextInputRef = useRef(onFirstUserTextInput);
+
+  useEffect(() => {
+    onFirstUserTextInputRef.current = onFirstUserTextInput;
+  }, [onFirstUserTextInput]);
   const lastInsertedImagePositionRef = useRef<number | null>(null);
   const presentationControlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const documentStageRef = useRef<HTMLDivElement | null>(null);
@@ -351,7 +353,7 @@ export function TiptapEditor({
   const syncEditorEmptyState = useCallback((nextEditor: Editor) => {
     const text = nextEditor.getText().trim();
     const html = nextEditor.getHTML();
-    setIsEditorEmpty(!text && !NON_TEXT_EDITOR_CONTENT_PATTERN.test(html));
+    setIsEditorEmpty(!hasMeaningfulArticleContent({ html, text }));
   }, []);
 
   const uploadAndInsertEditorImage = useCallback(
@@ -430,6 +432,10 @@ export function TiptapEditor({
         placeholder,
       },
       handleTextInput(view, from, to, text) {
+        if (text.length > 0) {
+          onFirstUserTextInputRef.current?.();
+        }
+
         if (
           view.state.selection.$from.sameParent(view.state.selection.$to) &&
           shouldInsertPlainTextIntoCodeBlock(

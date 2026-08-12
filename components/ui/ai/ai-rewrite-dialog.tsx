@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "../base/button";
@@ -25,6 +25,7 @@ import { useTranslation } from "@/lib/i18n/i18n-context";
 import { articlesClient } from "@/lib/api/articles/client";
 import {
   useInfiniteMaterialPicker,
+  useArticleMaterialAvailability,
   type MaterialPickerScope,
 } from "@/lib/hooks/use-infinite-material-picker";
 import type {
@@ -35,6 +36,7 @@ import type {
 import type { Material } from "@/lib/api/materials/types";
 import type { TaskCenterArticleStatus } from "@/lib/api/taskcenter/types";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../base/tabs";
 
 interface AIRewriteDialogProps {
   open: boolean;
@@ -311,6 +313,7 @@ export function AIRewriteDialog({
   const [selectedMaterialIds, setSelectedMaterialIds] = useState<number[]>([]);
   const [materialScope, setMaterialScope] = useState<MaterialPickerScope>("article");
   const [materialSearch, setMaterialSearch] = useState("");
+  const [materialContentFilter, setMaterialContentFilter] = useState<"all" | "text" | "image">("all");
   const materialsScrollPositionRef = useRef(0);
   const materialsScrollRef = useRef<HTMLDivElement>(null);
 
@@ -329,6 +332,12 @@ export function AIRewriteDialog({
   const isTaskFailed = taskStatus === "failed";
   const isTaskSuccess = taskStatus === "success";
   const isExpandedResultView = isTaskMode && isTaskSuccess;
+  const articleMaterialAvailability = useArticleMaterialAvailability({
+    articleId,
+    enabled: open && !isTaskMode && rewriteType === "material",
+  });
+  const showArticleMaterialScope =
+    articleMaterialAvailability === "available" || articleMaterialAvailability === "error";
 
   // 使用无限滚动素材 Hook
   const {
@@ -337,6 +346,7 @@ export function AIRewriteDialog({
     hasMore: hasMoreMaterials,
     reset: resetMaterials,
     observerTarget: materialsObserverTarget,
+    loadMore: loadMoreMaterials,
   } = useInfiniteMaterialPicker({
     enabled: open && !isTaskMode && rewriteType === 'material',
     articleId,
@@ -345,6 +355,14 @@ export function AIRewriteDialog({
     pageSize: 20,
   });
 
+  const visibleMaterials = useMemo(() => {
+    if (materialContentFilter === "all") return materials;
+    if (materialContentFilter === "image") {
+      return materials.filter((material) => material.material_type === "image");
+    }
+    return materials.filter((material) => material.material_type !== "image");
+  }, [materialContentFilter, materials]);
+
   // 弹窗打开时：重置表单、填充 initialRewrittenText
   useEffect(() => {
     if (open) {
@@ -352,6 +370,7 @@ export function AIRewriteDialog({
       materialsScrollPositionRef.current = 0;
       setMaterialScope("article");
       setMaterialSearch("");
+      setMaterialContentFilter("all");
 
       if (initialRewrittenText) {
         setRewrittenText(initialRewrittenText);
@@ -363,6 +382,30 @@ export function AIRewriteDialog({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialRewrittenText]);
+
+  useEffect(() => {
+    if (!showArticleMaterialScope && materialScope === "article") {
+      setMaterialScope("all");
+      materialsScrollPositionRef.current = 0;
+    }
+  }, [materialScope, showArticleMaterialScope]);
+
+  useEffect(() => {
+    if (
+      materialContentFilter !== "all" &&
+      visibleMaterials.length === 0 &&
+      hasMoreMaterials &&
+      !isLoadingMaterials
+    ) {
+      void loadMoreMaterials();
+    }
+  }, [
+    hasMoreMaterials,
+    isLoadingMaterials,
+    loadMoreMaterials,
+    materialContentFilter,
+    visibleMaterials.length,
+  ]);
 
   // 保持素材列表滚动位置（只在对话框打开时恢复）
   useEffect(() => {
@@ -627,20 +670,52 @@ export function AIRewriteDialog({
                   </span>
                 )}
               </Label>
-              <Textarea
-                value={rewrittenText}
-                onChange={(e) => setRewrittenText(e.target.value)}
-                placeholder={
-                  isWaiting
-                    ? t("aiRewrite.waitingPlaceholder")
-                    : t("aiRewrite.rewrittenTextPlaceholder")
-                }
-                className={cn(
-                  "resize-none overflow-y-auto [field-sizing:fixed]",
-                  isExpandedResultView ? "h-full min-h-0" : "h-[128px] lg:h-[144px]"
-                )}
-                disabled={isWaiting || isTaskFailed}
-              />
+              {isTaskSuccess && rewrittenText.trim() ? (
+                <Tabs defaultValue="preview" className={cn("min-h-0", isExpandedResultView && "flex-1")}>
+                  <TabsList className="mb-1 h-8 self-end">
+                    <TabsTrigger value="preview" className="text-xs">
+                      {t("aiRewrite.markdownPreview")}
+                    </TabsTrigger>
+                    <TabsTrigger value="source" className="text-xs">
+                      {t("aiRewrite.markdownSource")}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent
+                    value="preview"
+                    className={cn(
+                      "overflow-y-auto rounded-md border bg-background p-3",
+                      isExpandedResultView ? "min-h-0 flex-1" : "h-[128px] lg:h-[144px]"
+                    )}
+                  >
+                    <StructureMarkdownPreview markdown={rewrittenText} />
+                  </TabsContent>
+                  <TabsContent value="source" className={cn(isExpandedResultView && "min-h-0 flex-1")}>
+                    <Textarea
+                      value={rewrittenText}
+                      onChange={(e) => setRewrittenText(e.target.value)}
+                      className={cn(
+                        "resize-none overflow-y-auto font-mono text-xs [field-sizing:fixed]",
+                        isExpandedResultView ? "h-full min-h-0" : "h-[128px] lg:h-[144px]"
+                      )}
+                    />
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <Textarea
+                  value={rewrittenText}
+                  onChange={(e) => setRewrittenText(e.target.value)}
+                  placeholder={
+                    isWaiting
+                      ? t("aiRewrite.waitingPlaceholder")
+                      : t("aiRewrite.rewrittenTextPlaceholder")
+                  }
+                  className={cn(
+                    "resize-none overflow-y-auto [field-sizing:fixed]",
+                    isExpandedResultView ? "h-full min-h-0" : "h-[128px] lg:h-[144px]"
+                  )}
+                  disabled={isWaiting || isTaskFailed}
+                />
+              )}
             </div>
           </div>
 
@@ -705,9 +780,11 @@ export function AIRewriteDialog({
                         <ToggleGroupItem value="all" className="px-3 text-xs">
                           {t("aiRewrite.material.scopeAll")}
                         </ToggleGroupItem>
-                        <ToggleGroupItem value="article" className="px-3 text-xs">
-                          {t("aiRewrite.material.scopeArticle")}
-                        </ToggleGroupItem>
+                        {showArticleMaterialScope ? (
+                          <ToggleGroupItem value="article" className="px-3 text-xs">
+                            {t("aiRewrite.material.scopeArticle")}
+                          </ToggleGroupItem>
+                        ) : null}
                         <ToggleGroupItem value="favorites" className="px-3 text-xs">
                           {t("aiRewrite.material.scopeFavorites")}
                         </ToggleGroupItem>
@@ -718,8 +795,24 @@ export function AIRewriteDialog({
                         placeholder={t("aiRewrite.material.searchPlaceholder")}
                         className="h-9 min-w-0 flex-1"
                       />
+                      <ToggleGroup
+                        type="single"
+                        value={materialContentFilter}
+                        onValueChange={(value) => {
+                          if (value) setMaterialContentFilter(value as "all" | "text" | "image");
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                      >
+                        {(["all", "text", "image"] as const).map((value) => (
+                          <ToggleGroupItem key={value} value={value} className="px-3 text-xs">
+                            {t(`aiRewrite.material.contentFilters.${value}`)}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
                     </div>
-                    {materials.length === 0 && !isLoadingMaterials ? (
+                    {visibleMaterials.length === 0 && !isLoadingMaterials && !hasMoreMaterials ? (
                       <div className="flex min-h-[120px] flex-1 items-center justify-center rounded-md border text-sm text-muted-foreground">
                         {t("aiRewrite.material.noMaterials")}
                       </div>
@@ -735,7 +828,7 @@ export function AIRewriteDialog({
                             <span className="ml-2 text-sm text-muted-foreground">{t("aiRewrite.material.loadingMaterials")}</span>
                           </div>
                         ) : (
-                          materials.map((material) => (
+                          visibleMaterials.map((material) => (
                             <MaterialSelectionCard
                               key={material.id}
                               material={material}

@@ -11,6 +11,7 @@ import {
   LanguagesIcon,
   LayoutTemplateIcon,
   Loader2Icon,
+  Maximize2Icon,
   MousePointer2Icon,
   PaletteIcon,
   SparklesIcon,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { Button } from "@/components/ui/base/button"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { Label } from "@/components/ui/base/label"
 import { Textarea } from "@/components/ui/base/textarea"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
@@ -148,6 +150,7 @@ export function InfographicDialog({
   const [selectionTextDraft, setSelectionTextDraft] = useState("")
   const [copyingToMaterials, setCopyingToMaterials] = useState(false)
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const [requestErrorMessage, setRequestErrorMessage] = useState<string | null>(null)
   const lastAnnouncedPollingStateRef = useRef<InfographicPollingState>("idle")
   const announcedBatchLogIdsRef = useRef<Set<number>>(new Set())
@@ -166,6 +169,7 @@ export function InfographicDialog({
       setSelectionTextDraft("")
       setCopyingToMaterials(false)
       setActiveImageIndex(0)
+      setPreviewImageUrl(null)
       setRequestErrorMessage(null)
       lastAnnouncedPollingStateRef.current = "idle"
       announcedBatchLogIdsRef.current.clear()
@@ -179,6 +183,7 @@ export function InfographicDialog({
     setResultMode(nextSelectedText ? "selection" : "article")
     setCopyingToMaterials(false)
     setActiveImageIndex(0)
+    setPreviewImageUrl(null)
     setRequestErrorMessage(null)
     lastAnnouncedPollingStateRef.current = "idle"
     announcedBatchLogIdsRef.current.clear()
@@ -658,6 +663,7 @@ export function InfographicDialog({
   }
 
   return (
+    <>
     <AIFeatureDialogShell
       open={open}
       onOpenChange={onOpenChange}
@@ -1075,21 +1081,23 @@ export function InfographicDialog({
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{statusText}</p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCopyToMaterials}
-                  disabled={!canCopyToMaterials}
-                >
-                  {copyingToMaterials ? (
-                    <>
-                      <Loader2Icon className="h-4 w-4 animate-spin" />
-                      {t("infographicDialog.addToMaterialsLoading")}
-                    </>
-                  ) : (
-                    t("infographicDialog.addToMaterials")
-                  )}
-                </Button>
+                {resultImageItems.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCopyToMaterials}
+                    disabled={!canCopyToMaterials}
+                  >
+                    {copyingToMaterials ? (
+                      <>
+                        <Loader2Icon className="h-4 w-4 animate-spin" />
+                        {t("infographicDialog.addToMaterialsLoading")}
+                      </>
+                    ) : (
+                      t("infographicDialog.addToMaterials")
+                    )}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   onClick={handleGenerate}
@@ -1170,13 +1178,22 @@ export function InfographicDialog({
 
             {activeImageItem ? (
               <div className="flex h-full min-h-0 flex-col gap-4">
-                <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-background shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setPreviewImageUrl(activeImageItem.url)}
+                  className="group relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border bg-background shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={t("infographicDialog.previewImage")}
+                >
                   <img
                     src={activeImageItem.url}
                     alt={t("infographicDialog.resultImageAlt")}
-                    className="max-h-full w-full object-contain"
+                    className="max-h-full w-full object-contain transition-transform duration-200 group-hover:scale-[1.01]"
                   />
-                </div>
+                  <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-black/65 px-3 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <Maximize2Icon className="h-3.5 w-3.5" />
+                    {t("infographicDialog.previewImage")}
+                  </span>
+                </button>
 
                 {activeImageItem.detail?.article_excerpt || activeImageItem.detail?.selection_reason ? (
                   <div className="shrink-0 rounded-lg border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">
@@ -1267,5 +1284,20 @@ export function InfographicDialog({
         </div>
       </div>
     </AIFeatureDialogShell>
+    <Dialog open={previewImageUrl !== null} onOpenChange={(nextOpen) => !nextOpen && setPreviewImageUrl(null)}>
+      <DialogContent className="max-w-[min(96vw,1500px)] border-none bg-transparent p-2 shadow-none [&>button]:text-white">
+        <DialogTitle className="sr-only">{t("infographicDialog.previewImage")}</DialogTitle>
+        <div className="flex max-h-[92vh] items-center justify-center overflow-hidden rounded-xl bg-black/90 p-3">
+          {previewImageUrl ? (
+            <img
+              src={previewImageUrl}
+              alt={t("infographicDialog.resultImageAlt")}
+              className="max-h-[86vh] max-w-full rounded-lg object-contain"
+            />
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }

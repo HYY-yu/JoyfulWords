@@ -6,6 +6,8 @@ export const PRODUCT_ANALYTICS_EVENTS = {
   LOGOUT_COMPLETED: "logout_completed",
   PASSWORD_RESET_REQUESTED: "password_reset_requested",
   ARTICLE_CREATE_STARTED: "article_create_started",
+  ARTICLE_FIRST_KEYSTROKE: "article_first_keystroke",
+  AI_WRITE_SUBMITTED: "ai_write_submitted",
   EDITOR_AI_GUIDE_SHOWN: "editor_ai_guide_shown",
   EDITOR_AI_GUIDE_CLICKED: "editor_ai_guide_click",
   EDITOR_AI_GUIDE_DISMISSED: "editor_ai_guide_dismiss",
