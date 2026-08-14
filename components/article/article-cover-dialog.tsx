@@ -252,6 +252,24 @@ function isDefaultArticleTitle(title: string) {
   return normalized === "未命名文章" || normalized === "untitled article"
 }
 
+function isUnsplashContentRemovedError(result: unknown): boolean {
+  if (!result || typeof result !== "object") return false
+
+  const errorResult = result as {
+    error?: unknown
+    reason?: unknown
+    error_description?: unknown
+  }
+  if (errorResult.reason === "unsplash_content_removed") return true
+
+  const message = [errorResult.error, errorResult.error_description]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ")
+    .toLocaleLowerCase()
+
+  return message.includes("content removed") || message.includes("cotent removed")
+}
+
 interface ArticleCoverDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -411,7 +429,8 @@ export function ArticleCoverDialog({
 
     const nextTitle = isDefaultArticleTitle(articleTitle) ? "" : articleTitle.trim()
     setTitle(nextTitle)
-    setUnsplashQuery((current) => current || nextTitle || "editorial article cover")
+    setUnsplashQuery("")
+    setUnsplashPhotos([])
     setBackgroundMode("solid")
     setSolidColor("#f8fafc")
     setBackgroundImageUrl("")
@@ -759,7 +778,7 @@ export function ArticleCoverDialog({
   )
 
   const handleSearchUnsplash = async () => {
-    const query = unsplashQuery.trim() || title.trim()
+    const query = unsplashQuery.trim()
     if (!query) {
       toast({ variant: "destructive", title: t("imageGeneration.cover.toast.unsplashQueryRequired") })
       return
@@ -774,11 +793,19 @@ export function ArticleCoverDialog({
     setIsSearchingUnsplash(false)
 
     if ("error" in result) {
-      toast({ variant: "destructive", title: t("imageGeneration.cover.toast.unsplashSearchFailed") })
+      toast({
+        variant: "destructive",
+        title: isUnsplashContentRemovedError(result)
+          ? t("imageGeneration.cover.toast.unsplashNoResultsSearchAgain")
+          : t("imageGeneration.cover.toast.unsplashSearchFailed"),
+      })
       return
     }
 
     setUnsplashPhotos(result.photos)
+    if (result.photos.length === 0) {
+      toast({ variant: "destructive", title: t("imageGeneration.cover.toast.unsplashNoResultsSearchAgain") })
+    }
   }
 
   const handleSelectUnsplashPhoto = async (photo: UnsplashPhoto) => {
@@ -1307,9 +1334,6 @@ export function ArticleCoverDialog({
                     className={cn(modeButtonClass, backgroundMode === mode ? selectedModeButtonClass : "")}
                     onClick={() => {
                       setBackgroundMode(mode)
-                      if (mode === "unsplash" && unsplashPhotos.length === 0) {
-                        void handleSearchUnsplash()
-                      }
                     }}
                   >
                     {renderBackgroundModeIcon(mode)}

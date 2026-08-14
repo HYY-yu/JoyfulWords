@@ -826,6 +826,7 @@ export const zh = {
                 resourcesNotReady: "封面资源尚未加载完成，请稍候再保存",
                 materialLoadFailed: "素材加载失败",
                 unsplashQueryRequired: "请输入图库关键词",
+                unsplashNoResultsSearchAgain: "找不到图片，请重新搜索",
                 unsplashSearchFailed: "Unsplash 图片搜索失败",
                 exported: "封面已插入文章并加入素材库",
                 editorInserted: "封面已插入文章第一行",

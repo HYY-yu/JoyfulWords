@@ -826,6 +826,7 @@ export const en = {
                 resourcesNotReady: "Cover resources are still loading. Please save again when ready.",
                 materialLoadFailed: "Failed to load materials",
                 unsplashQueryRequired: "Please enter an image search keyword",
+                unsplashNoResultsSearchAgain: "No images found. Please search again.",
                 unsplashSearchFailed: "Failed to search Unsplash images",
                 exported: "Cover inserted into the article and added to materials",
                 editorInserted: "Cover inserted at the top of the article",
