@@ -22,6 +22,19 @@ export const TOOL_INDEX_SLUGS = [
   "ppt-to-word",
 ] as const satisfies readonly ToolSlug[]
 
+export const AVAILABLE_TOOL_SLUGS = [
+  "image-generator",
+  "infographic",
+  "ai-charts",
+  "ppt-generator",
+  "markdown-to-word",
+  "ppt-to-word",
+] as const satisfies readonly ToolSlug[]
+
 export function isToolSlug(value: string): value is ToolSlug {
   return (TOOL_SLUGS as readonly string[]).includes(value)
+}
+
+export function isAvailableToolSlug(value: ToolSlug): boolean {
+  return (AVAILABLE_TOOL_SLUGS as readonly ToolSlug[]).includes(value)
 }

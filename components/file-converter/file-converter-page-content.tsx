@@ -1,7 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode, type RefObject } from "react"
 import {
+  CircleUserRoundIcon,
   DownloadIcon,
   FileIcon,
   FileTextIcon,
@@ -9,9 +11,11 @@ import {
   ImageIcon,
   LayersIcon,
   ListOrderedIcon,
+  LockKeyholeIcon,
   Loader2Icon,
   MessageSquareQuoteIcon,
   RefreshCwIcon,
+  SparklesIcon,
   TableIcon,
   TypeIcon,
   UploadCloudIcon,
@@ -57,23 +61,36 @@ type HoverState = {
 } | null
 
 interface FileConverterPageContentProps {
-  variant?: "page" | "studio"
+  variant?: "page" | "studio" | "toolbox"
+  initialMode?: DocumentConversionMode
   initialMarkdown?: string
   initialMarkdownVersion?: number
+  toolboxAccess?: {
+    isAuthLoading: boolean
+    isSignedIn: boolean
+    loginHref: string
+  }
 }
 
 export function FileConverterPageContent({
   variant = "page",
+  initialMode = "markdown-to-word",
   initialMarkdown,
   initialMarkdownVersion = 0,
+  toolboxAccess,
 }: FileConverterPageContentProps = {}) {
   const { toast } = useToast()
   const { t } = useTranslation()
   const isStudio = variant === "studio"
+  const isToolbox = variant === "toolbox"
+  const isCompact = isStudio || isToolbox
+  const isAuthLoading = toolboxAccess?.isAuthLoading ?? false
+  const isSignedIn = toolboxAccess?.isSignedIn ?? false
+  const loginHref = toolboxAccess?.loginHref ?? "/auth/login"
   const pptInputRef = useRef<HTMLInputElement | null>(null)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const templateInputRef = useRef<HTMLInputElement | null>(null)
-  const [mode, setMode] = useState<DocumentConversionMode>("markdown-to-word")
+  const [mode, setMode] = useState<DocumentConversionMode>(initialMode)
   const [markdown, setMarkdown] = useState<string>(initialMarkdown ?? t("fileConverter.sampleMarkdown"))
   const [pptFile, setPptFile] = useState<File | null>(null)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
@@ -99,6 +116,13 @@ export function FileConverterPageContent({
     setMarkdown(initialMarkdown)
     setResult(null)
   }, [initialMarkdown, initialMarkdownVersion])
+
+  useEffect(() => {
+    if (!isToolbox) return
+
+    setMode(initialMode)
+    setResult(null)
+  }, [initialMode, isToolbox])
 
   const refreshTemplates = useCallback(async () => {
     setIsLoadingTemplates(true)
@@ -204,6 +228,14 @@ export function FileConverterPageContent({
   }
 
   const handleUploadTemplate = async () => {
+    if (isToolbox && !isSignedIn) {
+      toast({
+        title: t("fileConverter.guest.templateLoginTitle"),
+        description: t("fileConverter.guest.templateLoginDescription"),
+      })
+      return
+    }
+
     if (!templateFile) {
       toast({ title: t("fileConverter.errors.selectWordTemplate"), variant: "destructive" })
       return
@@ -262,29 +294,33 @@ export function FileConverterPageContent({
       ? pptFile?.name ?? "PPT"
       : pdfFile?.name ?? "PDF"
   const downloadHref = result ? absoluteDownloadURL(result.download_url) : ""
-  const primaryActionLabel = mode === "markdown-to-word" && isStudio
+  const primaryActionLabel = mode === "markdown-to-word" && isCompact
     ? t("fileConverter.actions.generateWord")
     : t("fileConverter.actions.startConversion")
-  const primaryActionLoadingLabel = mode === "markdown-to-word" && isStudio
+  const primaryActionLoadingLabel = mode === "markdown-to-word" && isCompact
     ? t("fileConverter.actions.generating")
     : t("fileConverter.actions.converting")
 
   return (
-    <div className={cn("jw-app-shell", isStudio ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-screen")}>
-      {isStudio ? null : <LandingHeader activeItem="tools" />}
+    <div className={cn("jw-app-shell", isCompact ? "flex h-full min-h-0 flex-col overflow-hidden" : "min-h-screen")}>
+      {isCompact ? null : <LandingHeader activeItem="tools" />}
 
       <main
         className={cn(
-          isStudio
+          isCompact
             ? "flex min-h-0 flex-1 flex-col overflow-y-auto p-4"
             : "mx-auto flex min-h-screen max-w-[1560px] flex-col overflow-x-hidden px-4 pt-20 pb-5 sm:px-6"
         )}
       >
         <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-          {isStudio ? (
+          {isCompact ? (
             <div className="min-w-0">
               <p className="text-xs leading-5 text-[var(--jw-muted)]">
-                {t("fileConverter.page.studioDescription")}
+                {t(isToolbox
+                  ? mode === "ppt-to-word"
+                    ? "fileConverter.page.toolboxPptDescription"
+                    : "fileConverter.page.toolboxMarkdownDescription"
+                  : "fileConverter.page.studioDescription")}
               </p>
             </div>
           ) : (
@@ -295,7 +331,31 @@ export function FileConverterPageContent({
               <h1 className="jw-heading-text text-2xl font-semibold">{t("fileConverter.page.title")}</h1>
             </div>
           )}
-          <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end">
+          <div className={cn(
+            "flex w-full items-center gap-2 sm:w-auto sm:justify-end",
+            isToolbox && "flex-wrap"
+          )}>
+            {isToolbox ? (
+              <div
+                className="inline-flex h-9 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-[var(--jw-border-subtle)] bg-[var(--jw-accent-soft)] px-3 text-xs font-medium text-[var(--jw-accent)] sm:w-auto sm:flex-none"
+                aria-live="polite"
+              >
+                {isAuthLoading ? (
+                  <Loader2Icon className="size-3.5 animate-spin" />
+                ) : isSignedIn ? (
+                  <CircleUserRoundIcon className="size-3.5" />
+                ) : (
+                  <SparklesIcon className="size-3.5" />
+                )}
+                <span className="truncate">
+                  {isAuthLoading
+                    ? t("fileConverter.access.authChecking")
+                    : isSignedIn
+                      ? t("fileConverter.access.signedIn")
+                      : t("fileConverter.access.guestQuota")}
+                </span>
+              </div>
+            ) : null}
             {result ? (
               <Button asChild className="jw-primary-button h-9 flex-1 rounded-md sm:flex-none">
                 <a href={downloadHref} download={result.filename}>
@@ -318,15 +378,21 @@ export function FileConverterPageContent({
         <div
           className={cn(
             "grid w-full min-w-0 gap-4 xl:grid-cols-[minmax(420px,0.92fr)_minmax(0,1.08fr)]",
-            isStudio ? "min-h-0 flex-1" : "min-h-[calc(100vh-132px)]"
+            isCompact ? "min-h-0 flex-1" : "min-h-[calc(100vh-132px)]"
           )}
         >
           <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-[var(--jw-border)] bg-[var(--jw-surface-strong)]">
             <div className="border-b border-[var(--jw-border-subtle)] p-4">
-              {isStudio ? (
+              {isCompact ? (
                 <div className="flex h-10 items-center gap-2 rounded-md border border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] px-3 text-sm font-medium">
                   <FileTextIcon className="size-4 text-[var(--jw-accent)]" />
-                  <span className="truncate">{t("fileConverter.page.studioTitle")}</span>
+                  <span className="truncate">
+                    {t(isToolbox
+                      ? mode === "ppt-to-word"
+                        ? "fileConverter.page.toolboxPptTitle"
+                        : "fileConverter.page.toolboxMarkdownTitle"
+                      : "fileConverter.page.studioTitle")}
+                  </span>
                 </div>
               ) : (
                 <Tabs value={mode} onValueChange={(value) => setMode(value as DocumentConversionMode)}>
@@ -408,6 +474,11 @@ export function FileConverterPageContent({
                   <pre className="max-h-32 overflow-auto rounded-md bg-[#121826] p-3 text-xs leading-5 text-slate-100">
                     {result.preview_markdown || t("fileConverter.source.generatedWord")}
                   </pre>
+                  {isToolbox && !isAuthLoading && !isSignedIn ? (
+                    <p className="mt-2 text-[11px] leading-4 text-[var(--jw-muted)]">
+                      {t("fileConverter.guest.resultHint")}
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="flex items-center justify-between text-xs text-[var(--jw-muted)]">
@@ -460,33 +531,39 @@ export function FileConverterPageContent({
                   <label className="mb-1 block text-xs font-medium text-[var(--jw-muted)]">
                     {t("fileConverter.templates.uploadTitle")}
                   </label>
-                  <div className="grid gap-2">
-                    <input
-                      value={templateName}
-                      onChange={(event) => setTemplateName(event.target.value)}
-                      placeholder={t("fileConverter.templates.namePlaceholder")}
-                      className="h-10 rounded-md border border-[var(--jw-border)] bg-[var(--jw-surface)] px-3 text-sm outline-none focus:border-[var(--jw-accent)]"
-                    />
-                    <div className="flex min-w-0 gap-2">
-                      <Button variant="outline" className="h-10 min-w-0 flex-1 rounded-md" onClick={() => templateInputRef.current?.click()}>
-                        <UploadCloudIcon className="size-4" />
-                        <span className="truncate">
-                          {templateFile?.name ?? t("fileConverter.templates.selectDocx")}
-                        </span>
-                      </Button>
-                      <Button className="jw-primary-button h-10 rounded-md" disabled={isUploadingTemplate || !templateFile} onClick={handleUploadTemplate}>
-                        {isUploadingTemplate ? <Loader2Icon className="size-4 animate-spin" /> : <FileUpIcon className="size-4" />}
-                        {t("fileConverter.actions.upload")}
+                  {isToolbox && isAuthLoading ? (
+                    <div className="flex min-h-[94px] items-center justify-center gap-2 rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface)] px-4 text-xs text-[var(--jw-muted)]">
+                      <Loader2Icon className="size-4 animate-spin" />
+                      {t("fileConverter.access.authChecking")}
+                    </div>
+                  ) : isToolbox && !isSignedIn ? (
+                    <div className="flex min-h-[94px] items-center gap-3 rounded-lg border border-dashed border-[var(--jw-border)] bg-[var(--jw-surface)] p-3">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--jw-accent-soft)] text-[var(--jw-accent)]">
+                        <LockKeyholeIcon className="size-4" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-[var(--jw-heading)]">
+                          {t("fileConverter.guest.templateLoginTitle")}
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-4 text-[var(--jw-muted)]">
+                          {t("fileConverter.guest.templateLoginDescription")}
+                        </p>
+                      </div>
+                      <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
+                        <Link href={loginHref}>{t("fileConverter.guest.login")}</Link>
                       </Button>
                     </div>
-                    <input
-                      ref={templateInputRef}
-                      type="file"
-                      accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      className="hidden"
-                      onChange={(event) => handleTemplateSelect(event.target.files?.[0] ?? null)}
+                  ) : (
+                    <PersonalTemplateUpload
+                      templateName={templateName}
+                      setTemplateName={setTemplateName}
+                      templateFile={templateFile}
+                      inputRef={templateInputRef}
+                      isUploading={isUploadingTemplate}
+                      onSelect={handleTemplateSelect}
+                      onUpload={handleUploadTemplate}
                     />
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -498,6 +575,56 @@ export function FileConverterPageContent({
           </section>
         </div>
       </main>
+    </div>
+  )
+}
+
+function PersonalTemplateUpload({
+  templateName,
+  setTemplateName,
+  templateFile,
+  inputRef,
+  isUploading,
+  onSelect,
+  onUpload,
+}: {
+  templateName: string
+  setTemplateName: (value: string) => void
+  templateFile: File | null
+  inputRef: RefObject<HTMLInputElement | null>
+  isUploading: boolean
+  onSelect: (file: File | null) => void
+  onUpload: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div className="grid gap-2">
+      <input
+        value={templateName}
+        onChange={(event) => setTemplateName(event.target.value)}
+        placeholder={t("fileConverter.templates.namePlaceholder")}
+        className="h-10 rounded-md border border-[var(--jw-border)] bg-[var(--jw-surface)] px-3 text-sm outline-none focus:border-[var(--jw-accent)]"
+      />
+      <div className="flex min-w-0 gap-2">
+        <Button variant="outline" className="h-10 min-w-0 flex-1 rounded-md" onClick={() => inputRef.current?.click()}>
+          <UploadCloudIcon className="size-4" />
+          <span className="truncate">
+            {templateFile?.name ?? t("fileConverter.templates.selectDocx")}
+          </span>
+        </Button>
+        <Button className="jw-primary-button h-10 rounded-md" disabled={isUploading || !templateFile} onClick={onUpload}>
+          {isUploading ? <Loader2Icon className="size-4 animate-spin" /> : <FileUpIcon className="size-4" />}
+          {t("fileConverter.actions.upload")}
+        </Button>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="hidden"
+        onChange={(event) => onSelect(event.target.files?.[0] ?? null)}
+      />
     </div>
   )
 }
@@ -876,6 +1003,12 @@ function assertPdfFile(file: File | null): File {
 }
 
 function localizedErrorDescription(t: Translate, error: unknown): string {
+  if (
+    error instanceof FileConverterApiError
+    && error.kind === "guest-quota-exceeded"
+  ) {
+    return t("fileConverter.errors.guestQuotaExceeded")
+  }
   if (
     error instanceof FileConverterApiError
     && (error.kind === "authentication-required" || error.status === 401)

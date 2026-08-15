@@ -5,9 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import {
   ArrowRightIcon,
   BarChart3Icon,
-  BookOpenTextIcon,
-  CalendarCheckIcon,
-  Clock3Icon,
+  CheckIcon,
   FileInputIcon,
   FileOutputIcon,
   FileType2Icon,
@@ -15,17 +13,20 @@ import {
   ImageIcon,
   Layers3Icon,
   MapIcon,
-  MegaphoneIcon,
   MenuIcon,
   PenLineIcon,
   PresentationIcon,
-  Share2Icon,
   SmilePlusIcon,
   SparklesIcon,
 } from "lucide-react"
 
 import { BrandLogo } from "@/components/brand/brand-logo"
-import { FileConverterPageContent } from "@/components/file-converter/file-converter-page-content"
+import { ToolboxFileConverterPageContent } from "@/components/file-converter/toolbox-file-converter-page-content"
+import { FeatureVideo } from "@/components/home/sections/feature-video"
+import {
+  LANDING_POSTER_BASE,
+  LANDING_VIDEO_BASE,
+} from "@/components/home/sections/landing-media"
 import { Button } from "@/components/ui/base/button"
 import {
   Sheet,
@@ -39,10 +40,15 @@ import { JoyfulThemeSwitcher } from "@/components/theme/joyful-theme-switcher"
 import { ToolboxAICharts } from "@/components/tools/toolbox-ai-charts"
 import { ToolboxCreateImage } from "@/components/tools/toolbox-create-image"
 import { ToolboxInfographic } from "@/components/tools/toolbox-infographic"
+import { ToolboxPptGenerator } from "@/components/tools/toolbox-ppt-generator"
 import { persistLocalePreference, useTranslation } from "@/lib/i18n/i18n-context"
 import { buildLocalizedPath, switchLocalePathname } from "@/lib/i18n/route-locale"
 import type { Locale } from "@/lib/i18n/shared"
-import { TOOL_INDEX_SLUGS, TOOL_SLUGS, type ToolSlug } from "@/lib/tools/catalog"
+import {
+  TOOL_INDEX_SLUGS,
+  TOOL_SLUGS,
+  type ToolSlug,
+} from "@/lib/tools/catalog"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
@@ -72,14 +78,6 @@ const toolCategoryMap = {
   "word-to-ppt": "documents",
 } satisfies Record<ToolSlug, "visual" | "data" | "writing" | "documents">
 
-const toolCategoryOrder = ["documents", "visual", "data"] as const
-
-const activityIconMap = {
-  checkIn: CalendarCheckIcon,
-  share: Share2Icon,
-  campaign: MegaphoneIcon,
-} satisfies Record<string, typeof CalendarCheckIcon>
-
 type ToolCategoryId = "visual" | "data" | "writing" | "documents"
 
 type ToolSummary = {
@@ -91,14 +89,6 @@ type ToolSummary = {
   category: string
   meta: string
   href: string
-}
-
-type ActivitySummary = {
-  key: string
-  Icon: typeof CalendarCheckIcon
-  title: string
-  reward: string
-  description: string
 }
 
 interface ToolsPageContentProps {
@@ -133,17 +123,6 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
   const selectedTool = selectedToolSlug
     ? tools.find((tool) => tool.slug === selectedToolSlug)
     : null
-  const activityItems = (["checkIn", "share", "campaign"] as const).map((key) => {
-    const Icon = activityIconMap[key]
-    return {
-      key,
-      Icon,
-      title: t(`toolsPage.activities.${key}.title`),
-      reward: t(`toolsPage.activities.${key}.reward`),
-      description: t(`toolsPage.activities.${key}.description`),
-    }
-  })
-
   const handleLocaleChange = (nextLocale: Locale) => {
     if (nextLocale === locale) return
 
@@ -305,165 +284,185 @@ export function ToolsPageContent({ selectedToolSlug }: ToolsPageContentProps) {
         {isDetailPage && selectedTool ? (
           <ToolDetail tool={selectedTool} />
         ) : (
-          <ToolsIndex tools={tools} activityItems={activityItems} />
+          <ToolsIndex tools={tools} />
         )}
       </main>
     </div>
   )
 }
 
-function ToolsIndex({
-  tools,
-  activityItems,
-}: {
-  tools: ToolSummary[]
-  activityItems: ActivitySummary[]
-}) {
+function ToolsIndex({ tools }: { tools: ToolSummary[] }) {
   const { t } = useTranslation()
-  const workspaceHref = "/articles"
   const indexTools = TOOL_INDEX_SLUGS.map((slug) =>
     tools.find((tool) => tool.slug === slug)
   ).filter((tool): tool is ToolSummary => Boolean(tool))
-  const groupedTools = toolCategoryOrder.map((categoryId) => ({
-    categoryId,
-    title: t(`toolsPage.categories.${categoryId}.title`),
-    description: t(`toolsPage.categories.${categoryId}.description`),
-    tools: indexTools.filter((tool) => tool.categoryId === categoryId),
-  }))
+  const directoryTools = ([
+    "markdown-to-word",
+    "image-generator",
+    "ppt-generator",
+    "infographic",
+    "ppt-to-word",
+    "ai-charts",
+  ] as const)
+    .map((slug) => indexTools.find((tool) => tool.slug === slug))
+    .filter((tool): tool is ToolSummary => Boolean(tool))
+  const primaryTool = directoryTools.find((tool) => tool.slug === "markdown-to-word")
+  const benefitKeys = ["guest", "editable", "workflow"] as const
+  const featuredTools = ([
+    {
+      slug: "ppt-generator",
+      video: "feature-ppt",
+      chromeLabel: "tools / presentation generator",
+    },
+    {
+      slug: "infographic",
+      video: "feature-infographic",
+      chromeLabel: "tools / infographic generator",
+    },
+  ] as const)
+    .map((item) => {
+      const tool = indexTools.find((candidate) => candidate.slug === item.slug)
+      return tool ? { ...item, tool } : null
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+
+  const renderTaskLink = (tool: ToolSummary) => {
+    const Icon = tool.Icon
+    return (
+      <Link
+        key={tool.slug}
+        href={tool.href}
+        className="tools-task-link"
+        aria-label={`${tool.title} - ${t("toolsPage.openPlaceholder")}`}
+      >
+        <span className="tools-task-link-icon"><Icon className="size-5" aria-hidden="true" /></span>
+        <span className="tools-task-link-copy">
+          <small>{tool.category}</small>
+          <strong>{tool.title}</strong>
+          <span>{tool.description}</span>
+        </span>
+        <span className="tools-task-link-action">
+          <span>{t(`toolsPage.toolActions.${tool.slug}`)}</span>
+          <span className="tools-task-link-arrow">
+            <ArrowRightIcon className="size-4" aria-hidden="true" />
+          </span>
+        </span>
+      </Link>
+    )
+  }
+
   return (
-    <div className="tools-composition">
-      <section className="tools-hero" aria-labelledby="tools-page-title">
-        <div className="tools-hero-copy">
+    <div className="tools-acquisition-page">
+      <section className="tools-acquisition-hero" aria-labelledby="tools-page-title">
+        <div className="tools-acquisition-copy">
+          <p className="tools-acquisition-eyebrow">{t("toolsPage.acquisition.eyebrow")}</p>
           <h1 id="tools-page-title" className="tools-page-title">
-            {t("toolsPage.title")}
+            <span>{t("toolsPage.acquisition.headlinePrimary")}</span>
+            <strong>{t("toolsPage.acquisition.headlineAccent")}</strong>
           </h1>
-          <p className="tools-page-subtitle">
-            {t("toolsPage.subtitle.intro")} {t("toolsPage.subtitle.workspacePrompt")}{" "}
-            <Link href={workspaceHref} className="tools-page-subtitle-link">
-              {t("toolsPage.subtitle.workspaceLink")}
-            </Link>
-          </p>
+          <p className="tools-page-subtitle">{t("toolsPage.acquisition.description")}</p>
+
+          <div className="tools-acquisition-actions">
+            {primaryTool ? (
+              <Link href={primaryTool.href} className="tools-acquisition-primary">
+                <span className="tools-acquisition-primary-icon">
+                  <SparklesIcon className="size-5" aria-hidden="true" />
+                </span>
+                <span className="tools-acquisition-primary-copy">
+                  <strong>{t("toolsPage.acquisition.primaryAction")}</strong>
+                  <small>{t("toolsPage.acquisition.primaryHint")}</small>
+                </span>
+                <span className="tools-acquisition-primary-arrow">
+                  <ArrowRightIcon className="size-4" aria-hidden="true" />
+                </span>
+              </Link>
+            ) : null}
+            <a href="#tools-directory" className="tools-acquisition-secondary">
+              {t("toolsPage.acquisition.secondaryAction")}
+              <ArrowRightIcon className="size-4" aria-hidden="true" />
+            </a>
+          </div>
         </div>
 
-        <div className="tools-hero-metrics" aria-label={t("toolsPage.metrics.label")}>
-          <div className="tools-metric">
-            <span className="tools-metric-value">{t("toolsPage.metrics.tools.value")}</span>
-            <span className="tools-metric-label">{t("toolsPage.metrics.tools.label")}</span>
-          </div>
+        <div className="tools-acquisition-visual">
+          <FeatureVideo
+            srcBase={`${LANDING_VIDEO_BASE}/hero-overview`}
+            posterBase={`${LANDING_POSTER_BASE}/hero-overview`}
+            label={t("toolsPage.acquisition.demoLabel")}
+            chromeLabel="joyword.link / creator workflow"
+            analytics={false}
+            preload="metadata"
+            stageClassName="aspect-video"
+          />
+          <p className="tools-acquisition-video-caption">
+            <span>{t("toolsPage.acquisition.demoCaption")}</span>
+            <small>{t("toolsPage.acquisition.demoDuration")}</small>
+          </p>
         </div>
       </section>
 
-      <div className="tools-layout-grid">
-        <section className="tools-workspace min-w-0">
-          <div className="tools-category-board" aria-label={t("toolsPage.sections.gridLabel")}>
-            {groupedTools.map((group) => (
-              <section key={group.categoryId} className="tools-category-section">
-                <div className="tools-category-header">
-                  <div className="min-w-0">
-                    <h2>{group.title}</h2>
-                    <p>{group.description}</p>
-                  </div>
-                  <span>{group.tools.length}</span>
-                </div>
-
-                <div className="tools-link-grid">
-                  {group.tools.map((tool) => {
-                    const Icon = tool.Icon
-                    const isAvailableTool =
-                      tool.slug === "image-generator" ||
-                      tool.slug === "infographic" ||
-                      tool.slug === "ai-charts" ||
-                      tool.slug === "markdown-to-word"
-                    return (
-                      <Link
-                        key={tool.slug}
-                        href={tool.href}
-                        className="tools-link-row group"
-                        data-category={group.categoryId}
-                        data-tool={tool.slug}
-                        aria-label={`${tool.title} - ${t("toolsPage.openPlaceholder")}`}
-                      >
-                        <span className="tools-row-topline">
-                          <span className="tools-row-icon">
-                            <Icon className="size-5" />
-                          </span>
-                          <span className="tools-row-state">
-                            {isAvailableTool ? t("toolsPage.availableStatus") : t("toolsPage.status")}
-                          </span>
-                        </span>
-                        <span className="tools-row-title">{tool.title}</span>
-                        <span className="tools-row-description">{tool.description}</span>
-                        <span className="tools-row-footer">
-                          <span>{tool.meta}</span>
-                          <ArrowRightIcon className="tools-row-arrow size-4" />
-                        </span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </section>
-            ))}
+      <section className="tools-benefit-strip" aria-label={t("toolsPage.acquisition.benefitsLabel")}>
+        {benefitKeys.map((key) => (
+          <div key={key}>
+            <CheckIcon className="size-4" aria-hidden="true" />
+            <span>
+              <strong>{t(`toolsPage.acquisition.benefits.${key}.title`)}</strong>
+              <small>{t(`toolsPage.acquisition.benefits.${key}.description`)}</small>
+            </span>
           </div>
-        </section>
+        ))}
+      </section>
 
-        <aside className="tools-side-rail min-w-0">
-          <div className="tools-activity-rail">
-            <div className="tools-rail-heading">
-              <span>{t("toolsPage.activities.title")}</span>
-              <Clock3Icon className="size-4" />
-            </div>
-            <div className="tools-activity-list">
-              {activityItems.map((item) => {
-                const Icon = item.Icon
-                return (
-                  <div key={item.key} className="tools-activity-row">
-                    <span className="tools-activity-icon">
-                      <Icon className="size-4" />
+      <section id="tools-directory" className="tools-story" aria-label={t("toolsPage.sections.gridLabel")}>
+        <header className="tools-story-header">
+          <span>{t("toolsPage.showcase.eyebrow")}</span>
+          <h2>{t("toolsPage.showcase.title")}</h2>
+          <p>{t("toolsPage.showcase.description")}</p>
+        </header>
+
+        <div className="tools-video-features">
+          {featuredTools.map(({ tool, video, chromeLabel }, index) => {
+            const Icon = tool.Icon
+            return (
+              <article key={tool.slug} className="tools-video-feature">
+                <div className={cn("tools-video-feature-media", index % 2 === 1 && "tools-video-feature-media-reverse")}>
+                  <FeatureVideo
+                    srcBase={`${LANDING_VIDEO_BASE}/${video}`}
+                    posterBase={`${LANDING_POSTER_BASE}/${video}`}
+                    label={tool.title}
+                    chromeLabel={chromeLabel}
+                    featureKey={tool.slug}
+                    analytics={false}
+                    preload="none"
+                    stageClassName="aspect-[16/10]"
+                  />
+                </div>
+                <div className={cn("tools-video-feature-content", index % 2 === 1 && "tools-video-feature-content-reverse")}>
+                  <span className="tools-video-feature-index">0{index + 1}</span>
+                  <span className="tools-video-feature-icon"><Icon className="size-5" aria-hidden="true" /></span>
+                  <h3>{tool.title}</h3>
+                  <p>{tool.description}</p>
+                  <Link href={tool.href} className="tools-video-feature-cta">
+                    <span>
+                      <strong>{t(`toolsPage.toolActions.${tool.slug}`)}</strong>
+                      <small>{tool.meta}</small>
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="tools-activity-title-row">
-                        <h2 className="truncate text-sm font-semibold">{item.title}</h2>
-                        <span>{item.reward}</span>
-                      </div>
-                      <p className="text-xs leading-5 text-[var(--jw-muted)]">{item.description}</p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+                    <ArrowRightIcon className="size-4" aria-hidden="true" />
+                  </Link>
+                </div>
+              </article>
+            )
+          })}
+        </div>
 
-            <Button className="tools-activity-button" disabled>
-              {t("toolsPage.activities.cta")}
-            </Button>
-          </div>
-
-          <section className="tools-workspace-cta">
-            <div className="tools-cta-copy">
-              <div>
-                <p className="tools-cta-kicker">{t("toolsPage.nav.workspace")}</p>
-                <h2 className="tools-cta-title">
-                  {t("toolsPage.workspaceCta.title")}
-                </h2>
-                <p className="tools-cta-description">
-                  {t("toolsPage.workspaceCta.description")}
-                </p>
-              </div>
-              <Button asChild className="tools-cta-button">
-                <Link href="/articles">
-                  <BookOpenTextIcon className="size-4" />
-                  {t("toolsPage.workspaceCta.action")}
-                </Link>
-              </Button>
-            </div>
-          </section>
-
-          <div className="tools-side-ambient" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-        </aside>
-      </div>
+        <section className="tools-complete-directory" aria-labelledby="tools-complete-directory-title">
+          <header>
+            <h3 id="tools-complete-directory-title">{t("toolsPage.directory.title")}</h3>
+            <p>{t("toolsPage.directory.description")}</p>
+          </header>
+          <div className="tools-task-index">{directoryTools.map(renderTaskLink)}</div>
+        </section>
+      </section>
     </div>
   )
 }
@@ -520,6 +519,22 @@ function ToolDetail({
     )
   }
 
+  if (tool.slug === "ppt-generator") {
+    return (
+      <section className="tools-detail-page tools-document-converter-page tools-ppt-detail-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <div className="tools-document-converter-shell tools-ppt-generator-shell">
+          <ToolboxPptGenerator />
+        </div>
+      </section>
+    )
+  }
+
   if (tool.slug === "markdown-to-word") {
     return (
       <section className="tools-detail-page tools-document-converter-page">
@@ -530,7 +545,23 @@ function ToolDetail({
           ← {t("toolsPage.detail.back")}
         </Link>
         <div className="tools-document-converter-shell">
-          <FileConverterPageContent variant="studio" />
+          <ToolboxFileConverterPageContent mode="markdown-to-word" />
+        </div>
+      </section>
+    )
+  }
+
+  if (tool.slug === "ppt-to-word") {
+    return (
+      <section className="tools-detail-page tools-document-converter-page">
+        <Link
+          href={buildLocalizedPath(locale, "/tools")}
+          className="jw-themed-link tools-detail-back"
+        >
+          ← {t("toolsPage.detail.back")}
+        </Link>
+        <div className="tools-document-converter-shell">
+          <ToolboxFileConverterPageContent mode="ppt-to-word" />
         </div>
       </section>
     )
@@ -590,25 +621,11 @@ function ToolDetail({
             </div>
 
             <div className="tools-detail-placeholder">
-              <h2>
-                {tool.slug === "ppt-generator"
-                  ? t("toolsPage.detail.pptTitle")
-                  : t("toolsPage.detail.placeholderTitle")}
-              </h2>
-              <p>
-                {tool.slug === "ppt-generator"
-                  ? t("toolsPage.detail.pptDescription")
-                  : t("toolsPage.detail.placeholderDescription")}
-              </p>
-              {tool.slug === "ppt-generator" ? (
-                <Button asChild className="jw-primary-button rounded-full">
-                  <Link href="/articles">{t("toolsPage.detail.pptAction")}</Link>
-                </Button>
-              ) : (
-                <Button className="jw-primary-button rounded-full" disabled>
-                  {t("toolsPage.detail.disabledAction")}
-                </Button>
-              )}
+              <h2>{t("toolsPage.detail.placeholderTitle")}</h2>
+              <p>{t("toolsPage.detail.placeholderDescription")}</p>
+              <Button className="jw-primary-button rounded-full" disabled>
+                {t("toolsPage.detail.disabledAction")}
+              </Button>
             </div>
           </div>
 

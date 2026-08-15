@@ -67,10 +67,14 @@ export async function generateMetadata({ params }: ToolDetailPageProps): Promise
           ? isZh
             ? "使用 JoyfulWords Markdown 转 Word 工具，把 Markdown 内容转换成可下载的 Word 文档，并支持套用 Word 模板样式。"
             : "Use JoyfulWords Markdown to Word to convert Markdown into a downloadable Word document with optional Word template styling."
+        : slug === "ppt-to-word"
+          ? isZh
+            ? "使用 JoyfulWords PPT 转 Word 工具，上传 PPTX 文件并把标题、要点和备注转换成可下载的 Word 文档。"
+            : "Use JoyfulWords PPT to Word to convert PPTX titles, key points, and notes into a downloadable Word document."
         : slug === "ppt-generator"
           ? isZh
-            ? "在 JoyfulWords 文章工作台中生成并确认 Storycard，选择模板后导出可编辑的 PPTX。"
-            : "Generate and confirm a Storycard from a JoyfulWords article, choose a template, and export an editable PPTX."
+            ? "在 JoyfulWords 工具箱中粘贴并预览 Markdown，或选择已有文章，生成 Storycard 后导出可编辑的 PPTX。"
+            : "Paste and preview Markdown or choose an existing article in the JoyfulWords toolbox, generate a Storycard, and export an editable PPTX."
         : isZh
           ? `${toolTitle} 是 JoyfulWords 免费工具箱中的独立工具页面，当前功能预留中，后续支持分享、SEO 和任务中心联动。`
           : `${toolTitle} is an independent JoyfulWords free tool page prepared for sharing, SEO, and Task Center integration.`,

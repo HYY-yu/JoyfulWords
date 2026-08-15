@@ -2,9 +2,11 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import {
   clearPresentationFlowSession,
+  findLatestPresentationFlowSession,
   getPresentationFlowSessionKey,
   loadPresentationFlowSession,
   savePresentationFlowSession,
+  touchPresentationFlowSession,
 } from "./flow-session"
 
 class MemoryStorage implements Storage {
@@ -68,4 +70,57 @@ test("clears invalid or cross-account session data", () => {
 
   assert.equal(loadPresentationFlowSession(8, 42, storage), null)
   assert.equal(storage.getItem(key), null)
+})
+
+test("restores the most recently updated generation for a user", () => {
+  const storage = new MemoryStorage()
+  savePresentationFlowSession(
+    { userId: 8, articleId: 41, generationId: 98 },
+    storage
+  )
+  storage.setItem(
+    getPresentationFlowSessionKey(8, 42),
+    JSON.stringify({
+      version: 1,
+      userId: 8,
+      articleId: 42,
+      generationId: 99,
+      updatedAt: Date.now() + 1_000,
+    })
+  )
+  savePresentationFlowSession(
+    { userId: 8, articleId: 43 },
+    storage
+  )
+  savePresentationFlowSession(
+    { userId: 9, articleId: 44, generationId: 100 },
+    storage
+  )
+
+  const restored = findLatestPresentationFlowSession(8, storage)
+  assert.equal(restored?.articleId, 42)
+  assert.equal(restored?.generationId, 99)
+})
+
+test("touches a flow without losing its resumable generation metadata", () => {
+  const storage = new MemoryStorage()
+  savePresentationFlowSession(
+    {
+      userId: 8,
+      articleId: 42,
+      generationId: 99,
+      templateKey: "node-dsl-example",
+      templateVersion: 1,
+    },
+    storage
+  )
+
+  const touched = touchPresentationFlowSession(8, 42, storage)
+  assert.equal(touched?.generationId, 99)
+  assert.equal(touched?.templateKey, "node-dsl-example")
+
+  const newFlow = touchPresentationFlowSession(8, 43, storage)
+  assert.equal(newFlow?.articleId, 43)
+  assert.equal(newFlow?.generationId, undefined)
+  assert.equal(findLatestPresentationFlowSession(8, storage)?.articleId, 43)
 })

@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import Script from "next/script"
 import { notFound } from "next/navigation"
 import { ToolsPageContent } from "@/components/tools/tools-page-content"
 import { buildLocalizedPath, isLocale, SUPPORTED_LOCALES } from "@/lib/i18n/route-locale"
@@ -31,7 +30,7 @@ export async function generateMetadata({ params }: LocalePageProps): Promise<Met
   const isZh = locale === "zh"
 
   return buildMetadata({
-    title: isZh ? "免费工具箱" : "Creator Toolbox",
+    title: isZh ? "工具箱" : "Toolbox",
     description: isZh
       ? "JoyfulWords 免费工具箱提供生图、信息图、图表、PPT 和文档转换等创作者工具入口，支持独立页面分享和 SEO 收录。"
       : "JoyfulWords Creator Toolbox collects image, infographic, chart, PPT, and document conversion tools as shareable SEO-ready pages.",
@@ -57,7 +56,7 @@ export default async function ToolsPage({ params }: LocalePageProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: locale === "zh" ? "JoyfulWords 免费工具箱" : "JoyfulWords Creator Toolbox",
+    name: locale === "zh" ? "JoyfulWords 工具箱" : "JoyfulWords Toolbox",
     description:
       locale === "zh"
         ? "面向创作者的免费工具目录，覆盖视觉生成、数据可视化和文档转换。"
@@ -77,7 +76,7 @@ export default async function ToolsPage({ params }: LocalePageProps) {
 
   return (
     <>
-      <Script
+      <script
         id={`joyfulwords-tools-collection-${locale}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
