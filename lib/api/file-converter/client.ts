@@ -12,17 +12,36 @@ import type {
 
 const DOCUMENT_CONVERTER_BASE = `${API_BASE_URL}/api/document-converter`
 
-export type FileConverterErrorKind = "authentication-required" | "request-failed"
+export type FileConverterErrorKind =
+  | "authentication-required"
+  | "guest-quota-exceeded"
+  | "request-failed"
+
+interface FileConverterErrorOptions {
+  kind?: FileConverterErrorKind
+  reason?: string
+  action?: string
+  feature?: string
+  limitType?: string
+}
 
 export class FileConverterApiError extends Error {
   status: number
   kind: FileConverterErrorKind
+  reason?: string
+  action?: string
+  feature?: string
+  limitType?: string
 
-  constructor(message: string, status: number, kind: FileConverterErrorKind = "request-failed") {
+  constructor(message: string, status: number, options: FileConverterErrorOptions = {}) {
     super(message)
     this.name = "FileConverterApiError"
     this.status = status
-    this.kind = kind
+    this.kind = options.kind ?? "request-failed"
+    this.reason = options.reason
+    this.action = options.action
+    this.feature = options.feature
+    this.limitType = options.limitType
   }
 }
 
@@ -33,7 +52,7 @@ export async function listWordTemplates(): Promise<DocumentTemplateRecord[]> {
     headers: await optionalHeaders(),
   })
   if (!response.ok) {
-    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+    throw await createFileConverterApiError(response)
   }
   const payload = (await response.json()) as TemplateListResponse
   return payload.templates ?? []
@@ -42,7 +61,11 @@ export async function listWordTemplates(): Promise<DocumentTemplateRecord[]> {
 export async function uploadWordTemplate(file: File, name: string): Promise<DocumentTemplateRecord> {
   const token = await getValidAccessToken()
   if (!token) {
-    throw new FileConverterApiError("authentication_required", 401, "authentication-required")
+    throw new FileConverterApiError("authentication_required", 401, {
+      kind: "authentication-required",
+      reason: "login_required",
+      action: "login_required",
+    })
   }
 
   const formData = new FormData()
@@ -59,7 +82,7 @@ export async function uploadWordTemplate(file: File, name: string): Promise<Docu
     },
   })
   if (!response.ok) {
-    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+    throw await createFileConverterApiError(response)
   }
   return (await response.json()) as DocumentTemplateRecord
 }
@@ -75,7 +98,7 @@ export async function convertMarkdownToWord(request: MarkdownToWordRequest): Pro
     headers: await optionalHeaders({ "Content-Type": "application/json" }),
   })
   if (!response.ok) {
-    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+    throw await createFileConverterApiError(response)
   }
   return (await response.json()) as ConversionTaskResponse
 }
@@ -92,7 +115,7 @@ export async function convertPptToWord(file: File, templateId: string): Promise<
     headers: await optionalHeaders(),
   })
   if (!response.ok) {
-    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+    throw await createFileConverterApiError(response)
   }
   return (await response.json()) as ConversionTaskResponse
 }
@@ -109,7 +132,7 @@ export async function convertPdfToWord(file: File, templateId: string): Promise<
     headers: await optionalHeaders(),
   })
   if (!response.ok) {
-    throw new FileConverterApiError(await readErrorMessage(response), response.status)
+    throw await createFileConverterApiError(response)
   }
   return (await response.json()) as ConversionTaskResponse
 }
@@ -134,17 +157,43 @@ async function optionalHeaders(extra?: HeadersInit): Promise<HeadersInit> {
   return headers
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
+async function createFileConverterApiError(response: Response): Promise<FileConverterApiError> {
+  const payload = await readErrorResponse(response)
+  const reason = payload.reason
+  const isGuestQuotaExceeded = reason === "guest_global_quota_exceeded" || reason === "guest_daily_quota_exceeded"
+  const kind: FileConverterErrorKind = isGuestQuotaExceeded
+    ? "guest-quota-exceeded"
+    : response.status === 401 || reason === "login_required"
+      ? "authentication-required"
+      : "request-failed"
+
+  return new FileConverterApiError(
+    payload.error || response.statusText || "request_failed",
+    response.status,
+    {
+      kind,
+      reason,
+      action: payload.action,
+      feature: payload.feature,
+      limitType: payload.limit_type,
+    }
+  )
+}
+
+async function readErrorResponse(response: Response): Promise<ApiErrorResponse> {
   const contentType = response.headers.get("content-type") ?? ""
   if (contentType.includes("application/json")) {
     try {
-      const payload = (await response.json()) as ApiErrorResponse
-      return payload.error || response.statusText || "request_failed"
+      const payload = await response.json() as unknown
+      if (payload && typeof payload === "object") {
+        return payload as ApiErrorResponse
+      }
+      return { error: response.statusText || "request_failed" }
     } catch {
-      return response.statusText || "request_failed"
+      return { error: response.statusText || "request_failed" }
     }
   }
 
   const text = await response.text()
-  return text || response.statusText || "request_failed"
+  return { error: text || response.statusText || "request_failed" }
 }

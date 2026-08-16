@@ -56,6 +56,31 @@ export function loadPresentationFlowSession(
   }
 }
 
+export function findLatestPresentationFlowSession(
+  userId: number,
+  storage: Storage | null = getBrowserStorage()
+): PresentationFlowSession | null {
+  if (!storage) return null
+
+  const userPrefix = `${STORAGE_PREFIX}:${userId}:`
+  const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index))
+    .filter((key): key is string => Boolean(key?.startsWith(userPrefix)))
+
+  let latestSession: PresentationFlowSession | null = null
+  for (const key of keys) {
+    const articleId = Number(key.slice(userPrefix.length))
+    if (!Number.isInteger(articleId) || articleId <= 0) continue
+
+    const session = loadPresentationFlowSession(userId, articleId, storage)
+    if (!session) continue
+    if (!latestSession || session.updatedAt >= latestSession.updatedAt) {
+      latestSession = session
+    }
+  }
+
+  return latestSession
+}
+
 export function savePresentationFlowSession(
   session: Omit<PresentationFlowSession, "version" | "updatedAt">,
   storage: Storage | null = getBrowserStorage()
@@ -72,6 +97,25 @@ export function savePresentationFlowSession(
     JSON.stringify(nextSession)
   )
   return nextSession
+}
+
+export function touchPresentationFlowSession(
+  userId: number,
+  articleId: number,
+  storage: Storage | null = getBrowserStorage()
+): PresentationFlowSession | null {
+  const existing = loadPresentationFlowSession(userId, articleId, storage)
+  return savePresentationFlowSession(
+    {
+      userId,
+      articleId,
+      generationId: existing?.generationId,
+      templateKey: existing?.templateKey,
+      templateVersion: existing?.templateVersion,
+      imageStyleId: existing?.imageStyleId,
+    },
+    storage
+  )
 }
 
 export function clearPresentationFlowSession(

@@ -105,5 +105,8 @@ export interface ApiErrorResponse {
   error?: string
   status?: number
   reason?: string
+  action?: string
+  feature?: string
+  limit_type?: string
   error_description?: string
 }
