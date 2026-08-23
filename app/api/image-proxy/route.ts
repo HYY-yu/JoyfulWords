@@ -15,6 +15,20 @@ const ALLOWED_HOSTS = new Set([
   "images.unsplash.com",
 ])
 
+const ALLOWED_RASTER_CONTENT_TYPES = new Set([
+  "image/avif",
+  "image/bmp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/tiff",
+  "image/webp",
+  "image/x-icon",
+])
+
 function isAllowedImageHost(hostname: string) {
   const normalized = hostname.toLowerCase()
   return (
@@ -28,6 +42,14 @@ function parseContentLength(value: string | null): number | null {
 
   const parsed = Number(value)
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
+}
+
+function normalizeContentType(value: string | null): string {
+  return value?.split(";")[0]?.trim().toLowerCase() || ""
+}
+
+function isAllowedRasterContentType(value: string | null): boolean {
+  return ALLOWED_RASTER_CONTENT_TYPES.has(normalizeContentType(value))
 }
 
 function isAbortError(error: unknown): boolean {
@@ -105,8 +127,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Failed to load image" }, { status: response.status })
     }
 
-    const contentType = response.headers.get("content-type") || "image/png"
-    if (!contentType.toLowerCase().startsWith("image/")) {
+    const contentType = normalizeContentType(response.headers.get("content-type"))
+    if (!isAllowedRasterContentType(contentType)) {
       return NextResponse.json({ error: "URL is not an image" }, { status: 400 })
     }
 
