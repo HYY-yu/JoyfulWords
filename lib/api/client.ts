@@ -83,6 +83,25 @@ function withAuthorizationHeader(headers: HeadersInit | undefined, token: string
   return mergedHeaders
 }
 
+async function parseApiJsonResponse(
+  endpoint: string,
+  response: Response
+): Promise<{ ok: true; data: Record<string, unknown> } | { ok: false; error: ErrorResponse }> {
+  const text = await response.text()
+  try {
+    return { ok: true, data: JSON.parse(text) }
+  } catch {
+    console.error(`[API] Invalid JSON from ${endpoint}:`, text.slice(0, 200))
+    return {
+      ok: false,
+      error: {
+        error: `Server returned invalid response (status ${response.status})`,
+        status: response.status,
+      },
+    }
+  }
+}
+
 async function getAccessTokenForAuthenticatedRequest(endpoint: string): Promise<string | null> {
   let accessToken = tokenStore.getAccessToken()
   const tokenExpired = accessToken ? tokenStore.isTokenExpired() : true
@@ -136,17 +155,9 @@ export async function apiRequest<T>(
       signal: options.signal, // 传递 signal 以支持请求取消
     })
 
-    const text = await response.text()
-    let data: Record<string, unknown>
-    try {
-      data = JSON.parse(text)
-    } catch {
-      console.error(`[API] Invalid JSON from ${endpoint}:`, text.slice(0, 200))
-      return {
-        error: `Server returned invalid response (status ${response.status})`,
-        status: response.status,
-      } as T
-    }
+    const parsed = await parseApiJsonResponse(endpoint, response)
+    if (!parsed.ok) return parsed.error as T
+    const data = parsed.data
 
     if (!response.ok) {
       // Only authenticated requests should enter the token refresh flow.
@@ -170,7 +181,9 @@ export async function apiRequest<T>(
             ...options,
             headers: newHeaders,
           })
-          const retryData = await retryResponse.json()
+          const retryParsed = await parseApiJsonResponse(endpoint, retryResponse)
+          if (!retryParsed.ok) return retryParsed.error as T
+          const retryData = retryParsed.data
 
           if (!retryResponse.ok) {
             return {
