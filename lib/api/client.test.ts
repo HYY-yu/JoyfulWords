@@ -199,6 +199,67 @@ test('authenticated request keeps local session on network refresh failures befo
   }
 })
 
+test('authenticated request preserves retry HTTP status when retry response is not JSON', async () => {
+  const globals = installBrowserGlobals()
+  const calls: FetchCall[] = []
+  const originalError = console.error
+
+  console.error = () => {}
+  tokenStore.setAccessToken({ access_token: 'expired-access-token', expires_in: 900 }, 'test')
+
+  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit) => {
+    const url = readFetchUrl(input)
+    calls.push({ url, init })
+
+    if (url.endsWith('/auth/token/refresh')) {
+      return new Response(
+        JSON.stringify({
+          access_token: 'new-access-token',
+          expires_in: 900,
+          user: {
+            id: 1,
+            email: 'user@example.com',
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (calls.length === 1 && url.endsWith('/article?page=1&page_size=10')) {
+      return new Response(JSON.stringify({ error: 'expired' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    return new Response('<html>bad gateway</html>', {
+      status: 502,
+      headers: { 'Content-Type': 'text/html' },
+    })
+  }
+
+  try {
+    const result = await authenticatedApiRequest<{ error: string; status?: number }>(
+      '/article?page=1&page_size=10'
+    )
+
+    assert.deepEqual(result, {
+      error: 'Server returned invalid response (status 502)',
+      status: 502,
+    })
+    assert.equal(calls.length, 3)
+    assert.equal(new Headers(calls[0].init?.headers).get('Authorization'), 'Bearer expired-access-token')
+    assert.equal(calls[1].url, 'http://localhost:8080/auth/token/refresh')
+    assert.equal(new Headers(calls[2].init?.headers).get('Authorization'), 'Bearer new-access-token')
+  } finally {
+    console.error = originalError
+    globals.restore()
+  }
+})
+
 test('getValidAccessToken restores missing access token from refresh cookie', async () => {
   const globals = installBrowserGlobals()
   const calls: FetchCall[] = []
