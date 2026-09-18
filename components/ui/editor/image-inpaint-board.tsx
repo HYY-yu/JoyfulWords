@@ -78,7 +78,7 @@ interface ImageInpaintBoardProps {
   onInsertImage?: (imageUrl: string) => boolean;
 }
 
-const DEFAULT_MODEL = "gpt-image-2";
+const DEFAULT_MODEL = "gpt-image-2.5-flare";
 const STROKE_ALPHA = 0.45;
 const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 const COMPARISON_GAP = 56;

@@ -21,9 +21,9 @@ export const TOOLBOX_GUEST_MODEL = "nano-banana-2-fast"
 export const TOOLBOX_IMAGE_MODELS = [
   TOOLBOX_GUEST_MODEL,
   "nano-banana-2",
-  "flux-2-max",
   "qwen-image-2.0-pro",
-  "gpt-image-2",
+  "gpt-image-2.5-flare",
+  "gpt-image-2.5-sunburst",
   "bytedance/seedream-v4.5",
   "bytedance/seedream-v5.0-lite",
 ] as const

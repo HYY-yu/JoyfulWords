@@ -19,8 +19,8 @@ import { buildLocalizedPath } from "@/lib/i18n/route-locale"
 
 const imageRows = [
   ["nano-banana-2", "8"],
-  ["flux-2-max", "7"],
-  ["gpt-image-2", "8"],
+  ["gpt-image-2.5-flare", "4"],
+  ["gpt-image-2.5-sunburst", "4"],
   ["nano-banana-2-lite", "4"],
   ["seedream-v4.5", "4"],
   ["seeddream-v5.0-lite", "4"],
@@ -106,7 +106,7 @@ export function PricingPageContent() {
       },
       ...imageRows.map(([model, price]) => ({
         module: t("pricing.sections.image.title"),
-        item: model,
+        item: model.startsWith("gpt-image-2.5-") ? `${model} · ${t("pricing.sections.image.gpt25Spec")}` : model,
         price: `${price} ${t("pricing.units.perImage")}`,
       })),
       {

@@ -30,7 +30,7 @@ interface StyleItem {
 
 type RenderStatus = "idle" | "generating" | "completed" | "error"
 
-const DEFAULT_STYLE_MODEL = "gpt-image-2"
+const DEFAULT_STYLE_MODEL = "gpt-image-2.5-flare"
 
 // StyleCard 子组件
 interface StyleCardProps {

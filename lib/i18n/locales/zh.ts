@@ -3273,6 +3273,7 @@ export const zh = {
                 },
             },
             image: {
+                gpt25Spec: "1K · 中等质量 · 有无参考图同价",
                 eyebrow: "视觉生成",
                 title: "AI 生图",
                 description: "不同模型按单张图片扣费，便于在质量、速度和成本之间选择。",

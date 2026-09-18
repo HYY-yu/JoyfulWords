@@ -3273,6 +3273,7 @@ export const en = {
                 },
             },
             image: {
+                gpt25Spec: "1K · Medium quality · Same price with or without references",
                 eyebrow: "Visual Generation",
                 title: "AI Image Generation",
                 description: "Each model is billed per generated image, making quality, speed, and cost easy to compare.",
