@@ -29,7 +29,7 @@ import { JoyChartRenderer, type JoyChartRendererHandle } from "@/components/edit
 import { echartsClient } from "@/lib/api/echarts/client"
 import type { EChartsLogResponse, JoyChartDisplay, JoyChartSpec } from "@/lib/api/echarts/types"
 import type { TaskCenterEChartsTaskDetail } from "@/lib/api/taskcenter/types"
-import { JOY_CHART_THEME_OPTIONS, mergeJoyChartDisplay } from "@/lib/echarts/joy-chart-defaults"
+import { mergeJoyChartDisplay } from "@/lib/echarts/joy-chart-defaults"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { uploadImageToR2 } from "@/lib/tiptap-image-upload"
@@ -318,7 +318,7 @@ export function EChartsTaskDetail({ detail, onInserted }: EChartsTaskDetailProps
   const chartPreview = currentSpec ? (
     <div className="overflow-hidden rounded-xl border border-border/70 bg-background p-2.5 shadow-sm">
       <div className="h-[320px] rounded-lg bg-white sm:h-[360px]">
-        <JoyChartRenderer ref={rendererRef} spec={currentSpec} />
+        <JoyChartRenderer ref={rendererRef} spec={currentSpec} articleId={detail.article_id} />
       </div>
     </div>
   ) : (
@@ -358,23 +358,6 @@ export function EChartsTaskDetail({ detail, onInserted }: EChartsTaskDetailProps
       </div>
 
       <div className="grid gap-1 rounded-lg bg-background/25 p-1">
-        <SettingRow label={t("echarts.display.theme")}>
-          <Select
-            value={draftDisplay.style?.theme ?? "vintage"}
-            onValueChange={(value) => updateDraft({ style: { theme: value } })}
-          >
-            <SelectTrigger className="h-8 w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {JOY_CHART_THEME_OPTIONS.map((themeOption) => (
-                <SelectItem key={themeOption} value={themeOption}>
-                  {t(`echarts.themes.${themeOption}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </SettingRow>
         <SettingRow label={t("echarts.display.sort")}>
           <Select
             value={draftDisplay.layout?.sort ?? "none"}
@@ -496,17 +479,6 @@ export function EChartsTaskDetail({ detail, onInserted }: EChartsTaskDetailProps
               checked={draftDisplay.layout?.stack ?? false}
               onCheckedChange={(checked) => updateDraft({ layout: { stack: checked } })}
             />
-          </SettingRow>
-          <SettingRow label={t("echarts.display.radius")}>
-            <div className="w-32">
-              <Slider
-                value={[draftDisplay.bar?.borderRadius ?? 6]}
-                min={0}
-                max={18}
-                step={1}
-                onValueChange={([value]) => updateDraft({ bar: { borderRadius: value } })}
-              />
-            </div>
           </SettingRow>
           <SettingRow label={t("echarts.display.barWidth")}>
             <div className="w-32">

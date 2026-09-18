@@ -33,7 +33,7 @@ import { billingClient } from "@/lib/api/billing/client"
 import type { EChartsLogResponse, JoyChartDisplay, JoyChartSpec } from "@/lib/api/echarts/types"
 import { toolboxClient } from "@/lib/api/toolbox/client"
 import { useAuth } from "@/lib/auth/auth-context"
-import { JOY_CHART_THEME_OPTIONS, mergeJoyChartDisplay } from "@/lib/echarts/joy-chart-defaults"
+import { mergeJoyChartDisplay } from "@/lib/echarts/joy-chart-defaults"
 import { useAdaptivePolling } from "@/lib/hooks/use-adaptive-polling"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
@@ -597,22 +597,7 @@ export function ToolboxAICharts() {
                   placeholder={t("toolsPage.aiCharts.requirementPlaceholder")}
                   className="min-h-24 resize-y border-border/70 bg-muted/20 text-sm leading-relaxed shadow-none"
                 />
-                <div className="grid gap-2 rounded-lg bg-muted/20 p-2 sm:grid-cols-3">
-                  <Select
-                    value={draftDisplay.style.theme}
-                    onValueChange={(value) => updateDraft({ style: { theme: value } })}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {JOY_CHART_THEME_OPTIONS.map((themeOption) => (
-                        <SelectItem key={themeOption} value={themeOption}>
-                          {t(`echarts.themes.${themeOption}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid gap-2 rounded-lg bg-muted/20 p-2 sm:grid-cols-2">
                   <Select
                     value={draftDisplay.layout.sort}
                     onValueChange={(value) => updateDraft({ layout: { sort: value as "none" | "asc" | "desc" } })}
@@ -801,14 +786,6 @@ export function ToolboxAICharts() {
                         onCheckedChange={(checked) => updateDraft({ layout: { stack: checked } })}
                       />
                     </SettingRow>
-                    <SettingSlider
-                      label={t("echarts.display.radius")}
-                      value={draftDisplay.bar.borderRadius}
-                      min={0}
-                      max={18}
-                      step={1}
-                      onChange={(value) => updateDraft({ bar: { borderRadius: value } })}
-                    />
                     <SettingSlider
                       label={t("echarts.display.barWidth")}
                       value={draftDisplay.bar.barWidth}

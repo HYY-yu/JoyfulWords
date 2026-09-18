@@ -187,7 +187,7 @@ function GalleryChart({ item, articleId }: { item: TaskGalleryItem; articleId: n
     return new File([await response.blob()], `chart-${item.id}.png`, { type: "image/png" })
   })
   return <li className="relative aspect-[4/3] min-w-0 overflow-hidden rounded-xl bg-white">
-    {chart && <GalleryChartPreview ref={chartRef} spec={chart} />}
+    {chart && <GalleryChartPreview ref={chartRef} spec={chart} articleId={articleId} />}
     <button type="button" className="absolute inset-0 cursor-zoom-in focus-visible:outline-2 focus-visible:outline-primary" aria-label={t("taskGallery.preview")} onClick={() => setExpanded(true)} disabled={!chart} />
     <GalleryOverlay item={item}>
       <FileActionButtons actions={actions} disabled={!chart} />
@@ -197,7 +197,7 @@ function GalleryChart({ item, articleId }: { item: TaskGalleryItem; articleId: n
       <DialogContent className="sm:max-w-[960px]">
         <DialogHeader className="sr-only"><DialogTitle>{t("taskGallery.preview")}</DialogTitle></DialogHeader>
         <div className="relative mt-4 overflow-hidden rounded-lg bg-white">
-          <div className="h-[min(65dvh,600px)]">{chart && <JoyChartRenderer ref={expandedRef} spec={chart} />}</div>
+          <div className="h-[min(65dvh,600px)]">{chart && <JoyChartRenderer ref={expandedRef} spec={chart} articleId={articleId} />}</div>
           <GalleryOverlay item={item}><FileActionButtons actions={actions} /></GalleryOverlay>
           <ActionError error={actions.error} />
         </div>

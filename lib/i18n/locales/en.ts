@@ -2188,6 +2188,8 @@ export const en = {
         },
     },
     echarts: {
+        designLoading: "Applying design style…",
+        designRetry: "Unable to load design style. Click to retry.",
         types: {
             bar: "Bar",
             line: "Line",

@@ -41,10 +41,12 @@ export interface JoyChartDisplay {
     yFormat?: string
   }
   style?: {
+    /** Legacy wire field. Rendering inherits the article or personal design. */
     theme?: string
     emphasis?: boolean
   }
   bar?: {
+    /** Legacy wire field. Corner geometry now follows the design style. */
     borderRadius?: number
     barWidth?: number
   }

@@ -1,5 +1,6 @@
 import type { EChartsOption } from "echarts"
 import type { JoyChartSpec } from "@/lib/api/echarts/types"
+import { resolveJoyChartTheme, type ChartThemeDesign } from "./joy-chart-theme"
 import { mergeJoyChartDisplay } from "./joy-chart-defaults"
 
 export interface JoyChartViewport {
@@ -13,43 +14,8 @@ const HORIZONTAL_LEGEND_SAFE_SIZE = 32
 const VERTICAL_LEGEND_SAFE_SIZE = 112
 const CARTESIAN_AXIS_NAME_TOP_SAFE_SIZE = 40
 
-const THEME_PALETTES: Record<string, string[]> = {
-  vintage: ["#d87c7c", "#919e8b", "#d7ab82", "#6e7074", "#61a0a8", "#efa18d"],
-  dark: ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa", "#22d3ee"],
-  macarons: ["#2ec7c9", "#b6a2de", "#5ab1ef", "#ffb980", "#d87a80", "#8d98b3"],
-  infographic: ["#0f766e", "#f97316", "#4f46e5", "#db2777", "#84cc16", "#0891b2"],
-  shine: ["#c12e34", "#e6b600", "#0098d9", "#2b821d", "#005eaa", "#339ca8"],
-  roma: ["#e01f54", "#001852", "#f5e8c8", "#b8d2c7", "#c6b38e", "#a4d8c2"],
-}
-
-const THEME_SURFACES: Record<string, {
-  background: string
-  text: string
-  mutedText: string
-  grid: string
-  axis: string
-}> = {
-  dark: {
-    background: "#1f2937",
-    text: "#f8fafc",
-    mutedText: "#cbd5e1",
-    grid: "#334155",
-    axis: "#94a3b8",
-  },
-}
-
-export function getJoyChartBackgroundColor(theme?: string): string {
-  return THEME_SURFACES[theme ?? ""]?.background ?? "#ffffff"
-}
-
-function getJoyChartSurface(theme?: string) {
-  return THEME_SURFACES[theme ?? ""] ?? {
-    background: "#ffffff",
-    text: "#0f172a",
-    mutedText: "#64748b",
-    grid: "#e2e8f0",
-    axis: "#94a3b8",
-  }
+export function getJoyChartBackgroundColor(design?: ChartThemeDesign | null): string {
+  return resolveJoyChartTheme(design).background
 }
 
 function getDimensionName(spec: JoyChartSpec, id: string | undefined): string {
@@ -132,7 +98,8 @@ function formatPercent(params: { name?: string; percent?: number; value?: unknow
 
 export function createJoyChartOption(
   spec: JoyChartSpec,
-  viewport: JoyChartViewport = DEFAULT_VIEWPORT
+  viewport: JoyChartViewport = DEFAULT_VIEWPORT,
+  design?: ChartThemeDesign | null
 ): EChartsOption {
   const display = mergeJoyChartDisplay(spec.display)
   const chartType = spec.chart.type
@@ -142,8 +109,9 @@ export function createJoyChartOption(
   const valueKeys = getValueKeys(spec, categoryKey)
   const firstValueKey = valueKeys[0] || categoryKey
   const source = sortSource(spec.dataset.source, firstValueKey, display.layout.sort ?? "none")
-  const palette = THEME_PALETTES[display.style.theme ?? "vintage"] ?? THEME_PALETTES.vintage
-  const surface = getJoyChartSurface(display.style.theme)
+  const surface = resolveJoyChartTheme(design)
+  const palette = surface.colors
+  const tooltipStyle = { backgroundColor: surface.surface, borderColor: surface.axis, textStyle: { color: surface.text }, confine: true }
   const title = spec.chart.title
   const showTitle = Boolean(title && display.title)
   const titlePosition = display.layout.titlePosition
@@ -165,7 +133,9 @@ export function createJoyChartOption(
         left: titleAlign === "left" ? 8 : titleAlign === "center" ? "center" : undefined,
         right: titleAlign === "right" ? 8 : undefined,
         textStyle: {
-          fontSize: 14,
+          fontSize: 16,
+          fontFamily: surface.fontFamily,
+          fontWeight: surface.serif ? 500 : 600,
           color: surface.text,
           width: Math.max(120, viewportWidth - 24),
           overflow: "truncate" as const,
@@ -210,9 +180,10 @@ export function createJoyChartOption(
     const outerRadius = Math.max(42, Math.floor(Math.min(safeWidth, safeHeight) * 0.35))
     return {
       backgroundColor: surface.background,
+      textStyle: { fontFamily: surface.fontFamily, color: surface.text },
       color: palette,
       title: titleOption,
-      tooltip: display.tooltip ? { trigger: "item" } : undefined,
+      tooltip: display.tooltip ? { ...tooltipStyle, trigger: "item" } : undefined,
       legend: legendOption,
       series: [
         {
@@ -223,9 +194,12 @@ export function createJoyChartOption(
           roseType: display.pie.rose ? "radius" : undefined,
           center: [safeLeft + safeWidth / 2, safeTop + safeHeight / 2],
           avoidLabelOverlap: true,
+          itemStyle: { borderColor: surface.background, borderWidth: 3, borderRadius: surface.radius },
+          labelLine: { lineStyle: { color: surface.axis } },
           minShowLabelAngle: 3,
           label: {
             show: display.label || display.pie.showPercent,
+            color: surface.text,
             formatter: display.pie.showPercent ? formatPercent : "{b}",
             overflow: "truncate",
             width: 96,
@@ -253,8 +227,8 @@ export function createJoyChartOption(
       )
       : source.map((item) => String(item[categoryKey] ?? "")),
     axisLabel: { rotate: isHorizontal ? 0 : display.axis.xLabelRotate, color: surface.mutedText },
-    axisLine: { lineStyle: { color: surface.axis } },
-    axisTick: { lineStyle: { color: surface.axis } },
+    axisLine: { show: !surface.quiet, lineStyle: { color: surface.axis } },
+    axisTick: { show: false },
   }
   const valueAxis = {
     type: "value" as const,
@@ -262,7 +236,7 @@ export function createJoyChartOption(
     nameTextStyle: { color: surface.mutedText },
     axisLabel: { color: surface.mutedText },
     axisLine: { lineStyle: { color: surface.axis } },
-    splitLine: { show: display.axis.showGrid, lineStyle: { color: surface.grid } },
+    splitLine: { show: display.axis.showGrid, lineStyle: { color: surface.grid, opacity: surface.quiet ? 0.45 : 0.65, type: surface.dashed ? "dashed" as const : "solid" as const } },
   }
 
   const groupedSeriesData = hasGroupedSeries
@@ -293,9 +267,10 @@ export function createJoyChartOption(
 
   return {
     backgroundColor: surface.background,
+      textStyle: { fontFamily: surface.fontFamily, color: surface.text },
     color: palette,
     title: titleOption,
-    tooltip: display.tooltip ? { trigger: "axis" } : undefined,
+    tooltip: display.tooltip ? { ...tooltipStyle, trigger: "axis" } : undefined,
     legend: legendOption,
     grid: {
       left: (isHorizontal ? 72 : 44) + legendLeft,
@@ -309,18 +284,28 @@ export function createJoyChartOption(
     series: (groupedSeriesData ?? valueKeys.map((valueKey) => ({
       name: getDimensionName(spec, valueKey),
       data: source.map((item) => toFiniteNumber(item[valueKey])),
-    }))).map((seriesItem) => ({
+    }))).map((seriesItem, index) => ({
       name: seriesItem.name,
       type: chartType === "line" ? "line" : "bar",
       data: seriesItem.data,
       stack: display.layout.stack ? "total" : undefined,
       smooth: chartType === "line" ? display.line.smooth : undefined,
-      symbol: chartType === "line" && !display.line.symbol ? "none" : undefined,
-      areaStyle: chartType === "line" && display.line.area ? {} : undefined,
+      symbol: chartType === "line" ? (display.line.symbol ? surface.symbol : "none") : undefined,
+      symbolSize: surface.radius === 12 ? 8 : 6,
+      lineStyle: { width: surface.width, type: index % 3 === 2 ? "dotted" : index % 3 === 1 ? "dashed" : "solid" },
+      areaStyle: chartType === "line" && display.line.area ? { opacity: surface.glass || surface.quiet ? 0.08 : 0.15 } : undefined,
       barWidth: chartType === "bar" ? display.bar.barWidth : undefined,
       itemStyle:
         chartType === "bar"
-          ? { borderRadius: display.bar.borderRadius }
+          ? {
+              borderRadius: isHorizontal ? [0, surface.radius, surface.radius, 0] : [surface.radius, surface.radius, 0, 0],
+              color: surface.glass ? {
+                type: "linear", x: 0, y: 0, x2: isHorizontal ? 1 : 0, y2: isHorizontal ? 0 : 1,
+                colorStops: [{ offset: 0, color: palette[index % palette.length] }, { offset: 1, color: palette[index % palette.length] + "88" }],
+              } : palette[index % palette.length],
+              shadowBlur: surface.quiet ? 6 : 0,
+              shadowColor: palette[index % palette.length] + "25",
+            }
           : undefined,
       label: display.label ? { show: true, position: isHorizontal ? "right" : "top" } : undefined,
       emphasis: display.style.emphasis ? { focus: "series" } : undefined,

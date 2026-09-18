@@ -10,8 +10,8 @@ import type { JoyChartSpec } from "@/lib/api/echarts/types"
 const CANVAS_WIDTH = 640
 const CANVAS_HEIGHT = 480
 
-export const GalleryChartPreview = forwardRef<JoyChartRendererHandle, { spec: JoyChartSpec }>(
-  function GalleryChartPreview({ spec }, ref) {
+export const GalleryChartPreview = forwardRef<JoyChartRendererHandle, { spec: JoyChartSpec; articleId: number }>(
+  function GalleryChartPreview({ spec, articleId }, ref) {
     const frameRef = useRef<HTMLDivElement>(null)
     const [scale, setScale] = useState(0)
 
@@ -31,7 +31,7 @@ export const GalleryChartPreview = forwardRef<JoyChartRendererHandle, { spec: Jo
         className="absolute left-1/2 top-1/2 origin-center"
         style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, transform: `translate(-50%, -50%) scale(${scale})` }}
       >
-        <JoyChartRenderer ref={ref} spec={spec} />
+        <JoyChartRenderer ref={ref} spec={spec} articleId={articleId} />
       </div>
     </div>
   }

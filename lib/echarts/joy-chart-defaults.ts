@@ -1,14 +1,5 @@
 import type { JoyChartDisplay } from "@/lib/api/echarts/types"
 
-export const JOY_CHART_THEME_OPTIONS = [
-  "vintage",
-  "dark",
-  "macarons",
-  "infographic",
-  "shine",
-  "roma",
-] as const
-
 export const DEFAULT_JOY_CHART_DISPLAY: Required<JoyChartDisplay> = {
   title: true,
   legend: true,
@@ -28,6 +19,7 @@ export const DEFAULT_JOY_CHART_DISPLAY: Required<JoyChartDisplay> = {
     yFormat: "number",
   },
   style: {
+    // Legacy API field; rendering is resolved from the design catalog.
     theme: "vintage",
     emphasis: true,
   },

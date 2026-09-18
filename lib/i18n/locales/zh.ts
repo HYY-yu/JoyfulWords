@@ -2188,6 +2188,8 @@ export const zh = {
         },
     },
     echarts: {
+        designLoading: "正在应用设计风格…",
+        designRetry: "设计风格加载失败，点击重试",
         types: {
             bar: "柱状图",
             line: "折线图",

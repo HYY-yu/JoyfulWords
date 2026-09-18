@@ -5,9 +5,12 @@ import * as echarts from "echarts"
 import type { ECharts } from "echarts"
 import type { JoyChartSpec } from "@/lib/api/echarts/types"
 import { createJoyChartOption, getJoyChartBackgroundColor } from "@/lib/echarts/joy-chart-options"
+import { useChartDesign } from "@/lib/echarts/use-chart-design"
+import { useTranslation } from "@/lib/i18n/i18n-context"
 import { cn } from "@/lib/utils"
 
 interface JoyChartRendererProps {
+  articleId?: number
   spec: JoyChartSpec
   className?: string
 }
@@ -17,20 +20,26 @@ export interface JoyChartRendererHandle {
 }
 
 export const JoyChartRenderer = forwardRef<JoyChartRendererHandle, JoyChartRendererProps>(
-  function JoyChartRenderer({ spec, className }, ref) {
+  function JoyChartRenderer({ spec, className, articleId }, ref) {
+    const design = useChartDesign(articleId)
+    const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement | null>(null)
     const chartRef = useRef<ECharts | null>(null)
     const [viewport, setViewport] = useState({ width: 0, height: 0 })
-    const option = useMemo(() => createJoyChartOption(spec, viewport), [spec, viewport])
+    const option = useMemo(() => createJoyChartOption(spec, viewport, design.design), [spec, viewport, design.design])
 
     useImperativeHandle(ref, () => ({
-      exportPng: () =>
-        chartRef.current?.getDataURL({
+      exportPng: () => {
+        if (design.loading || design.error || !chartRef.current) return null
+        // Apply the exact resolved option before capture, including after a preference change.
+        chartRef.current.setOption({ ...option, animation: false }, true)
+        return chartRef.current.getDataURL({
           type: "png",
           pixelRatio: 2,
-          backgroundColor: getJoyChartBackgroundColor(spec.display?.style?.theme),
-        }) ?? null,
-    }), [spec.display?.style?.theme])
+          backgroundColor: getJoyChartBackgroundColor(design.design),
+        })
+      },
+    }), [design.design, design.loading, design.error, option])
 
     useEffect(() => {
       if (!containerRef.current) return
@@ -60,12 +69,17 @@ export const JoyChartRenderer = forwardRef<JoyChartRendererHandle, JoyChartRende
     }, [option])
 
     return (
+      <div className="relative h-full w-full">
+      {(design.loading || design.error) && <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/95 p-4 text-sm" role="status">
+        {design.error ? <button type="button" onClick={design.retry} className="underline">{t("echarts.designRetry")}</button> : t("echarts.designLoading")}
+      </div>}
       <div
         ref={containerRef}
         className={cn("h-full min-h-[260px] w-full", className)}
         role="img"
         aria-label={spec.chart.title || "AI chart"}
       />
+      </div>
     )
   }
 )
