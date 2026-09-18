@@ -10,6 +10,7 @@ import {
 } from "@/components/taskcenter/taskcenter-presenters"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
+import { IllustrationDialog } from "@/components/article/illustration/illustration-dialog"
 import { ArticleCoverDialog } from "@/components/article/article-cover-dialog"
 import { FileConverterPageContent } from "@/components/file-converter/file-converter-page-content"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
@@ -85,6 +86,7 @@ type ActiveDialog =
   | "ai-edit"
   | "ai-write"
   | "mindmap"
+  | "illustration"
   | "ai-cover"
   | "create-image"
   | "reversal-mode"
@@ -120,6 +122,14 @@ const FEATURE_GROUPS = [
 ] as const
 
 const FEATURE_BUTTONS: FeatureButton[] = [
+  {
+    id: "illustration",
+    labelKey: "illustration.title",
+    icon: ImageIcon,
+    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
+    iconColor: "text-[var(--jw-accent)]",
+    groupKey: "writing",
+  },
   {
     id: "ai-write",
     labelKey: "tiptapEditor.aiPanel.aiWrite",
@@ -372,6 +382,7 @@ export function EditorAIPanel({
   const [copyToMaterialsError, setCopyToMaterialsError] = useState<string | null>(null)
   const [copyToMaterialsSuccess, setCopyToMaterialsSuccess] = useState<string | null>(null)
   const [isCreateImageOpen, setIsCreateImageOpen] = useState(false)
+  const [isIllustrationOpen, setIsIllustrationOpen] = useState(false)
   const [isCoverOpen, setIsCoverOpen] = useState(false)
   const [isAiWriteOpen, setIsAiWriteOpen] = useState(false)
   const [isReversalModeOpen, setIsReversalModeOpen] = useState(false)
@@ -864,6 +875,8 @@ export function EditorAIPanel({
       window.dispatchEvent(new CustomEvent("joyfulwords-open-ai-mindmap"))
     } else if (id === "create-image") {
       setIsCreateImageOpen(true)
+    } else if (id === "illustration") {
+      setIsIllustrationOpen(true)
     } else if (id === "ai-cover") {
       setIsCoverOpen(true)
     } else if (id === "reversal-mode") {
@@ -1277,6 +1290,8 @@ export function EditorAIPanel({
         t("tiptapEditor.aiPanel.createImage"),
         <CreatorMode articleId={articleId} />
       )}
+
+      <IllustrationDialog open={isIllustrationOpen} onOpenChange={setIsIllustrationOpen} articleId={articleId} articleTitle={articleTitle} />
 
       <ArticleCoverDialog
         open={isCoverOpen}

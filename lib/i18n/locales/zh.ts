@@ -1,4 +1,91 @@
 export const zh = {
+    illustration: {
+        "cover": {
+            "position": "标题位置",
+            "size": "输出尺寸",
+            "positions": {
+                "center": "居中",
+                "top": "居上",
+                "bottom": "居下"
+            },
+            "presets": {
+                "blog": "博客横图",
+                "wechat": "公众号宽图",
+                "portrait": "竖版封面",
+                "video": "视频横图",
+                "square": "方形"
+            },
+            "generate": "生成新封面",
+            "credits": "积分",
+            "hint": "先选择输出尺寸并保存文章标题。AI 按当前比例生成，设计并绘制标题字体；核心内容居中。",
+            "bindFirst": "请先锁定设计，并等待设计准备完成。",
+            "unavailable": "封面生成暂不可用，请稍后重试。",
+            "history": "历史版本",
+            "status": {
+                "pending": "等待中",
+                "submitting": "提交中",
+                "processing": "生成中",
+                "succeeded": "已完成",
+                "failed": "失败"
+            },
+            "processing": "正在生成封面，可关闭窗口稍后查看。",
+            "failed": "封面未能完成，可重新生成。",
+            "uncertain": "未能确认模型提交结果，已停止自动重试。再次生成会发起新的付费请求。",
+            "download": "下载当前图片",
+            "generatedPosition": "本版标题位置",
+            "empty": "选择尺寸和标题位置，生成第一张封面。",
+            "loadFailed": "封面记录读取失败，请刷新。",
+            "submitFailed": "提交未完成，请重试或刷新查看状态。",
+            "regenerate": "重新生成",
+            "generatedSize": "生成尺寸",
+            "resizeHint": "当前预览按新尺寸裁切；点击重新生成可让 AI 按新比例重新构图。",
+            "previewLoading": "正在处理图片…",
+            "previewFailed": "图片处理失败，请重试。"
+        },
+        "title": "AI 插图",
+        "description": "封面、信息图与配图，共用文章的设计风格。",
+        "saveArticleFirst": "请先保存文章，再选择设计风格。",
+        "loading": "正在读取文章设计…",
+        "error": "操作未完成，请刷新后查看最新状态。",
+        "design": "设计风格",
+        "color": "配色",
+        "locked": "已锁定",
+        "lockedHint": "本文后续的新插图将沿用此设计。使用其他风格需要创建新文章。",
+        "palettePreview": "配色预览",
+        "previewTitle": "文章标题",
+        "previewHint": "此处仅预览颜色搭配，不代表 AI 生成效果。",
+        "confirmLock": "我确认使用此风格和配色，绑定后无法更改或删除。",
+        "bind": "确认并锁定设计",
+        "retry": "重新准备",
+        "kindLabel": "插图类型",
+        "notAvailable": "信息图和配图将在后续阶段开放。",
+        "generateLater": "生成图片 · 待开放",
+        "status": {
+            "pending": "设计准备中…",
+            "processing": "设计准备中…",
+            "ready": "设计已就绪",
+            "failed": "设计准备失败，请重试"
+        },
+        "scenes": {
+            "work-report": "工作汇报",
+            "knowledge-sharing": "知识分享",
+            "product-launch": "产品发布"
+        },
+        "kinds": {
+            "cover": {
+                "name": "封面",
+                "description": "结合文章标题建立主题视觉，由 AI 一并绘制标题。"
+            },
+            "infographic": {
+                "name": "信息图",
+                "description": "整理文章内容，用清晰的图文结构解释信息。"
+            },
+            "decorative": {
+                "name": "配图",
+                "description": "以基本无文字的画面延续文章视觉 IP，与封面保持一致。"
+            }
+        }
+    },
     common: {
         doing: "Doing 中...",
         comingSoon: "敬请期待...",

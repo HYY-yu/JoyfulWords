@@ -1,4 +1,91 @@
 export const en = {
+    illustration: {
+        "cover": {
+            "position": "Title placement",
+            "size": "Output size",
+            "positions": {
+                "center": "Center",
+                "top": "Top",
+                "bottom": "Bottom"
+            },
+            "presets": {
+                "blog": "Blog landscape",
+                "wechat": "WeChat wide",
+                "portrait": "Portrait",
+                "video": "Video landscape",
+                "square": "Square"
+            },
+            "generate": "Generate new cover",
+            "credits": "credits",
+            "hint": "Choose an output size and save the article title. AI generates for that aspect ratio, with custom title lettering and centered content.",
+            "bindFirst": "Lock the design and wait until it is ready.",
+            "unavailable": "Cover generation is currently unavailable.",
+            "history": "Version history",
+            "status": {
+                "pending": "Queued",
+                "submitting": "Submitting",
+                "processing": "Generating",
+                "succeeded": "Completed",
+                "failed": "Failed"
+            },
+            "processing": "Generating your cover. You can close this window and return later.",
+            "failed": "The cover could not be completed. You can generate a new one.",
+            "uncertain": "The model submission could not be confirmed. Automatic retries stopped. Generating again creates a new paid request.",
+            "download": "Download current image",
+            "generatedPosition": "Title placement in this version",
+            "empty": "Choose a size and title position to generate your first cover.",
+            "loadFailed": "Unable to load cover history. Please refresh.",
+            "submitFailed": "Submission could not be completed. Retry or refresh to check its status.",
+            "regenerate": "Regenerate",
+            "generatedSize": "Generated size",
+            "resizeHint": "This preview is cropped to the new size. Regenerate to compose a new cover for this aspect ratio.",
+            "previewLoading": "Preparing image…",
+            "previewFailed": "Could not prepare the image. Please retry."
+        },
+        "title": "AI Illustrations",
+        "description": "Covers, infographics and illustrations share your article design.",
+        "saveArticleFirst": "Save the article before choosing a design.",
+        "loading": "Loading article design…",
+        "error": "The operation could not be completed. Refresh to see the latest state.",
+        "design": "Design style",
+        "color": "Color family",
+        "locked": "Locked",
+        "lockedHint": "New illustrations for this article will use this design. Create a new article to use another style.",
+        "palettePreview": "Color preview",
+        "previewTitle": "Article title",
+        "previewHint": "This previews the palette only, not an AI-generated result.",
+        "confirmLock": "I confirm this style and palette. The design cannot be changed or removed after binding.",
+        "bind": "Confirm and lock design",
+        "retry": "Retry preparation",
+        "kindLabel": "Illustration type",
+        "notAvailable": "Infographics and illustrations will be available in later stages.",
+        "generateLater": "Generation · Coming later",
+        "status": {
+            "pending": "Preparing design…",
+            "processing": "Preparing design…",
+            "ready": "Design ready",
+            "failed": "Design preparation failed. Please retry."
+        },
+        "scenes": {
+            "work-report": "Work reports",
+            "knowledge-sharing": "Knowledge sharing",
+            "product-launch": "Product launches"
+        },
+        "kinds": {
+            "cover": {
+                "name": "Cover",
+                "description": "Express the article theme with a visual and title drawn together by AI."
+            },
+            "infographic": {
+                "name": "Infographic",
+                "description": "Organize article content into clear, informative visuals."
+            },
+            "decorative": {
+                "name": "Illustration",
+                "description": "Extend the article’s visual identity with mostly text-free images that match the cover."
+            }
+        }
+    },
     common: {
         doing: "Doing...",
         comingSoon: "Coming soon...",
