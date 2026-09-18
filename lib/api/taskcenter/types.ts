@@ -10,6 +10,9 @@ export const TASK_CENTER_TASK_TYPES = [
   "echarts",
   "podcast",
   "podcast_audio",
+  "illustration_cover",
+  "illustration_infographic",
+  "illustration_artwork",
 ] as const
 
 export type TaskCenterTaskType = (typeof TASK_CENTER_TASK_TYPES)[number]
@@ -157,6 +160,7 @@ export interface TaskCenterPodcastAudioListDetails {
 }
 
 export type TaskCenterTaskListDetails =
+  | IllustrationTaskDetails
   | TaskCenterArticleListDetails
   | TaskCenterImageListDetails
   | TaskCenterInfographicListDetails
@@ -220,7 +224,41 @@ export type TaskCenterPodcastAudioTaskListItem = TaskCenterTaskListItemBase<
   TaskCenterPodcastAudioListDetails
 >
 
+export type IllustrationTaskType = "illustration_cover" | "illustration_infographic" | "illustration_artwork"
+export interface IllustrationTaskDetails {
+  id: number
+  article_id: number
+  status: TaskCenterImageStatus
+  stage: "pending" | "analyzing" | "submitting" | "processing" | "succeeded" | "failed" | "empty"
+  title: string
+  batch_id: number
+  card_index: number
+  is_batch: boolean
+  image_url: string
+  image_urls: string[]
+  width: number
+  height: number
+  output_width: number
+  output_height: number
+  output_preset: string
+  model_name: string
+  error_code: string
+  credits: number
+  is_settle: boolean
+  billing_status: "pending" | "reported" | "failed" | "skipped"
+  created_at: string
+  completed_at: string
+}
+export function isIllustrationTaskType(type: TaskCenterTaskType): type is IllustrationTaskType {
+  return type === "illustration_cover" || type === "illustration_infographic" || type === "illustration_artwork"
+}
+export function isIllustrationTask(task: TaskCenterTaskListItem): task is TaskCenterIllustrationListItem {
+  return isIllustrationTaskType(task.type)
+}
+export type TaskCenterIllustrationListItem = TaskCenterTaskListItemBase<IllustrationTaskType, TaskCenterImageStatus, IllustrationTaskDetails>
+
 export type TaskCenterTaskListItem =
+  | TaskCenterIllustrationListItem
   | TaskCenterArticleTaskListItem
   | TaskCenterImageTaskListItem
   | TaskCenterInfographicTaskListItem
@@ -390,6 +428,7 @@ export interface TaskCenterPodcastAudioTaskDetail {
 }
 
 export type TaskCenterTaskDetailResponse =
+  | IllustrationTaskDetails
   | TaskCenterArticleTaskDetail
   | TaskCenterImageTaskDetail
   | TaskCenterInfographicTaskDetail

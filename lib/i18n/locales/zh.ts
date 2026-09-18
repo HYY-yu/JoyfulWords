@@ -1,6 +1,70 @@
 export const zh = {
     illustration: {
+        progress: {"stages": {"pending": "排队中", "analyzing": "分析内容", "submitting": "提交生图", "processing": "生成中", "succeeded": "已完成", "failed": "生成失败", "empty": "无适合内容"}, "billing": {"pending": "待结算", "reported": "已结算", "failed": "结算待处理", "skipped": "不扣积分"}, "stage": "进度", "credits": "{count} 积分", "openArticle": "打开文章", "failed": "生成失败，可返回文章重新生成。"},
+        preferenceHint: "应用于所有文章后续生成的图片。",
+        applyStyle: "应用风格",
+        chooseStyle: "请在文章列表顶部选择设计风格。",
+        saveMaterial: "加入素材库",
+        materialSaved: "已加入素材库",
+        materialFailed: "保存失败，请重试。",
+        savedContent: "使用已保存的文章内容。",
+
+        artwork: {
+            subjects: "画面主体：",
+            analysisFailed: "场景分析未能完成，未提交生图。可重新分析。",
+            "selectionHint": "根据选段生成一张无文字配图。",
+            "priceHint": "每张 {price} 积分，最多 {total} 积分；按成功张数计费。",
+            "analyzing": "正在分析配图场景…",
+            "progress": "已完成 {completed} / {total} 张，失败 {failed} 张",
+            "partial": "已完成 {completed} 张，失败 {failed} 张；已完成图片可下载。",
+            "noCards": "当前内容未找到适合的配图场景，未生成或扣取图片积分。",
+            "cardEvidence": "场景来源与理由",
+            "enlarge": "放大查看",
+
+            "source": "内容来源",
+            "sources": {
+                "article": "整篇文章",
+                "selection": "选段"
+            },
+            "sourceText": "选中或粘贴真实内容（最多 20,000 字）",
+            "orientation": "画面方向",
+            "orientations": {
+                "square": "方形",
+                "landscape": "横向",
+                "portrait": "纵向"
+            },
+            "language": "语言",
+            "generate": "生成配图",
+            "credits": "积分",
+            "hint": "配图以无文字场景延续文章视觉 IP；不会生成信息卡片。提交前请保存正文。风格、配色与视觉设定保持一致。",
+            "bindFirst": "请在文章列表顶部选择设计风格。",
+            "unavailable": "配图生成暂不可用。",
+            "history": "历史版本",
+            "status": {
+                "analyzing": "分析中",
+                "partial": "部分完成",
+                "empty": "无可用场景",
+                "pending": "等待中",
+                "submitting": "提交中",
+                "processing": "生成中",
+                "succeeded": "已完成",
+                "failed": "失败"
+            },
+            "processing": "正在生成配图，可关闭窗口稍后查看。",
+            "failed": "配图未能完成，可重新生成。",
+            "uncertain": "未能确认模型提交结果，已停止自动重试。再次生成将发起新的付费请求。",
+            "empty": "选择全文或提供选段，生成延续文章视觉风格的无文字配图。",
+            "loadFailed": "配图历史加载失败，请刷新。",
+            "submitFailed": "配图提交失败，请重试。",
+            "regenerate": "重新生成",
+            "snapshot": "查看本版内容与生成设置",
+            articleHint: "从已保存的全文提取场景。",
+            maxImagesHint: "最多 1–5 张，默认 5 张；张数是上限，不强凑。",
+            reference: "视觉参考：{kind} {id}",
+            noReference: "共享视觉设定",
+        },
         infographic: {
+            articleHint: "从已保存的全文提炼信息。",
             analysisFailed: "文章分析未能完成，未提交生图。可重新分析。",
             "selectionHint": "根据选段提炼一张信息图。",
             "priceHint": "每张 {price} 积分，最多 {total} 积分；按成功张数计费。",
@@ -13,8 +77,8 @@ export const zh = {
 
             "source": "内容来源",
             "sources": {
-                "article": "已保存的整篇文章",
-                "selection": "选段 / 提供内容"
+                "article": "整篇文章",
+                "selection": "选段"
             },
             "sourceText": "选中或粘贴真实内容（最多 20,000 字）",
             "orientation": "画面方向",
@@ -27,7 +91,7 @@ export const zh = {
             "generate": "生成信息图",
             "credits": "积分",
             "hint": "整篇文章先分析并拆分卡片，最多生成所选张数；选段生成一张。沿用已锁定设计，请先保存正文，生成后核对事实与文字。",
-            "bindFirst": "请先锁定设计并等待准备完成。",
+            "bindFirst": "请在文章列表顶部选择设计风格。",
             "unavailable": "信息图生成暂不可用。",
             "history": "历史版本",
             "status": {
@@ -64,10 +128,10 @@ export const zh = {
                 "video": "视频横图",
                 "square": "方形"
             },
-            "generate": "生成新封面",
+            "generate": "生成封面",
             "credits": "积分",
             "hint": "先选择输出尺寸并保存文章标题。AI 按当前比例生成，设计并绘制标题字体；核心内容居中。",
-            "bindFirst": "请先锁定设计，并等待设计准备完成。",
+            "bindFirst": "请在文章列表顶部选择设计风格。",
             "unavailable": "封面生成暂不可用，请稍后重试。",
             "history": "历史版本",
             "status": {
@@ -80,7 +144,7 @@ export const zh = {
             "processing": "正在生成封面，可关闭窗口稍后查看。",
             "failed": "封面未能完成，可重新生成。",
             "uncertain": "未能确认模型提交结果，已停止自动重试。再次生成会发起新的付费请求。",
-            "download": "下载当前图片",
+            "download": "下载",
             "generatedPosition": "本版标题位置",
             "empty": "选择尺寸和标题位置，生成第一张封面。",
             "loadFailed": "封面记录读取失败，请刷新。",
@@ -92,10 +156,10 @@ export const zh = {
             "previewFailed": "图片处理失败，请重试。"
         },
         "title": "AI 插图",
-        "description": "封面、信息图与配图，共用文章的设计风格。",
-        "saveArticleFirst": "请先保存文章，再选择设计风格。",
-        "loading": "正在读取文章设计…",
-        "error": "操作未完成，请刷新后查看最新状态。",
+        "description": "封面、信息图和配图。",
+        "saveArticleFirst": "请先保存文章。",
+        "loading": "加载中…",
+        "error": "操作失败，请重试。",
         "design": "设计风格",
         "color": "配色",
         "locked": "已锁定",
@@ -523,7 +587,7 @@ export const zh = {
         },
         taskCenter: {
             title: "任务中心",
-            subtitleGlobal: "统一查看文章编辑、图片生成、信息图和播客任务的实时状态。",
+            subtitleGlobal: "查看任务进度与结果。",
             subtitleArticle: "当前文章的异步任务会在这里实时同步。",
             searchPlaceholder: "搜索任务摘要或状态...",
             listTitle: "任务列表（{count}）",
@@ -548,6 +612,10 @@ export const zh = {
                 allStatuses: "全部状态",
             },
             types: {
+                illustration_cover: "封面",
+                illustration_infographic: "AI 信息图",
+                illustration_artwork: "配图",
+
                 article: "文章",
                 image: "图片",
                 infographic: "信息图",
@@ -565,6 +633,10 @@ export const zh = {
                 succeeded: "成功",
             },
             taskTitles: {
+                illustration_cover: "封面",
+                illustration_infographic: "AI 信息图",
+                illustration_artwork: "配图",
+
                 articleEdit: "文章编辑任务",
                 articleWrite: "AI 写作任务",
                 articleWriteCreate: "新文章生成任务",

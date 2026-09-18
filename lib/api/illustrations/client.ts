@@ -1,8 +1,14 @@
 import { authenticatedApiRequest } from "@/lib/api/client"
 import type { ErrorResponse } from "@/lib/api/types"
-import type { ArticleDesignState, DesignCatalog, CoverOptions, CoverRecord, CoverRequest, InfographicOptions, InfographicRecord, InfographicRequest } from "./types"
+import type { ArtworkOptions, ArtworkRecord, ArtworkRequest, ArticleDesignState, DesignCatalog, CoverOptions, CoverRecord, CoverRequest, InfographicOptions, InfographicRecord, InfographicRequest } from "./types"
 
 export const illustrationsClient = {
+  preference(signal?: AbortSignal): Promise<{ snapshot: NonNullable<ArticleDesignState["binding"]>["snapshot"] | null } | ErrorResponse> {
+    return authenticatedApiRequest("/illustrations/design-preference", { signal })
+  },
+  savePreference(styleId: number, paletteId: number): Promise<{ snapshot: NonNullable<ArticleDesignState["binding"]>["snapshot"] } | ErrorResponse> {
+    return authenticatedApiRequest("/illustrations/design-preference", { method: "PUT", body: JSON.stringify({ style_id: styleId, palette_id: paletteId }) })
+  },
   infographicOptions(signal?: AbortSignal): Promise<InfographicOptions | ErrorResponse> {
     return authenticatedApiRequest("/illustrations/infographic-options", { method: "GET", signal })
   },
@@ -38,5 +44,15 @@ export const illustrationsClient = {
   retry(articleId: number): Promise<ArticleDesignState | ErrorResponse> {
     console.info("[Illustrations] Retrying design preparation", { articleId })
     return authenticatedApiRequest(`/illustrations/articles/${articleId}/design/prepare`, { method: "POST" })
+  },
+  artworkOptions(signal?: AbortSignal): Promise<ArtworkOptions | ErrorResponse> {
+    return authenticatedApiRequest("/illustrations/artwork-options", { method: "GET", signal })
+  },
+  artworks(articleId: number, signal?: AbortSignal): Promise<{ items: ArtworkRecord[] } | ErrorResponse> {
+    return authenticatedApiRequest(`/illustrations/articles/${articleId}/artworks`, { method: "GET", signal })
+  },
+  createArtwork(articleId: number, request: ArtworkRequest): Promise<ArtworkRecord | ErrorResponse> {
+    console.info("[Illustrations] Submitting artwork", { articleId, source: request.source, orientation: request.orientation })
+    return authenticatedApiRequest(`/illustrations/articles/${articleId}/artworks`, { method: "POST", body: JSON.stringify(request) })
   },
 }

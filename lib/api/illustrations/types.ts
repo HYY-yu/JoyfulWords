@@ -54,3 +54,19 @@ export interface InfographicRecord {
   result: CoverRecord["result"]
 }
 export interface InfographicOptions { enabled: boolean; credits: number; presets: CoverPreset[] }
+
+export interface VisualProfile { version: number; theme: string; motif: string; material: string; lighting: string; palette_rule: string }
+export interface ArtworkReference { kind: "cover" | "artwork"; id: number; url: string }
+export interface ArtworkRequest {
+ max_count: number; idempotency_key: string; source: "article" | "selection"; text: string
+ orientation: "landscape" | "portrait" | "square"
+}
+export interface ArtworkRecord {
+ max_count: number; is_batch: boolean; analysis_model: string; cards?: ArtworkRecord[]
+ card?: { name: string; subjects?: { source_term: string; depiction: string }[]; scene: string; article_excerpt: string; article_anchor: string; selection_reason: string }
+ id: number; article_id: number; title: string; source: ArtworkRequest["source"]; source_text: string
+ orientation: ArtworkRequest["orientation"]; model: string; design: NonNullable<ArticleDesignState["binding"]>["snapshot"]
+ rendering_style?: { material: string; lighting: string; palette_rule: string }; visual_profile: VisualProfile; reference?: ArtworkReference
+ status: InfographicRecord["status"]; error_code: string; credits: number; created_at: string; result: CoverRecord["result"]
+}
+export type ArtworkOptions = InfographicOptions

@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
+import { IllustrationTaskDetail } from "./illustration-task-detail"
 import { Badge } from "@/components/ui/base/badge"
 import { Button } from "@/components/ui/base/button"
 import { PresentationTaskDetail } from "@/components/taskcenter/presentation-task-detail"
@@ -22,6 +23,8 @@ import type {
 } from "@/lib/api/taskcenter/types"
 import {
   getTaskCenterPresentationDownloadUrl,
+  isIllustrationTask,
+  isIllustrationTaskType,
   isTaskCenterArticleWriterDetails,
   parseTaskCenterImageUrls,
 } from "@/lib/api/taskcenter/types"
@@ -62,8 +65,11 @@ export function getTaskCenterTypeIcon(type: TaskCenterTaskType) {
   switch (type) {
     case "article":
       return FileTextIcon
+    case "illustration_cover":
+    case "illustration_artwork":
     case "image":
       return ImageIcon
+    case "illustration_infographic":
     case "infographic":
       return LayoutTemplateIcon
     case "presentation":
@@ -101,6 +107,8 @@ function getArticleTaskTitle(
 export function getTaskCenterTaskTitle(
   task: TaskCenterTaskListItem
 ): string {
+  if (isIllustrationTask(task)) return task.type
+
   if (task.type === "image") {
     const genMode = task.details.gen_mode
     if (genMode === "split_images") return "splitImages"
@@ -124,6 +132,10 @@ export function getTaskCenterTaskTitle(
 }
 
 type TaskCenterTranslate = (key: string, params?: Record<string, any>) => string
+
+export function getTaskCenterTaskLabel(task: TaskCenterTaskListItem, t: TaskCenterTranslate): string {
+  return (isIllustrationTask(task) && task.details.title) || t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`)
+}
 
 function getImageTaskErrorCode(detail: {
   error_code?: string
@@ -193,6 +205,11 @@ export function getTaskCenterTaskSummary(
   task: TaskCenterTaskListItem,
   t?: TaskCenterTranslate
 ): string {
+  if (isIllustrationTask(task)) {
+    const stage = t ? t(`illustration.progress.stages.${task.details.stage}`) : task.details.stage
+    return [stage, task.details.card_index > 0 ? `#${task.details.card_index}` : ""].filter(Boolean).join(" · ")
+  }
+
   if (task.type === "article") {
     return task.details.req_text || task.details.resp_text || task.details.exec_id
   }
@@ -330,6 +347,9 @@ export function TaskCenterTaskDetailView({
   className?: string
 }) {
   const { t } = useTranslation()
+  if (isIllustrationTaskType(taskRef.type) && "stage" in detail && "is_batch" in detail) {
+    return <IllustrationTaskDetail detail={detail} type={taskRef.type} onOpenArticle={onOpenArticle} />
+  }
   const imageUrls =
     "image_urls" in detail ? parseTaskCenterImageUrls(detail.image_urls) : []
   const referenceImageUrls =

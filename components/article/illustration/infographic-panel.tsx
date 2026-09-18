@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { LoaderIcon, FileTextIcon, MousePointer2Icon, LanguagesIcon, LayoutTemplateIcon, LockKeyholeIcon, WandSparklesIcon, Maximize2Icon } from "lucide-react"
+import { LoaderIcon, FileTextIcon, MousePointer2Icon, LanguagesIcon, LayoutTemplateIcon, WandSparklesIcon, Maximize2Icon } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import { ScrollArea } from "@/components/ui/base/scroll-area"
 import { cn } from "@/lib/utils"
@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/base/button"
 import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { CoverPreview } from "./cover-preview"
 import { Textarea } from "@/components/ui/base/textarea"
+import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { illustrationsClient } from "@/lib/api/illustrations/client"
-import type { InfographicOptions, InfographicRequest, InfographicRecord, ArticleDesignState } from "@/lib/api/illustrations/types"
+import type { InfographicOptions, InfographicRequest, InfographicRecord } from "@/lib/api/illustrations/types"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 
-export function InfographicPanel({ articleId, ready, selectedText, design }: { articleId: number; ready: boolean; selectedText: string; design?: NonNullable<ArticleDesignState["binding"]>["snapshot"] }) {
+export function InfographicPanel({ articleId, ready, selectedText }: { articleId: number; ready: boolean; selectedText: string }) {
   const { t, locale } = useTranslation()
   const [options, setOptions] = useState<InfographicOptions | null>(null)
   const [items, setItems] = useState<InfographicRecord[]>([])
@@ -92,6 +93,7 @@ export function InfographicPanel({ articleId, ready, selectedText, design }: { a
       })
       if (!alive.current) return
       if ("error" in result) throw new Error(result.error)
+      notifyTaskCenterTaskSubmitted({ type: "illustration_infographic", taskId: result.id, articleId })
       submission.current = null
       setItems((previous) => [result, ...previous.filter((item) => item.id !== result.id)])
       setSelected(result.id)
@@ -111,9 +113,9 @@ export function InfographicPanel({ articleId, ready, selectedText, design }: { a
 
   if (loading) return <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><LoaderIcon className="h-4 w-4 animate-spin" />{t("illustration.loading")}</p>
   return <>
-    <div className="mt-4 grid min-h-[480px] gap-0 overflow-hidden rounded-xl border lg:h-[min(680px,65vh)] lg:grid-cols-[minmax(400px,0.86fr)_minmax(420px,1fr)]">
-      <ScrollArea className="min-h-0 border-b bg-background lg:border-r lg:border-b-0">
-        <fieldset disabled={busy} className="space-y-3.5 p-4 xl:p-5">
+    <div className="mt-4 grid min-w-0 grid-cols-1 min-h-[480px] gap-0 overflow-hidden rounded-xl border lg:h-[min(680px,65vh)] lg:grid-cols-[minmax(400px,0.86fr)_minmax(420px,1fr)]">
+      <ScrollArea className="min-w-0 min-h-0 border-b bg-background lg:border-r lg:border-b-0">
+        <fieldset disabled={busy} className="min-w-0 space-y-3.5 p-4 xl:p-5">
           <legend className="sr-only">{t("illustration.infographic.generate")}</legend>
           <section className={sectionClass}>
             <div className={headerClass}><span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[11px] text-primary">1</span><FileTextIcon className="h-4 w-4 text-primary" />{t("infographicDialog.sourceLabel")}</div>
@@ -121,14 +123,14 @@ export function InfographicPanel({ articleId, ready, selectedText, design }: { a
               <div className="grid gap-2 sm:grid-cols-2">
                 {(["selection", "article"] as const).map((value) => <button key={value} type="button" aria-pressed={source === value} onClick={() => setSource(value)} className={cn("flex min-h-20 items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors", source === value ? "border-primary/50 bg-primary/5" : "border-border bg-muted/15 hover:bg-muted/35")}>
                   {value === "article" ? <FileTextIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> : <MousePointer2Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
-                  <span><span className="block text-sm font-semibold">{t(`illustration.infographic.sources.${value}`)}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{t(value === "article" ? "infographicDialog.articleModeDesc" : "illustration.infographic.selectionHint")}</span></span>
+                  <span><span className="block text-sm font-semibold">{t(`illustration.infographic.sources.${value}`)}</span><span className="mt-1 block text-xs leading-5 text-muted-foreground">{t(value === "article" ? "illustration.infographic.articleHint" : "illustration.infographic.selectionHint")}</span></span>
                 </button>)}
               </div>
               {source === "article" ? <div className="rounded-lg border bg-muted/20 p-3">
                 <div className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{t("infographicDialog.maxImagesLabel")}</span><span className="text-xs text-muted-foreground">{t("infographicDialog.maxImagesValue", { count: maxCount })}</span></div>
                 <div className="mt-3 grid grid-cols-5 rounded-lg border border-border/70 bg-background p-1" role="group" aria-label={t("infographicDialog.maxImagesLabel")}>
                   {[1, 2, 3, 4, 5].map((value) => <button type="button" aria-pressed={maxCount === value} key={value} onClick={() => setMaxCount(value)} className={cn(segmentClass, maxCount === value ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>{value}</button>)}
-                </div><p className="mt-2 text-xs leading-5 text-muted-foreground">{t("infographicDialog.maxImagesHint")}</p>
+                </div>
               </div> : <div>
                 <div className="mb-2 flex justify-between text-xs text-muted-foreground"><span>{t("infographicDialog.selectedTextLabel")}</span><span className={cn(invalidSelection && "text-destructive")}>{Array.from(text).length} / 20,000</span></div>
                 <Textarea aria-label={t("illustration.infographic.sourceText")} value={text} onChange={(e) => setText(e.target.value)} placeholder={t("illustration.infographic.sourceText")} className="h-32 min-h-32 resize-none overflow-y-auto border-border/70 bg-background text-sm leading-relaxed shadow-none [field-sizing:fixed]" />
@@ -146,13 +148,10 @@ export function InfographicPanel({ articleId, ready, selectedText, design }: { a
               </div></div>
             </div>
           </section>
-          {design && <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-3 text-xs"><span className="flex items-center gap-2"><LockKeyholeIcon className="h-3.5 w-3.5" />{design.style.name[locale]} · {design.color_family.name[locale]} · {t("illustration.locked")}</span><span className="flex gap-1.5" aria-hidden="true">{[design.palette.primary, design.palette.secondary, design.palette.background].map((color) => <span key={color} className="h-4 w-4 rounded-full border" style={{ background: color }} />)}</span></div>}
-          <p className="text-xs leading-5 text-muted-foreground">{t("illustration.infographic.hint")}</p>
-          {!ready && <p className="text-sm text-muted-foreground">{t("illustration.infographic.bindFirst")}</p>}
           {options && !options.enabled && <p className="text-sm text-muted-foreground">{t("illustration.infographic.unavailable")}</p>}
         </fieldset>
       </ScrollArea>
-      <div className="flex min-h-0 flex-col bg-muted/20">
+      <div className="flex min-w-0 min-h-0 flex-col bg-muted/20">
         <div className="shrink-0 border-b bg-background/80 px-5 py-4">
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-semibold">{t("infographicDialog.resultTitle")}</h3><p className="mt-1 text-xs text-muted-foreground">{t("illustration.infographic.priceHint", { price: options?.credits ?? 0, total: (options?.credits ?? 0) * (source === "article" ? maxCount : 1) })}</p></div>
             <Button disabled={busy || pending || !ready || !options?.enabled || invalidSelection} onClick={() => void generate()}>{busy || pending ? <LoaderIcon className="h-4 w-4 animate-spin" /> : <WandSparklesIcon className="h-4 w-4" />}{t(source === "article" ? "infographicDialog.generateFromArticle" : "illustration.infographic.generate")}</Button>
@@ -163,7 +162,7 @@ export function InfographicPanel({ articleId, ready, selectedText, design }: { a
           }}>{items.map((item) => <option key={item.id} value={item.id}>#{item.id} · {t(`illustration.infographic.status.${item.status}`)}</option>)}</select></label>}
           {active && isInfographicPending(active) && <div role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-primary/10 px-3 py-2 text-xs text-primary"><LoaderIcon className="h-4 w-4 animate-spin" />{t(active.is_batch && cards.length === 0 ? "illustration.infographic.analyzing" : "illustration.infographic.progress", { completed, failed, total: cards.length })}</div>}
         </div>
-        <ScrollArea className="min-h-0 flex-1"><div className="space-y-4 p-5">
+        <ScrollArea className="min-w-0 min-h-0 flex-1"><div className="space-y-4 p-5">
           {error && <Alert variant="destructive"><AlertDescription>{t(error)}<Button variant="outline" size="sm" className="ml-2" onClick={() => setReload((n) => n + 1)}>{t("common.refresh")}</Button></AlertDescription></Alert>}
           {active?.status === "failed" && <Alert variant="destructive"><AlertDescription>{t(active.error_code === "illustration_infographic_analysis_failed" ? "illustration.infographic.analysisFailed" : active.error_code === "illustration_submission_uncertain" ? "illustration.infographic.uncertain" : "illustration.infographic.failed")}</AlertDescription></Alert>}
           {active?.status === "partial" && <Alert><AlertDescription>{t("illustration.infographic.partial", { completed, failed })}</AlertDescription></Alert>}
@@ -172,14 +171,13 @@ export function InfographicPanel({ articleId, ready, selectedText, design }: { a
           <div className={cn("grid gap-4", cards.length > 1 ? "sm:grid-cols-2" : "mx-auto max-w-md grid-cols-1")}>
             {cards.map((card, index) => <article key={card.id} className="min-w-0 space-y-3 rounded-xl border bg-background p-3 shadow-sm">
               <div className="flex items-start justify-between gap-2"><h4 className="text-sm font-semibold">{card.card?.name || `#${card.id}`}</h4><span className="shrink-0 text-xs text-muted-foreground">{index + 1} / {cards.length}</span></div>
-              {card.result ? <><CoverPreview source={card.result.image_url} width={card.result.width} height={card.result.height} title={card.card?.name || card.title} filename={`infographic-${card.id}.png`} /><Button variant="ghost" size="sm" onClick={() => setPreview(card)}><Maximize2Icon className="h-3.5 w-3.5" />{t("illustration.infographic.enlarge")}</Button></> : <div className="flex min-h-36 items-center justify-center gap-2 rounded-lg bg-muted/30 text-xs text-muted-foreground">{isInfographicPending(card) && <LoaderIcon className="h-4 w-4 animate-spin" />}{t(card.status === "failed" ? (card.error_code === "illustration_submission_uncertain" ? "illustration.infographic.uncertain" : "illustration.infographic.failed") : `illustration.infographic.status.${card.status}`)}</div>}
+              {card.result ? <><CoverPreview articleId={articleId} source={card.result.image_url} width={card.result.width} height={card.result.height} title={card.card?.name || card.title} filename={`infographic-${card.id}.png`} /><Button variant="ghost" size="sm" onClick={() => setPreview(card)}><Maximize2Icon className="h-3.5 w-3.5" />{t("illustration.infographic.enlarge")}</Button></> : <div className="flex min-h-36 items-center justify-center gap-2 rounded-lg bg-muted/30 text-xs text-muted-foreground">{isInfographicPending(card) && <LoaderIcon className="h-4 w-4 animate-spin" />}{t(card.status === "failed" ? (card.error_code === "illustration_submission_uncertain" ? "illustration.infographic.uncertain" : "illustration.infographic.failed") : `illustration.infographic.status.${card.status}`)}</div>}
               {card.card && <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">{t("illustration.infographic.cardEvidence")}</summary><p className="mt-2 whitespace-pre-wrap leading-5">{card.card.article_excerpt}</p><p className="mt-2 leading-5">{card.card.selection_reason}</p></details>}
             </article>)}
           </div>
-          {active && <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">{t("illustration.infographic.snapshot")}</summary><div className="mt-3 space-y-2"><p>{active.design.style.name[locale]} · {active.design.color_family.name[locale]} · {t(`illustration.infographic.orientations.${active.orientation}`)} · {active.language} · {active.model} · {active.credits} {t("illustration.infographic.credits")}</p><pre className="max-h-48 overflow-auto whitespace-pre-wrap font-sans">{active.source_text}</pre></div></details>}
         </div></ScrollArea>
       </div>
     </div>
-    <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null) }}><DialogContent className="max-h-[90vh] overflow-auto sm:max-w-3xl"><DialogTitle>{preview?.card?.name || t("infographicDialog.resultTitle")}</DialogTitle>{preview?.result && <CoverPreview source={preview.result.image_url} width={preview.result.width} height={preview.result.height} title={preview.card?.name || preview.title} filename={`infographic-${preview.id}.png`} />}</DialogContent></Dialog>
+    <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null) }}><DialogContent className="max-h-[90vh] overflow-auto sm:max-w-3xl"><DialogTitle>{preview?.card?.name || t("infographicDialog.resultTitle")}</DialogTitle>{preview?.result && <CoverPreview articleId={articleId} source={preview.result.image_url} width={preview.result.width} height={preview.result.height} title={preview.card?.name || preview.title} filename={`infographic-${preview.id}.png`} />}</DialogContent></Dialog>
   </>
 }

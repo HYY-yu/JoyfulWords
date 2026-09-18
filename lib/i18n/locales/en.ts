@@ -1,6 +1,70 @@
 export const en = {
     illustration: {
+        progress: {"stages": {"pending": "Queued", "analyzing": "Analyzing content", "submitting": "Submitting", "processing": "Generating", "succeeded": "Completed", "failed": "Failed", "empty": "No suitable content"}, "billing": {"pending": "Settlement pending", "reported": "Settled", "failed": "Settlement needs attention", "skipped": "No credits charged"}, "stage": "Progress", "credits": "{count} credits", "openArticle": "Open article", "failed": "Generation failed. Open the article to try again."},
+        preferenceHint: "Applies to future images across all articles.",
+        applyStyle: "Apply style",
+        chooseStyle: "Choose a design style at the top of the article list.",
+        saveMaterial: "Add to materials",
+        materialSaved: "Added to materials",
+        materialFailed: "Could not save. Please retry.",
+        savedContent: "Uses the saved article content.",
+
+        artwork: {
+            subjects: "Visible subjects: ",
+            analysisFailed: "Scene analysis failed. No image was submitted. You can analyze again.",
+            "selectionHint": "Generate one text-free illustration from the selection.",
+            "priceHint": "{price} credits per image, up to {total}; only successful images are billed.",
+            "analyzing": "Analyzing illustration scenes…",
+            "progress": "{completed} / {total} complete, {failed} failed",
+            "partial": "{completed} complete and {failed} failed. Completed images are available to download.",
+            "noCards": "No suitable illustration scenes were found. No images were generated or charged.",
+            "cardEvidence": "Scene source and rationale",
+            "enlarge": "Enlarge",
+
+            "source": "Content source",
+            "sources": {
+                "article": "Saved article",
+                "selection": "Selection / supplied content"
+            },
+            "sourceText": "Select or paste source content (up to 20,000 characters)",
+            "orientation": "Orientation",
+            "orientations": {
+                "square": "Square",
+                "landscape": "Landscape",
+                "portrait": "Portrait"
+            },
+            "language": "Language",
+            "generate": "Generate artwork",
+            "credits": "credits",
+            "hint": "Text-free scenes extend the article’s visual identity. Save the article before submitting. Style, palette and visual profile remain locked.",
+            "bindFirst": "Choose a design style at the top of the article list.",
+            "unavailable": "Artwork generation is unavailable.",
+            "history": "History",
+            "status": {
+                "analyzing": "Analyzing",
+                "partial": "Partially completed",
+                "empty": "No suitable scenes",
+                "pending": "Pending",
+                "submitting": "Submitting",
+                "processing": "Processing",
+                "succeeded": "Completed",
+                "failed": "Failed"
+            },
+            "processing": "Generating. You can close this window and return later.",
+            "failed": "Generation failed. You can create a new request.",
+            "uncertain": "Provider submission could not be confirmed. Automatic retries stopped. Generating again creates a new paid request.",
+            "empty": "Choose the article or provide a selection to create text-free artwork with a consistent visual identity.",
+            "loadFailed": "Could not load artwork history. Please refresh.",
+            "submitFailed": "Could not submit artwork. Please try again.",
+            "regenerate": "Generate again",
+            "snapshot": "View source and generation settings",
+            articleHint: "Analyze the saved article and illustrate distinct scenes.",
+            maxImagesHint: "Up to 1–5 images, default 5. The limit is not a quota.",
+            reference: "Visual reference: {kind} {id}",
+            noReference: "Shared visual profile",
+        },
         infographic: {
+            articleHint: "Summarize the saved article.",
             analysisFailed: "Analysis failed before image submission. You can analyze again.",
             "selectionHint": "Extract one infographic from selected content.",
             "priceHint": "{price} credits per image, up to {total}; only successful images are billed.",
@@ -27,7 +91,7 @@ export const en = {
             "generate": "Generate infographic",
             "credits": "credits",
             "hint": "Articles are analyzed into cards, up to your selected limit; selections produce one card. The locked design is inherited. Save your article first and review generated facts and text.",
-            "bindFirst": "Lock your design and wait until ready.",
+            "bindFirst": "Choose a design style at the top of the article list.",
             "unavailable": "Infographic generation is unavailable.",
             "history": "History",
             "status": {
@@ -64,10 +128,10 @@ export const en = {
                 "video": "Video landscape",
                 "square": "Square"
             },
-            "generate": "Generate new cover",
+            "generate": "Generate cover",
             "credits": "credits",
             "hint": "Choose an output size and save the article title. AI generates for that aspect ratio, with custom title lettering and centered content.",
-            "bindFirst": "Lock the design and wait until it is ready.",
+            "bindFirst": "Choose a design style at the top of the article list.",
             "unavailable": "Cover generation is currently unavailable.",
             "history": "Version history",
             "status": {
@@ -80,7 +144,7 @@ export const en = {
             "processing": "Generating your cover. You can close this window and return later.",
             "failed": "The cover could not be completed. You can generate a new one.",
             "uncertain": "The model submission could not be confirmed. Automatic retries stopped. Generating again creates a new paid request.",
-            "download": "Download current image",
+            "download": "Download",
             "generatedPosition": "Title placement in this version",
             "empty": "Choose a size and title position to generate your first cover.",
             "loadFailed": "Unable to load cover history. Please refresh.",
@@ -92,10 +156,10 @@ export const en = {
             "previewFailed": "Could not prepare the image. Please retry."
         },
         "title": "AI Illustrations",
-        "description": "Covers, infographics and illustrations share your article design.",
-        "saveArticleFirst": "Save the article before choosing a design.",
-        "loading": "Loading article design…",
-        "error": "The operation could not be completed. Refresh to see the latest state.",
+        "description": "Create covers, infographics and illustrations.",
+        "saveArticleFirst": "Save the article first.",
+        "loading": "Loading…",
+        "error": "Something went wrong. Please retry.",
         "design": "Design style",
         "color": "Color family",
         "locked": "Locked",
@@ -523,7 +587,7 @@ export const en = {
         },
         taskCenter: {
             title: "Task Center",
-            subtitleGlobal: "Track article edits, image generations, infographics, and podcast jobs in one place.",
+            subtitleGlobal: "Track progress and view results.",
             subtitleArticle: "Live updates for this article's async jobs appear here.",
             searchPlaceholder: "Search summaries or statuses...",
             listTitle: "Tasks ({count})",
@@ -548,6 +612,10 @@ export const en = {
                 allStatuses: "All statuses",
             },
             types: {
+                illustration_cover: "Cover",
+                illustration_infographic: "AI infographic",
+                illustration_artwork: "Illustration",
+
                 article: "Article",
                 image: "Image",
                 infographic: "Infographic",
@@ -565,6 +633,10 @@ export const en = {
                 succeeded: "Succeeded",
             },
             taskTitles: {
+                illustration_cover: "Cover",
+                illustration_infographic: "AI infographic",
+                illustration_artwork: "Illustration",
+
                 articleEdit: "Article Edit Job",
                 articleWrite: "AI Writing Job",
                 articleWriteCreate: "New Article Writing Job",

@@ -6,7 +6,7 @@ import { StyleMode } from "@/components/image-generator/modes/style-mode"
 import {
   TaskCenterTaskDetailView,
   getTaskCenterTaskSummary,
-  getTaskCenterTaskTitle,
+  getTaskCenterTaskLabel,
 } from "@/components/taskcenter/taskcenter-presenters"
 import { AIFeatureDialogShell } from "@/components/ui/ai/ai-feature-dialog-shell"
 import { ArticleAIHelpDialog } from "@/components/article/article-ai-help-dialog"
@@ -63,7 +63,6 @@ import { cn } from "@/lib/utils"
 import {
   BrainCircuitIcon,
   BarChart3Icon,
-  ChartNoAxesCombinedIcon,
   FileType2Icon,
   ImageIcon,
   LoaderIcon,
@@ -122,14 +121,6 @@ const FEATURE_GROUPS = [
 
 const FEATURE_BUTTONS: FeatureButton[] = [
   {
-    id: "illustration",
-    labelKey: "illustration.title",
-    icon: ImageIcon,
-    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
-    iconColor: "text-[var(--jw-accent)]",
-    groupKey: "writing",
-  },
-  {
     id: "ai-write",
     labelKey: "tiptapEditor.aiPanel.aiWrite",
     icon: PenLineIcon,
@@ -146,16 +137,8 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     groupKey: "writing",
   },
   {
-    id: "infographic",
-    labelKey: "tiptapEditor.aiPanel.infographic",
-    icon: ChartNoAxesCombinedIcon,
-    bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
-    iconColor: "text-[var(--jw-accent)]",
-    groupKey: "writing",
-  },
-  {
-    id: "ai-cover",
-    labelKey: "tiptapEditor.aiPanel.aiCover",
+    id: "illustration",
+    labelKey: "illustration.title",
     icon: ImageIcon,
     bgColor: "bg-[var(--jw-accent-soft)] ring-[var(--jw-action-hover-border)]",
     iconColor: "text-[var(--jw-accent)]",
@@ -281,7 +264,7 @@ function mapTaskCenterTaskToProgressItem(
     id: `${task.type}-${task.id}`,
     type: "task-center",
     status,
-    label: t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`),
+    label: getTaskCenterTaskLabel(task, t),
     description: getTaskCenterTaskSummary(task, t),
     startedAt: new Date(task.created_at).getTime(),
     removable: removable && isTaskCenterTerminalTask(task),

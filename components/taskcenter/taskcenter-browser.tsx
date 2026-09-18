@@ -40,7 +40,7 @@ import {
   formatTaskCenterTime,
   getTaskCenterTaskIcon,
   getTaskCenterTaskSummary,
-  getTaskCenterTaskTitle,
+  getTaskCenterTaskLabel,
 } from "./taskcenter-presenters"
 
 const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = [
@@ -51,9 +51,15 @@ const TASK_TYPE_OPTIONS: TaskCenterTaskType[] = [
   "echarts",
   "podcast",
   "podcast_audio",
+  "illustration_cover",
+  "illustration_infographic",
+  "illustration_artwork",
 ]
 
 const TASK_STATUS_OPTIONS: Record<TaskCenterTaskType, readonly TaskCenterTaskStatus[]> = {
+  illustration_cover: ["pending", "processing", "success", "failed"],
+  illustration_infographic: ["pending", "processing", "success", "failed"],
+  illustration_artwork: ["pending", "processing", "success", "failed"],
   article: ["pending", "processing", "success", "failed"],
   image: ["pending", "processing", "success", "failed"],
   infographic: ["processing", "success", "failed"],
@@ -128,7 +134,7 @@ function TaskCard({
                 <TaskCenterStatusBadge status={task.status as TaskCenterTaskStatus} />
               </div>
               <p className="truncate text-sm font-semibold text-foreground">
-                {t(`contentWriting.taskCenter.taskTitles.${getTaskCenterTaskTitle(task)}`)}
+                {getTaskCenterTaskLabel(task, t)}
               </p>
               <p className="line-clamp-2 text-sm text-muted-foreground">
                 {getTaskCenterTaskSummary(task, t)}

@@ -270,7 +270,6 @@ export function TiptapToolbar({ editor, onInsertImage, isUploadingImage = false 
         )}
       </ToolbarButton>
       </div>
-
     </div>
   );
 }

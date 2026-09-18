@@ -58,6 +58,7 @@ import {
 import { articlesClient } from "@/lib/api/articles/client"
 import { useToast } from "@/hooks/use-toast"
 import { BillingFullscreenDialog } from "@/components/billing/billing-fullscreen-dialog"
+import { DesignStylePicker } from "@/components/article/illustration/design-style-picker"
 import { TaskCenterDialog } from "@/components/taskcenter/taskcenter-dialog"
 import type { TaskCenterTaskReference, TaskCenterTaskType } from "@/lib/api/taskcenter/types"
 import { useTaskCenterLiveTasks } from "@/lib/hooks/use-taskcenter-live-tasks"
@@ -449,6 +450,8 @@ export default function ArticlesPage() {
               <CheckSquareIcon className="w-4 h-4 text-[var(--jw-accent)]" />
               {t("contentWriting.taskCenter.title")}
             </Button>
+
+            <DesignStylePicker />
 
             {/* Feedback */}
             <div className="hidden md:block">
