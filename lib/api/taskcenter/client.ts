@@ -3,6 +3,7 @@ import { authenticatedApiRequest, getLanguageHeader } from "@/lib/api/client"
 import type { ErrorResponse } from "@/lib/api/types"
 import { tokenStore } from "@/lib/tokens/token-store"
 import type {
+  TaskGalleryPage,
   TaskCenterTaskDetailResponse,
   TaskCenterTaskListPage,
   TaskCenterTaskListItem,
@@ -36,6 +37,11 @@ export function isTaskCenterErrorResponse(result: unknown): result is ErrorRespo
 }
 
 export const taskCenterClient = {
+  async getGallery(articleId: number, cursor?: string, signal?: AbortSignal): Promise<TaskGalleryPage | ErrorResponse> {
+    const params = new URLSearchParams({ article_id: String(articleId), page_size: "12" })
+    if (cursor) params.set("cursor", cursor)
+    return authenticatedApiRequest(`/api/taskcenter/gallery?${params}`, { signal })
+  },
   async getTasks(
     params: TaskCenterTasksQuery = {}
   ): Promise<TaskCenterTaskListPage | ErrorResponse> {

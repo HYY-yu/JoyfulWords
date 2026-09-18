@@ -1,4 +1,17 @@
 export const en = {
+    taskGallery: {
+        "title": "Task gallery",
+        "currentStyle": "Current design style",
+        "noDesign": "Not set",
+        "designFailed": "Style unavailable",
+        "empty": "No completed illustrations or charts yet",
+        "loadFailed": "Could not load gallery",
+        "loadMore": "Load more",
+        "preview": "View image",
+        "previewImage": "View {title} · Image {index}",
+        "exportFailed": "Export failed. Try again."
+    },
+
     illustration: {
         progress: {"stages": {"pending": "Queued", "analyzing": "Analyzing content", "submitting": "Submitting", "processing": "Generating", "succeeded": "Completed", "failed": "Failed", "empty": "No suitable content"}, "billing": {"pending": "Settlement pending", "reported": "Settled", "failed": "Settlement needs attention", "skipped": "No credits charged"}, "stage": "Progress", "credits": "{count} credits", "openArticle": "Open article", "failed": "Generation failed. Open the article to try again."},
         preferenceHint: "Applies to future images across all articles.",
@@ -2042,7 +2055,7 @@ export const en = {
             clearFinished: "Clear finished",
             clearingFinished: "Clearing...",
             taskProgress: "Task Progress",
-            taskProgressSubtitle: "Track task progress here. Click a task to view details.",
+
         },
     },
     podcastAudioDialog: {

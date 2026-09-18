@@ -1,4 +1,17 @@
 export const zh = {
+    taskGallery: {
+        "title": "任务画廊",
+        "currentStyle": "当前设计风格",
+        "noDesign": "未设置",
+        "designFailed": "风格加载失败",
+        "empty": "暂无已完成的插图或图表",
+        "loadFailed": "画廊加载失败",
+        "loadMore": "加载更多",
+        "preview": "查看大图",
+        "previewImage": "查看 {title} · 第 {index} 张",
+        "exportFailed": "导出失败，请重试"
+    },
+
     illustration: {
         progress: {"stages": {"pending": "排队中", "analyzing": "分析内容", "submitting": "提交生图", "processing": "生成中", "succeeded": "已完成", "failed": "生成失败", "empty": "无适合内容"}, "billing": {"pending": "待结算", "reported": "已结算", "failed": "结算待处理", "skipped": "不扣积分"}, "stage": "进度", "credits": "{count} 积分", "openArticle": "打开文章", "failed": "生成失败，可返回文章重新生成。"},
         preferenceHint: "应用于所有文章后续生成的图片。",
@@ -2042,7 +2055,7 @@ export const zh = {
             clearFinished: "清除已完成",
             clearingFinished: "清除中...",
             taskProgress: "任务进度",
-            taskProgressSubtitle: "在这里跟踪任务进度，点击任务可查看详情。",
+
         },
     },
     podcastAudioDialog: {

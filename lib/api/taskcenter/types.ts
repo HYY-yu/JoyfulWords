@@ -530,3 +530,19 @@ export function isTaskCenterSucceededTask(task: TaskCenterTaskListItem): boolean
 
   return task.status === "success" || task.status === "succeeded"
 }
+
+export interface TaskGalleryItem {
+  id: number
+  type: IllustrationTaskType | "image" | "infographic" | "echarts"
+  title: string
+  created_at: string
+  image_urls: string
+  width: number
+  height: number
+  spec: import("@/lib/api/echarts/types").JoyChartSpec | null
+}
+export interface TaskGalleryPage {
+  items: TaskGalleryItem[]
+  has_more: boolean
+  next_cursor?: string
+}

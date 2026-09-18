@@ -73,6 +73,7 @@ import {
   WandSparklesIcon,
 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from "react"
+import { TaskGalleryDialog } from "./task-gallery-dialog"
 import { EditorTaskProgress, type TaskItem } from "./editor-task-progress"
 import { InfographicDialog } from "./infographic-dialog"
 import { PresentationFlowDialog } from "@/components/presentation/v2/presentation-flow-dialog"
@@ -346,6 +347,7 @@ export function EditorAIPanel({
 }: EditorAIPanelProps) {
   const { t } = useTranslation()
   const { toast } = useToast()
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false)
   const [isTaskDetailOpen, setIsTaskDetailOpen] = useState(false)
   const [selectedTaskRef, setSelectedTaskRef] = useState<TaskCenterTaskReference | null>(null)
   const [taskDetail, setTaskDetail] = useState<TaskCenterTaskDetailResponse | null>(null)
@@ -1083,9 +1085,9 @@ export function EditorAIPanel({
               <h4 className="text-xs font-semibold text-foreground">
                 {t("tiptapEditor.aiPanel.taskProgress")}
               </h4>
-              <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-                {t("tiptapEditor.aiPanel.taskProgressSubtitle")}
-              </p>
+              <button type="button" disabled={!articleId} onClick={() => setIsGalleryOpen(true)} className="mt-0.5 shrink-0 text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline disabled:opacity-50">
+                {t("taskGallery.title")}
+              </button>
             </div>
             {finishedRemovableTaskCount > 0 ? (
               <button
@@ -1150,6 +1152,8 @@ export function EditorAIPanel({
           </div>
         </div>
       </div>
+
+      {articleId ? <TaskGalleryDialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen} articleId={articleId} /> : null}
 
       <Dialog open={isTaskDetailOpen} onOpenChange={setIsTaskDetailOpen}>
         <DialogContent
