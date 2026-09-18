@@ -1,5 +1,54 @@
 export const en = {
     illustration: {
+        infographic: {
+            analysisFailed: "Analysis failed before image submission. You can analyze again.",
+            "selectionHint": "Extract one infographic from selected content.",
+            "priceHint": "{price} credits per image, up to {total}; only successful images are billed.",
+            "analyzing": "Analyzing content and preparing cards…",
+            "progress": "{completed} / {total} complete, {failed} failed",
+            "partial": "{completed} complete and {failed} failed. Completed images are available to download.",
+            "noCards": "No suitable infographic content was found. No images were generated.",
+            "cardEvidence": "Source and selection reason",
+            "enlarge": "Enlarge",
+
+            "source": "Content source",
+            "sources": {
+                "article": "Saved article",
+                "selection": "Selection / supplied content"
+            },
+            "sourceText": "Select or paste source content (up to 20,000 characters)",
+            "orientation": "Orientation",
+            "orientations": {
+                "square": "Square",
+                "landscape": "Landscape",
+                "portrait": "Portrait"
+            },
+            "language": "Language",
+            "generate": "Generate infographic",
+            "credits": "credits",
+            "hint": "Articles are analyzed into cards, up to your selected limit; selections produce one card. The locked design is inherited. Save your article first and review generated facts and text.",
+            "bindFirst": "Lock your design and wait until ready.",
+            "unavailable": "Infographic generation is unavailable.",
+            "history": "History",
+            "status": {
+                "analyzing": "Analyzing",
+                "partial": "Partially completed",
+                "empty": "No suitable content",
+                "pending": "Pending",
+                "submitting": "Submitting",
+                "processing": "Processing",
+                "succeeded": "Completed",
+                "failed": "Failed"
+            },
+            "processing": "Generating. You can close this window and return later.",
+            "failed": "Generation failed. You can create a new request.",
+            "uncertain": "Provider submission could not be confirmed. Automatic retries stopped. Generating again creates a new paid request.",
+            "empty": "Choose source, orientation and language to generate an infographic.",
+            "loadFailed": "Unable to load infographic history. Refresh to retry.",
+            "submitFailed": "Submission failed. Retry or refresh to check status.",
+            "regenerate": "Generate again",
+            "snapshot": "View source and generation settings"
+        },
         "cover": {
             "position": "Title placement",
             "size": "Output size",
@@ -58,7 +107,7 @@ export const en = {
         "bind": "Confirm and lock design",
         "retry": "Retry preparation",
         "kindLabel": "Illustration type",
-        "notAvailable": "Infographics and illustrations will be available in later stages.",
+        "notAvailable": "Decorative illustrations will be available in a later stage.",
         "generateLater": "Generation · Coming later",
         "status": {
             "pending": "Preparing design…",

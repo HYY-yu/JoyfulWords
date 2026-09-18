@@ -8,14 +8,15 @@ import { Alert, AlertDescription } from "@/components/ui/base/alert"
 import { illustrationsClient } from "@/lib/api/illustrations/client"
 import type { ArticleDesignState, DesignCatalog } from "@/lib/api/illustrations/types"
 import { useTranslation } from "@/lib/i18n/i18n-context"
+import { InfographicPanel } from "./infographic-panel"
 import { CoverPanel } from "./cover-panel"
 import { cn } from "@/lib/utils"
 
 type ImageKind = "cover" | "infographic" | "decorative"
 const KINDS: ImageKind[] = ["cover", "infographic", "decorative"]
 
-export function IllustrationDialog({ open, onOpenChange, articleId, articleTitle }: {
-  open: boolean; onOpenChange: (open: boolean) => void; articleId?: number | null; articleTitle: string
+export function IllustrationDialog({ open, onOpenChange, articleId, articleTitle, selectedText = "" }: {
+  open: boolean; onOpenChange: (open: boolean) => void; articleId?: number | null; articleTitle: string; selectedText?: string
 }) {
   const { t, locale } = useTranslation()
   const language = locale === "zh" ? "zh" : "en"
@@ -109,7 +110,7 @@ export function IllustrationDialog({ open, onOpenChange, articleId, articleTitle
   return (
     <AIFeatureDialogShell open={open} onOpenChange={(value) => { if (!saving) onOpenChange(value) }}
       title={t("illustration.title")} description={t("illustration.description")} size="large"
-      contentClassName="sm:max-w-[1080px] lg:max-w-[1080px] xl:max-w-[1080px]"
+      contentClassName={kind === "infographic" && state?.binding ? "sm:max-w-[1200px] lg:max-w-[1200px] xl:max-w-[1320px]" : "sm:max-w-[1080px] lg:max-w-[1080px] xl:max-w-[1080px]"}
       icon={<ImageIcon className="h-5 w-5 text-primary" />}>
       <div className="overflow-y-auto p-5 sm:p-7">
         {!articleId ? <p className="text-sm text-muted-foreground">{t("illustration.saveArticleFirst")}</p> : loading ? (
@@ -117,7 +118,7 @@ export function IllustrationDialog({ open, onOpenChange, articleId, articleTitle
         ) : (
           <>
             {error && <Alert variant="destructive" className="mb-5"><AlertDescription className="flex items-center justify-between gap-3">{t("illustration.error")}<Button variant="outline" size="sm" onClick={() => setReload((n) => n + 1)} disabled={saving}>{t("common.refresh")}</Button></AlertDescription></Alert>}
-            {catalog && state && style && palette && (
+            {catalog && state && style && palette && !(bound && kind === "infographic") && (
               <div className="grid gap-8 md:grid-cols-[1fr_1fr]">
                 <section className="min-w-0 space-y-5">
                   <div className="flex items-center justify-between gap-3">
@@ -165,10 +166,10 @@ export function IllustrationDialog({ open, onOpenChange, articleId, articleTitle
                 </section>
               </div>
             )}
-            {state && <section className="mt-8 border-t pt-5">
+            {state && <section className={kind === "infographic" && bound ? "" : "mt-8 border-t pt-5"}>
               <div className="flex gap-5" role="group" aria-label={t("illustration.kindLabel")}>{KINDS.map((item) => <button key={item} type="button" aria-pressed={kind === item} onClick={() => setKind(item)} className={cn("border-b-2 pb-2 text-sm transition-colors motion-reduce:transition-none", kind === item ? "border-primary font-medium text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>{t(`illustration.kinds.${item}.name`)}</button>)}</div>
               <p className="mt-4 text-sm text-muted-foreground">{t(`illustration.kinds.${kind}.description`)}</p>
-              {kind === "cover" && articleId ? <CoverPanel articleId={articleId} ready={status === "ready"} /> : <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{t("illustration.notAvailable")}</p><Button disabled variant="outline">{t("illustration.generateLater")}</Button></div>}
+              {kind === "cover" && articleId ? <CoverPanel articleId={articleId} ready={status === "ready"} /> : kind === "infographic" && articleId ? <InfographicPanel key={articleId} articleId={articleId} ready={status === "ready"} selectedText={selectedText} design={bound?.snapshot} /> : <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-muted-foreground">{t("illustration.notAvailable")}</p><Button disabled variant="outline">{t("illustration.generateLater")}</Button></div>}
             </section>}
           </>
         )}

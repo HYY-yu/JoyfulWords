@@ -867,6 +867,7 @@ export function EditorAIPanel({
     } else if (id === "create-image") {
       setIsCreateImageOpen(true)
     } else if (id === "illustration") {
+      setSelectedInfographicText(getSelectedEditorText().trim())
       setIsIllustrationOpen(true)
     } else if (id === "ai-cover") {
       setIsCoverOpen(true)
@@ -1282,7 +1283,7 @@ export function EditorAIPanel({
         <CreatorMode articleId={articleId} />
       )}
 
-      <IllustrationDialog open={isIllustrationOpen} onOpenChange={setIsIllustrationOpen} articleId={articleId} articleTitle={articleTitle} />
+      <IllustrationDialog selectedText={selectedInfographicText} open={isIllustrationOpen} onOpenChange={setIsIllustrationOpen} articleId={articleId} articleTitle={articleTitle} />
 
       <ArticleCoverDialog
         open={isCoverOpen}

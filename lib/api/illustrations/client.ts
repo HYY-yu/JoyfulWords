@@ -1,8 +1,18 @@
 import { authenticatedApiRequest } from "@/lib/api/client"
 import type { ErrorResponse } from "@/lib/api/types"
-import type { ArticleDesignState, DesignCatalog, CoverOptions, CoverRecord, CoverRequest } from "./types"
+import type { ArticleDesignState, DesignCatalog, CoverOptions, CoverRecord, CoverRequest, InfographicOptions, InfographicRecord, InfographicRequest } from "./types"
 
 export const illustrationsClient = {
+  infographicOptions(signal?: AbortSignal): Promise<InfographicOptions | ErrorResponse> {
+    return authenticatedApiRequest("/illustrations/infographic-options", { method: "GET", signal })
+  },
+  infographics(articleId: number, signal?: AbortSignal): Promise<{ items: InfographicRecord[] } | ErrorResponse> {
+    return authenticatedApiRequest(`/illustrations/articles/${articleId}/infographics`, { method: "GET", signal })
+  },
+  createInfographic(articleId: number, request: InfographicRequest): Promise<InfographicRecord | ErrorResponse> {
+    console.info("[Illustrations] Submitting infographic", { articleId, source: request.source, orientation: request.orientation })
+    return authenticatedApiRequest(`/illustrations/articles/${articleId}/infographics`, { method: "POST", body: JSON.stringify(request) })
+  },
   coverOptions(signal?: AbortSignal): Promise<CoverOptions | ErrorResponse> {
     return authenticatedApiRequest("/illustrations/cover-options", { method: "GET", signal })
   },

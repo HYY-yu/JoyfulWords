@@ -38,3 +38,19 @@ export interface CoverRecord {
 export interface CoverRequest {
   idempotency_key: string; title_position: CoverPosition; output_preset: string
 }
+
+export interface InfographicRequest {
+  max_count: number
+  idempotency_key: string; source: "article" | "selection"; text: string
+  orientation: "landscape" | "portrait" | "square"; language: "zh" | "en"
+}
+export interface InfographicRecord {
+  max_count: number; is_batch: boolean; analysis_model: string; cards?: InfographicRecord[]
+  card?: { name: string; type: string; html_content: string; article_excerpt: string; article_anchor: string; selection_reason: string }
+  id: number; article_id: number; title: string; source: InfographicRequest["source"]; source_text: string
+  orientation: InfographicRequest["orientation"]; language: InfographicRequest["language"]
+  model: string; design: NonNullable<ArticleDesignState["binding"]>["snapshot"]
+  status: CoverRecord["status"] | "analyzing" | "partial" | "empty"; error_code: string; credits: number; created_at: string
+  result: CoverRecord["result"]
+}
+export interface InfographicOptions { enabled: boolean; credits: number; presets: CoverPreset[] }

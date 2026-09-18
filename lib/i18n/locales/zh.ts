@@ -1,5 +1,54 @@
 export const zh = {
     illustration: {
+        infographic: {
+            analysisFailed: "文章分析未能完成，未提交生图。可重新分析。",
+            "selectionHint": "根据选段提炼一张信息图。",
+            "priceHint": "每张 {price} 积分，最多 {total} 积分；按成功张数计费。",
+            "analyzing": "正在分析内容并拆分卡片…",
+            "progress": "已完成 {completed} / {total} 张，失败 {failed} 张",
+            "partial": "已完成 {completed} 张，失败 {failed} 张；已完成图片可下载。",
+            "noCards": "没有找到适合生成信息图的内容，未生成图片。",
+            "cardEvidence": "来源与选择理由",
+            "enlarge": "放大查看",
+
+            "source": "内容来源",
+            "sources": {
+                "article": "已保存的整篇文章",
+                "selection": "选段 / 提供内容"
+            },
+            "sourceText": "选中或粘贴真实内容（最多 20,000 字）",
+            "orientation": "画面方向",
+            "orientations": {
+                "square": "方形",
+                "landscape": "横向",
+                "portrait": "纵向"
+            },
+            "language": "语言",
+            "generate": "生成信息图",
+            "credits": "积分",
+            "hint": "整篇文章先分析并拆分卡片，最多生成所选张数；选段生成一张。沿用已锁定设计，请先保存正文，生成后核对事实与文字。",
+            "bindFirst": "请先锁定设计并等待准备完成。",
+            "unavailable": "信息图生成暂不可用。",
+            "history": "历史版本",
+            "status": {
+                "analyzing": "分析中",
+                "partial": "部分完成",
+                "empty": "无适合内容",
+                "pending": "等待中",
+                "submitting": "提交中",
+                "processing": "生成中",
+                "succeeded": "已完成",
+                "failed": "失败"
+            },
+            "processing": "正在生成信息图，可关闭窗口稍后查看。",
+            "failed": "信息图未能完成，可重新生成。",
+            "uncertain": "未能确认模型提交结果，已停止自动重试。再次生成将发起新的付费请求。",
+            "empty": "选择内容来源、方向和语言，生成第一张信息图。",
+            "loadFailed": "信息图记录读取失败，请刷新。",
+            "submitFailed": "提交未完成，请重试或刷新查看状态。",
+            "regenerate": "重新生成",
+            "snapshot": "查看本版内容与生成设置"
+        },
         "cover": {
             "position": "标题位置",
             "size": "输出尺寸",
@@ -58,7 +107,7 @@ export const zh = {
         "bind": "确认并锁定设计",
         "retry": "重新准备",
         "kindLabel": "插图类型",
-        "notAvailable": "信息图和配图将在后续阶段开放。",
+        "notAvailable": "配图将在后续阶段开放。",
         "generateLater": "生成图片 · 待开放",
         "status": {
             "pending": "设计准备中…",
