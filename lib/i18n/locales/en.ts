@@ -2346,6 +2346,10 @@ export const en = {
             "金字塔": "Pyramid",
             "因果": "Cause and effect",
             "图文": "Image and text",
+            "图表": "Chart",
+            "趋势": "Trend",
+            "占比": "Composition",
+            "表格": "Table",
         },
         storycard: {
             startTitle: "Generate the Storycard first",

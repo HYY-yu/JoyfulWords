@@ -14,6 +14,10 @@ export const PPT_LOGIC_RELATIONS = [
   "金字塔",
   "因果",
   "图文",
+  "图表",
+  "趋势",
+  "占比",
+  "表格",
 ] as const
 
 export type PPTLogicRelation = (typeof PPT_LOGIC_RELATIONS)[number]

@@ -38,6 +38,8 @@ import {
   savePresentationFlowSession,
 } from "@/lib/presentations/v2/flow-session"
 import { getNonRegressingStageIndex } from "@/lib/presentations/v2/generation-stage"
+import { fetchArticleDesign } from "@/lib/design/article-design"
+import { defaultPresentationTemplate } from "@/lib/presentations/v2/default-template"
 import { resolveImageStyle } from "@/lib/presentations/v2/image-style"
 import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { PresentationFlowStepper } from "./presentation-flow-stepper"
@@ -331,10 +333,11 @@ export function PresentationFlowDialog({
     setErrorKey(null)
 
     const load = async () => {
-      const [storycardResult, templatesResult, imageStylesResult] = await Promise.all([
+      const [storycardResult, templatesResult, imageStylesResult, designResult] = await Promise.all([
         presentationsV2Client.getStorycard(articleId),
         presentationsV2Client.listTemplates(),
         presentationsV2Client.listImageStyles(),
+        fetchArticleDesign(articleId).then(design => ({ design, error: null as Error | null })).catch((error: Error) => ({ design: null, error })),
       ])
       if (sequence !== mountedSequenceRef.current) return
 
@@ -362,6 +365,10 @@ export function PresentationFlowDialog({
         setTemplates(templatesResult.templates)
       }
 
+      if (designResult.error) {
+        console.error("[PresentationV2] Failed to resolve article design", designResult.error)
+        setErrorKey((current) => current ?? "presentationV2.errors.loadTemplates")
+      }
       const session = loadPresentationFlowSession(userId, articleId)
       if (session?.templateKey && session.templateVersion) {
         const matchedTemplate = hasApiError(templatesResult)
@@ -371,7 +378,9 @@ export function PresentationFlowDialog({
                 template.template_key === session.templateKey &&
                 template.version === session.templateVersion
             ) ?? null
-        setSelectedTemplate(matchedTemplate)
+        setSelectedTemplate(matchedTemplate ?? (!hasApiError(templatesResult) && !designResult.error ? defaultPresentationTemplate(templatesResult.templates, designResult.design?.style.slug) : null))
+      } else if (!hasApiError(templatesResult) && !designResult.error) {
+        setSelectedTemplate(defaultPresentationTemplate(templatesResult.templates, designResult.design?.style.slug))
       }
 
       if (hasApiError(imageStylesResult)) {
