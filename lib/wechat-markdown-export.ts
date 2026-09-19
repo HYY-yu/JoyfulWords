@@ -1,11 +1,10 @@
 import { Marked, type RendererObject, type Tokens } from "marked"
 
-export type WeChatMarkdownTheme = "default" | "grace" | "simple"
+import { DEFAULT_DESIGN_PALETTE } from "@/lib/design/default-palette"
+import type { ArticleThemeDesign } from "@/lib/design/article-design"
 export type WeChatImageCaptionMode = "none" | "alt" | "title"
 
 export interface WeChatMarkdownExportOptions {
-  theme: WeChatMarkdownTheme
-  primaryColor: string
   fontSize: number
   imageCaption: WeChatImageCaptionMode
   citeLinks: boolean
@@ -19,41 +18,12 @@ export interface WeChatMarkdownExportResult {
   readingMinutes: number
 }
 
-export const WECHAT_MARKDOWN_THEME_OPTIONS: Array<{
-  value: WeChatMarkdownTheme
-  labelKey: string
-  descriptionKey: string
-}> = [
-  {
-    value: "default",
-    labelKey: "wechatExport.theme.default",
-    descriptionKey: "wechatExport.theme.defaultDesc",
-  },
-  {
-    value: "grace",
-    labelKey: "wechatExport.theme.grace",
-    descriptionKey: "wechatExport.theme.graceDesc",
-  },
-  {
-    value: "simple",
-    labelKey: "wechatExport.theme.simple",
-    descriptionKey: "wechatExport.theme.simpleDesc",
-  },
-]
-
 export const DEFAULT_WECHAT_MARKDOWN_EXPORT_OPTIONS: WeChatMarkdownExportOptions = {
-  theme: "default",
-  primaryColor: "#16a34a",
   fontSize: 16,
   imageCaption: "alt",
   citeLinks: true,
   showReadingTime: false,
 }
-
-const FOREGROUND = "#2f2f2f"
-const MUTED = "#6b7280"
-const LINK_COLOR = "#576b95"
-const DARK_INK = "#111827"
 
 function escapeHtml(value: string): string {
   return value
@@ -102,12 +72,17 @@ function hexToRgba(color: string, alpha: number): string {
   return `rgba(${red},${green},${blue},${alpha})`
 }
 
-function getThemeStyles(options: WeChatMarkdownExportOptions) {
-  const primary = options.primaryColor
+function getThemeStyles(options: WeChatMarkdownExportOptions, design?: ArticleThemeDesign | null) {
+  const palette = design?.palette ?? DEFAULT_DESIGN_PALETTE
+  const slug = design?.style.slug ?? "minimal-business"
+  const primary = palette.primary
+  const FOREGROUND = palette.text
+  const MUTED = palette.muted_text
+  const DARK_INK = palette.text
+  const LINK_COLOR = primary
   const primarySoft = hexToRgba(primary, 0.12)
-  const primaryWash = hexToRgba(primary, 0.06)
-  const primaryLine = hexToRgba(primary, 0.28)
-  const primaryShadow = hexToRgba(primary, 0.18)
+  const primaryWash = palette.background
+  const primaryLine = palette.border
   const fontSize = `${options.fontSize}px`
   const baseText = mergeStyle(
     "box-sizing:border-box",
@@ -285,160 +260,98 @@ function getThemeStyles(options: WeChatMarkdownExportOptions) {
     listMarker: mergeStyle(`color:${primary}`, "font-weight:700", "margin-right:4px"),
   }
 
-  if (options.theme === "grace") {
-    styles.h1 = mergeStyle(
-      "box-sizing:border-box",
-      "display:block",
-      "margin:0 8px 30px",
-      "padding:18px 18px 16px",
-      `border:1px solid ${primaryLine}`,
-      "border-radius:22px",
-      `background:linear-gradient(135deg, ${primaryWash}, #ffffff 55%, ${hexToRgba(primary, 0.10)})`,
-      `box-shadow:0 10px 28px ${primaryShadow}`,
-      `color:${DARK_INK}`,
-      `font-size:${Math.round(options.fontSize * 1.42)}px`,
-      "font-weight:800",
-      "line-height:1.45",
-      "text-align:left"
-    )
-    styles.h2 = mergeStyle(
-      "box-sizing:border-box",
-      "display:table",
-      "margin:44px 8px 20px",
-      "padding:8px 16px",
-      `background:linear-gradient(90deg, ${primary}, ${DARK_INK})`,
-      "color:#ffffff",
-      "border-radius:999px",
-      `font-size:${Math.round(options.fontSize * 1.2)}px`,
-      "font-weight:700",
-      "line-height:1.5",
-      "text-align:left",
-      `box-shadow:0 8px 18px ${primaryShadow}`
-    )
-    styles.h3 = mergeStyle(
-      "box-sizing:border-box",
-      "margin:28px 8px 12px",
-      "padding:0 0 8px",
-      `border-bottom:2px solid ${primaryLine}`,
-      `color:${DARK_INK}`,
-      `font-size:${Math.round(options.fontSize * 1.14)}px`,
-      "font-weight:700",
-      "line-height:1.5"
-    )
-    styles.blockquote = mergeStyle(
-      "box-sizing:border-box",
-      "margin:20px 8px",
-      "padding:16px 18px",
-      `border:1px solid ${primaryLine}`,
-      "border-radius:20px 20px 20px 6px",
-      `background:linear-gradient(135deg, ${primaryWash}, #ffffff)`,
-      `box-shadow:0 8px 20px ${hexToRgba(primary, 0.10)}`,
-      `color:${FOREGROUND}`,
-      "font-style:italic"
-    )
-    styles.codeBlock = mergeStyle(
-      codeBlockBase,
-      `border:1px solid ${primaryLine}`,
-      "border-radius:18px",
-      "background:#0f172a",
-      `box-shadow:0 10px 24px ${hexToRgba(primary, 0.14)}`
-    )
-    styles.codeHeader = mergeStyle(
-      styles.codeHeader,
-      `border-bottom:1px solid ${hexToRgba(primary, 0.32)}`,
-      "background:#111827",
-      `color:${hexToRgba("#ffffff", 0.72)}`
-    )
-    styles.codeContent = mergeStyle(styles.codeContent, "color:#e5e7eb", "background:#0f172a")
-    styles.figure = mergeStyle(
-      "box-sizing:border-box",
-      "margin:24px 8px",
-      "padding:10px",
-      "text-align:center",
-      "border-radius:24px",
-      `background:linear-gradient(135deg, ${primaryWash}, #ffffff)`,
-      `border:1px solid ${primaryLine}`
-    )
-    styles.image = mergeStyle(styles.image, "border-radius:18px", `box-shadow:0 10px 24px ${hexToRgba(primary, 0.16)}`)
-    styles.table = mergeStyle(styles.table, "border-radius:18px")
-    styles.h1Prefix = mergeStyle("display:block", "width:42px", "height:5px", `background:${primary}`, "border-radius:999px", "margin:0 0 12px")
-    styles.h1Suffix = mergeStyle("display:none")
-    styles.h2Prefix = mergeStyle("display:inline-block", "width:8px", "height:8px", "background:#ffffff", "border-radius:999px", "margin-right:9px", "vertical-align:middle")
-  }
+  const serif = "font-family:Georgia,'Songti SC',SimSun,serif"
+  styles.container = mergeStyle(styles.container, `background:${palette.background}`, "padding:24px 16px", slug === "editorial-story" && serif)
+  styles.strong = mergeStyle(styles.strong, `color:${primary}`)
+  styles.link = mergeStyle(styles.link, `color:${primary}`)
+  styles.codeInline = mergeStyle(styles.codeInline, `color:${primary}`, `background:${palette.surface}`)
+  styles.figure = mergeStyle(styles.figure, "border:0", "padding:0", "background:transparent", "border-radius:0")
+  styles.h1Prefix = "display:none"
+  styles.h1Suffix = "display:none"
+  styles.h2Prefix = "display:none"
+  styles.h3Prefix = "display:none"
+  styles.h1 = mergeStyle("margin:0 8px 30px;padding:0 0 16px;line-height:1.5;font-weight:700", `font-size:${Math.round(options.fontSize * 1.5)}px`, `color:${primary}`)
+  styles.h2 = mergeStyle("margin:36px 8px 18px;padding:0 0 8px;line-height:1.5;font-weight:700", `font-size:${Math.round(options.fontSize * 1.2)}px`, `color:${primary}`)
+  styles.h3 = mergeStyle("margin:24px 8px 12px;line-height:1.6;font-weight:700", `font-size:${options.fontSize + 1}px`, `color:${primary}`)
+  styles.blockquote = mergeStyle("margin:22px 8px;padding:12px 16px", `border-left:3px solid ${primary}`, `background:${palette.surface}`)
+  styles.hr = mergeStyle("height:1px;border:0;margin:32px 8px", `background:${primaryLine}`)
 
-  if (options.theme === "simple") {
-    styles.h1 = mergeStyle(
-      "box-sizing:border-box",
-      "display:block",
-      "margin:0 8px 28px",
-      "padding:0 0 14px",
-      `border-bottom:1px solid ${primaryLine}`,
-      `color:${DARK_INK}`,
-      `font-size:${Math.round(options.fontSize * 1.34)}px`,
-      "font-weight:800",
-      "line-height:1.45",
-      "text-align:left"
-    )
-    styles.h2 = mergeStyle(
-      "box-sizing:border-box",
-      "display:table",
-      "margin:38px 8px 18px",
-      "padding:7px 14px",
-      "border-radius:999px",
-      `border:1px solid ${primaryLine}`,
-      `background:${primaryWash}`,
-      `color:${DARK_INK}`,
-      `font-size:${Math.round(options.fontSize * 1.12)}px`,
-      "font-weight:700",
-      "line-height:1.5"
-    )
-    styles.h3 = mergeStyle(
-      "box-sizing:border-box",
-      "margin:24px 8px 10px",
-      "padding:8px 10px",
-      "border-radius:10px",
-      `background:${primaryWash}`,
-      `color:${FOREGROUND}`,
-      `font-size:${Math.round(options.fontSize * 1.08)}px`,
-      "font-weight:700",
-      "line-height:1.45"
-    )
-    styles.blockquote = mergeStyle(
-      "box-sizing:border-box",
-      "margin:18px 8px",
-      "padding:14px 16px",
-      `border:1px dashed ${primaryLine}`,
-      "border-radius:16px",
-      "background:#ffffff",
-      `color:${FOREGROUND}`
-    )
-    styles.codeBlock = mergeStyle(
-      codeBlockBase,
-      `border:1px solid ${primaryLine}`,
-      "border-radius:16px",
-      "background:#ffffff"
-    )
-    styles.codeHeader = mergeStyle(
-      styles.codeHeader,
-      `border-bottom:1px dashed ${primaryLine}`,
-      `background:${primaryWash}`,
-      `color:${FOREGROUND}`
-    )
-    styles.codeContent = mergeStyle(styles.codeContent, "background:#ffffff")
-    styles.figure = mergeStyle(
-      "box-sizing:border-box",
-      "margin:20px 8px",
-      "padding:0",
-      "text-align:center",
-      "border:0",
-      "border-radius:0",
-      "background:transparent"
-    )
-    styles.image = mergeStyle(styles.image, `border:1px solid ${primaryLine}`, "border-radius:16px")
-    styles.hr = mergeStyle("box-sizing:border-box", "height:1px", "border:0", "margin:26px 8px", `background:${primaryLine}`)
-    styles.h1Prefix = mergeStyle("display:inline-block", "width:22px", "height:3px", `background:${primary}`, "border-radius:999px", "margin-right:8px", "vertical-align:middle")
-    styles.h1Suffix = mergeStyle("display:none")
-    styles.h2Prefix = mergeStyle("display:inline-block", "width:6px", "height:6px", `background:${primary}`, "border-radius:999px", "margin-right:8px", "vertical-align:middle")
+  const handwriting = "font-family:'Kaiti SC',STKaiti,KaiTi,'Segoe Print',cursive"
+  const glass = mergeStyle(
+    `background:${palette.surface}`,
+    `background:linear-gradient(135deg,${hexToRgba(palette.surface, 0.88)},${hexToRgba(palette.surface, 0.48)})`,
+    `border:1px solid ${hexToRgba(primary, 0.18)}`,
+    "-webkit-backdrop-filter:blur(16px)", "backdrop-filter:blur(16px)",
+    `box-shadow:inset 0 1px 0 ${hexToRgba(palette.surface, 0.95)},0 8px 28px ${hexToRgba(primary, 0.08)}`
+  )
+  // The six shared catalog styles control geometry only; all colors come from the snapshot.
+  switch (slug) {
+    case "editorial-story":
+      styles.h1 = mergeStyle(styles.h1, serif, `border-bottom:3px double ${primary}`, "font-weight:800")
+      styles.h2 = mergeStyle(styles.h2, serif, `border-left:4px solid ${primary}`, "padding:2px 0 2px 12px")
+      styles.blockquote = mergeStyle(styles.blockquote, "border:0;background:transparent", `border-top:1px solid ${primaryLine}`, `border-bottom:1px solid ${primaryLine}`)
+      styles.image = mergeStyle(styles.image, "border-radius:0")
+      break
+    case "hand-drawn":
+      // Prefer locally available Chinese handwriting fonts; keep body text easy to scan.
+      styles.h1 = mergeStyle(styles.h1, handwriting, "padding:12px 10px 18px", `border-bottom:3px double ${primary}`, "border-radius:2% 5% 28% 3% / 2% 4% 12% 7%")
+      styles.h2 = mergeStyle(styles.h2, handwriting, `border:2px solid ${primary}`, "border-width:1px 2px 3px 1px;padding:5px 14px;display:table;border-radius:8% 3% 9% 2% / 5% 12% 4% 15%")
+      styles.h3 = mergeStyle(styles.h3, handwriting)
+      styles.blockquote = mergeStyle(styles.blockquote, handwriting, `border:2px dashed ${primary}`, "border-width:2px 1px 2px 2px;border-radius:3% 7% 4% 8% / 12% 4% 10% 3%", `box-shadow:3px 4px 0 ${hexToRgba(palette.secondary, 0.13)}`)
+      styles.figure = mergeStyle(styles.figure, "padding:8px", `border:1px solid ${primary}`, "border-radius:2% 5% 3% 6% / 5% 2% 7% 3%")
+      styles.image = mergeStyle(styles.image, "border-radius:3px")
+      styles.hr = mergeStyle(styles.hr, "height:0;background:transparent", `border-bottom:2px dashed ${primaryLine}`, "border-radius:50%;width:70%;margin:32px auto")
+      break
+    case "cute-chibi":
+      styles.h1 = mergeStyle(styles.h1, "text-align:center;padding:20px 16px;border-radius:24px", `background:${palette.surface}`)
+      styles.h2 = mergeStyle(styles.h2, "display:table;padding:8px 16px;border-radius:20px", `background:${primary}`, `color:${palette.on_primary}`)
+      styles.blockquote = mergeStyle(styles.blockquote, "border:0;border-radius:20px 20px 20px 4px")
+      styles.image = mergeStyle(styles.image, "border-radius:18px")
+      break
+    case "premium-glass":
+      // Progressive enhancement: gradients and solid fallbacks carry the design if the
+      // destination strips backdrop-filter. Never blur the article text itself.
+      styles.container = mergeStyle(styles.container, `background-image:radial-gradient(ellipse at 0% 0%,${hexToRgba(primary, 0.18)},transparent 42%),radial-gradient(ellipse at 100% 35%,${hexToRgba(palette.secondary, 0.14)},transparent 48%)`)
+      styles.h1 = mergeStyle(styles.h1, "padding:20px;border-radius:12px", `background:${palette.surface}`, `border:1px solid ${primaryLine}`, `border-top:3px solid ${primary}`)
+      styles.h2 = mergeStyle(styles.h2, "padding:10px 14px;border-radius:8px", `background:${palette.surface}`, `border:1px solid ${primaryLine}`)
+      styles.blockquote = mergeStyle(styles.blockquote, `border:1px solid ${primaryLine}`, "border-radius:12px")
+      styles.h1 = mergeStyle(styles.h1, glass, "padding:24px 20px;border-radius:16px")
+      styles.h2 = mergeStyle(styles.h2, glass)
+      styles.blockquote = mergeStyle(styles.blockquote, glass)
+      styles.image = mergeStyle(styles.image, "border-radius:10px")
+      break
+    case "minimal-light":
+      styles.container = mergeStyle(styles.container, `background-image:radial-gradient(ellipse at 100% 0%,${hexToRgba(palette.secondary, 0.13)},transparent 38%),linear-gradient(160deg,${hexToRgba(palette.surface, 0.6)},transparent 65%)`)
+      styles.h1 = mergeStyle(styles.h1, `color:${palette.text}`, `border-bottom:1px solid ${primaryLine}`, "padding-bottom:28px")
+      styles.h2 = mergeStyle(styles.h2, "margin-top:44px")
+      styles.blockquote = mergeStyle(styles.blockquote, "background:transparent", `border-left:2px solid ${primaryLine}`)
+      styles.h1 = mergeStyle(styles.h1, "padding:24px 16px 30px", `background:linear-gradient(125deg,${hexToRgba(palette.surface, 0.8)},${hexToRgba(primary, 0.04)},transparent)`, "-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)")
+      styles.blockquote = mergeStyle(styles.blockquote, `background:linear-gradient(90deg,${hexToRgba(palette.surface, 0.72)},${hexToRgba(palette.surface, 0.15)})`, "-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)", `box-shadow:0 6px 24px ${hexToRgba(primary, 0.04)}`)
+      styles.image = mergeStyle(styles.image, "border-radius:3px")
+      break
+    default: // minimal-business, and forward-compatible unknown styles
+      styles.h1 = mergeStyle(styles.h1, `border-top:4px solid ${primary}`, "padding-top:18px")
+      styles.h2 = mergeStyle(styles.h2, `border-bottom:2px solid ${primary}`, "display:table")
+      styles.image = mergeStyle(styles.image, "border-radius:2px")
+      break
+  }
+  styles.th = mergeStyle(styles.th, `color:${palette.on_primary}`)
+  styles.table = mergeStyle(styles.table, `background:${palette.surface}`, `border:1px solid ${primaryLine}`)
+  styles.td = mergeStyle(styles.td, `border-top:1px solid ${primaryLine}`)
+  styles.codeBlock = mergeStyle(styles.codeBlock, `background:${palette.surface}`, `border:1px solid ${primaryLine}`)
+  styles.codeHeader = mergeStyle(styles.codeHeader, `background:${palette.background}`, `color:${palette.muted_text}`, `border-bottom:1px solid ${primaryLine}`)
+  styles.codeContent = mergeStyle(styles.codeContent, `color:${palette.text}`)
+  if (slug === "minimal-business" || slug === "editorial-story") {
+    styles.table = mergeStyle(styles.table, "border-radius:0;border-collapse:collapse", `border:1px solid ${primary}`)
+    styles.th = mergeStyle(styles.th, "border-radius:0", `border:1px solid ${primary}`)
+    styles.td = mergeStyle(styles.td, `border:1px solid ${primaryLine}`)
+  } else if (slug === "hand-drawn") {
+    styles.table = mergeStyle(styles.table, `border:2px solid ${primary}`, "border-radius:1% 3% 2% 4% / 3% 1% 4% 2%")
+    styles.th = mergeStyle(styles.th, handwriting)
+    styles.td = mergeStyle(styles.td, `border-top:1px dashed ${primaryLine}`)
+  } else if (slug === "premium-glass" || slug === "minimal-light") {
+    styles.table = mergeStyle(styles.table, glass, slug === "minimal-light" && "border-radius:4px;box-shadow:none")
+    styles.th = mergeStyle(styles.th, `background:linear-gradient(120deg,${primary},${hexToRgba(primary, 0.84)})`)
   }
 
   return styles
@@ -479,9 +392,10 @@ function createPlainText(html: string): string {
 
 export function renderWeChatMarkdown(
   markdown: string,
-  options: WeChatMarkdownExportOptions
+  options: WeChatMarkdownExportOptions,
+  design?: ArticleThemeDesign | null
 ): WeChatMarkdownExportResult {
-  const styles = getThemeStyles(options)
+  const styles = getThemeStyles(options, design)
   const footnotes: Array<{ index: number; title: string; href: string }> = []
   const listOrderedStack: boolean[] = []
   const listCounters: number[] = []
@@ -571,7 +485,7 @@ export function renderWeChatMarkdown(
 
       if (options.citeLinks && !/^https?:\/\/mp\.weixin\.qq\.com/.test(href)) {
         const index = addFootnote(title || text, href)
-        return `<a href="${safeHref}" title="${safeTitle}" style="${styles.link}">${parsedText}<sup style="font-size:75%;color:${options.primaryColor};">[${index}]</sup></a>`
+        return `<a href="${safeHref}" title="${safeTitle}" style="${styles.link}">${parsedText}<sup style="font-size:75%;color:${design?.palette.primary ?? DEFAULT_DESIGN_PALETTE.primary};">[${index}]</sup></a>`
       }
 
       return `<a href="${safeHref}" title="${safeTitle}" style="${styles.link}">${parsedText}</a>`

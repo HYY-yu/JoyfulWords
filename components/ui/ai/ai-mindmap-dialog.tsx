@@ -13,7 +13,6 @@ import type {
   MindElixirCtor,
   MindElixirInstance,
   Operation,
-  Theme,
 } from "mind-elixir"
 import { Button } from "@/components/ui/base/button"
 import {
@@ -28,41 +27,15 @@ import { useToast } from "@/hooks/use-toast"
 import { mindMapClient } from "@/lib/api/articles/mindmap-client"
 import type { MindMapDocument, MindMapNode } from "@/lib/api/articles/types"
 import { fromMindElixirData, toMindElixirData } from "@/lib/mindmap/mind-elixir-adapter"
+import { fetchArticleDesign, type ArticleThemeDesign } from "@/lib/design/article-design"
+import { createMindMapDesign } from "@/lib/mindmap/mindmap-design"
+import { DESIGN_CHANGED } from "@/components/article/illustration/design-style-picker"
 import styles from "./ai-mindmap-dialog.module.css"
 
 interface AIMindMapDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   articleId: number
-}
-
-const JOYFUL_MINDMAP_THEME: Theme = {
-  name: "JoyfulWords",
-  type: "light",
-  palette: ["#2F6FED", "#0F9D7A", "#E87B2A", "#B94CCF", "#D64550", "#1481BA"],
-  cssVar: {
-    "--node-gap-x": "42px",
-    "--node-gap-y": "14px",
-    "--main-gap-x": "88px",
-    "--main-gap-y": "46px",
-    "--main-color": "#1e293b",
-    "--main-bgcolor": "rgba(255, 255, 255, 0.96)",
-    "--main-bgcolor-transparent": "rgba(255, 255, 255, 0.82)",
-    "--color": "#344256",
-    "--bgcolor": "#f6f8fc",
-    "--selected": "#2F6FED",
-    "--accent-color": "#2F6FED",
-    "--root-color": "#ffffff",
-    "--root-bgcolor": "#162033",
-    "--root-border-color": "rgba(255, 255, 255, 0.18)",
-    "--root-radius": "999px",
-    "--main-radius": "18px",
-    "--topic-padding": "8px 14px",
-    "--panel-color": "#0f172a",
-    "--panel-bgcolor": "rgba(255, 255, 255, 0.96)",
-    "--panel-border-color": "rgba(148, 163, 184, 0.22)",
-    "--map-padding": "90px 120px",
-  },
 }
 
 type XMindTopic = {
@@ -328,6 +301,36 @@ export function AIMindMapDialog({
   const [isDirty, setIsDirty] = useState(false)
   const [canvasVersion, setCanvasVersion] = useState(0)
 
+  const [design, setDesign] = useState<ArticleThemeDesign | null>(null)
+  const [designError, setDesignError] = useState(false)
+  const [designReady, setDesignReady] = useState(false)
+  const [designRevision, setDesignRevision] = useState(0)
+  const visual = createMindMapDesign(design)
+
+  useEffect(() => {
+    const refresh = () => setDesignRevision((value) => value + 1)
+    window.addEventListener(DESIGN_CHANGED, refresh)
+    return () => window.removeEventListener(DESIGN_CHANGED, refresh)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setDesignReady(false)
+    setDesignError(false)
+    fetchArticleDesign(articleId).then((value) => {
+      if (cancelled) return
+      setDesign(value)
+      setDesignReady(true)
+    }).catch((error) => {
+      if (cancelled) return
+      setDesignError(true)
+      console.error("[MindMap] Design load failed", { articleId, error })
+      toast({ variant: "destructive", title: t("aiMindmap.toast.loadFailed") })
+    })
+    return () => { cancelled = true }
+  }, [open, articleId, designRevision, t, toast])
+
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const instanceRef = useRef<MindElixirInstance | null>(null)
   const mindmapRef = useRef<MindMapDocument | null>(null)
@@ -438,7 +441,7 @@ export function AIMindMapDialog({
   }, [open, initializeDialog])
 
   useEffect(() => {
-    if (!open || !mindmapRef.current || !canvasRef.current) {
+    if (!open || !designReady || !mindmapRef.current || !canvasRef.current) {
       return
     }
 
@@ -456,6 +459,7 @@ export function AIMindMapDialog({
       }
 
       const localePack = locale === "en" ? locales.en : locales.zh_CN
+      const { theme } = createMindMapDesign(design)
       const instance = new (MindElixir as MindElixirCtor)({
         el: canvasRef.current,
         direction: SIDE,
@@ -469,10 +473,10 @@ export function AIMindMapDialog({
         },
         allowUndo: true,
         overflowHidden: false,
-        theme: JOYFUL_MINDMAP_THEME,
+        theme,
       })
 
-      const initError = instance.init(toMindElixirData(mindmapRef.current))
+      const initError = instance.init(toMindElixirData(mindmapRef.current, theme.palette))
       if (initError) {
         throw initError
       }
@@ -544,7 +548,7 @@ export function AIMindMapDialog({
       instanceRef.current?.destroy()
       instanceRef.current = null
     }
-  }, [canvasVersion, locale, open, syncFromInstance, t, toast])
+  }, [canvasVersion, locale, open, design, designReady, syncFromInstance, t, toast])
 
   const handleRegenerate = useCallback(async () => {
     setIsLoading(true)
@@ -660,7 +664,17 @@ export function AIMindMapDialog({
           </div>
         ) : (
           <div className="h-full">
-            <div className={`${styles.workspaceShell} h-full w-full`}>
+            <div className={`${styles.workspaceShell} h-full w-full`} style={visual.variables}>
+              {!designReady && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/90" role="status">
+                  {designError ? (
+                    <div className="flex items-center gap-3">
+                      <span>{t("aiMindmap.designLoadFailed")}</span>
+                      <Button variant="outline" onClick={() => setDesignRevision((value) => value + 1)}>{t("aiMindmap.retryDesign")}</Button>
+                    </div>
+                  ) : <Loader2Icon className="h-5 w-5 animate-spin" aria-label={t("aiMindmap.designLoading")} />}
+                </div>
+              )}
               <div className="absolute right-5 top-5 z-10 flex max-w-[calc(100%-2.5rem)] flex-wrap items-center justify-end gap-2">
                 <Button
                   type="button"
@@ -680,7 +694,7 @@ export function AIMindMapDialog({
                   size="sm"
                   className={styles.floatingAction}
                   onClick={() => void handleDownload()}
-                  disabled={isLoading || isDownloading || !mindmap}
+                  disabled={isLoading || !designReady || isDownloading || !mindmap}
                 >
                   {isDownloading ? (
                     <Loader2Icon className="mr-1 h-4 w-4 animate-spin" />

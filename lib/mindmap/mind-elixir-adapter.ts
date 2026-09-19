@@ -48,7 +48,7 @@ function cloneNode(node: MindMapNode): MindMapNode {
   }
 }
 
-function toMindElixirNode(node: MindMapNode, depth: number, branchIndex = 0): NodeObj {
+function toMindElixirNode(node: MindMapNode, depth: number, branchIndex = 0, palette?: string[]): NodeObj {
   const nextSide = node.meta?.side || (branchIndex % 2 === 0 ? "right" : "left")
   const nextColor = node.meta?.color || BRANCH_COLORS[branchIndex % BRANCH_COLORS.length]
 
@@ -57,13 +57,15 @@ function toMindElixirNode(node: MindMapNode, depth: number, branchIndex = 0): No
     topic: node.text,
     expanded: node.collapsed !== true,
     note: node.meta?.note,
-    branchColor: depth === 1 ? nextColor : undefined,
+    branchColor: depth === 1 ? (palette?.[branchIndex % palette.length] || nextColor) : undefined,
     direction: depth === 1 ? (nextSide === "left" ? 0 : 1) : undefined,
     metadata: {
       color: nextColor,
+      originalColor: node.meta?.color,
+      themed: Boolean(palette),
       side: nextSide,
     },
-    children: node.children.map((child, index) => toMindElixirNode(child, depth + 1, index)),
+    children: node.children.map((child, index) => toMindElixirNode(child, depth + 1, index, palette)),
   }
 }
 
@@ -78,7 +80,8 @@ function toMindMapNode(node: NodeObj, depth: number): MindMapNode {
           ? "left"
           : "right"
         : undefined
-  const color =
+  const metadata = node.metadata as { themed?: boolean; originalColor?: string } | undefined
+  const color = metadata?.themed ? metadata.originalColor :
     (typeof node.branchColor === "string" && node.branchColor) ||
     (node.metadata && typeof node.metadata === "object" && "color" in node.metadata
       ? String((node.metadata as Record<string, unknown>).color || "")
@@ -98,10 +101,10 @@ function toMindMapNode(node: NodeObj, depth: number): MindMapNode {
   }
 }
 
-export function toMindElixirData(document: MindMapDocument): MindElixirData {
+export function toMindElixirData(document: MindMapDocument, palette?: string[]): MindElixirData {
   return {
     direction: 2,
-    nodeData: toMindElixirNode(ensureBalancedRootDirections(document.root), 0),
+    nodeData: toMindElixirNode(ensureBalancedRootDirections(document.root), 0, 0, palette),
   }
 }
 

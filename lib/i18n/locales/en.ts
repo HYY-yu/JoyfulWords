@@ -2145,14 +2145,8 @@ export const en = {
             citeLinks: "Convert external links to footnotes",
             readingTime: "Show character count and reading time",
         },
-        theme: {
-            default: "Classic",
-            defaultDesc: "Soft badge headings and rounded content blocks for knowledge articles.",
-            grace: "Grace",
-            graceDesc: "Magazine-style headings, gradient section labels, and framed images.",
-            simple: "Simple",
-            simpleDesc: "A notebook-style hierarchy with lighter spacing for regular updates.",
-        },
+        designLoading: "Applying your current design…",
+        designError: "Could not load your design. Retry before copying.",
         caption: {
             alt: "Use image Alt",
             title: "Use image Title",
@@ -2777,6 +2771,9 @@ export const en = {
         },
     },
     aiMindmap: {
+        designLoading: "Loading mind map colors",
+        designLoadFailed: "Could not load mind map colors",
+        retryDesign: "Retry",
         title: "AI Mind Map",
         description: "Open saved maps or rebuild from the full article or selection, with drag editing and keyboard shortcuts",
         loading: "Generating mind map...",

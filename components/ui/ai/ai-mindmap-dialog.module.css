@@ -5,9 +5,9 @@
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(47, 111, 237, 0.09), transparent 24%),
-    radial-gradient(circle at top right, rgba(15, 157, 122, 0.08), transparent 20%),
-    linear-gradient(180deg, #f6f8fc 0%, #eef3f8 100%);
+    radial-gradient(circle at top left, color-mix(in srgb, var(--mm-primary) 9%, transparent), transparent 24%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--mm-secondary) 8%, transparent), transparent 20%),
+    linear-gradient(180deg, var(--mm-bg) 0%, color-mix(in srgb, var(--mm-bg) 94%, var(--mm-primary)) 100%);
 }
 
 .workspaceShell::after {
@@ -16,8 +16,8 @@
   inset: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--mm-border) 35%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--mm-border) 35%, transparent) 1px, transparent 1px);
   background-size: 28px 28px;
   opacity: 0.65;
 }
@@ -50,8 +50,8 @@
 }
 
 .workspaceSurface :global(.map-container me-parent me-tpc) {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: color-mix(in srgb, var(--mm-surface) 96%, transparent);
+  border: 1px solid var(--mm-border);
   border-radius: 14px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   transition:
@@ -63,36 +63,36 @@
 .workspaceSurface :global(.map-container me-parent me-tpc:hover) {
   transform: translateY(-1px);
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
-  border-color: rgba(47, 111, 237, 0.28);
+  border-color: color-mix(in srgb, var(--mm-primary) 28%, transparent);
 }
 
 .workspaceSurface :global(.map-container .selected) {
   outline-width: 3px;
-  outline-color: rgba(47, 111, 237, 0.9);
+  outline-color: color-mix(in srgb, var(--mm-primary) 90%, transparent);
 }
 
 .workspaceSurface :global(.mind-elixir-toolbar) {
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  border: 1px solid var(--mm-border);
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
 }
 
 .floatingAction,
 .floatingPrimary,
 .floatingDanger {
-  border-color: rgba(148, 163, 184, 0.26);
-  background: rgba(255, 255, 255, 0.96);
+  border-color: var(--mm-border);
+  background: color-mix(in srgb, var(--mm-surface) 96%, transparent);
   box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
 }
 
 .floatingPrimary {
-  background: rgba(15, 23, 42, 0.94);
-  color: #fff;
+  background: var(--mm-primary);
+  color: var(--mm-on-primary);
 }
 
 .floatingPrimary:hover {
-  background: rgba(15, 23, 42, 1);
+  background: var(--mm-primary);
 }
 
 .floatingDanger {
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--mm-surface) 92%, transparent);
 }

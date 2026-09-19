@@ -20,14 +20,13 @@ import { useToast } from "@/hooks/use-toast"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import {
   DEFAULT_WECHAT_MARKDOWN_EXPORT_OPTIONS,
-  WECHAT_MARKDOWN_THEME_OPTIONS,
   copyWeChatHtml,
   renderWeChatMarkdown,
   type WeChatImageCaptionMode,
   type WeChatMarkdownExportOptions,
-  type WeChatMarkdownTheme,
 } from "@/lib/wechat-markdown-export"
-import { cn } from "@/lib/utils"
+import { fetchArticleDesign, type ArticleDesignSnapshot } from "@/lib/design/article-design"
+import { DESIGN_CHANGED } from "./illustration/design-style-picker"
 
 interface WeChatMPExportDialogProps {
   open: boolean
@@ -36,8 +35,6 @@ interface WeChatMPExportDialogProps {
   articleId?: number | null
   articleTitle?: string
 }
-
-const COLOR_PRESETS = ["#16a34a", "#0ea5e9", "#ef4444", "#8b5cf6", "#f97316"]
 
 export function WeChatMPExportDialog({
   open,
@@ -57,9 +54,37 @@ export function WeChatMPExportDialog({
   const [hookLoading, setHookLoading] = useState(false)
   const [hookError, setHookError] = useState<string | null>(null)
 
+  const [designState, setDesignState] = useState<{ articleId: number | null | undefined; design: ArticleDesignSnapshot | null; status: "loading" | "ready" | "error" }>({ articleId, design: null, status: "loading" })
+  const [designRevision, setDesignRevision] = useState(0)
+  const designReady = designState.status === "ready" && designState.articleId === articleId
+  useEffect(() => {
+    const refresh = () => {
+      setDesignState((current) => ({ ...current, status: "loading" }))
+      setDesignRevision((value) => value + 1)
+    }
+    window.addEventListener(DESIGN_CHANGED, refresh)
+    return () => window.removeEventListener(DESIGN_CHANGED, refresh)
+  }, [])
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setDesignState({ articleId, design: null, status: "loading" })
+    setCopied(false)
+    fetchArticleDesign(articleId ?? undefined).then((design) => {
+      if (cancelled) return
+      setDesignState({ articleId, design, status: "ready" })
+      console.debug("[WeChatMPExportDialog] Applied inherited design", { articleId, style: design?.style.slug ?? "minimal-business", paletteId: design?.palette.id })
+    }).catch((error) => {
+      if (cancelled) return
+      console.error("[WeChatMPExportDialog] Failed to load inherited design", { articleId, error })
+      setDesignState({ articleId, design: null, status: "error" })
+    })
+    return () => { cancelled = true }
+  }, [open, articleId, designRevision])
+
   const exportResult = useMemo(
-    () => renderWeChatMarkdown(markdown, options),
-    [markdown, options]
+    () => renderWeChatMarkdown(markdown, options, designState.design),
+    [markdown, options, designState.design]
   )
   const hasContent = markdown.trim().length > 0
 
@@ -126,13 +151,13 @@ export function WeChatMPExportDialog({
   }
 
   const handleCopy = async () => {
-    if (!hasContent || copying) return
+    if (!hasContent || copying || !designReady) return
 
     setCopying(true)
     setCopied(false)
     console.debug("[WeChatMPExportDialog] Copy button clicked", {
       markdownLength: markdown.length,
-      theme: options.theme,
+      style: designState.design?.style.slug,
     })
 
     try {
@@ -174,7 +199,7 @@ export function WeChatMPExportDialog({
             type="button"
             size="lg"
             className="w-full sm:w-auto"
-            disabled={!hasContent || copying}
+            disabled={!hasContent || copying || !designReady}
             onClick={handleCopy}
           >
             {copying ? (
@@ -262,67 +287,6 @@ export function WeChatMPExportDialog({
             </section>
 
             <section className="space-y-2">
-              <Label htmlFor="wechat-export-theme">{t("wechatExport.controls.theme")}</Label>
-              <Select
-                value={options.theme}
-                onValueChange={(value) =>
-                  updateOptions({ theme: value as WeChatMarkdownTheme })
-                }
-              >
-                <SelectTrigger id="wechat-export-theme" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {WECHAT_MARKDOWN_THEME_OPTIONS.map((themeOption) => (
-                    <SelectItem key={themeOption.value} value={themeOption.value}>
-                      {t(themeOption.labelKey)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs leading-5 text-muted-foreground">
-                {t(
-                  WECHAT_MARKDOWN_THEME_OPTIONS.find(
-                    (themeOption) => themeOption.value === options.theme
-                  )?.descriptionKey ?? "wechatExport.theme.defaultDesc"
-                )}
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <Label htmlFor="wechat-export-color">{t("wechatExport.controls.primaryColor")}</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="wechat-export-color"
-                  type="color"
-                  value={options.primaryColor}
-                  onChange={(event) => updateOptions({ primaryColor: event.target.value })}
-                  className="h-9 w-14 p-1"
-                />
-                <Input
-                  value={options.primaryColor}
-                  onChange={(event) => updateOptions({ primaryColor: event.target.value })}
-                  className="h-9 font-mono text-xs"
-                />
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {COLOR_PRESETS.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    aria-label={color}
-                    onClick={() => updateOptions({ primaryColor: color })}
-                    className={cn(
-                      "h-7 w-7 rounded-full border transition-transform hover:scale-105",
-                      options.primaryColor === color && "ring-2 ring-ring ring-offset-2"
-                    )}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
-            </section>
-
-            <section className="space-y-2">
               <Label htmlFor="wechat-export-font-size">{t("wechatExport.controls.fontSize")}</Label>
               <Input
                 id="wechat-export-font-size"
@@ -386,8 +350,15 @@ export function WeChatMPExportDialog({
         </aside>
 
         <main className="min-h-0 overflow-y-auto p-4 sm:p-6">
-          <div className="mx-auto w-full max-w-[720px] bg-background px-5 py-6 shadow-sm sm:px-8">
-            {hasContent ? (
+          <div className="mx-auto w-full max-w-[480px] bg-white shadow-sm">
+            {!designReady ? (
+              <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground" role="status">
+                {designState.status === "error" ? <>
+                  <p>{t("wechatExport.designError")}</p>
+                  <Button variant="outline" onClick={() => setDesignRevision((value) => value + 1)}>{t("common.refresh")}</Button>
+                </> : <><LoaderIcon className="h-5 w-5 animate-spin" /><p>{t("wechatExport.designLoading")}</p></>}
+              </div>
+            ) : hasContent ? (
               <div
                 className="wechat-export-preview"
                 dangerouslySetInnerHTML={{ __html: exportResult.html }}

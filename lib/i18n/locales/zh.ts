@@ -2138,21 +2138,13 @@ export const zh = {
         empty: "当前文章暂无可导出的内容",
         meta: "{words} 字 · 约 {minutes} 分钟阅读",
         controls: {
-            theme: "主题",
-            primaryColor: "主题色",
             fontSize: "字号",
             caption: "图片说明",
             citeLinks: "引用外链为脚注",
             readingTime: "显示字数和阅读时间",
         },
-        theme: {
-            default: "经典",
-            defaultDesc: "柔和徽章标题和圆角信息块，适合知识文章。",
-            grace: "优雅",
-            graceDesc: "杂志式标题、渐变栏目条和图片框，适合长文。",
-            simple: "简洁",
-            simpleDesc: "笔记标签式层级，留白更轻，适合日常更新。",
-        },
+        designLoading: "正在应用当前设计风格…",
+        designError: "设计风格加载失败，请重试后复制。",
         caption: {
             alt: "使用图片 Alt",
             title: "使用图片 Title",
@@ -2777,6 +2769,9 @@ export const zh = {
         },
     },
     aiMindmap: {
+        designLoading: "正在加载导图配色",
+        designLoadFailed: "导图配色加载失败",
+        retryDesign: "重试",
         title: "思维导图",
         description: "打开历史导图，或基于全文/选区重建；支持拖拽、双击编辑与快捷键操作",
         loading: "正在生成思维导图...",

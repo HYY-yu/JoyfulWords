@@ -1,3 +1,4 @@
+import { DEFAULT_DESIGN_PALETTE as DEFAULT_PALETTE } from "@/lib/design/default-palette"
 import type { ArticleDesignState } from "@/lib/api/illustrations/types"
 
 export type ChartDesign = NonNullable<ArticleDesignState["binding"]>["snapshot"]
@@ -12,13 +13,6 @@ export const CHART_STYLE_RECIPES = {
   "premium-glass": { radius: 5, width: 2.5, symbol: "diamond" },
   "minimal-light": { radius: 3, width: 2, symbol: "circle" },
 } as const
-
-// Matches the minimal-business / green palette in the shared design catalog (v62).
-const DEFAULT_PALETTE = {
-  primary: "#176B50", background: "#F4F8F6", surface: "#FFFFFF",
-  text: "#202832", muted_text: "#525D69", border: "#C5DAD3",
-  chart: ["#176B50", "#C18136", "#2458A6", "#AA3544", "#866000", "#67419A"],
-}
 
 export function resolveJoyChartTheme(design?: ChartThemeDesign | null) {
   const slug = design?.style.slug ?? "minimal-business"
