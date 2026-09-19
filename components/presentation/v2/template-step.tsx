@@ -7,12 +7,10 @@ import {
   ImageIcon,
   LayoutTemplateIcon,
   Maximize2Icon,
-  PaletteIcon,
   ScanLineIcon,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/base/dialog"
 import type {
-  PPTImageStyle,
   PPTLanguage,
   PPTTemplate,
 } from "@/lib/api/presentations/v2/types"
@@ -23,12 +21,8 @@ import { cn } from "@/lib/utils"
 interface TemplateStepProps {
   templates: PPTTemplate[]
   selectedTemplate: PPTTemplate | null
-  imageStyles: PPTImageStyle[]
-  selectedImageStyle: PPTImageStyle | null
   templatesLoading?: boolean
-  imageStylesLoading?: boolean
   onSelectTemplate: (template: PPTTemplate) => void
-  onSelectImageStyle: (imageStyle: PPTImageStyle) => void
 }
 
 const PRIVATE_TEMPLATE_WECHAT_QR_URL =
@@ -37,12 +31,8 @@ const PRIVATE_TEMPLATE_WECHAT_QR_URL =
 export function TemplateStep({
   templates,
   selectedTemplate,
-  imageStyles,
-  selectedImageStyle,
   templatesLoading = false,
-  imageStylesLoading = false,
   onSelectTemplate,
-  onSelectImageStyle,
 }: TemplateStepProps) {
   const { t, locale } = useTranslation()
   const displayLanguage: PPTLanguage = locale
@@ -178,59 +168,6 @@ export function TemplateStep({
             </div>
           )}
 
-          <section className="mt-10 border-t pt-8">
-            <div className="max-w-2xl">
-              <h3 className="text-xl font-semibold tracking-tight">
-                {t("presentationV2.imageStyle.title")}
-              </h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {t("presentationV2.imageStyle.description")}
-              </p>
-            </div>
-
-            {imageStylesLoading ? (
-              <div className="mt-6 h-24 animate-pulse rounded-xl bg-muted" />
-            ) : imageStyles.length === 0 ? (
-              <div className="mt-6 grid min-h-24 place-items-center rounded-xl border border-dashed bg-muted/20 text-center">
-                <p className="text-sm font-medium">{t("presentationV2.imageStyle.empty")}</p>
-              </div>
-            ) : (
-              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {imageStyles.map((imageStyle) => {
-                  const selected = imageStyle.id === selectedImageStyle?.id
-                  const label = resolveCatalogText(
-                    imageStyle.label_i18n,
-                    displayLanguage,
-                    imageStyle.id
-                  )
-
-                  return (
-                    <button
-                      key={imageStyle.id}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => onSelectImageStyle(imageStyle)}
-                      className={cn(
-                        "flex min-h-20 items-center gap-3 rounded-xl border bg-background p-4 text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                        selected && "border-primary bg-primary/5 ring-2 ring-primary/15"
-                      )}
-                    >
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
-                        <PaletteIcon className="size-4" />
-                      </span>
-                      <span className="min-w-0 flex-1 text-sm font-medium">{label}</span>
-                      <span
-                        className={cn(
-                          "size-4 shrink-0 rounded-full border transition-colors",
-                          selected ? "border-primary bg-primary ring-2 ring-primary/20" : "border-border"
-                        )}
-                      />
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </section>
         </div>
       </div>
 

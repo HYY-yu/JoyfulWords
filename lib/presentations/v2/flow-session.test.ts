@@ -46,7 +46,6 @@ test("persists and restores a user and article scoped generation", () => {
       generationId: 99,
       templateKey: "node-dsl-example",
       templateVersion: 1,
-      imageStyleId: "photo_illustration",
     },
     storage
   )
@@ -54,7 +53,6 @@ test("persists and restores a user and article scoped generation", () => {
   const restored = loadPresentationFlowSession(8, 42, storage)
   assert.equal(restored?.generationId, 99)
   assert.equal(restored?.templateKey, "node-dsl-example")
-  assert.equal(restored?.imageStyleId, "photo_illustration")
 
   clearPresentationFlowSession(8, 42, storage)
   assert.equal(storage.getItem(getPresentationFlowSessionKey(8, 42)), null)

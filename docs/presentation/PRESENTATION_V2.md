@@ -7,9 +7,8 @@ article.
 
 1. Generate and poll a Storycard.
 2. Edit, save, and confirm the current Storycard version.
-3. Explicitly select a template package and choose one backend-provided image style for the whole
-   presentation.
-4. Create and poll a persistent generation job with the selected `image_style_id`.
+3. Select a template package; illustrations automatically inherit the current design.
+4. Create and poll a persistent generation job.
 5. Download the PPTX or retry the same failed job.
 6. From a terminal generation, explicitly return to the Storycard to start a new revision and
    generation job.
@@ -19,10 +18,8 @@ is the only frontend status source.
 
 ## Image style and generation contract
 
-- `GET /presentations/v2/image-styles` is the only source for selectable styles and the default
-  style. The UI displays localized `label_i18n` values and never exposes or edits `prompt_suffix`.
-- `POST /presentations/v2/generations` sends the selected `image_style_id` together with the
-  confirmed Storycard version and immutable template reference.
+- `POST /presentations/v2/generations` sends only the confirmed Storycard version and immutable template reference.
+- The backend freezes the effective design and uses the AI artwork rendering treatment and palette for illustrations. No style catalog request or selector remains. The response keeps `image_style_id` for audit (`design:<style_slug>` for new jobs). Legacy jobs retain their frozen style and image plan.
 - The backend reuses validated article images first and may generate zero to three additional
   images. `generated_image_count` reports the successfully generated images bound to the job.
 - Generation progress includes `cataloging_images`, `planning_images`, and, when needed,
@@ -48,10 +45,7 @@ is the only frontend status source.
 
 ## Recovery
 
-The browser stores only the generation ID, selected template reference, and selected image style
-ID under a key scoped by user ID and article ID. Storycard content remains server-owned. On reopen,
-the frontend validates the stored style against the latest `/image-styles` response, GETs the
-current Storycard and generation, and discards stale or cross-article job IDs.
+The browser stores only the generation ID and selected template reference under a key scoped by user ID and article ID. Storycard content remains server-owned. On reopen, the frontend GETs the current Storycard and generation, and discards stale or cross-article job IDs.
 
 Once generation starts, the stepper is progress-only. A succeeded or failed generation exposes an
 explicit `Edit Storycard` action that clears the active browser recovery pointer and template

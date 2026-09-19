@@ -21,7 +21,6 @@ import { useTranslation } from "@/lib/i18n/i18n-context"
 import { presentationsV2Client } from "@/lib/api/presentations/v2/client"
 import type {
   GenerationResponse,
-  PPTImageStyle,
   PPTLanguage,
   PPTTemplate,
   StorycardDocument,
@@ -40,7 +39,6 @@ import {
 import { getNonRegressingStageIndex } from "@/lib/presentations/v2/generation-stage"
 import { fetchArticleDesign } from "@/lib/design/article-design"
 import { defaultPresentationTemplate } from "@/lib/presentations/v2/default-template"
-import { resolveImageStyle } from "@/lib/presentations/v2/image-style"
 import { notifyTaskCenterTaskSubmitted } from "@/lib/taskcenter/task-events"
 import { PresentationFlowStepper } from "./presentation-flow-stepper"
 import { StorycardStep } from "./storycard-step"
@@ -106,9 +104,6 @@ export function PresentationFlowDialog({
   const [templates, setTemplates] = useState<PPTTemplate[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<PPTTemplate | null>(null)
-  const [imageStyles, setImageStyles] = useState<PPTImageStyle[]>([])
-  const [imageStylesLoading, setImageStylesLoading] = useState(false)
-  const [selectedImageStyle, setSelectedImageStyle] = useState<PPTImageStyle | null>(null)
   const [generation, setGeneration] = useState<GenerationResponse | null>(null)
   const [maxStageIndex, setMaxStageIndex] = useState(-1)
   const [generationSubmitting, setGenerationSubmitting] = useState(false)
@@ -154,9 +149,6 @@ export function PresentationFlowDialog({
     setTemplates([])
     setTemplatesLoading(false)
     setSelectedTemplate(null)
-    setImageStyles([])
-    setImageStylesLoading(false)
-    setSelectedImageStyle(null)
     setGeneration(null)
     setMaxStageIndex(-1)
     setGenerationSubmitting(false)
@@ -168,8 +160,7 @@ export function PresentationFlowDialog({
   const persistSession = useCallback(
     (
       nextGeneration: GenerationResponse | null,
-      template: PPTTemplate | null = null,
-      imageStyle: PPTImageStyle | null = null
+      template: PPTTemplate | null = null
     ) => {
       if (typeof userId !== "number" || typeof articleId !== "number") return
 
@@ -181,7 +172,6 @@ export function PresentationFlowDialog({
         generationId: nextGeneration?.id,
         templateKey: template?.template_key ?? existing?.templateKey,
         templateVersion: template?.version ?? existing?.templateVersion,
-        imageStyleId: imageStyle?.id ?? existing?.imageStyleId,
       })
     },
     [articleId, userId]
@@ -329,14 +319,12 @@ export function PresentationFlowDialog({
     const sequence = ++mountedSequenceRef.current
     setLoading(true)
     setTemplatesLoading(true)
-    setImageStylesLoading(true)
     setErrorKey(null)
 
     const load = async () => {
-      const [storycardResult, templatesResult, imageStylesResult, designResult] = await Promise.all([
+      const [storycardResult, templatesResult, designResult] = await Promise.all([
         presentationsV2Client.getStorycard(articleId),
         presentationsV2Client.listTemplates(),
-        presentationsV2Client.listImageStyles(),
         fetchArticleDesign(articleId).then(design => ({ design, error: null as Error | null })).catch((error: Error) => ({ design: null, error })),
       ])
       if (sequence !== mountedSequenceRef.current) return
@@ -383,29 +371,6 @@ export function PresentationFlowDialog({
         setSelectedTemplate(defaultPresentationTemplate(templatesResult.templates, designResult.design?.style.slug))
       }
 
-      if (hasApiError(imageStylesResult)) {
-        console.error("[PresentationV2] Failed to load image styles", {
-          status: imageStylesResult.status,
-          error: imageStylesResult.error,
-        })
-        setErrorKey((current) => current ?? "presentationV2.errors.loadImageStyles")
-      } else {
-        setImageStyles(imageStylesResult.styles)
-        const matchedStyle = resolveImageStyle(
-          imageStylesResult.styles,
-          imageStylesResult.default_style,
-          session?.imageStyleId
-        )
-        setSelectedImageStyle(matchedStyle)
-
-        if (!matchedStyle) {
-          console.warn("[PresentationV2] Image styles response has no selectable styles", {
-            defaultStyle: imageStylesResult.default_style,
-          })
-          setErrorKey((current) => current ?? "presentationV2.errors.loadImageStyles")
-        }
-      }
-
       if (session?.generationId) {
         await refreshGeneration(session.generationId, { clearInvalid: true, revealStep: true })
       }
@@ -413,7 +378,6 @@ export function PresentationFlowDialog({
       if (sequence === mountedSequenceRef.current) {
         setLoading(false)
         setTemplatesLoading(false)
-        setImageStylesLoading(false)
       }
     }
 
@@ -581,8 +545,7 @@ export function PresentationFlowDialog({
     if (
       !storycard ||
       storycard.status !== "confirmed" ||
-      !selectedTemplate ||
-      !selectedImageStyle
+      !selectedTemplate
     ) {
       return
     }
@@ -594,7 +557,6 @@ export function PresentationFlowDialog({
         storycard_version: storycard.version,
         template_key: selectedTemplate.template_key,
         template_version: selectedTemplate.version,
-        image_style_id: selectedImageStyle.id,
       })
       if (hasApiError(result)) {
         console.error("[PresentationV2] Generation creation failed", {
@@ -608,7 +570,7 @@ export function PresentationFlowDialog({
       setGeneration(result)
       setMaxStageIndex(getNonRegressingStageIndex(-1, result.stage))
       setStep(result.status === "succeeded" ? 3 : 2)
-      persistSession(result, selectedTemplate, selectedImageStyle)
+      persistSession(result, selectedTemplate)
       lastNotifiedGenerationRef.current = `${result.id}:${result.status}`
       notifyTaskCenterTaskSubmitted({
         type: "presentation",
@@ -623,7 +585,7 @@ export function PresentationFlowDialog({
     } finally {
       setGenerationSubmitting(false)
     }
-  }, [persistSession, selectedImageStyle, selectedTemplate, storycard])
+  }, [persistSession, selectedTemplate, storycard])
 
   const handleRetry = useCallback(async () => {
     if (!generation) return
@@ -753,7 +715,6 @@ export function PresentationFlowDialog({
             onClick={() => void handleCreateGeneration()}
             disabled={
               !selectedTemplate ||
-              !selectedImageStyle ||
               generationSubmitting ||
               generation !== null
             }
@@ -870,17 +831,10 @@ export function PresentationFlowDialog({
         <TemplateStep
           templates={templates}
           selectedTemplate={selectedTemplate}
-          imageStyles={imageStyles}
-          selectedImageStyle={selectedImageStyle}
           templatesLoading={templatesLoading}
-          imageStylesLoading={imageStylesLoading}
           onSelectTemplate={(template) => {
             setSelectedTemplate(template)
-            persistSession(generation, template, selectedImageStyle)
-          }}
-          onSelectImageStyle={(imageStyle) => {
-            setSelectedImageStyle(imageStyle)
-            persistSession(generation, selectedTemplate, imageStyle)
+            persistSession(generation, template)
           }}
         />
       ) : generation ? (

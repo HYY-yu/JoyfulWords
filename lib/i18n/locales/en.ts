@@ -2323,7 +2323,7 @@ export const en = {
         },
         flow: {
             storycard: "Storycard",
-            template: "Template & style",
+            template: "Template",
             generating: "Generate",
             complete: "Complete",
         },
@@ -2386,7 +2386,7 @@ export const en = {
         },
         template: {
             title: "Choose a template package",
-            description: "The package defines the visual system. Individual slides are matched automatically from the Storycard.",
+            description: "Slides are matched automatically from the Storycard. Illustrations inherit your current design style and palette.",
             empty: "No templates are available",
             noDescription: "No template description",
             viewLarge: "View large image",
@@ -2396,12 +2396,7 @@ export const en = {
             privateTemplateQrHint: "Scan with WeChat or click to enlarge",
             privateTemplateQrAlt: "WeChat QR code for private template setup",
             privateTemplateQrPreview: "View the private template contact QR code",
-            generate: "Generate with selected template and style",
-        },
-        imageStyle: {
-            title: "Choose an image style",
-            description: "The style applies to the entire presentation. Existing article images are reused first; when more are needed, up to three images are generated in this style.",
-            empty: "No image styles are available",
+            generate: "Generate with selected template",
         },
         generation: {
             title: "Generating PowerPoint",
@@ -2477,7 +2472,6 @@ export const en = {
             loadStorycard: "Unable to load the Storycard. Try again later.",
             loadGeneration: "Unable to load the PPT generation job. Try again later.",
             loadTemplates: "Unable to load PPT templates. Try again later.",
-            loadImageStyles: "Unable to load PPT image styles. Try again later.",
             generateStorycard: "Unable to start Storycard generation. Try again later.",
             storycardTimeout: "Storycard generation is taking too long. Reopen this panel later.",
             validation: "The Storycard does not meet the presentation contract. Fix the marked issues first.",

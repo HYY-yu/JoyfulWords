@@ -2321,7 +2321,7 @@ export const zh = {
         },
         flow: {
             storycard: "Storycard",
-            template: "模板与风格",
+            template: "模板",
             generating: "生成",
             complete: "完成",
         },
@@ -2384,7 +2384,7 @@ export const zh = {
         },
         template: {
             title: "选择模板包",
-            description: "模板包决定整份演示的视觉体系，具体页面会由系统根据 Storycard 自动匹配。",
+            description: "页面根据 Storycard 自动匹配，插图自动沿用当前设计风格与配色。",
             empty: "当前没有可用模板",
             noDescription: "暂无模板说明",
             viewLarge: "查看大图",
@@ -2394,12 +2394,7 @@ export const zh = {
             privateTemplateQrHint: "微信扫码，或点击放大",
             privateTemplateQrAlt: "联系我们处理私有模板的微信二维码",
             privateTemplateQrPreview: "查看私有模板联系二维码大图",
-            generate: "使用所选模板与风格生成",
-        },
-        imageStyle: {
-            title: "选择图片风格",
-            description: "风格将应用于整份 PPT。系统会优先复用文章图片，并在图片不足时按此风格自动生成最多 3 张图片。",
-            empty: "当前没有可用图片风格",
+            generate: "使用所选模板生成",
         },
         generation: {
             title: "正在生成 PowerPoint",
@@ -2475,7 +2470,6 @@ export const zh = {
             loadStorycard: "无法载入 Storycard，请稍后重试。",
             loadGeneration: "无法载入 PPT 生成任务，请稍后重试。",
             loadTemplates: "无法载入 PPT 模板，请稍后重试。",
-            loadImageStyles: "无法载入 PPT 图片风格，请稍后重试。",
             generateStorycard: "Storycard 生成请求失败，请稍后重试。",
             storycardTimeout: "Storycard 生成时间过长，请稍后重新打开查看。",
             validation: "Storycard 结构不符合生成要求，请先修正标记的问题。",
