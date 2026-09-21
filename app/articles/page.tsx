@@ -1,5 +1,6 @@
 "use client"
 
+import { CaseShowcase } from "@/components/cases/case-showcase"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useTranslation } from "@/lib/i18n/i18n-context"
@@ -571,6 +572,8 @@ export default function ArticlesPage() {
               </div>
             </div>
           </div>
+
+          <CaseShowcase />
 
           <div className="mb-4 overflow-x-auto pb-2 md:mb-3 md:border-b md:border-[var(--jw-border-subtle)] md:pb-4">
             <div className="grid min-w-[900px] grid-cols-[minmax(220px,1fr)_140px_170px_170px_40px_auto] items-center gap-2">

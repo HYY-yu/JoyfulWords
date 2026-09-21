@@ -1,4 +1,29 @@
 export const zh = {
+    cases: {
+    "title": "案例库",
+    "subtitle": "查看当前设计风格的完整作品，从素材到文章与演示文稿。",
+    "view": "查看案例",
+    "loading": "正在加载案例…",
+    "loadFailed": "案例加载失败，请重试。",
+    "retry": "重试",
+    "empty": "当前设计风格的案例正在准备中。",
+    "notFound": "此案例不存在或尚未发布。",
+    "back": "返回文章管理",
+    "login": "登录后查看案例",
+    "noArticle": "暂无文章内容。",
+    "presentation": "配套演示文稿",
+    "downloadPpt": "下载可编辑 PPT",
+    "materials": "创作素材",
+    "source": "查看来源",
+    "styles": {
+        "minimal-business": "简约商务",
+        "editorial-story": "杂志叙事",
+        "hand-drawn": "手绘插画",
+        "cute-chibi": "萌系 Q 版",
+        "premium-glass": "高级毛玻璃",
+        "minimal-light": "极简光影"
+    }
+},
     taskGallery: {
         "title": "任务画廊",
         "currentStyle": "当前设计风格",

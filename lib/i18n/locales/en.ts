@@ -1,4 +1,29 @@
 export const en = {
+    cases: {
+    "title": "Case library",
+    "subtitle": "Explore a complete example in your selected style, from source materials to an article and presentation.",
+    "view": "View case",
+    "loading": "Loading cases…",
+    "loadFailed": "Could not load cases. Please try again.",
+    "retry": "Retry",
+    "empty": "A case for the selected style is being prepared.",
+    "notFound": "This case does not exist or has not been published.",
+    "back": "Back to articles",
+    "login": "Sign in to view this case",
+    "noArticle": "No article available.",
+    "presentation": "Presentation",
+    "downloadPpt": "Download editable PPT",
+    "materials": "Source materials",
+    "source": "View source",
+    "styles": {
+        "minimal-business": "Minimal Business",
+        "editorial-story": "Editorial Story",
+        "hand-drawn": "Hand-drawn Illustration",
+        "cute-chibi": "Cute Chibi",
+        "premium-glass": "Premium Glass",
+        "minimal-light": "Minimal Light"
+    }
+},
     taskGallery: {
         "title": "Task gallery",
         "currentStyle": "Current design style",
