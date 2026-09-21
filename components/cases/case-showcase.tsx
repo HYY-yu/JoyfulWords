@@ -1,5 +1,6 @@
 "use client"
 
+import { CopyCaseButton } from "@/components/cases/copy-case-button"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowUpRight, BookOpen, RefreshCw } from "lucide-react"
@@ -52,23 +53,25 @@ export function CaseShowcase() {
       <h2 id="case-showcase-title" className="jw-heading-text text-base font-semibold">{t("cases.title")}</h2>
       <p className="jw-muted-text mt-1 text-xs sm:text-sm">{t("cases.subtitle")}</p>
       {loading ? (
-        <div role="status" aria-label={t("cases.loading")} className="mt-4 h-40 max-w-4xl animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
+        <div role="status" aria-label={t("cases.loading")} className="mt-4 h-40 w-full animate-pulse rounded-lg bg-muted motion-reduce:animate-none" />
       ) : failed ? (
         <div role="alert" className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
           {t("cases.loadFailed")}<Button size="sm" variant="ghost" onClick={() => setAttempt((value) => value + 1)}><RefreshCw className="mr-2 h-3.5 w-3.5" />{t("cases.retry")}</Button>
         </div>
       ) : !item ? <p className="mt-4 text-sm text-muted-foreground">{t("cases.empty")}</p> : (
-        <Link href={`/articles/cases/${encodeURIComponent(item.slug)}`} className="group mt-4 flex max-w-4xl overflow-hidden rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-strong)] outline-none transition-colors hover:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-4">
-          <div className="relative w-32 shrink-0 overflow-hidden bg-muted sm:w-60">
-            {caseAssetUrl(item.cover_url) ? <img src={caseAssetUrl(item.cover_url)} alt="" className="absolute inset-0 h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none" /> : <BookOpen className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />}
-          </div>
+        <div className="group mt-4 grid grid-cols-[96px_minmax(0,1fr)] overflow-hidden sm:grid-cols-[160px_minmax(0,1fr)] lg:grid-cols-[168px_minmax(0,1fr)_auto] rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-strong)]">
+        <Link href={`/articles/cases/${encodeURIComponent(item.slug)}`} aria-label={caseText(item.title, locale)} className="relative row-span-2 overflow-hidden lg:row-span-1 bg-muted outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
+
+            {caseAssetUrl(item.cover_url) ? <img src={caseAssetUrl(item.cover_url)} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03] motion-reduce:transition-none" /> : <BookOpen className="absolute left-1/2 top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 text-muted-foreground" />}
+        </Link>
           <div className="flex min-w-0 flex-1 flex-col justify-center p-4 sm:min-h-40 sm:p-5">
             <p className="jw-muted-text mb-1.5 text-xs">{t(`cases.styles.${item.style_slug}`)}</p>
             <h3 className="jw-heading-text line-clamp-2 text-sm font-semibold leading-6 sm:text-base">{caseText(item.title, locale)}</h3>
             <p className="jw-muted-text mt-2 line-clamp-2 text-xs leading-5 sm:text-sm sm:leading-6">{caseText(item.summary, locale)}</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--jw-accent)]">{t("cases.view")}<ArrowUpRight className="h-3.5 w-3.5" /></span>
+            <div className="mt-3 flex items-center gap-3"><Link href={`/articles/cases/${encodeURIComponent(item.slug)}`} className="inline-flex items-center gap-1 text-xs font-medium text-[var(--jw-accent)]">{t("cases.view")}<ArrowUpRight className="h-3.5 w-3.5" /></Link></div>
           </div>
-        </Link>
+          <div className="col-start-2 flex items-center justify-end pb-4 pr-3 md:pr-4 lg:col-auto lg:pb-0"><CopyCaseButton slug={item.slug} /></div>
+        </div>
       )}
     </section>
   )

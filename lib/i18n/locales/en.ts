@@ -1,5 +1,10 @@
 export const en = {
     cases: {
+        copy: "Copy case",
+        copying: "Copying…",
+        copySuccess: "Case copied to your articles",
+        copyFailed: "Copy failed. Please try again.",
+
     "title": "Case library",
     "subtitle": "Explore a complete example in your selected style, from source materials to an article and presentation.",
     "view": "View case",

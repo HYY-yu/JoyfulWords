@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { useTranslation } from "@/lib/i18n/i18n-context"
 import { Button } from "@/components/ui/base/button"
 import { BrandLogo } from "@/components/brand/brand-logo"
+import { CopyCaseButton } from "@/components/cases/copy-case-button"
 import { CaseContent } from "@/components/cases/case-content"
 import { casesClient, caseText, caseAssetUrl, type CaseDetail } from "@/lib/api/cases/client"
 
@@ -58,6 +59,7 @@ export default function CasePage() {
             {images.filter((entry) => !article?.content.includes(entry.asset_url)).map((entry) => caseAssetUrl(entry.asset_url) && <figure key={entry.artifact_key} className="mt-8"><a href={caseAssetUrl(entry.asset_url)} target="_blank" rel="noopener noreferrer"><img src={caseAssetUrl(entry.asset_url)} alt={entry.title} loading="lazy" className="w-full rounded-lg" /></a><figcaption className="mt-2 text-sm text-muted-foreground">{entry.title}</figcaption></figure>)}
           </article>
           <aside className="space-y-8 lg:sticky lg:top-8">
+            {article && <CopyCaseButton slug={item.slug} />}
             {ppts.length > 0 && <section><h2 className="mb-3 text-sm font-semibold">{t("cases.presentation")}</h2>{ppts.map((entry) => caseAssetUrl(entry.asset_url) && <a key={entry.artifact_key} href={caseAssetUrl(entry.asset_url)} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 rounded-lg border border-[var(--jw-border-subtle)] bg-[var(--jw-surface-strong)] p-4 text-sm hover:border-primary"><span>{t("cases.downloadPpt")}</span><Download className="h-4 w-4 shrink-0" /></a>)}</section>}
             <section><h2 className="mb-2 text-sm font-semibold">{t("cases.materials")} <span className="ml-1 font-normal text-muted-foreground">{item.materials.length}</span></h2><div className="divide-y divide-[var(--jw-border-subtle)]">{item.materials.map((material) => <details key={material.material_key} className="py-3"><summary className="cursor-pointer text-sm font-medium leading-6">{material.title}</summary><div className="mt-3 text-sm leading-7"><CaseContent content={material.content} />{caseAssetUrl(material.source_url) && <a href={caseAssetUrl(material.source_url)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-primary">{t("cases.source")}<ArrowUpRight className="h-3.5 w-3.5" /></a>}</div></details>)}</div></section>
           </aside>

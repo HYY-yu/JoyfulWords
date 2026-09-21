@@ -1,5 +1,10 @@
 export const zh = {
     cases: {
+        copy: "复制案例",
+        copying: "复制中…",
+        copySuccess: "案例已复制到我的文章",
+        copyFailed: "复制失败，请稍后重试",
+
     "title": "案例库",
     "subtitle": "查看当前设计风格的完整作品，从素材到文章与演示文稿。",
     "view": "查看案例",

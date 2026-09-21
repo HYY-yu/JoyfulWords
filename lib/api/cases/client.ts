@@ -16,6 +16,9 @@ export interface CaseDetail extends CaseSummary {
   artifacts: { artifact_key: string; artifact_type: string; locale: string; title: string; asset_url: string; preview_url: string }[]
 }
 export const casesClient = {
+  copy(slug: string): Promise<{ article_id: number } | ErrorResponse> {
+    return authenticatedApiRequest(`/api/v1/cases/${encodeURIComponent(slug)}/copy`, { method: "POST" })
+  },
   list(signal?: AbortSignal): Promise<{ items: CaseSummary[] } | ErrorResponse> {
     return authenticatedApiRequest("/api/v1/cases", { signal })
   },
